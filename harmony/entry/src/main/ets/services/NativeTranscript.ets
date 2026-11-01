@@ -15,12 +15,15 @@ export function nativeToolCategory(name: string): string {
   if (name === 'read_image') return 'readImage';
   if (name === 'grep' || name === 'glob' || name.endsWith('_inspect')) return 'search';
   if (name === 'write') return 'write';
-  if (name === 'edit' || name === 'apply_patch') return 'edit';
-  if (['bash', 'pwsh', 'exec_command', 'write_stdin'].includes(name) || name.startsWith('terminal_')) return 'commands';
+  if (name === 'edit' || name === 'apply_patch' || name === 'str_replace_editor') return 'edit';
+  if (['bash', 'pwsh', 'exec_command', 'write_stdin', 'job_output', 'job_kill'].includes(name) ||
+    name.startsWith('terminal_')) return 'commands';
   if (name === 'run_code') return 'code';
   if (name === 'web_search') return 'webSearch';
   if (name === 'web_fetch') return 'webFetch';
-  if (name === 'subagent' || name.startsWith('subagent_')) return 'subagents';
+  if (name === 'subagent' || name.startsWith('subagent_') || name === 'send_message' ||
+    name === 'interrupt_agent' || name === 'workflow' || name === 'ralph' ||
+    name === 'skill') return 'subagents';
   if (['todo_write', 'create_goal', 'update_goal', 'get_goal'].includes(name)) return 'plan';
   if (['ask_user_question', 'request_user_input'].includes(name)) return 'questions';
   return 'tools';

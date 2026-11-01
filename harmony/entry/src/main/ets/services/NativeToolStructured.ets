@@ -291,6 +291,16 @@ function genericSummary(tool: NativeMessage, args: Record<string, Object> | null
   return tool.phase === 'preparing' ? '' : tool.toolName;
 }
 
+function addReadFields(document: NativeToolStructured): void {
+  document.fields = [];
+  addField(document, '行号', document.read.offset > 0 ? '从 ' +
+    document.read.offset.toString() + ' 开始' : '');
+  addField(document, '行数', document.read.limit > 0 ? document.read.limit.toString() : '');
+  addField(document, '总行数', document.read.totalLines >= 0 ?
+    document.read.totalLines.toString() : '');
+  addField(document, '语言', document.read.language);
+}
+
 function parseRead(document: NativeToolStructured, tool: NativeMessage,
   args: Record<string, Object> | null, meta: Record<string, Object> | null,
   workspaceRoot: string): void {
@@ -310,12 +320,6 @@ function parseRead(document: NativeToolStructured, tool: NativeMessage,
   document.read.limit = args ? integerValue(args['limit'], false) : -1;
   document.read.language = firstString(meta, ['lang']) || descriptor.language;
   document.read.totalLines = meta ? integerValue(meta['totalLines']) : -1;
-  addField(document, '行号', document.read.offset > 0 ? '从 ' +
-    document.read.offset.toString() + ' 开始' : '');
-  addField(document, '行数', document.read.limit > 0 ? document.read.limit.toString() : '');
-  addField(document, '总行数', document.read.totalLines >= 0 ?
-    document.read.totalLines.toString() : '');
-  addField(document, '语言', document.read.language);
 
   if (successfulResult(tool) && meta && Array.isArray(meta['lines'])) {
     const rawLines = meta['lines'] as Object[];
@@ -340,6 +344,7 @@ function parseRead(document: NativeToolStructured, tool: NativeMessage,
       document.bodyStructured = true;
       document.showRawOutput = false;
       document.read.offset = document.read.lines[0].number;
+      addReadFields(document);
       return;
     }
     document.read.lines = [];
@@ -374,6 +379,7 @@ function parseRead(document: NativeToolStructured, tool: NativeMessage,
       document.showRawOutput = false;
     }
   }
+  addReadFields(document);
 }
 
 function parseSearch(document: NativeToolStructured, tool: NativeMessage,
@@ -832,7 +838,8 @@ export function nativeToolStructured(tool: NativeMessage, workspaceRoot: string 
 
 function toolCategory(name: string): string {
   if (name === 'bash' || name === 'pwsh' || name === 'exec_command' ||
-      name === 'write_stdin' || name.startsWith('terminal_')) return 'commands';
+      name === 'write_stdin' || name === 'job_output' || name === 'job_kill' ||
+      name.startsWith('terminal_')) return 'commands';
   if (name === 'write' || name === 'edit' || name === 'apply_patch' ||
       name === 'str_replace_editor') return 'edit';
   if (name === 'read' || name === 'read_image') return 'read';

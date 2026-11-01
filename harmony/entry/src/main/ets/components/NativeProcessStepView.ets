@@ -14,6 +14,8 @@ import { NativeDesign } from '../services/NativeDesign';
 export struct NativeProcessStepView {
   client: NativeHarnessClient = new NativeHarnessClient('');
   sessionId: string = '';
+  workspaceRoot: string = '';
+  onOpenFile: (path: string) => void = (_path: string): void => {};
   disclosures: Map<string, boolean> = new Map<string, boolean>();
   @Prop @Watch('changed') message: NativeMessage = new NativeMessage();
   @Prop maxExpandedHeight: number = 240;
@@ -73,6 +75,7 @@ export struct NativeProcessStepView {
   private detail() {
     if (this.message.role === 'tool') {
       NativeToolCallView({ client: this.client, sessionId: this.sessionId, message: this.message,
+        workspaceRoot: this.workspaceRoot, onOpenFile: this.onOpenFile,
         disclosures: this.disclosures, hideHeader: true, forceExpanded: true,
         maxExpandedHeight: this.maxExpandedHeight })
     } else {

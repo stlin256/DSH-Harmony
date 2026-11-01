@@ -207,6 +207,7 @@ export struct NativeWorkspace {
   private model: NativeSessionModel = new NativeSessionModel();
   private transcriptBaseSource: NativeMessage[] | null = null;
   private transcriptBaseRows: NativeMessage[] = [];
+  private transcriptBaseRoot: string = '';
   private textProjectionCacheHit: boolean = false;
   private lastRenderedStreamText: string = '';
   private streamTextPatchDirty: boolean = false;
@@ -1781,16 +1782,21 @@ export struct NativeWorkspace {
     }
   }
   private projectTranscriptRows(): NativeMessage[] {
+    const workspaceRoot = this.workspaceRootFor(this.selected);
     const hasLiveProcess = this.model.streamTools.length > 0 || !!this.model.streamReasoning.trim();
     if (hasLiveProcess) {
       this.textProjectionCacheHit = false;
       return nativeTranscript(this.model.messages, this.model.running,
-        this.model.streamTools, this.model.streamReasoning, this.model.streamText);
+        this.model.streamTools, this.model.streamReasoning, this.model.streamText,
+        workspaceRoot);
     }
-    if (this.transcriptBaseSource !== this.model.messages) {
+    if (this.transcriptBaseSource !== this.model.messages ||
+        this.transcriptBaseRoot !== workspaceRoot) {
       this.textProjectionCacheHit = false;
       this.transcriptBaseSource = this.model.messages;
-      this.transcriptBaseRows = nativeTranscript(this.model.messages, this.model.running, []);
+      this.transcriptBaseRoot = workspaceRoot;
+      this.transcriptBaseRows = nativeTranscript(this.model.messages, this.model.running, [],
+        '', '', workspaceRoot);
     } else {
       this.textProjectionCacheHit = true;
     }
@@ -1808,7 +1814,8 @@ export struct NativeWorkspace {
     } else {
       rows = this.projectTranscriptRows();
       visible = nativePresentTranscript(rows, this.client.hostSettings.chat(),
-        this.model.turnDisclosure, this.model.collapseThrough);
+        this.model.turnDisclosure, this.model.collapseThrough,
+        this.workspaceRootFor(this.selected));
     }
     const processStructure = nativeProcessStructureChange(this.visibleRows, visible);
     if (!this.suppressProcessEntrance && processStructure.changed()) {
@@ -2597,6 +2604,8 @@ export struct NativeWorkspace {
             ListItem() {
               if (message.role === 'process') {
                 NativeProcessView({ client: this.client, sessionId: this.selected, message,
+                  workspaceRoot: this.workspaceRootFor(this.selected),
+                  onOpenFile: (path: string): void => { this.openTurnChangeFile(path); },
                   disclosures: this.model.disclosures,
                   newlyAppeared: this.processEntranceIds.includes(message.id),
                   maxExpandedHeight: Math.max(180, this.transcriptViewportHeight * 0.6),

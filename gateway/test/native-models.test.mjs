@@ -1960,6 +1960,10 @@ test('running activity uses latest still-running start time and exact upstream t
   assert.equal(nativeToolCategory('functions.read'),'tools');
   assert.equal(nativeToolCategory('terminal_inspect'),'search');
   assert.equal(nativeToolCategory('subagent_codex'),'subagents');
+  assert.equal(nativeToolCategory('job_output'),'commands');
+  assert.equal(nativeToolCategory('str_replace_editor'),'edit');
+  assert.equal(nativeToolCategory('workflow'),'subagents');
+  assert.equal(nativeToolCategory('skill'),'subagents');
   assert.equal(nativeToolDetail({args:'{"questions":[{"question":"Choose scope"}]}',phase:'start',toolName:'request_user_input'}),'Choose scope');
   assert.equal(nativeToolDetail({args:'{"command":"first\\nsecond"}',phase:'start',toolName:'exec_command'}),
     'first second');

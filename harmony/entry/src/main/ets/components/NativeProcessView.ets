@@ -11,6 +11,8 @@ import { NativeDesign } from '../services/NativeDesign';
 export struct NativeProcessView {
   client: NativeHarnessClient = new NativeHarnessClient('');
   sessionId: string = '';
+  workspaceRoot: string = '';
+  onOpenFile: (path: string) => void = (_path: string): void => {};
   disclosures: Map<string, boolean> = new Map<string, boolean>();
   @Prop @Watch('changed') message: NativeMessage = new NativeMessage();
   @Prop newlyAppeared: boolean = false;
@@ -65,6 +67,7 @@ export struct NativeProcessView {
       LazyForEach(this.source, (child: NativeMessage) => {
         ListItem() {
           NativeProcessStepView({ client: this.client, sessionId: this.sessionId, message: child,
+            workspaceRoot: this.workspaceRoot, onOpenFile: this.onOpenFile,
             disclosures: this.disclosures, maxExpandedHeight: this.maxChildExpandedHeight })
         }
       }, (child: NativeMessage) => child.id)

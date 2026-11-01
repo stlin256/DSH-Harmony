@@ -12,11 +12,15 @@ import { NativeMotion } from '../services/NativeMotion';
 import { NativePlanDocument, nativePlanDocument } from '../services/NativePlan';
 import { NativePlanView } from './NativePlanView';
 import { NativeDesign } from '../services/NativeDesign';
+import { NativeToolStructured, nativeToolStructured } from '../services/NativeToolStructured';
+import { NativeStructuredToolView } from './NativeStructuredToolView';
 
 @Component
 export struct NativeToolCallView {
   client: NativeHarnessClient = new NativeHarnessClient('');
   sessionId: string = '';
+  workspaceRoot: string = '';
+  onOpenFile: (path: string) => void = (_path: string): void => {};
   disclosures: Map<string, boolean> = new Map<string, boolean>();
   @Prop @Watch('changed') message: NativeMessage = new NativeMessage();
   @Prop depth: number = 0;
@@ -27,6 +31,7 @@ export struct NativeToolCallView {
   @State private expanded: boolean = false;
   @State private diff: NativeDiffDocument = new NativeDiffDocument();
   @State private plan: NativePlanDocument = new NativePlanDocument();
+  @State private structured: NativeToolStructured = new NativeToolStructured();
   @State private detail: string = '';
   aboutToAppear(): void {
     const saved = this.disclosures.get(this.message.turnKey + '|' + this.message.id);
@@ -38,7 +43,8 @@ export struct NativeToolCallView {
     this.diff = ['edit', 'write'].includes(category) ? nativeDiff(this.message) : new NativeDiffDocument();
     this.plan = this.message.toolName === 'todo_write' ?
       nativePlanDocument(this.message) : new NativePlanDocument();
-    this.detail = nativeToolDetail(this.message);
+    this.structured = nativeToolStructured(this.message, this.workspaceRoot);
+    this.detail = nativeToolDetail(this.message, this.workspaceRoot);
   }
   private toggle(): void {
     if (this.message.phase === 'preparing') return;
@@ -101,7 +107,18 @@ export struct NativeToolCallView {
                 Text(this.message.phase === 'preparing' ? '正在更新计划' : '计划内容不可用')
                   .fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
               }
-            } else if (this.message.args && nativeToolArgumentsVisible(this.message)) {
+            } else if (this.structured.bodyStructured) {
+              NativeStructuredToolView({
+                client: this.client,
+                sessionId: this.sessionId,
+                document: this.structured,
+                maxExpandedHeight: this.maxExpandedHeight,
+                onOpenFile: this.onOpenFile
+              })
+            }
+            if (!this.diff.matched && this.message.toolName !== 'todo_write' &&
+              this.structured.showRawArguments && this.message.args &&
+              nativeToolArgumentsVisible(this.message)) {
               NativeTextContent({ text: this.message.args, monospace: true, client: this.client, sessionId: this.sessionId })
             }
             if (this.message.images.length) {
@@ -112,6 +129,7 @@ export struct NativeToolCallView {
               })
             }
             if (!this.diff.matched && this.message.toolName !== 'todo_write' &&
+              this.structured.showRawOutput &&
               this.message.output && nativeToolOutputVisible(this.message)) {
               Divider().color(NativeDesign.divider(this.dark))
               if (this.message.blocks.length) {
@@ -131,6 +149,7 @@ export struct NativeToolCallView {
             }
             ForEach(this.message.children, (child: NativeMessage) => {
               NativeNestedToolRow({ client: this.client, sessionId: this.sessionId, message: child,
+                workspaceRoot: this.workspaceRoot, onOpenFile: this.onOpenFile,
                 maxExpandedHeight: this.maxExpandedHeight })
             }, (child: NativeMessage) => child.id)
           }.padding({ left: 8, right: 16, top: 8, bottom: 8 }).width('100%')
@@ -150,12 +169,19 @@ export struct NativeToolCallView {
 struct NativeNestedToolRow {
   client: NativeHarnessClient = new NativeHarnessClient('');
   sessionId: string = '';
-  @Prop message: NativeMessage = new NativeMessage();
+  workspaceRoot: string = '';
+  onOpenFile: (path: string) => void = (_path: string): void => {};
+  @Prop @Watch('changed') message: NativeMessage = new NativeMessage();
   @Prop maxExpandedHeight: number = 240;
   @StorageLink('nativeDark') private dark: boolean = false;
   @State private expanded: boolean = false;
+  @State private structured: NativeToolStructured = new NativeToolStructured();
 
-  private preview(): string { return nativeToolDetail(this.message); }
+  aboutToAppear(): void { this.changed(); }
+  private changed(): void {
+    this.structured = nativeToolStructured(this.message, this.workspaceRoot);
+  }
+  private preview(): string { return nativeToolDetail(this.message, this.workspaceRoot); }
   private toggle(): void {
     NativeMotion.disclosure(this.getUIContext(), (): void => { this.expanded = !this.expanded; });
   }
@@ -190,10 +216,6 @@ struct NativeNestedToolRow {
       if (this.expanded) {
         Scroll() {
           Column({ space: 5 }) {
-            if (this.message.args && nativeToolArgumentsVisible(this.message)) {
-              NativeTextContent({ text: this.message.args, monospace: true,
-                client: this.client, sessionId: this.sessionId })
-            }
             if (this.message.images.length) {
               NativeImageStrip({
                 client: this.client,
@@ -201,7 +223,22 @@ struct NativeNestedToolRow {
                 attachments: this.message.images
               })
             }
-            if (this.message.output && nativeToolOutputVisible(this.message)) {
+            if (this.structured.bodyStructured) {
+              NativeStructuredToolView({
+                client: this.client,
+                sessionId: this.sessionId,
+                document: this.structured,
+                maxExpandedHeight: this.maxExpandedHeight,
+                onOpenFile: this.onOpenFile
+              })
+            }
+            if (this.structured.showRawArguments && this.message.args &&
+              nativeToolArgumentsVisible(this.message)) {
+              NativeTextContent({ text: this.message.args, monospace: true,
+                client: this.client, sessionId: this.sessionId })
+            }
+            if (this.structured.showRawOutput && this.message.output &&
+              nativeToolOutputVisible(this.message)) {
               if (this.message.blocks.length) {
                 NativeRichContent({
                   blocks: this.message.blocks,
