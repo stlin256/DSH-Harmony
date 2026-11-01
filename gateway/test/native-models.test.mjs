@@ -377,7 +377,7 @@ test('navigation polish keeps the drawer, uses incremental browsing and guarded 
   assert.match(browser,/private back\(confirmAtRoot: boolean = false\): void/);
   assert.match(browser,/if \(!confirmAtRoot\) \{[\s\S]{0,100}this\.onClose\(\)/);
   assert.match(browser,/private systemBack\(\): void \{\s*this\.back\(true\);/);
-  assert.match(browser,/accessibilityText\('返回'\)\.onClick\(\(\) => \{ this\.back\(false\); \}\)/);
+  assert.match(browser,/NativeIconButton\(\{\s*glyph: 'chevron-left-outline',\s*label: '返回',[\s\S]{0,120}onPressed: \(\): void => \{ this\.back\(false\); \}/);
   assert.match(browser,/@Prop previewOnly: boolean = false/);
   assert.match(browser,/if \(!this\.previewOnly\) this\.history\.push\('directory', this\.navigationPath\)/);
   assert.match(browser,/if \(this\.previewOnly\) \{[\s\S]{0,100}this\.onClose\(\)/);
@@ -1232,8 +1232,9 @@ test('turn change card and bottom live control keep compact ownership and motion
   assert.match(view, /Text\(this\.fileDirectory\(file\)\)[\s\S]{0,180}\.flexShrink\(3\)/);
   assert.match(view, /Text\(this\.fileName\(file\)\)[\s\S]{0,100}\.flexShrink\(1\)/);
   assert.doesNotMatch(view, /layoutWeight\(this\.fileDirectory\(file\) \? 2 : 1\)/);
-  assert.match(view, /\.width\('100%'\)\.clip\(true\)\.borderRadius\(14\)/);
-  assert.match(view, /duration: 170/);
+  assert.match(view, /\.width\('100%'\)\.clip\(true\)\.borderRadius\(NativeDesign\.radiusGroup\)/);
+  assert.match(view, /\.backgroundColor\(NativeDesign\.raised\(this\.dark\)\)/);
+  assert.match(view, /NativeMotion\.duration\('micro'\) \+ 30/);
   assert.match(view, /translate\(\{ y: -7 \* this\.progress \}\)/);
   assert.match(view, /!NativeMotion\.enabled\(\)/);
   assert.doesNotMatch(view, /撤销|查看变更/);
@@ -1269,8 +1270,10 @@ test('turn change card and bottom live control keep compact ownership and motion
     'foreground blur on an empty material layer cannot create a gradient backdrop blur');
   assert.match(dock, /Component material performs the actual backdrop blur/);
   assert.match(dock, /\.linearGradient\(\{[\s\S]{0,300}angle: 180/);
-  assert.match(dock, /#00FFFFFF[\s\S]{0,140}#B8FFFFFF/);
-  assert.match(dock, /#001D1E20[\s\S]{0,140}#B3232528/);
+  assert.match(dock,
+    /NativeDesign\.blurScrimTop\(false\)[\s\S]{0,180}NativeDesign\.blurScrimBottom\(false\)/);
+  assert.match(dock,
+    /NativeDesign\.blurScrimTop\(true\)[\s\S]{0,180}NativeDesign\.blurScrimBottom\(true\)/);
   assert.doesNotMatch(dock, /\.backgroundColor\(/);
   assert.match(dock, /margin\(\{ left: -this\.horizontalBleed, right: -this\.horizontalBleed \}\)/);
   assert.match(dock, /nativeSafeBottom/);
@@ -1400,7 +1403,7 @@ test('todo_write projects structured status rows and the newest replacement plan
   assert.match(workspaceView,/contentStartOffset\(this\.taskPlan\.items\.length \? this\.conversationDockHeight : 0\)/);
   assert.match(workspaceView,/NativeConversationDock\(\) \{[\s\S]{0,260}\.onAreaChange/);
   assert.match(workspaceView,/glyph: 'chevron-down-outline'/);
-  assert.match(workspaceView,/\.width\(34\)\.height\(34\)\.borderRadius\(17\)/);
+  assert.match(workspaceView,/\.width\(39\)\.height\(39\)\.borderRadius\(19\.5\)/);
   assert.match(workspaceView,/\.opacity\(this\.backToBottomPressed \? 0\.85 : 0\.6\)/);
   assert.match(workspaceView,/TouchType\.Down/);
   assert.doesNotMatch(workspaceView,/7A8AB4FF|663964FE/);
@@ -1412,8 +1415,8 @@ test('todo_write projects structured status rows and the newest replacement plan
     import.meta.url),'utf8');
   assert.match(taskDock,/constraintSize\(\{ maxHeight: 180 \}\)/);
   assert.match(taskDock,/NativeMotion\.disclosure\(this\.getUIContext\(\)/);
-  assert.match(taskDock,/\.height\(32\)/);
-  assert.match(taskDock,/this\.dark \? '#242527' : '#FFFFFF'/);
+  assert.match(taskDock,/\.height\(NativeDesign\.hitTarget\)/);
+  assert.match(taskDock,/\.backgroundColor\(NativeDesign\.raised\(this\.dark\)\)/);
   const showcase=readFileSync(new URL('../../harmony/entry/src/main/ets/services/StoreShowcaseClient.ets',
     import.meta.url),'utf8');
   assert.match(showcase,/release-plan-refresh/);
@@ -1597,7 +1600,7 @@ test('PDF and HTML preview source contracts use bounded native surfaces', () => 
   assert.match(preview, /fileIo\.unlinkSync\(this\.pdfUri\)/);
   assert.doesNotMatch(preview, /filePreview\.openPreview/);
   assert.doesNotMatch(preview, /setRenderMode|PresetRenderMode/);
-  assert.match(preview, /\.backgroundColor\(this\.dark \? '#151517' : '#EEF0F3'\)/);
+  assert.match(preview, /\.backgroundColor\(NativeDesign\.subtleSurface\(this\.dark\)\)/);
   assert.match(preview, /NativeHtmlPreview\(\{ client: this\.client, sessionId: this\.sessionId/);
   assert.match(preview, /NativeMarkdownPreview\(\{ client: this\.client, sessionId: this\.sessionId/);
   assert.match(preview, /scrollBar\(BarState\.Auto\)[\s\S]{0,160}align\(Alignment\.TopStart\)/);
@@ -2347,7 +2350,7 @@ test('user message copy is a long-press action and does not add a footer row', (
 test('sent-image lightbox exposes the shared download and close actions', () => {
   const source=readFileSync(new URL('../../harmony/entry/src/main/ets/components/NativeImageLightbox.ets', import.meta.url),'utf8');
   assert.match(source,/glyph: 'download-outline'[\s\S]{0,180}accessibilityText\('下载图片'\)[\s\S]{0,80}saveToGallery\(\)/);
-  assert.match(source,/glyph: 'close-outline'[\s\S]{0,160}accessibilityText\('关闭图片预览'\)/);
+  assert.match(source,/DSHIcon\(\{ glyph: 'close-outline',[\s\S]{0,260}accessibilityText\('关闭图片预览'\)/);
 });
 
 test('virtual native text windows reconstruct complete Unicode without splitting surrogate pairs', () => {

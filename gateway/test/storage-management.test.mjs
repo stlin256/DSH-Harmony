@@ -200,8 +200,8 @@ test('Settings exposes confirmed red storage clearing without success feedback',
   assert.match(settings, /NativeStorageManager\.clearScope\(context, this\.client\.cacheKey\(\)\)/);
   assert.match(settings, /title: '清空缓存'/);
   assert.match(settings, /message: '仅清除当前账户的本机缓存，不会退出登录或删除远端内容。'/);
-  assert.match(settings, /fontColor: '#D44A4A'/);
-  assert.match(settings, /Text\('清空缓存'\)[\s\S]{0,100}fontColor\(this\.dark \? '#FF9999' : '#B83A3A'\)/);
+  assert.match(settings, /fontColor: NativeDesign\.danger\(this\.dark\)/);
+  assert.match(settings, /Text\('清空缓存'\)[\s\S]{0,100}fontColor\(this\.dangerText\(\)\)/);
   assert.match(settings, /this\.settingsPage === 'storage'/);
   assert.match(settings, /storageBreakdownRow\(title: string, kind: string\)/);
   assert.match(settings, /nativeFormatStorageBytes\(this\.storageBreakdownValue\(kind\)\)/);
