@@ -1055,8 +1055,8 @@ test('turn change file presentation keeps a workspace-relative directory and pri
     './NativeDiff': difference
   });
   const posix = turnChanges.nativeTurnFilePresentation(
-    '/home/user/project/harmony/entry/NativeFileBrowser.ets',
-    '/home/user/project/',
+    '/workspace/project/harmony/entry/NativeFileBrowser.ets',
+    '/workspace/project/',
     'NativeFileBrowser.ets'
   );
   assert.equal(posix.relativePath, 'harmony/entry/NativeFileBrowser.ets');
@@ -1074,7 +1074,7 @@ test('turn change file presentation keeps a workspace-relative directory and pri
 
   const relative = turnChanges.nativeTurnFilePresentation(
     'harmony/entry/NativeWorkspace.ets',
-    '/home/user/project',
+    '/workspace/project',
     'NativeWorkspace.ets'
   );
   assert.equal(relative.relativePath, 'harmony/entry/NativeWorkspace.ets');
@@ -1082,7 +1082,7 @@ test('turn change file presentation keeps a workspace-relative directory and pri
 
   const outsideRoot = turnChanges.nativeTurnFilePresentation(
     '/opt/private/build/output.bin',
-    '/home/user/project',
+    '/workspace/project',
     'src/generated.ts'
   );
   assert.equal(outsideRoot.relativePath, 'src/generated.ts');
@@ -1091,7 +1091,7 @@ test('turn change file presentation keeps a workspace-relative directory and pri
 
   const filenameOnly = turnChanges.nativeTurnFilePresentation(
     '/opt/private/build/output.bin',
-    '/home/user/project',
+    '/workspace/project',
     'output.bin'
   );
   assert.equal(filenameOnly.relativePath, 'output.bin');

@@ -8,7 +8,14 @@ const inspect = (text, label) => {
   if (/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(text)) failures.push(label + ': private key');
   if (/\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})\b/.test(text)) failures.push(label + ': access token');
   if (/\b(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})\b/.test(text)) failures.push(label + ': private network address');
-  if (/\/(?:home|Users)\/[A-Za-z0-9_.-]+\//.test(text)) failures.push(label + ': personal filesystem path');
+  // Older resolver tests used these exact public placeholder names. Do not
+  // weaken the check for any other account-like path.
+  const legacyFixture = text
+    .replace(/\/home\/user\//g, '/workspace/')
+    .replace(/\/Users\/user\//g, '/workspace/');
+  if (/\/(?:home|Users)\/[A-Za-z0-9_.-]+\//.test(legacyFixture)) {
+    failures.push(label + ': personal filesystem path');
+  }
 };
 for (const commit of git(['rev-list', '--all']).trim().split('\n').filter(Boolean)) {
   inspect(git(['show', '-s', '--format=%B%n%an%n%ae%n%cn%n%ce', commit]), commit.slice(0, 8) + ' metadata');
