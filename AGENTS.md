@@ -252,6 +252,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-11-01-visual-consistency-dock-send-e2e.md](docs/specs/2026-11-01-visual-consistency-dock-send-e2e.md)
 - Visual consistency, screenshot and Dock send E2E:
   [2026-11-01-visual-consistency-dock-send-e2e.md](docs/testing/2026-11-01-visual-consistency-dock-send-e2e.md)
+- Streaming scroll and Dock spring requirement:
+  [2026-11-01-stream-scroll-dock-spring.md](docs/requirements/2026-11-01-stream-scroll-dock-spring.md)
+- Streaming scroll and Dock spring research:
+  [2026-11-01-stream-scroll-dock-spring.md](docs/research/2026-11-01-stream-scroll-dock-spring.md)
+- Streaming scroll and Dock spring implementation spec:
+  [2026-11-01-stream-scroll-dock-spring.md](docs/specs/2026-11-01-stream-scroll-dock-spring.md)
+- Streaming scroll and Dock spring device E2E:
+  [2026-11-01-stream-scroll-dock-spring-e2e.md](docs/testing/2026-11-01-stream-scroll-dock-spring-e2e.md)
 
 ## Upstream Tracking
 
