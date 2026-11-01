@@ -3,6 +3,20 @@
 Device evidence is required. Source tests and compilation prove contracts, not
 live-network stability.
 
+## Automated and remote evidence
+
+Recorded on 2026-11-01:
+
+- Gateway and native model tests: `151/151` passed.
+- Personal and Store Release variants compiled and signed.
+- Plugin `0.3.7` was deployed to a versioned remote release. The native probe
+  authenticated, received sessions over protocol `2`, opened the live channel
+  successfully, and logged out.
+- Remote preflight reported Harness reachable with no running sessions during
+  deployment.
+- No HarmonyOS target was online, so none of the device rows below are marked
+  as passed.
+
 | ID | Scenario | Expected | Status |
 | --- | --- | --- | --- |
 | STAB-01 | Start a long assistant response over the normal foreground connection | Text continues without a manual cold launch; no partial-to-empty flash | Pending |
