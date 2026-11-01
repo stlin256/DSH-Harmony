@@ -102,7 +102,6 @@ export struct NativeWorkspace {
   onSnapshot: (value: string) => Promise<void> = async (): Promise<void> => {};
   onLocalNotification: (sessionId: string, title: string, state: string) => Promise<void> = async (): Promise<void> => {};
   onCompatibility: () => void = (): void => {};
-  onDestination: (destination: string) => void = (): void => {};
   onWorkspaceReady: () => void = (): void => {};
   @StorageLink('nativeBackRevision') @Watch('backToSessions') private backRevision: number = 0;
   @StorageLink('nativeImagePreviewRevision') @Watch('imagePreviewChanged') private imagePreviewRevision: number = 0;
@@ -111,7 +110,6 @@ export struct NativeWorkspace {
   @StorageLink('nativeHostSettingsRevision') @Watch('preferencesChanged') private preferencesRevision: number = 0;
   @StorageLink('nativeModelRevision') @Watch('modelCaptionChanged') private modelRevision: number = 0;
   @StorageLink('nativeRefreshRevision') @Watch('reload') private refreshRevision: number = 0;
-  @StorageLink('nativeCompatibilityActive') @Watch('activityChanged') private fallbackActive: boolean = false;
   @StorageLink('nativeAppActive') @Watch('activityChanged') private active: boolean = true;
   @StorageLink('nativeBackgroundMonitor') @Watch('activityChanged') private backgroundMonitor: boolean = false;
   @StorageLink('requestedSession') @Watch('openRequested') private requestedSession: string = '';
@@ -448,7 +446,7 @@ export struct NativeWorkspace {
       const value = await sessionsPending;
       const nextWorkspaces = await workspacesPending;
       if (!this.mounted || generation !== this.generation) return;
-      if (value.protocol !== 2) throw new Error('请升级网关或使用兼容模式');
+      if (value.protocol !== 2) throw new Error('请升级 DSH Harmony 插件或网关');
       this.sessions = value.items;
       if (nextWorkspaces.available) {
         this.workspaces = nextWorkspaces;
@@ -537,16 +535,16 @@ export struct NativeWorkspace {
   private handleError(error: Error): void {
     if (!this.mounted) return;
     if (error instanceof NativeHttpError && error.status === 401) { this.onLogin(); return; }
-    this.error = error.message || '连接失败，请刷新或使用兼容模式';
+    this.error = error.message || '连接失败，请刷新后重试';
   }
   private activityChanged(): void {
     clearTimeout(this.reconnectTimer); clearTimeout(this.widgetTimer);
     clearTimeout(this.followWatchdogTimer); clearTimeout(this.settlementTimer);
     clearTimeout(this.widgetEventTimer);
-    if (!this.active || this.fallbackActive) {
+    if (!this.active) {
       this.pauseHistoryDrain();
       this.persistCache();
-      const keepBackgroundLive = !this.active && !this.fallbackActive && this.backgroundMonitor &&
+      const keepBackgroundLive = !this.active && this.backgroundMonitor &&
         !this.supportsPush && this.selected.length > 0;
       if (keepBackgroundLive) {
         this.connectionPhase = 'syncing';
@@ -567,7 +565,7 @@ export struct NativeWorkspace {
     clearTimeout(this.settlementTimer); this.settlementTimer = -1;
   }
   private liveAllowed(id: string = ''): boolean {
-    if (!this.mounted || this.fallbackActive || (id && this.selected !== id)) return false;
+    if (!this.mounted || (id && this.selected !== id)) return false;
     return this.active || (this.backgroundMonitor && !this.supportsPush && this.selected.length > 0);
   }
   private touchFollow(id: string): void {
@@ -639,16 +637,9 @@ export struct NativeWorkspace {
     }, NativeMotion.enabled() ? NativeMotion.duration('surface') : 0);
     this.restoreScrollTailAfterDrawer();
   }
-  private openDrawerDestination(destination: string): void {
+  private openDrawerDestination(): void {
     clearTimeout(this.destinationTimer);
     this.closeDrawer();
-    // Temporary product gate: keep the original compatibility routing here for
-    // restoration after these entries have a native implementation.
-    // Mounting the web surface from the drawer row's press handler can race
-    // the native drawer teardown on some devices. Commit it on the next task.
-    // this.destinationTimer = setTimeout((): void => {
-    //   if (this.mounted) this.onDestination(destination);
-    // }, 0);
     this.getUIContext().getPromptAction().showToast({
       message: '功能未开放',
       duration: 1600
@@ -1121,7 +1112,7 @@ export struct NativeWorkspace {
   }
   private async updateWidget(): Promise<void> {
     clearTimeout(this.widgetTimer);
-    if (!this.mounted || !this.active || this.fallbackActive) return;
+    if (!this.mounted || !this.active) return;
     let delay = 60000;
     try {
       const value = await this.client.request('/pocket/api/overview');
@@ -1131,13 +1122,13 @@ export struct NativeWorkspace {
         const waiting = Number(overview.waiting || 0);
         if (running + waiting > 0) delay = 30000;
       } catch (_) {}
-      if (this.mounted && this.active && !this.fallbackActive) {
+      if (this.mounted && this.active) {
         this.rememberBackgroundStates(value);
         await this.onSnapshot(value);
       }
     } catch (_) {}
     finally {
-      if (this.mounted && this.active && !this.fallbackActive) {
+      if (this.mounted && this.active) {
         this.widgetTimer = setTimeout(() => { this.updateWidget(); }, delay);
       }
     }
@@ -1169,7 +1160,7 @@ export struct NativeWorkspace {
     return sessionId;
   }
   private async pollBackground(initial: boolean): Promise<void> {
-    if (!this.mounted || this.active || this.fallbackActive || !this.backgroundMonitor || this.supportsPush || this.backgroundBusy) return;
+    if (!this.mounted || this.active || !this.backgroundMonitor || this.supportsPush || this.backgroundBusy) return;
     this.backgroundBusy = true;
     try {
       if (initial && !this.backgroundActive) {
@@ -1179,7 +1170,7 @@ export struct NativeWorkspace {
         }
       }
       const raw = await this.client.request('/pocket/api/overview');
-      if (!this.mounted || this.active || this.fallbackActive || !this.backgroundMonitor) return;
+      if (!this.mounted || this.active || !this.backgroundMonitor) return;
       const data = JSON.parse(raw) as Record<string, Object>;
       const tasks = data.tasks as Array<Record<string, Object>>;
       if (!Array.isArray(tasks)) return;
@@ -2144,17 +2135,17 @@ export struct NativeWorkspace {
           DSHIcon({ glyph: 'code-outline', glyphSize: 17, color: this.dark ? '#CFD3D6' : '#61666B' })
           Text('插件').fontSize(14).layoutWeight(1).fontColor(this.dark ? '#F1F1F2' : '#25262A')
         }.width('100%').height(40).padding({ left: 10, right: 10 })
-          .onClick(() => { this.openDrawerDestination('plugins'); })
+          .onClick(() => { this.openDrawerDestination(); })
         Row({ space: 10 }) {
           DSHIcon({ glyph: 'plan-outline', glyphSize: 17, color: this.dark ? '#CFD3D6' : '#61666B' })
           Text('自动化任务').fontSize(14).layoutWeight(1).fontColor(this.dark ? '#F1F1F2' : '#25262A')
         }.width('100%').height(40).padding({ left: 10, right: 10 })
-          .onClick(() => { this.openDrawerDestination('automation'); })
+          .onClick(() => { this.openDrawerDestination(); })
         Row({ space: 10 }) {
           DSHIcon({ glyph: 'ellipsis-outline', glyphSize: 17, color: this.dark ? '#CFD3D6' : '#61666B' })
           Text('更多').fontSize(14).layoutWeight(1).fontColor(this.dark ? '#F1F1F2' : '#25262A')
         }.width('100%').height(40).padding({ left: 10, right: 10 })
-          .onClick(() => { this.openDrawerDestination('more'); })
+          .onClick(() => { this.openDrawerDestination(); })
       }.width('100%')
       if (this.searchOpen) {
         TextInput({ text: this.query, placeholder: '搜索工作区和会话' }).height(36).fontSize(13).borderRadius(10)

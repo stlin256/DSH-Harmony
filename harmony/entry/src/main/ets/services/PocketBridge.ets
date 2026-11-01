@@ -8,6 +8,7 @@ import { OverviewSnapshot, WidgetStore, WidgetTask } from './WidgetStore';
 import { PushKitAdapter } from 'entry/PushKitAdapter';
 import { BackgroundMonitor } from './BackgroundMonitor';
 import { notificationManager } from '@kit.NotificationKit';
+import { UiModePreference } from './UiModePreference';
 
 class LocalNotificationMessage {
   sessionId: string = '';
@@ -70,8 +71,8 @@ export class PocketBridge {
       return '';
     }
     if (command === 'uiMode') {
-      if (value !== 'compatibility' && value !== 'native') throw new Error('Invalid mode');
-      await this.persist('dsh-pocket', 'uiMode', value);
+      if (!UiModePreference.valid(value)) throw new Error('Invalid mode');
+      await this.persist('dsh-pocket', UiModePreference.MODE_KEY, value);
       AppStorage.setOrCreate<string>('uiMode', value);
       return '';
     }
@@ -95,7 +96,7 @@ export class PocketBridge {
       const state = JSON.parse(NativeExperience.state(this.context)) as Record<string, Object>;
       const notices = preferences.getPreferencesSync(this.context, { name: 'dsh-notifications' });
       const levels = PocketBridge.levels(notices.getSync('levels', '') as string);
-      state['uiMode'] = AppStorage.get<string>('uiMode') || 'compatibility';
+      state['uiMode'] = AppStorage.get<string>('uiMode') || 'native';
       state['widgetDetails'] = WidgetStore.detailsEnabled(this.context);
       state['supportsPush'] = PushKitAdapter.supported;
       state['pushEnabled'] = notices.getSync('pushEnabled', false) === true;

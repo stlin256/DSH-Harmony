@@ -48,7 +48,6 @@ export struct NativeSettings {
   serverOrigin: string = '';
   invoke: (command: string, value: string) => Promise<string> = async (): Promise<string> => '';
   onReturn: () => void = (): void => {};
-  onModes: () => void = (): void => {};
   onConnection: () => void = (): void => {};
   onLogin: () => void = (): void => {};
   onLogout: () => Promise<void> = async (): Promise<void> => {};
@@ -420,7 +419,6 @@ export struct NativeSettings {
       return;
     }
     if (command === 'connection') { this.openPage('connection'); return; }
-    if (command === 'modes') { this.onModes(); return; }
     if (command === 'about') { this.openPage('about'); return; }
     if (command === 'notificationSettings') {
       if (!this.begin(command)) return;
@@ -988,8 +986,6 @@ export struct NativeSettings {
           }.padding(14).width('100%').alignItems(HorizontalAlign.Start).borderRadius(16)
             .backgroundColor(this.dark ? '#232326' : '#FFFFFF')
           Column() {
-            this.actionRow('界面模式', '原生或兼容网页', 'modes')
-            Divider().strokeWidth(0.5).margin({ left: 14 }).color(this.dark ? '#323236' : '#E9EAEC')
             this.actionRow('退出登录', '清除当前连接与本地会话缓存，返回登录页', 'logout', true)
           }.width('100%').borderRadius(16).clip(true).backgroundColor(this.dark ? '#232326' : '#FFFFFF')
           if (this.error) Text(this.error).fontSize(12).padding(12)

@@ -121,7 +121,7 @@ export struct NativeMessageView {
           .onClick(this.onCompatibility)
       }
       if (!this.message.text && !this.message.reasoning && !this.message.images?.length) {
-        Text('此消息包含高级内容，请在兼容模式查看。').fontSize(13)
+        Text('此消息暂不支持原生显示。').fontSize(13)
           .fontColor(this.dark ? '#CFD3D6' : '#61666B')
       }
     }.alignItems(HorizontalAlign.Start).width(this.message.role === 'user' ? '82%' : '100%')

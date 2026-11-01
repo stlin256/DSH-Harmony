@@ -9,7 +9,6 @@ import { PocketBridge } from '../services/PocketBridge';
 import { WindowAppearance } from '../services/WindowAppearance';
 import { NativeHarnessClient } from '../services/NativeHarnessClient';
 import { NativeWorkspace } from '../components/NativeWorkspace';
-import { NativeCompatibilitySurface } from '../components/NativeCompatibilitySurface';
 import { NativeSettings } from '../components/NativeSettings';
 import { NativeExperience } from '../services/NativeExperience';
 import { PushKitAdapter } from 'entry/PushKitAdapter';
@@ -22,6 +21,7 @@ import { StoreShowcaseClient } from '../services/StoreShowcaseClient';
 import { ProductCapabilities } from 'entry/ProductCapabilities';
 import { NativeLaunchFlow, NativeLaunchPhase } from '../services/NativeLaunchFlow';
 import { NativeLaunchSurface } from '../components/NativeLaunchSurface';
+import { UiModePreference } from '../services/UiModePreference';
 
 @Entry
 @Component
@@ -35,18 +35,15 @@ struct Index {
   private showcase: boolean = false;
   @StorageLink('systemDark') @Watch('applyNativeTheme') private systemDark: boolean = false;
   @StorageLink('nativeThemeMode') @Watch('applyNativeTheme') private nativeThemeMode: string = 'system';
-  @StorageLink('uiMode') @Watch('modeChanged') private uiMode: string = 'compatibility';
+  @StorageLink('uiMode') @Watch('modeChanged') private uiMode: string = 'native';
   @StorageLink('nativeAuthRevision') @Watch('authenticated') private authRevision: number = 0;
   @State private authSurface: boolean = false;
-  @State private compatibilitySurface: boolean = false;
-  @State private compatibilityDestination: string = '';
   @State @Watch('settingsChanged') private nativeSettings: boolean = false;
   @State private settingsCached: boolean = false;
   @State private settingsLayer: boolean = false;
   @State private settingsOpacity: number = 0;
   @State private settingsShift: number = 16;
   @State private connectionManager: boolean = false;
-  @State private modePicker: boolean = false;
   @StorageLink('nativeTitleHeight') private titleHeight: number = 56;
   @StorageLink('nativeDark') private nativeDark: boolean = false;
   @StorageLink('nativeAppActive') @Watch('activityChanged') private appActive: boolean = true;
@@ -107,8 +104,18 @@ struct Index {
       if (AppStorage.get<string>('storeShowcaseScreen') === 'settings') this.openSettings();
       return;
     }
-    const savedMode = this.store.getSync('uiMode', 'compatibility') as string;
-    this.uiMode = savedMode === 'native' ? 'native' : 'compatibility';
+    const savedMode = this.store.hasSync(UiModePreference.MODE_KEY) ?
+      this.store.getSync(UiModePreference.MODE_KEY, '') as string : '';
+    const modeResolution = UiModePreference.resolve(savedMode,
+      this.store.getSync(UiModePreference.MIGRATED_KEY, false) === true);
+    this.uiMode = modeResolution.mode;
+    if (modeResolution.shouldPersist) {
+      this.store.putSync(UiModePreference.MODE_KEY, modeResolution.mode);
+      if (modeResolution.shouldMigrate) {
+        this.store.putSync(UiModePreference.MIGRATED_KEY, true);
+      }
+      await this.store.flush();
+    }
     this.address = this.store.getSync('origin', '') as string;
     this.onboardingSeen = this.store.getSync('onboardingSeen', false) === true;
     const savedLoginMode = this.store.getSync('mode', 'native') as string;
@@ -345,8 +352,7 @@ struct Index {
 
   private modeChanged(): void {
     this.getUIContext().setKeyboardAvoidMode(this.uiMode === 'native' ? KeyboardAvoidMode.RESIZE : KeyboardAvoidMode.OFFSET);
-    this.nativeClient.pause(); this.compatibilitySurface = false;
-    AppStorage.setOrCreate<boolean>('nativeCompatibilityActive', false);
+    this.nativeClient.pause();
     this.authSurface = false; AppStorage.setOrCreate<boolean>('nativeAuthSurface', false); this.hideSettingsImmediately();
     this.error = '';
     if (this.uiMode === 'native') {
@@ -358,7 +364,7 @@ struct Index {
   private applyNativeTheme(): void {
     const shell = !this.ready || this.launchPhase !== NativeLaunchPhase.hidden ||
       this.nativeSettings || this.connectionManager ||
-      (this.uiMode === 'native' && !this.authSurface && !this.compatibilitySurface);
+      (this.uiMode === 'native' && !this.authSurface);
     AppStorage.setOrCreate<boolean>('nativeShellForeground', shell);
     AppStorage.setOrCreate<boolean>('pocketPageThemeKnown', true);
     WindowAppearance.apply(this.nativeThemeMode === 'dark' || (this.nativeThemeMode === 'system' && this.systemDark));
@@ -383,13 +389,6 @@ struct Index {
         this.launchPhase = NativeLaunchPhase.restoring;
       }
       this.applyNativeTheme();
-    }
-  }
-  private async selectMode(mode: string): Promise<void> {
-    this.modePicker = false;
-    if (this.bridge) await this.bridge.performNative('uiMode', mode);
-    else {
-      this.uiMode = mode; this.store?.putSync('uiMode', mode); await this.store?.flush();
     }
   }
   private async invokeNative(command: string, value: string): Promise<string> {
@@ -453,8 +452,7 @@ struct Index {
       await notices.flush();
     } catch (_) {}
     this.authSurface = false; AppStorage.setOrCreate<boolean>('nativeAuthSurface', false);
-    this.hideSettingsImmediately(); this.settingsCached = false; this.connectionManager = false; this.compatibilitySurface = false;
-    AppStorage.setOrCreate<boolean>('nativeCompatibilityActive', false);
+    this.hideSettingsImmediately(); this.settingsCached = false; this.connectionManager = false;
     this.ready = false; this.origin = ''; this.authOrigin = ''; this.proxyAuth = false;
     this.address = retainedAddress; this.accessKey = ''; this.error = '';
     this.bridge = null; this.controller = new webview.WebviewController();
@@ -485,29 +483,17 @@ struct Index {
       await this.resetConnectionState();
     } finally { this.busy = false; }
   }
-  private compatibility(destination: string = ''): void {
-    this.compatibilityDestination = destination;
-    AppStorage.setOrCreate<boolean>('nativeCompatibilityActive', true);
-    this.compatibilitySurface = true;
-  }
-  private closeCompatibility(): void {
-    this.compatibilitySurface = false;
-    this.compatibilityDestination = '';
-    AppStorage.setOrCreate<boolean>('nativeCompatibilityActive', false);
-    this.applyNativeTheme();
-  }
-  @Builder
-  private compatibilitySheet() {
-    NativeCompatibilitySurface({ origin: this.origin, sessionId: this.nativeClient.selectedId,
-      destination: this.compatibilityDestination, presentation: this.presentation,
-      onClose: (): void => { this.closeCompatibility(); } })
+  private compatibility(): void {
+    this.getUIContext().getPromptAction().showToast({
+      message: '此功能暂不支持原生显示',
+      duration: 1600
+    });
   }
   @Builder
   private settingsSheet() {
     NativeSettings({ client: this.nativeClient, serverOrigin: this.origin,
       invoke: (command: string, value: string): Promise<string> => this.invokeNative(command, value),
       onReturn: (): void => { this.closeSettings(); },
-      onModes: (): void => { this.modePicker = true; },
       onConnection: (): void => { this.closeSettings(); this.connectionManager = true; },
       onLogin: (): void => { this.closeSettings(); this.loginSurface(); },
       onLogout: (): Promise<void> => this.disconnectConnection() })
@@ -564,22 +550,6 @@ struct Index {
     } else this.controller.refresh();
   }
 
-  @Builder
-  private modeSheet() {
-    Column({ space: 16 }) {
-      Text('界面模式').fontSize(20).fontWeight(FontWeight.Medium).fontColor(this.nativeDark ? '#F9FAFB' : '#0F1115')
-      Button((this.uiMode === 'compatibility' ? '✓  ' : '') + '兼容模式', { type: ButtonType.Normal })
-        .width('100%').height(48).borderRadius(12).fontSize(14)
-        .backgroundColor(this.nativeDark ? '#353638' : '#F5F6F7').fontColor(this.nativeDark ? '#F9FAFB' : '#0F1115')
-        .onClick(() => { this.selectMode('compatibility').catch(() => { this.error = '切换失败，请重试'; }); })
-      Text('Harness 原版网页').fontSize(12).fontColor(this.nativeDark ? '#CFD3D6' : '#61666B')
-      Button((this.uiMode === 'native' ? '✓  ' : '') + '原生模式（实验）', { type: ButtonType.Normal })
-        .width('100%').height(48).borderRadius(12).fontSize(14)
-        .backgroundColor(this.nativeDark ? '#353638' : '#F5F6F7').fontColor(this.nativeDark ? '#F9FAFB' : '#0F1115')
-        .onClick(() => { this.selectMode('native').catch(() => { this.error = '切换失败，请重试'; }); })
-    }.padding(24).width('100%').alignItems(HorizontalAlign.Start)
-  }
-
   onBackPress(): boolean {
     if (this.launchPhase === NativeLaunchPhase.booting ||
       this.launchPhase === NativeLaunchPhase.restoring ||
@@ -595,7 +565,6 @@ struct Index {
       return true;
     }
     if (!this.ready) return false;
-    if (this.modePicker) { this.modePicker = false; return true; }
     if (this.nativeSettings) {
       if ((AppStorage.get<string>('nativeSettingsPage') || 'root') !== 'root') {
         this.changeSettingsPage('root');
@@ -603,7 +572,6 @@ struct Index {
       return true;
     }
     if (this.connectionManager) { this.connectionManager = false; return true; }
-    if (this.compatibilitySurface) { this.closeCompatibility(); return true; }
     if (this.uiMode === 'native' && !this.authSurface) {
       if (AppStorage.get<boolean>('nativeWorkspaceCanGoBack') === true) {
         AppStorage.setOrCreate<number>('nativeBackRevision', (AppStorage.get<number>('nativeBackRevision') || 0) + 1); return true;
@@ -676,7 +644,6 @@ struct Index {
               }
             },
             onCompatibility: (): void => { this.compatibility(); },
-            onDestination: (destination: string): void => { this.compatibility(destination); },
             onWorkspaceReady: (): void => { this.finishLaunch(); } })
         } else {
           if (this.progress < 100) { Progress({ value: this.progress, total: 100 }).width('100%').color(this.nativeDark ? '#5686FE' : '#4176E6').height(2) }
@@ -723,8 +690,6 @@ struct Index {
         Text(this.error).fontColor('#b91c1c').fontSize(13).padding(10)
       }
     }.width('100%').height('100%').backgroundColor(this.nativeDark ? '#151517' : '#FFFFFF')
-      .bindSheet(this.compatibilitySurface, this.compatibilitySheet, { height: SheetSize.LARGE, showClose: false,
-        onDisappear: (): void => { this.closeCompatibility(); } })
       .visibility(this.nativeSettings || this.settingsLayer ? Visibility.Hidden : Visibility.Visible)
       if (this.ready && this.settingsCached && this.settingsLayer) {
         Column() { this.settingsSheet() }.width('100%').height('100%')
@@ -783,11 +748,6 @@ struct Index {
     .hideToolBar(true)
     .width('100%').height('100%')
     .backgroundColor(this.nativeDark ? '#151517' : '#FFFFFF')
-    .bindSheet(this.modePicker, this.modeSheet, {
-      height: SheetSize.FIT_CONTENT,
-      showClose: true,
-      onDisappear: (): void => { this.modePicker = false; }
-    })
     }
   }
 

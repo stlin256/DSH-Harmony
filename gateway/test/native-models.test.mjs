@@ -1864,7 +1864,43 @@ test('DSH settings source consumes and displays the connected plugin version', (
   assert.match(plugin,/createRequire\(import\.meta\.url\)\('\.\/package\.json'\)\.version/);
 });
 
-test('UI mode preference persists and JavaScript cannot switch it from another origin', async () => {
+test('UI mode is native-only and repairs legacy compatibility preferences once', () => {
+  const { UiModePreference } = load('UiModePreference', {});
+  const fresh = UiModePreference.resolve('', false);
+  assert.equal(fresh.mode, 'native');
+  assert.equal(fresh.shouldMigrate, true);
+  assert.equal(fresh.shouldPersist, true);
+
+  const legacyDefault = UiModePreference.resolve('compatibility', false);
+  assert.equal(legacyDefault.mode, 'native');
+  assert.equal(legacyDefault.shouldMigrate, true);
+
+  const migratedCompatibility = UiModePreference.resolve('compatibility', true);
+  assert.equal(migratedCompatibility.mode, 'native');
+  assert.equal(migratedCompatibility.shouldMigrate, false);
+  assert.equal(migratedCompatibility.shouldPersist, true);
+
+  const migratedNative = UiModePreference.resolve('native', true);
+  assert.equal(migratedNative.mode, 'native');
+  assert.equal(migratedNative.shouldPersist, false);
+
+  const invalid = UiModePreference.resolve('web', true);
+  assert.equal(invalid.mode, 'native');
+  assert.equal(invalid.shouldPersist, true);
+
+  const index = readFileSync(new URL('../../harmony/entry/src/main/ets/pages/Index.ets', import.meta.url), 'utf8');
+  const bridge = readFileSync(new URL('../../harmony/entry/src/main/ets/services/PocketBridge.ets', import.meta.url), 'utf8');
+  const settings = readFileSync(new URL('../../harmony/entry/src/main/ets/components/NativeSettings.ets', import.meta.url), 'utf8');
+  assert.match(index, /@StorageLink\('uiMode'\) @Watch\('modeChanged'\) private uiMode: string = 'native'/);
+  assert.match(index, /UiModePreference\.resolve\(savedMode/);
+  assert.match(index, /UiModePreference\.MIGRATED_KEY, false\) === true/);
+  assert.doesNotMatch(index, /getSync\('uiMode',\s*'compatibility'\)/);
+  assert.doesNotMatch(index, /兼容模式|private modeSheet|modePicker/);
+  assert.doesNotMatch(settings, /界面模式|原生或兼容网页/);
+  assert.match(bridge, /AppStorage\.get<string>\('uiMode'\) \|\| 'native'/);
+});
+
+test('UI mode bridge accepts native only and JavaScript cannot switch it from another origin', async () => {
   const {preferences,disk}=storage();
   const state=new Map();
   const AppStorage={get:key=>state.get(key),setOrCreate:(key,value)=>state.set(key,value)};
@@ -1882,8 +1918,9 @@ test('UI mode preference persists and JavaScript cannot switch it from another o
   const bridge=new PocketBridge(context,controller,'https://dsh.example.com',async()=>{});
   await bridge.performNative('uiMode','native');
   assert.equal(state.get('uiMode'),'native');assert.equal(disk.get('dsh-pocket').get('uiMode'),'native');
+  await assert.rejects(()=>bridge.performNative('uiMode','compatibility'));
   await assert.rejects(()=>bridge.performNative('uiMode','unknown'));
-  bridge.request('request','uiMode','compatibility');
+  bridge.request('request','uiMode','native');
   await Promise.resolve();assert.equal(state.get('uiMode'),'native');
   await bridge.performNative('themeMode','dark');assert.equal(state.get('nativeThemeMode'),'dark');
 });
