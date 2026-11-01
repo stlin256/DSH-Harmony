@@ -236,6 +236,10 @@ export struct NativeWorkspace {
   private cacheTimer: number = -1;
   private backToBottomTimer: number = -1;
   private returnToBottomTimer: number = -1;
+  private scrollMotionSettleTimer: number = -1;
+  private scrollTailTimer: number = -1;
+  private tailScrollGuardUntil: number = 0;
+  private scrollMotionActive: boolean = false;
   private processEntranceTimer: number = -1;
   private processTailTimer: number = -1;
   private suppressProcessEntrance: boolean = false;
@@ -405,6 +409,7 @@ export struct NativeWorkspace {
     clearTimeout(this.backgroundTimer); clearTimeout(this.preloadTimer);
     clearTimeout(this.cacheTimer); clearTimeout(this.backToBottomTimer);
     clearTimeout(this.returnToBottomTimer);
+    clearTimeout(this.scrollMotionSettleTimer); clearTimeout(this.scrollTailTimer);
     clearTimeout(this.processEntranceTimer);
     clearTimeout(this.processTailTimer);
     clearTimeout(this.drawerSettleTimer);
@@ -1406,7 +1411,7 @@ export struct NativeWorkspace {
         this.paintTimer = setTimeout(() => {
           this.paintTimer = -1;
           this.paint();
-        }, frame.type === 'delta' ? 16 : 0);
+        }, frame.type === 'delta' ? (this.scrollMotionActive ? 64 : 16) : 0);
       }
     }, (reason: string): void => {
       console.error('DSH Harmony live socket ended: ' + reason);
@@ -1456,14 +1461,30 @@ export struct NativeWorkspace {
     return this.queue.concat(this.pendingQueue.filter((item: NativeQueueItem): boolean =>
       !item.rpcId || !admitted.has(item.rpcId)));
   }
+  private queueStructureKey(items: NativeQueueItem[]): string {
+    return items.map((item: NativeQueueItem): string => item.id).join('|');
+  }
   private syncAuthoritativeQueue(): void {
-    this.queue = this.model.queue || [];
+    const nextQueue = this.model.queue || [];
     const admitted: Set<string> = new Set<string>();
-    this.queue.forEach((item: NativeQueueItem): void => {
+    nextQueue.forEach((item: NativeQueueItem): void => {
       if (item.rpcId) admitted.add(item.rpcId);
     });
-    this.pendingQueue = this.pendingQueue.filter((item: NativeQueueItem): boolean =>
+    const nextPending = this.pendingQueue.filter((item: NativeQueueItem): boolean =>
       !item.rpcId || !admitted.has(item.rpcId));
+    const changed = this.queueStructureKey(this.queue) !==
+      this.queueStructureKey(nextQueue) ||
+      this.queueStructureKey(this.pendingQueue) !==
+      this.queueStructureKey(nextPending);
+    const assign = (): void => {
+      this.queue = nextQueue;
+      this.pendingQueue = nextPending;
+    };
+    if (changed && this.mounted) {
+      NativeMotion.disclosure(this.getUIContext(), assign);
+    } else {
+      assign();
+    }
   }
   private queuedEcho(requestId: string, text: string, attachments: NativeAttachmentDraft[]): NativeQueueItem {
     const item = new NativeQueueItem();
@@ -1492,23 +1513,57 @@ export struct NativeWorkspace {
     clearTimeout(this.processTailTimer);
     this.processTailTimer = setTimeout((): void => {
       this.processTailTimer = -1;
-      if (!this.mounted || !this.followTail || this.returningToBottom) return;
-      try {
-        if (NativeMotion.enabled()) this.scroller.scrollEdge(Edge.Bottom, { velocity: 2800 });
-        else this.scroller.scrollEdge(Edge.Bottom);
-      } catch (_) {}
+      if (!this.mounted || !this.followTail || this.returningToBottom ||
+        this.scrollMotionActive) return;
+      this.scheduleTailScroll(2800);
     }, NativeMotion.enabled() ? 160 : 0);
+  }
+  private scheduleTailScroll(velocity: number = 0): void {
+    if (!this.mounted || !this.followTail || this.returningToBottom ||
+      this.scrollMotionActive || this.scrollTailTimer >= 0) return;
+    this.scrollTailTimer = setTimeout((): void => {
+      this.scrollTailTimer = -1;
+      if (!this.mounted || !this.followTail || this.returningToBottom ||
+        this.scrollMotionActive) return;
+      this.tailScrollGuardUntil = Date.now() + 180;
+      try {
+        if (velocity > 0 && NativeMotion.enabled()) {
+          this.scroller.scrollEdge(Edge.Bottom, { velocity: velocity });
+        } else {
+          this.scroller.scrollEdge(Edge.Bottom);
+        }
+      } catch (_) {}
+    }, 0);
+  }
+  private scheduleScrollMotionSettle(): void {
+    clearTimeout(this.scrollMotionSettleTimer);
+    this.scrollMotionSettleTimer = setTimeout((): void => {
+      this.scrollMotionSettleTimer = -1;
+      if (!this.mounted || !this.scrollMotionActive) return;
+      this.scrollMotionActive = false;
+      // Publish the newest buffered tokens once the list has stopped moving,
+      // then decide from the settled viewport whether tail following resumes.
+      this.paint();
+      this.updateScrollTail();
+    }, 96);
+  }
+  private markScrollActivity(force: boolean = false): void {
+    if (!this.mounted || this.returningToBottom) return;
+    if (!force && Date.now() < this.tailScrollGuardUntil) return;
+    this.tailScrollGuardUntil = 0;
+    this.scrollMotionActive = true;
+    this.userHasScrolled = true;
+    this.followTail = false;
+    clearTimeout(this.scrollTailTimer);
+    this.scrollTailTimer = -1;
+    this.scheduleScrollMotionSettle();
   }
   private paint(): void {
     if (!this.mounted) return;
     this.running = this.model.running; this.waiting = this.model.waiting; this.hasMore = this.model.hasMore;
     this.syncAuthoritativeQueue();
     this.renderTranscript();
-    if (this.followTail && !this.returningToBottom) {
-      setTimeout(() => {
-        if (this.mounted && this.followTail && !this.returningToBottom) this.scroller.scrollEdge(Edge.Bottom);
-      }, 0);
-    }
+    this.scheduleTailScroll();
   }
   private projectedTurnChange(turnKey: string): NativeTurnChangeSummary | null {
     return nativeTurnChangeFor(this.turnChanges, turnKey);
@@ -1638,7 +1693,7 @@ export struct NativeWorkspace {
     const live = nativeLiveTurnChange(rows, this.model.running || this.model.waiting);
     if (live) {
       if (!this.liveTurnChangesVisible) {
-        NativeMotion.animate(this.getUIContext(), 'micro', (): void => {
+        NativeMotion.disclosure(this.getUIContext(), (): void => {
           this.liveTurnChanges = live;
           this.liveTurnChangesVisible = true;
         });
@@ -1646,7 +1701,7 @@ export struct NativeWorkspace {
         this.liveTurnChanges = live;
       }
     } else if (this.liveTurnChangesVisible) {
-      NativeMotion.animate(this.getUIContext(), 'micro', (): void => {
+      NativeMotion.disclosure(this.getUIContext(), (): void => {
         this.liveTurnChangesVisible = false;
       });
     }
@@ -1734,9 +1789,11 @@ export struct NativeWorkspace {
     this.sending = true; this.error = '';
     this.client.drafts.set(id, text);
     if (expectQueuedEcho && this.selected === id) {
-      this.pendingQueue = this.pendingQueue.concat([
-        this.queuedEcho(requestId, text, attachmentSnapshot)
-      ]);
+      NativeMotion.disclosure(this.getUIContext(), (): void => {
+        this.pendingQueue = this.pendingQueue.concat([
+          this.queuedEcho(requestId, text, attachmentSnapshot)
+        ]);
+      });
     }
     try {
       const admittedRequestId = await this.client.prompt(
@@ -1769,7 +1826,11 @@ export struct NativeWorkspace {
   }
   private publishAttachments(id: string, items: NativeAttachmentDraft[]): void {
     this.client.attachments.set(id, items);
-    if (this.selected === id) this.attachments = items;
+    if (this.selected === id) {
+      NativeMotion.disclosure(this.getUIContext(), (): void => {
+        this.attachments = items;
+      });
+    }
   }
   private updateAttachment(id: string, attachmentId: string, status: string,
     receiptId: string = '', error: string = '', retryable: boolean = true): void {
@@ -2439,7 +2500,7 @@ export struct NativeWorkspace {
           })
           .onScrollFrameBegin((offset: number, state: ScrollState) => {
             if (state === ScrollState.Scroll && !this.returningToBottom) {
-              this.userHasScrolled = true;
+              this.markScrollActivity();
             }
             return { offsetRemain: offset };
           })
@@ -2449,11 +2510,16 @@ export struct NativeWorkspace {
               this.returningToBottom = false;
               this.userHasScrolled = true;
               this.updateScrollTail();
+            } else if (event.type === TouchType.Move) {
+              this.markScrollActivity(true);
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.scheduleScrollMotionSettle();
             }
           })
-          .onScroll(() => { this.updateScrollTail(); })
+          .onScroll(() => { this.markScrollActivity(); })
           .onScrollStop(() => {
             if (this.returningToBottom) this.settleScrollTail();
+            else if (this.scrollMotionActive) this.scheduleScrollMotionSettle();
             else this.updateScrollTail();
           })
         if (this.taskPlan.items.length) {
@@ -2544,7 +2610,7 @@ export struct NativeWorkspace {
               .borderRadius(12)
               .backgroundColor(this.dark ? '#2A2526' : '#FFF7F6')
               .border({ width: 0.5, color: this.dark ? '#674044' : '#F1D5D1' })
-              .transition(NativeMotion.rowTransition())
+              .transition(NativeMotion.disclosureTransition())
           }
           if (this.queueItems().length) {
             NativeQueueDock({
@@ -2553,7 +2619,7 @@ export struct NativeWorkspace {
               items: this.queueItems(),
               running: this.running,
               onChanged: (): void => {}
-            }).transition(NativeMotion.rowTransition())
+            }).transition(NativeMotion.disclosureTransition())
           }
           if (this.liveTurnChangesVisible) {
             Row() {
@@ -2563,7 +2629,7 @@ export struct NativeWorkspace {
               })
             }.width('100%').height(30).justifyContent(FlexAlign.Center)
               .hitTestBehavior(HitTestMode.None)
-              .transition(NativeMotion.rowTransition())
+              .transition(NativeMotion.disclosureTransition())
           }
           if (this.attachments.length) {
             Row() {
@@ -2591,7 +2657,7 @@ export struct NativeWorkspace {
                         .shadow({ radius: 7, color: this.dark ? '#66000000' : '#22000000', offsetY: 2 })
                         .accessibilityText(item.status === 'error' ? '图片上传失败，点击重试' : '图片附件')
                         .onClick(() => { if (item.status === 'error') this.retryAttachment(item); })
-                        .transition(NativeMotion.rowTransition())
+                        .transition(NativeMotion.disclosureTransition())
                     } else {
                       Row({ space: 6 }) {
                         DSHIcon({ glyph: 'file-outline', glyphSize: 16, color: this.dark ? '#CFD3D6' : '#61666B' })
@@ -2608,13 +2674,13 @@ export struct NativeWorkspace {
                           .accessibilityText('移除附件').onClick(() => { this.removeAttachment(item.id); })
                       }.height(42).padding({ left: 7, right: 3 }).borderRadius(10)
                         .backgroundColor(this.dark ? '#2C2C2E' : '#F1F3F5')
-                        .transition(NativeMotion.rowTransition())
+                        .transition(NativeMotion.disclosureTransition())
                     }
                   }, (item: NativeAttachmentDraft) => item.id)
                 }
               }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off).width('100%')
             }.width('100%').padding({ left: 8, right: 12 })
-              .transition(NativeMotion.rowTransition())
+              .transition(NativeMotion.disclosureTransition())
           }
           Column({ space: 8 }) {
           TextArea({ text: this.draft, placeholder: '发送消息…' }).height(44).enabled(!this.sending)

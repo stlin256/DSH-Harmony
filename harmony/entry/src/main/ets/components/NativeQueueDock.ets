@@ -191,6 +191,8 @@ export struct NativeQueueDock {
     }.width('100%').padding({ left: 8, right: 5, top: 6, bottom: 6 })
       .borderRadius(11).backgroundColor(this.dark ? '#292A2C' : '#F7F8FA')
       .border({ width: 0.5, color: this.dark ? '#414247' : '#E3E5E9' })
+      .animation(NativeMotion.disclosureParam())
+      .transition(NativeMotion.disclosureTransition())
   }
 
   build() {
@@ -220,13 +222,17 @@ export struct NativeQueueDock {
             ForEach(this.items, (item: NativeQueueItem) => {
               this.row(item)
             }, (item: NativeQueueItem) => item.id)
-          }.width('100%').transition(NativeMotion.disclosureTransition())
+          }.width('100%')
+            .animation(NativeMotion.disclosureParam())
+            .transition(NativeMotion.disclosureTransition())
         }
         if (this.error) {
           Text(this.error).fontSize(10).fontColor(this.dark ? '#FF9393' : '#C53030')
             .padding({ left: 8, right: 8, bottom: 3 })
         }
-      }.width('100%').transition(NativeMotion.rowTransition())
+      }.width('100%')
+        .animation(NativeMotion.disclosureParam())
+        .transition(NativeMotion.disclosureTransition())
     }
   }
 }

@@ -1181,8 +1181,8 @@ test('turn change card and bottom live control keep compact ownership and motion
   assert.doesNotMatch(workspace,
     /nativeLiveTurnChange\(rows,[\s\S]{0,120}this\.running \|\| this\.waiting/);
   assert.match(workspace, /Activity can change without a tool\/footer signature change[\s\S]{0,900}liveTurnChangesVisible = false/);
-  assert.match(workspace, /NativeMotion\.animate\(this\.getUIContext\(\), 'micro'[\s\S]{0,180}liveTurnChangesVisible = true/);
-  assert.match(workspace, /NativeMotion\.animate\(this\.getUIContext\(\), 'micro'[\s\S]{0,180}liveTurnChangesVisible = false/);
+  assert.match(workspace, /NativeMotion\.disclosure\(this\.getUIContext\(\)[\s\S]{0,180}liveTurnChangesVisible = true/);
+  assert.match(workspace, /NativeMotion\.disclosure\(this\.getUIContext\(\)[\s\S]{0,180}liveTurnChangesVisible = false/);
   assert.match(workspace, /nativeTurnChangeSummaryFromJson/);
   assert.match(workspace, /officialTurnChangeSequences\.get\(reference\.turnKey\)/);
   assert.match(workspace, /NativeBottomConversationDock\(\{[\s\S]{0,260}horizontalBleed: 12/);
@@ -1825,7 +1825,7 @@ test('live process and terminal file-card motion contracts stay bounded', () => 
     '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url),'utf8');
   assert.match(workspace,/terminalCardNearBottom\(message: NativeMessage\)/);
   assert.match(workspace,/scrollEdge\(Edge\.Bottom, \{ velocity: 5200 \}\)/);
-  assert.match(workspace,/frame\.type === 'delta' \? 16 : 0/);
+  assert.match(workspace,/frame\.type === 'delta' \? \(this\.scrollMotionActive \? 64 : 16\) : 0/);
   assert.match(workspace,/nativeWithLiveText\(this\.transcriptBaseRows, this\.model\.streamText\)/);
   assert.match(workspace,/private streamTextPatchDirty: boolean = false/);
   assert.match(workspace,/if \(frame\.type === 'delta'\) \{[\s\S]{0,120}frame\.text\.length > 0/);
@@ -1836,6 +1836,34 @@ test('live process and terminal file-card motion contracts stay bounded', () => 
   assert.ok(titleFrame >= 0 && modelApply > titleFrame);
   assert.match(workspace,/if \(typeof value !== 'string'\) return/);
   assert.match(workspace,/next\.blank = false/);
+});
+
+test('streaming scroll yields to direct manipulation and dock expansion shares one spring',()=>{
+  const workspace=readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets',import.meta.url),'utf8');
+  const dock=readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeBottomConversationDock.ets',import.meta.url),'utf8');
+  const queue=readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeQueueDock.ets',import.meta.url),'utf8');
+
+  assert.match(workspace,
+    /frame\.type === 'delta' \? \(this\.scrollMotionActive \? 64 : 16\) : 0/);
+  assert.match(workspace,
+    /private scheduleTailScroll\(velocity: number = 0\): void \{[\s\S]{0,520}this\.tailScrollGuardUntil = Date\.now\(\) \+ 180;[\s\S]{0,260}this\.scroller\.scrollEdge/);
+  assert.match(workspace,
+    /private scheduleScrollMotionSettle\(\): void \{[\s\S]{0,320}this\.scrollMotionActive = false;[\s\S]{0,180}this\.paint\(\);[\s\S]{0,80}this\.updateScrollTail\(\)/);
+  assert.match(workspace,/\.onScroll\(\(\) => \{ this\.markScrollActivity\(\); \}\)/);
+  assert.match(workspace,
+    /scrollMotionActive \|\| this\.scrollTailTimer >= 0\) return/);
+  assert.doesNotMatch(workspace,
+    /if \(this\.followTail && !this\.returningToBottom\) \{\s*setTimeout/);
+
+  assert.match(dock,
+    /\.transition\(TransitionEffect\.OPACITY\.animation\(\s*NativeMotion\.disclosureParam\(\)\)\)/);
+  assert.match(dock,/\.animation\(NativeMotion\.disclosureParam\(\)\)/);
+  assert.doesNotMatch(dock,/NativeMotion\.rowTransition\(\)/);
+  assert.match(queue,/\.transition\(NativeMotion\.disclosureTransition\(\)\)/);
+  assert.doesNotMatch(queue,/NativeMotion\.rowTransition\(\)/);
 });
 
 test('running activity uses latest still-running start time and exact upstream tool-name categories', () => {

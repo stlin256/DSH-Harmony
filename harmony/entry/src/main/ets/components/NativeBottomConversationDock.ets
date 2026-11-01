@@ -38,7 +38,9 @@ export struct NativeBottomConversationDock {
                 : [['#00FFFFFF', 0], ['#24FFFFFF', 0.18], ['#70FFFFFF', 0.62], ['#B8FFFFFF', 1]]
             })
         }.width('100%').height(this.measuredHeight)
-          .transition(NativeMotion.rowTransition())
+          .clip(true)
+          .transition(TransitionEffect.OPACITY.animation(
+            NativeMotion.disclosureParam()))
           .animation(NativeMotion.disclosureParam())
       }
       Column() {
@@ -46,7 +48,8 @@ export struct NativeBottomConversationDock {
       }.width('100%').margin({ left: -this.horizontalBleed, right: -this.horizontalBleed })
         .padding({ left: this.horizontalBleed + this.contentInset, right: this.horizontalBleed + this.contentInset,
           top: 8, bottom: Math.ceil(this.safeBottom * 1.2) + 8 })
-    }.width('100%').onAreaChange((_old: Area, area: Area): void => {
+        .animation(NativeMotion.disclosureParam())
+    }.width('100%').clip(true).onAreaChange((_old: Area, area: Area): void => {
       const height = Number(area.height);
       if (height <= 0 || height === this.measuredHeight) return;
       this.measuredHeight = height;
