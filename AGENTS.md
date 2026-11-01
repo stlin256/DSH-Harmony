@@ -15,8 +15,17 @@ For non-trivial UI or state changes:
 3. Write or update a spec before production implementation.
 4. Implement data contracts and correctness before decorative motion.
 5. Add meaningful model/protocol tests.
-6. Build both local and store product variants when shared ArkUI code changes.
-7. Add or update the device E2E table. Do not claim device completion without
+6. Add a deterministic `mock` product fixture and screenshot scene for every
+   user-visible frontend feature. Register it in
+   `docs/testing/mock-feature-manifest.json`.
+7. Add an interaction driver for every new action, selection, send, navigation
+   or state transition, and add matching rows to the device E2E table. A static
+   screenshot alone is insufficient for interactive behavior.
+8. Run `node scripts/verify-mock-coverage.mjs`. Do not deliver a frontend change
+   when this check fails.
+9. Build the default, store and mock product variants when shared ArkUI code
+   changes.
+10. Add or update the device E2E table. Do not claim device completion without
    actual device evidence.
 
 Do not put private hosts, internal addresses, credentials, cookies, signatures,
@@ -262,6 +271,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-11-01-device-ui-mock-e2e.md](docs/specs/2026-11-01-device-ui-mock-e2e.md)
 - Device UI mock and bottom dock E2E:
   [2026-11-01-device-ui-mock-e2e.md](docs/testing/2026-11-01-device-ui-mock-e2e.md)
+- Mock variant and frontend coverage requirement:
+  [2026-11-01-mock-variant-coverage.md](docs/requirements/2026-11-01-mock-variant-coverage.md)
+- Mock variant and frontend coverage research:
+  [2026-11-01-mock-variant-coverage.md](docs/research/2026-11-01-mock-variant-coverage.md)
+- Mock variant and frontend coverage implementation spec:
+  [2026-11-01-mock-variant-coverage.md](docs/specs/2026-11-01-mock-variant-coverage.md)
+- Mock variant and frontend coverage E2E:
+  [2026-11-01-mock-variant-coverage-e2e.md](docs/testing/2026-11-01-mock-variant-coverage-e2e.md)
 - Queued input, pending interaction and live process motion requirement:
   [2026-11-01-queued-interaction-process-motion.md](docs/requirements/2026-11-01-queued-interaction-process-motion.md)
 - Queue, interaction and process motion research:

@@ -12,8 +12,9 @@ HarmonyOS 原生工程位于本目录。仓库根目录 README 提供产品、�
 | --- | --- | --- | --- |
 | `default` | 包含 | 由 Push Kit 送达 | 作者自用签名版；服务器插件使用项目服务帐号推送 |
 | `store` | 不包含 Push Kit SDK | 可选监测运行中任务 | 应用商店及普通开发者构建 |
+| `mock` | 不包含 | 不适用 | 仅供前端开发与设备自动化；默认加载确定性本地数据，不访问网络 |
 
-两个产品的应用名均为 **DSH Harmony**，bundle name 为 `io.github.stlin256.dshharmony`。需要在 Huawei 开发者中心登记这个应用后，才能为该应用申请应用签名和 Push Kit 能力。此仓库不保存应用签名、服务帐号或开发者凭据。
+三个产品的应用名均为 **DSH Harmony**，bundle name 为 `io.github.stlin256.dshharmony`。需要在 Huawei 开发者中心登记这个应用后，才能为该应用申请应用签名和 Push Kit 能力。此仓库不保存应用签名、服务帐号或开发者凭据。
 
 ## 本机构建
 
@@ -24,11 +25,21 @@ HarmonyOS 原生工程位于本目录。仓库根目录 README 提供产品、�
 ```sh
 devecocli signature generate --product default
 devecocli signature generate --product store
+devecocli signature generate --product mock
 devecocli build --product default --build-mode release
 devecocli build --product store --build-mode release
+devecocli build --product mock --build-mode release
 ```
 
-安装到当前设备可执行 `devecocli run --module entry@default --product default --build-mode release --skip-build`。产品产物分别位于 `entry/build/default/outputs/default/` 和 `entry/build/store/outputs/store/`。
+安装到当前设备可执行 `devecocli run --module entry@default --product default --build-mode release --skip-build`。Mock 产物位于 `entry/build/mock/outputs/mock/entry-mock-signed.hap`。
+
+构建前必须通过：
+
+```sh
+node ../scripts/verify-mock-coverage.mjs
+```
+
+新增用户可见前端功能时，必须同时加入确定性 Mock 状态、截图或交互驱动、`docs/testing/mock-feature-manifest.json` 登记和 E2E 表项目。只加入生产界面而不补 Mock 会被覆盖门禁拒绝。
 
 ## 通知
 

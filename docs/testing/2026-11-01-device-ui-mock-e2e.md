@@ -4,7 +4,10 @@ Date: 2026-11-01
 
 Device: Huawei `HBN-AL80`, HarmonyOS API 26, HDC `33Z0224801015621`
 
-Fixture build: personal Release, bundle `0.4.6 (27)`
+Fixture build: dedicated Mock Release. Historical evidence below was captured
+before the product split and therefore does not prove the new Mock artifact;
+the current product checklist remains pending in
+[`2026-11-01-mock-variant-coverage-e2e.md`](2026-11-01-mock-variant-coverage-e2e.md).
 
 ## Automated evidence
 

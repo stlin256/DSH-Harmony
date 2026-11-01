@@ -15,6 +15,11 @@ be tested and captured without a private Host, account, transcript or network.
 The same fixtures support regression checks for pending E2E rows and remain
 unreachable during normal launches.
 
+The supported test path is the dedicated `mock` product documented in
+[`2026-11-01-mock-variant-coverage.md`](2026-11-01-mock-variant-coverage.md).
+Personal/store artifacts retain the explicit launch flag only for existing
+screenshot tooling.
+
 ## Mock contract
 
 - `storeShowcase=true` continues to select an in-memory client and never opens a

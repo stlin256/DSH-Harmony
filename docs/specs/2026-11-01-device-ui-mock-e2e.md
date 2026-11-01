@@ -17,8 +17,9 @@ showcaseState=completed|live-change|attachments|streaming|empty|long-history
 showcaseTheme=light|dark|system
 ```
 
-Only an explicit `storeShowcase=true` selects `StoreShowcaseClient`. A normal
-launch ignores all fixture parameters and keeps the real client.
+The dedicated `mock` product sets `storeShowcase=true` automatically through
+`ProductCapabilities.supportsMockFixtures`. Personal and store launches require
+the explicit flag and otherwise keep the real client.
 
 ## 2. Fixture states
 
@@ -88,7 +89,7 @@ The live-change fixture is the canonical reproduction:
 Add `scripts/device-ui-mock.ps1`:
 
 - finds the ready USB device through HDC;
-- optionally builds and installs the signed personal Release HAP;
+- optionally builds and installs the signed `mock` Release HAP;
 - force-stops and launches one explicit fixture;
 - waits for a stable frame;
 - captures `uitest screenCap` and `uitest dumpLayout`;
@@ -136,4 +137,4 @@ verify current state and persistence. This behavior is selected only by
 - Source contracts prove the dock is not translated by an absolute composer
   offset and that the fixture client is unreachable without the launch flag.
 - Device run captures all six states in both themes.
-- Both Release products continue to build.
+- default, store and mock Release products continue to build.

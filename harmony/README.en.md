@@ -12,8 +12,9 @@ The HarmonyOS native project lives here. The repository root README covers the p
 | --- | --- | --- | --- |
 | `default` | Included | Delivered by Push Kit | Maintainer build; the server plugin sends pushes with the project service account |
 | `store` | Push Kit SDK excluded | Optional monitoring for active tasks | AppGallery and regular developer builds |
+| `mock` | Excluded | Not applicable | Frontend development and device automation; deterministic local data with no network |
 
-Both products are named **DSH Harmony** and use bundle name `io.github.stlin256.dshharmony`. Register this app in Huawei Developer Console before requesting app signing or Push Kit capabilities. This repository does not contain signing material, service accounts or developer credentials.
+All three products are named **DSH Harmony** and use bundle name `io.github.stlin256.dshharmony`. Register this app in Huawei Developer Console before requesting app signing or Push Kit capabilities. This repository does not contain signing material, service accounts or developer credentials.
 
 ## Build locally
 
@@ -24,11 +25,21 @@ Both products are named **DSH Harmony** and use bundle name `io.github.stlin256.
 ```sh
 devecocli signature generate --product default
 devecocli signature generate --product store
+devecocli signature generate --product mock
 devecocli build --product default --build-mode release
 devecocli build --product store --build-mode release
+devecocli build --product mock --build-mode release
 ```
 
-Install on the connected device with `devecocli run --module entry@default --product default --build-mode release --skip-build`. Artifacts are written to `entry/build/default/outputs/default/` and `entry/build/store/outputs/store/`.
+Install on the connected device with `devecocli run --module entry@default --product default --build-mode release --skip-build`. The Mock artifact is `entry/build/mock/outputs/mock/entry-mock-signed.hap`.
+
+Every build must pass:
+
+```sh
+node ../scripts/verify-mock-coverage.mjs
+```
+
+Every user-visible frontend feature must add a deterministic Mock state, a visual or interaction driver, an entry in `docs/testing/mock-feature-manifest.json`, and device E2E rows. The coverage gate rejects production UI work without that evidence.
 
 ## Notifications
 
