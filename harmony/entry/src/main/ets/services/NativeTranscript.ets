@@ -1,7 +1,7 @@
 import { NativeMessage, NativeAssistantSegment } from './NativeSessionModel';
 import { NativeChatPreferences } from './NativeHostSettings';
 import { NativePlanDocument, nativePlanDiff, nativePlanDocument, nativePlanProgress } from './NativePlan';
-import { nativeToolStructured, nativeToolGroupSummary } from './NativeToolStructured';
+import { nativeToolStructured, nativeToolGroupSummary, nativeToolKind } from './NativeToolStructured';
 
 /** Flatten editor, terminal and reasoning text into one width-fillable preview. */
 export function nativeOneLinePreview(value: string, limit: number = 160): string {
@@ -10,25 +10,12 @@ export function nativeOneLinePreview(value: string, limit: number = 160): string
 }
 
 // Mirrors Chat's event projection, call-id lifecycle, process boundaries and exact tool-name categories.
-export function nativeToolCategory(name: string): string {
-  if (name === 'read') return 'read';
-  if (name === 'read_image') return 'readImage';
-  if (name === 'grep' || name === 'glob' || name.endsWith('_inspect')) return 'search';
-  if (name === 'write') return 'write';
-  if (name === 'edit' || name === 'apply_patch' || name === 'str_replace_editor') return 'edit';
-  if (['bash', 'pwsh', 'exec_command', 'write_stdin', 'job_output', 'job_kill'].includes(name) ||
-    name.startsWith('terminal_')) return 'commands';
-  if (name === 'run_code') return 'code';
-  if (name === 'web_search') return 'webSearch';
-  if (name === 'web_fetch') return 'webFetch';
-  if (name === 'subagent' || name.startsWith('subagent_') || name === 'send_message' ||
-    name === 'interrupt_agent' || name === 'workflow' || name === 'ralph' ||
-    name === 'skill') return 'subagents';
-  if (['todo_write', 'create_goal', 'update_goal', 'get_goal'].includes(name)) return 'plan';
-  if (['ask_user_question', 'request_user_input'].includes(name)) return 'questions';
-  return 'tools';
+export function nativeToolCategory(name: string, argsText: string = ''): string {
+  return nativeToolKind(name, argsText);
 }
 export function nativeActivity(category: string, running: boolean): string {
+  if (category === 'command') return running ? '正在执行命令' : '执行了命令';
+  if (category === 'jobLifecycle') return running ? '后台任务运行中' : '后台任务已结束';
   const kinds = ['read', 'readImage', 'search', 'write', 'edit', 'commands', 'code', 'webSearch', 'webFetch', 'subagents', 'plan', 'questions', 'tools'];
   const active = ['正在读取文件', '正在读取图片', '正在搜索代码', '正在写入文件', '正在编辑文件', '正在运行命令', '正在运行代码', '正在搜索网页', '正在访问网页', '正在协调子代理', '正在更新计划', '等待你的操作', '正在调用工具'];
   const settled = ['已读取文件', '已读取图片', '已搜索代码', '已写入文件', '修改了文件', '执行了命令', '运行了代码', '已搜索网页', '已访问网页', '已协调子代理', '更新了计划', '向用户提出了问题', '已调用工具'];
@@ -45,6 +32,8 @@ export function nativeProcessIcon(category: string): string {
   if (category === 'subagents') return 'agent-preset-outline';
   if (category === 'plan') return 'plan-outline';
   if (category === 'questions') return 'question-outline';
+  if (category === 'command') return 'api-outline';
+  if (category === 'jobLifecycle') return 'queue-outline';
   return category === 'tools' ? 'sparkle' : 'think-outline';
 }
 export function nativeToolDetail(tool: NativeMessage, workspaceRoot: string = ''): string {
@@ -76,10 +65,10 @@ export function nativeToolDetail(tool: NativeMessage, workspaceRoot: string = ''
   return tool.phase === 'preparing' ? '' : tool.toolName;
 }
 export function nativeToolArgumentsVisible(tool: NativeMessage): boolean {
-  return nativeToolCategory(tool.toolName) !== 'readImage';
+  return nativeToolCategory(tool.toolName, tool.args) !== 'readImage';
 }
 export function nativeToolOutputVisible(tool: NativeMessage): boolean {
-  return nativeToolCategory(tool.toolName) !== 'readImage';
+  return nativeToolCategory(tool.toolName, tool.args) !== 'readImage';
 }
 function copy(value: NativeMessage): NativeMessage {
   const row = new NativeMessage();
@@ -96,12 +85,42 @@ function copy(value: NativeMessage): NativeMessage {
   row.eventType = value.eventType || ''; row.turn = value.turn ?? -1; row.step = value.step ?? -1; row.time = value.time || 0;
   row.callId = value.callId || ''; row.parentCallId = value.parentCallId || ''; row.rootCallId = value.rootCallId || '';
   row.toolName = value.toolName || ''; row.phase = value.phase || ''; row.failed = value.failed === true;
-  row.outcome = value.outcome || ''; row.error = value.error || ''; row.sourceKind = value.sourceKind || '';
+  row.outcome = value.outcome || ''; row.error = value.error || '';
+  row.sourceKind = value.sourceKind || ''; row.sourceForm = value.sourceForm || '';
   row.turnKey = value.turnKey || '';
   row.planDiff = value.planDiff || '';
   row.renderKey = value.renderKey || '';
   row.metaRaw = value.metaRaw || ''; row.contentRaw = value.contentRaw || ''; row.errorRaw = value.errorRaw || '';
+  row.authoritativeRaw = value.authoritativeRaw || '';
   return row;
+}
+
+function recordFromJson(raw: string): Record<string, Object> | null {
+  if (!raw || !raw.trim()) return null;
+  try {
+    const value = JSON.parse(raw) as Object;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    return value as Record<string, Object>;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Merge lifecycle metadata without deleting facts absent from the new record. */
+function mergedStructuredMeta(current: string, incoming: string): string {
+  const before = recordFromJson(current);
+  const after = recordFromJson(incoming);
+  if (!before && !after) return current || incoming || '';
+  const merged: Record<string, Object> = {};
+  if (before) {
+    Object.keys(before).forEach((key: string): void => { merged[key] = before[key]; });
+  }
+  if (after) {
+    Object.keys(after).forEach((key: string): void => {
+      if (after[key] !== undefined) merged[key] = after[key];
+    });
+  }
+  return JSON.stringify(merged);
 }
 
 /** Replace only the existing live Assistant row for text-only deltas. */
@@ -140,7 +159,7 @@ export function nativeProcessLead(group: NativeMessage): string {
   const operation = group.children[0];
   if (!operation) { group.toolName = 'thinking'; return group.closed ? '已完成分析' : '正在分析请求'; }
   if (operation.role === 'tool') {
-    const category = nativeToolCategory(operation.toolName);
+    const category = nativeToolCategory(operation.toolName, operation.args);
     const active = operation.status === 'running' || operation.status === 'preparing';
     group.toolName = category;
     return nativeActivity(category, active);
@@ -169,7 +188,7 @@ export function nativeOperationLead(operation: NativeMessage): string {
     return operation.role === 'reasoning' ? '思考过程' :
       nativeOneLinePreview(operation.label || '工作过程');
   }
-  return nativeActivity(nativeToolCategory(operation.toolName),
+  return nativeActivity(nativeToolCategory(operation.toolName, operation.args),
     operation.status === 'running' || operation.status === 'preparing');
 }
 export function nativeOperationPreview(operation: NativeMessage, workspaceRoot: string = ''): string {
@@ -211,13 +230,20 @@ export function nativeTranscript(records: NativeMessage[], running: boolean,
   const ordered: NativeMessage[] = [];
   const ends: Map<string, NativeMessage> = new Map<string, NativeMessage>();
   const closedSteps: Set<string> = new Set<string>();
+  const authoritativeByCall: Map<string, string> = new Map<string, string>();
   let turnKey = 'legacy:0';
   for (const input of records) {
     const row = copy(input);
     if (row.turn >= 0) turnKey = 'turn:' + row.turn;
     else if (row.role === 'user') turnKey = 'legacy:' + row.seq;
     row.turnKey = turnKey;
-    if (row.role === 'detail' || (row.role === 'user' && row.sourceKind && !['user', 'client', 'steer'].includes(row.sourceKind))) continue;
+    if (row.role === 'detail') {
+      if (row.eventType === 'deliverables/presented' && row.callId) {
+        authoritativeByCall.set(row.callId, row.authoritativeRaw || row.detail || row.metaRaw);
+      }
+      continue;
+    }
+    if (row.role === 'user' && row.sourceKind && !['user', 'client', 'steer'].includes(row.sourceKind)) continue;
     if (row.role === 'turn') {
       if (row.eventType !== 'turn/start') ends.set(turnKey, row);
       ordered.push(row); continue;
@@ -233,12 +259,24 @@ export function nativeTranscript(records: NativeMessage[], running: boolean,
       if (row.toolName) tool.toolName = row.toolName;
       if (row.parentCallId) tool.parentCallId = row.parentCallId;
       if (row.rootCallId) tool.rootCallId = row.rootCallId;
-      if (row.phase === 'start' || row.phase === 'preparing') {
-        tool.args = row.text; tool.status = row.phase === 'preparing' ? 'preparing' : 'running'; tool.phase = row.phase; tool.time = row.time;
+      const incomingStart = row.phase === 'start' || row.phase === 'preparing';
+      const alreadySettled = tool.phase === 'result';
+      tool.metaRaw = mergedStructuredMeta(tool.metaRaw, row.metaRaw);
+      if (row.authoritativeRaw) tool.authoritativeRaw = row.authoritativeRaw;
+      if (incomingStart) {
+        if (!alreadySettled) {
+          tool.output = '';
+          tool.failed = false;
+          tool.status = row.phase === 'preparing' ? 'preparing' : 'running';
+          tool.phase = row.phase;
+          tool.time = row.time;
+        }
+        tool.args = row.text;
       } else {
         tool.output = row.text; tool.failed = row.failed; tool.status = row.failed ? 'error' : 'success'; tool.phase = 'result'; tool.error = row.error;
-        tool.blocks = row.blocks; tool.images = row.images; tool.metaRaw = row.metaRaw;
+        tool.blocks = row.blocks; tool.images = row.images;
         tool.contentRaw = row.contentRaw; tool.errorRaw = row.errorRaw;
+        tool.eventType = row.eventType;
       }
       continue;
     }
@@ -263,6 +301,10 @@ export function nativeTranscript(records: NativeMessage[], running: boolean,
     const tool = copy(preparing); tool.args = tool.text; tool.status = 'preparing'; tool.turnKey = turnKey;
     tool.id = 'call:' + tool.callId; calls.set(tool.callId, tool); ordered.push(tool);
   }
+  authoritativeByCall.forEach((raw: string, callId: string): void => {
+    const tool = calls.get(callId);
+    if (tool && tool.toolName === 'present') tool.authoritativeRaw = raw;
+  });
   if (reasoning.trim()) {
     const thought = new NativeMessage(); thought.id = 'live-reasoning'; thought.role = 'reasoning'; thought.reasoning = reasoning; thought.turnKey = turnKey;
     ordered.push(thought);
@@ -311,6 +353,11 @@ export function nativeTranscript(records: NativeMessage[], running: boolean,
   for (const row of ordered) {
     if (row.role === 'tool' && row.parentCallId &&
       (calls.has(row.parentCallId) || calls.has(row.rootCallId))) continue;
+    if (row.role === 'background-notice') {
+      flushProcess(ends.has(row.turnKey));
+      rows.push(row);
+      continue;
+    }
     if (row.role === 'tool' || row.role === 'reasoning' || row.role === 'notice') {
       if (processGroup && processGroup.turnKey !== row.turnKey) {
         flushProcess(ends.has(processGroup.turnKey));

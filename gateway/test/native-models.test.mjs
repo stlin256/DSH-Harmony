@@ -532,10 +532,15 @@ test('queue wire preserves ordered user content, rejects malformed rows and rest
   assert.deepEqual(queueFromInbox({ 'next-turn': [
     { id: 'queued-b', source: { kind: 'user', rpcId: 'request-b' }, content: [{ type: 'text', text: 'next' }] },
     { id: 'queued-no-request', source: { kind: 'user' }, content: [{ type: 'text', text: 'without rpc id' }] },
+    { id: 'notice', source: { kind: 'tool-jobs', form: 'notice' }, content: [{ type: 'text', text: 'background job finished' }] },
     { id: 'runtime-b', source: { kind: 'runtime', rpcId: 'request-c' }, content: [{ type: 'text', text: 'hidden' }] }
   ], 'next-step': [] }), [
-    { id: 'queued-b', placement: 'queued', rpcId: 'request-b', blocks: [{ kind: 'text', text: 'next' }] },
-    { id: 'queued-no-request', placement: 'queued', blocks: [{ kind: 'text', text: 'without rpc id' }] }
+    { id: 'queued-b', placement: 'queued', rpcId: 'request-b', sourceKind: 'user',
+      blocks: [{ kind: 'text', text: 'next' }] },
+    { id: 'queued-no-request', placement: 'queued', sourceKind: 'user',
+      blocks: [{ kind: 'text', text: 'without rpc id' }] },
+    { id: 'notice', placement: 'queued', sourceKind: 'tool-jobs', sourceForm: 'notice',
+      blocks: [{ kind: 'text', text: 'background job finished' }] }
   ]);
 
   const { NativeSessionModel } = load('NativeSessionModel', {});
@@ -548,6 +553,414 @@ test('queue wire preserves ordered user content, rejects malformed rows and rest
   assert.deepEqual(restored.queue, queue);
   restored.apply({ type: 'state', running: false, waiting: false, queueKnown: true, queue: [] });
   assert.deepEqual(restored.queue, []);
+});
+
+test('structured lifecycle rows merge by stable identity and never regress', () => {
+  const types = load('NativeSessionModel', {});
+  const { nativeTranscript } = load('NativeTranscript', {
+    './NativeSessionModel': types,
+    './NativeHostSettings': load('NativeHostSettings', {'./NativeSessionModel': types}),
+    './NativePlan': load('NativePlan', {}),
+    './NativeToolStructured': load('NativeToolStructured', {
+      './NativeSessionModel': types,
+      './NativeDocumentModel': load('NativeDocumentModel', {})
+    })
+  });
+  const message = (id, role, seq, fields = {}) => Object.assign(
+    new types.NativeMessage(), { id, role, seq, turn: 1, step: 1, ...fields });
+  const lifecycle = nativeTranscript([
+    message('done', 'tool', 2, {
+      callId: 'cmd-1', toolName: 'slash_command', phase: 'result', status: 'success',
+      text: 'Compacted 9 messages.', eventType: 'command/done',
+      metaRaw: JSON.stringify({ commandId: 'cmd-1', kind: 'success', text: 'Compacted 9 messages.' })
+    }),
+    message('run', 'tool', 1, {
+      callId: 'cmd-1', toolName: 'slash_command', phase: 'start', status: 'running',
+      text: '', eventType: 'command/run',
+      metaRaw: JSON.stringify({ commandId: 'cmd-1', name: 'compact', args: '' })
+    })
+  ], false);
+  const command = lifecycle.find(row => row.role === 'process').children[0];
+  assert.equal(command.phase, 'result');
+  assert.equal(command.status, 'success');
+  assert.equal(command.output, 'Compacted 9 messages.');
+  assert.equal(JSON.parse(command.metaRaw).name, 'compact');
+  assert.equal(JSON.parse(command.metaRaw).kind, 'success');
+
+  const jobs = nativeTranscript([
+    message('settled', 'tool', 4, {
+      callId: 'job-1', toolName: 'job_lifecycle', phase: 'result', status: 'success',
+      text: 'exit code: 0', eventType: 'job/settled',
+      metaRaw: JSON.stringify({ jobId: 'job-1', kind: 'bash', label: 'npm test',
+        status: 'completed', detail: 'exit code: 0' })
+    }),
+    message('registered', 'tool', 3, {
+      callId: 'job-1', toolName: 'job_lifecycle', phase: 'start', status: 'running',
+      text: 'npm test', eventType: 'job/registered',
+      metaRaw: JSON.stringify({ jobId: 'job-1', kind: 'bash', label: 'npm test' })
+    })
+  ], false);
+  const job = jobs.find(row => row.role === 'process').children[0];
+  assert.equal(job.phase, 'result');
+  assert.equal(job.status, 'success');
+  assert.equal(job.output, 'exit code: 0');
+  assert.equal(JSON.parse(job.metaRaw).status, 'completed');
+  assert.equal(JSON.parse(job.metaRaw).label, 'npm test');
+});
+
+test('authoritative deliverables attach without adding a duplicate row', () => {
+  const types = load('NativeSessionModel', {});
+  const { nativeTranscript } = load('NativeTranscript', {
+    './NativeSessionModel': types,
+    './NativeHostSettings': load('NativeHostSettings', {'./NativeSessionModel': types}),
+    './NativePlan': load('NativePlan', {}),
+    './NativeToolStructured': load('NativeToolStructured', {
+      './NativeSessionModel': types,
+      './NativeDocumentModel': load('NativeDocumentModel', {})
+    })
+  });
+  const message = (id, role, seq, fields = {}) => Object.assign(
+    new types.NativeMessage(), { id, role, seq, turn: 1, step: 1, ...fields });
+  const authoritative = JSON.stringify({ turn: 1, callId: 'present-1',
+    files: [{ path: 'out/report.pdf', description: 'Final' }] });
+  const rows = nativeTranscript([
+    message('result', 'tool', 1, {
+      callId: 'present-1', toolName: 'present', phase: 'result', status: 'success',
+      text: 'presented', metaRaw: JSON.stringify({})
+    }),
+    message('delivery', 'detail', 2, {
+      callId: 'present-1', eventType: 'deliverables/presented',
+      authoritativeRaw: authoritative, detail: authoritative
+    })
+  ], false);
+  assert.equal(rows.some(row => row.role === 'detail'), false);
+  const present = rows.find(row => row.role === 'process').children[0];
+  assert.equal(present.authoritativeRaw, authoritative);
+});
+
+test('structured tools render command, job, editor and authoritative present records', () => {
+  const types = load('NativeSessionModel', {});
+  const structured = load('NativeToolStructured', {
+    './NativeSessionModel': types,
+    './NativeDocumentModel': load('NativeDocumentModel', {})
+  });
+  const tool = fields => Object.assign(new types.NativeMessage(), {
+    role: 'tool', phase: 'result', status: 'success', toolName: '',
+    args: '', metaRaw: '', output: '', error: '', failed: false, outcome: ''
+  }, fields);
+
+  const command = structured.nativeToolStructured(tool({
+    toolName: 'slash_command',
+    metaRaw: JSON.stringify({
+      commandId: 'cmd-1', name: 'compact', args: 'keep recent', kind: 'error',
+      text: 'Command failed safely.'
+    })
+  }));
+  assert.equal(command.family, 'command');
+  assert.equal(command.summary, '/compact keep recent');
+  assert.equal(command.showRawArguments, false);
+  assert.equal(command.fields.find(x => x.label === '状态').value, '失败');
+  assert.equal(command.fields.find(x => x.label === '结果').value, 'Command failed safely.');
+
+  const job = structured.nativeToolStructured(tool({
+    toolName: 'job_lifecycle',
+    metaRaw: JSON.stringify({
+      jobId: 'job-1', kind: 'video', label: 'Render clip', status: 'killed',
+      detail: 'cancelled by owner', cause: 'user',
+      toolCall: { callId: 'call-1', rootCallId: 'root-1' }
+    })
+  }));
+  assert.equal(job.family, 'jobLifecycle');
+  assert.equal(job.fields.find(x => x.label === '类型').value, 'video');
+  assert.equal(job.fields.find(x => x.label === '状态').tone, 'danger');
+  assert.equal(job.fields.find(x => x.label === '调用').value, 'call-1');
+  assert.equal(job.fields.find(x => x.label === '根调用').value, 'root-1');
+
+  const editor = fields => structured.nativeToolStructured(tool(Object.assign({
+    toolName: 'str_replace_editor', phase: 'start', status: 'running'
+  }, fields)));
+  assert.equal(editor({args: JSON.stringify({command: 'view', path: 'src/view.ts'})}).family, 'read');
+  assert.equal(editor({args: JSON.stringify({command: 'create', path: 'src/create.ts'})}).family, 'file');
+  assert.equal(editor({args: JSON.stringify({
+    command: 'str_replace', path: 'src/replace.ts'
+  })}).family, 'file');
+  assert.equal(editor({args: JSON.stringify({command: 'insert', path: 'src/insert.ts'})}).family, 'file');
+
+  const authoritative = JSON.stringify({
+    turn: 3, callId: 'present-1',
+    files: [{path: 'out/final.pdf', description: 'Final delivery'}]
+  });
+  const present = structured.nativeToolStructured(tool({
+    toolName: 'present', callId: 'present-1',
+    args: JSON.stringify({files: [{path: 'out/inferred.pdf'}]}),
+    authoritativeRaw: authoritative
+  }), '/workspace/project');
+  assert.equal(present.family, 'present');
+  assert.deepEqual(Array.from(present.presented, file => file.display), ['out/final.pdf']);
+  assert.equal(present.presented[0].description, 'Final delivery');
+  assert.equal(present.fields[0].label, '权威交付');
+});
+
+test('plugin view parser is bounded, read-only and groups metric rows', () => {
+  const types = load('NativeSessionModel', {});
+  const { nativeToolStructured } = load('NativeToolStructured', {
+    './NativeSessionModel': types,
+    './NativeDocumentModel': load('NativeDocumentModel', {})
+  });
+  const card = {
+    type: 'stack',
+    title: 'Workspace health',
+    children: [
+      {type: 'row', children: [
+        {type: 'metric', label: 'Tests', value: '42', caption: 'passed', tone: 'good'},
+        {type: 'metric', label: 'Failures', value: '0', tone: 'info'}
+      ]},
+      {type: 'progress', label: 'Coverage', value: 75, max: 100, tone: 'warn'},
+      {type: 'callout', text: 'Read-only summary', tone: 'info'},
+      {type: 'list', items: [{title: 'Gateway', subtitle: 'healthy', trailing: '1'}]},
+      {type: 'table', columns: ['Name', 'State'], rows: [['sync', 'idle']]},
+      {type: 'options', selected: 'all', options: [
+        {label: 'All', value: 'all'}, {label: 'Errors', value: 'errors'}
+      ]},
+      {type: 'confirm', label: 'Apply', action: 'apply'},
+      {type: 'actions', items: [{label: 'Delete', action: 'delete'}]},
+      {type: 'image', src: 'https://tracker.invalid/image.png', alt: 'Remote'}
+    ]
+  };
+  const document = nativeToolStructured(Object.assign(new types.NativeMessage(), {
+    role: 'tool', toolName: 'plugin_tool', phase: 'result', status: 'success',
+    args: '{}', output: 'ok', metaRaw: JSON.stringify({'dsh-go/view': card})
+  }));
+  assert.equal(document.plugin.present, true);
+  assert.equal(document.plugin.valid, true);
+  assert.equal(document.plugin.title, 'Workspace health');
+  assert.equal(document.plugin.blocks[0].kind, 'metrics');
+  assert.deepEqual(Array.from(document.plugin.blocks[0].metrics, x => x.label), ['Tests', 'Failures']);
+  assert.equal(document.plugin.blocks.some(x => x.kind === 'options'), true);
+  assert.equal(document.plugin.blocks.find(x => x.kind === 'options').items[0].selected, true);
+  assert.equal(document.plugin.blocks.some(x => x.kind === 'confirm' || x.kind === 'actions'), false);
+  assert.equal(document.plugin.blocks.find(x => x.kind === 'image').text, '图像未加载');
+  assert.equal(document.bodyStructured, true);
+  assert.equal(document.showRawArguments, false);
+  assert.equal(document.showRawOutput, false);
+
+  const invalid = nativeToolStructured(Object.assign(new types.NativeMessage(), {
+    role: 'tool', toolName: 'plugin_tool', phase: 'result', status: 'success',
+    args: '{}', output: 'raw output',
+    metaRaw: JSON.stringify({'dsh-go/view': {title: 'missing type'}})
+  }));
+  assert.equal(invalid.plugin.present, true);
+  assert.equal(invalid.plugin.valid, false);
+  assert.equal(invalid.bodyStructured, true);
+  assert.equal(invalid.showRawArguments, true);
+  assert.equal(invalid.showRawOutput, true);
+
+  const oversized = nativeToolStructured(Object.assign(new types.NativeMessage(), {
+    role: 'tool', toolName: 'plugin_tool', phase: 'result', status: 'success',
+    args: '{}', output: 'raw output',
+    metaRaw: JSON.stringify({'dsh-go/view': {type: 'text', text: 'x'.repeat(9000)}})
+  }));
+  assert.equal(oversized.plugin.valid, false);
+  assert.equal(oversized.showRawArguments, true);
+
+  let nested = {type: 'text', text: 'deep'};
+  for (let index = 0; index < 10; index++) nested = {type: 'stack', children: [nested]};
+  const depth = nativeToolStructured(Object.assign(new types.NativeMessage(), {
+    role: 'tool', toolName: 'plugin_tool', phase: 'result', status: 'success',
+    args: '{}', output: '',
+    metaRaw: JSON.stringify({'dsh-go/view': nested})
+  }));
+  assert.equal(depth.plugin.valid, true);
+  assert.equal(depth.plugin.truncated, true);
+
+  const unknownRoot = nativeToolStructured(Object.assign(new types.NativeMessage(), {
+    role: 'tool', toolName: 'plugin_tool', phase: 'result', status: 'success',
+    args: '{}', output: 'raw output',
+    metaRaw: JSON.stringify({'dsh-go/view': {type: 'future-root', text: 'future'}})
+  }));
+  assert.equal(unknownRoot.plugin.present, true);
+  assert.equal(unknownRoot.plugin.valid, false);
+  assert.equal(unknownRoot.showRawOutput, true);
+
+  const running = nativeToolStructured(Object.assign(new types.NativeMessage(), {
+    role: 'tool', toolName: 'plugin_tool', phase: 'start', status: 'running',
+    args: '{}', output: '',
+    metaRaw: JSON.stringify({'dsh-go/view': {type: 'text', text: 'not ready'}})
+  }));
+  assert.equal(running.plugin.present, false);
+});
+
+test('assistant dsh-ui fences use the larger interactive model profile', () => {
+  const types = load('NativeSessionModel', {});
+  const { nativeDshUiDocument } = load('NativeToolStructured', {
+    './NativeSessionModel': types,
+    './NativeDocumentModel': load('NativeDocumentModel', {})
+  });
+  const source = `{
+    // comments and a trailing comma are repaired once
+    "type": "stack",
+    "title": "Workspace health",
+    "children": [
+      {"type": "metric", "label": "Tests", "value": "42"},
+      {"type": "options", "id": "scope", "multi": true, "options": [
+        {"label": "All", "value": "all"},
+        {"label": "Failures", "value": "failures"},
+      ]},
+      {"type": "confirm", "id": "apply", "confirmLabel": "Apply"},
+    ],
+  }`;
+  const document = nativeDshUiDocument(source);
+  assert.equal(document.valid, true);
+  assert.equal(document.title, 'Workspace health');
+  assert.equal(document.blocks[0].kind, 'metric');
+  const options = document.blocks.find(block => block.kind === 'options');
+  assert.equal(options.multi, true);
+  assert.deepEqual(Array.from(options.items, item => item.value), ['all', 'failures']);
+  assert.equal(document.blocks.find(block => block.kind === 'confirm').confirmLabel, 'Apply');
+
+  const array = nativeDshUiDocument('[{"type":"text","text":"one"},{"type":"text","text":"two"}]');
+  assert.equal(array.valid, true);
+  assert.deepEqual(Array.from(array.blocks, block => block.text), ['one', 'two']);
+
+  const unknownRoot = nativeDshUiDocument('{"type":"future-root","text":"future"}');
+  assert.equal(unknownRoot.present, true);
+  assert.equal(unknownRoot.valid, false);
+
+  const tooLarge = nativeDshUiDocument(JSON.stringify({
+    type: 'text', text: 'x'.repeat(17000)
+  }));
+  assert.equal(tooLarge.valid, false);
+
+  const children = Array.from({length: 18}, (_value, index) => ({
+    type: 'text', text: 'row-' + index
+  }));
+  const bounded = nativeDshUiDocument(JSON.stringify({type: 'stack', children}));
+  assert.equal(bounded.valid, true);
+  assert.equal(bounded.blocks.length, 16);
+  assert.equal(bounded.truncated, true);
+});
+
+test('dsh-ui replies contain visible labels and are available only for the latest idle view', () => {
+  const types = load('NativeSessionModel', {});
+  const {
+    nativeDshUiChoiceReply,
+    nativeDshUiConfirmReply,
+    nativeDshUiReply,
+    nativeDshUiReplyLabel,
+    nativeDshUiCanReply
+  } = load('NativeDshUi', { './NativeSessionModel': types });
+
+  const choice = nativeDshUiChoiceReply('Choose scope', ['All', 'Failures']);
+  assert.equal(choice, '[dsh-ui reply] Choose scope\n选择：All、Failures');
+  assert.equal(nativeDshUiReplyLabel(choice), '已选择：All、Failures');
+  assert.equal(nativeDshUiReply(choice).title, 'Choose scope');
+
+  const confirmed = nativeDshUiConfirmReply('Apply changes', true, 'Apply');
+  assert.equal(confirmed, '[dsh-ui reply] Apply changes\n确认：Apply');
+  assert.equal(nativeDshUiReplyLabel(confirmed), '已确认：Apply');
+  assert.equal(nativeDshUiReplyLabel('[dsh-ui reply]\nCancel'), '已取消');
+
+  const rows = [
+    Object.assign(new types.NativeMessage(), {id: 'assistant', role: 'assistant', text: 'card'}),
+    Object.assign(new types.NativeMessage(), {id: 'process', role: 'process', text: ''})
+  ];
+  assert.equal(nativeDshUiCanReply(rows, 'assistant', false, false), true);
+  assert.equal(nativeDshUiCanReply(rows, 'assistant', true, false), false);
+  rows.push(Object.assign(new types.NativeMessage(), {id: 'reply', role: 'user', text: choice}));
+  assert.equal(nativeDshUiCanReply(rows, 'assistant', false, false), false);
+});
+
+test('media metadata validates running, completed and failed generated media', () => {
+  const types = load('NativeSessionModel', {});
+  const { nativeToolStructured } = load('NativeToolStructured', {
+    './NativeSessionModel': types,
+    './NativeDocumentModel': load('NativeDocumentModel', {})
+  });
+  const tool = (meta, failed = false) => Object.assign(new types.NativeMessage(), {
+    role: 'tool', toolName: 'generate_image', phase: 'result',
+    status: failed ? 'error' : 'success', failed,
+    args: '{}', output: failed ? 'provider rejected request' : 'generated',
+    metaRaw: JSON.stringify({'dsh-go/media': meta})
+  });
+
+  const imageMeta = {
+    v: 1, rid: 'rid-image', kind: 'image', status: 'done',
+    items: [{path: 'generated/one.png', mime: 'image/png', width: 1024, height: 1024, bytes: 2048}],
+    request: {
+      provider: 'provider', model: 'model-image', label: 'Image Model',
+      aspect: '1:1', n: 1, quality: 'high', seconds: 4
+    },
+    prompt: 'A quiet test card',
+    provenance: {visibleMark: true, c2pa: true, implicitLabel: true},
+    cost: {estimate: 0.6, currency: 'CNY'}
+  };
+  const image = nativeToolStructured(tool(imageMeta), '/workspace/project');
+  assert.equal(image.media.valid, true);
+  assert.equal(image.media.items[0].display, 'generated/one.png');
+  assert.equal(image.media.request.label, 'Image Model');
+  assert.equal(image.media.request.count, 1);
+  assert.equal(image.media.implicitLabel, true);
+  assert.equal(image.media.costEstimate, 0.6);
+  assert.equal(image.media.costCurrency, 'CNY');
+  assert.equal(image.showRawOutput, false);
+
+  const running = nativeToolStructured(tool({
+    v: 1, rid: 'rid-video', job: 'job-video', kind: 'video', status: 'running',
+    items: [], request: {label: 'Video Model', aspect: '16:9', seconds: 5},
+    prompt: 'A slow camera move'
+  }));
+  assert.equal(running.media.valid, true);
+  assert.equal(running.media.kind, 'video');
+  assert.equal(running.media.status, 'running');
+
+  const failed = nativeToolStructured(tool({
+    v: 1, rid: 'rid-failed', kind: 'image', status: 'failed', items: [],
+    request: {label: 'Image Model'}, prompt: 'Rejected',
+    error: {code: 'policy', text: 'Input was rejected'}
+  }, true));
+  assert.equal(failed.media.valid, true);
+  assert.equal(failed.media.status, 'failed');
+  assert.equal(failed.media.errorText, 'Input was rejected');
+
+  const emptyDone = nativeToolStructured(tool({
+    v: 1, rid: 'rid-empty', kind: 'image', status: 'done', items: []
+  }));
+  assert.equal(emptyDone.media.present, true);
+  assert.equal(emptyDone.media.valid, false);
+
+  const badDimension = nativeToolStructured(tool(Object.assign({}, imageMeta, {
+    items: [{path: 'generated/bad.png', width: 0}]
+  })));
+  assert.equal(badDimension.media.valid, true);
+  assert.equal(badDimension.media.items[0].width, 0);
+
+  const oversized = nativeToolStructured(tool(Object.assign({}, imageMeta, {
+    prompt: 'x'.repeat(9000)
+  })));
+  assert.equal(oversized.media.valid, false);
+
+  const inferred = nativeToolStructured(tool({
+    items: [{path: 'generated/video.mp4', mime: 'video/mp4', bytes: -1}],
+    request: {n: 'bad', provider: 7},
+    status: 'unknown'
+  }));
+  assert.equal(inferred.media.valid, true);
+  assert.equal(inferred.media.kind, 'video');
+  assert.equal(inferred.media.status, 'done');
+  assert.equal(inferred.media.items[0].bytes, 0);
+  assert.equal(inferred.media.request.count, 0);
+
+  const future = nativeToolStructured(tool(Object.assign({}, imageMeta, {
+    v: 2,
+    cost: {estimate: -1, currency: 'CNY'}
+  })));
+  assert.equal(future.media.valid, true);
+  assert.equal(future.media.costEstimate, -1);
+
+  const emptyVideoDone = nativeToolStructured(tool({
+    v: 1, kind: 'video', status: 'done', items: []
+  }));
+  assert.equal(emptyVideoDone.media.valid, false);
 });
 
 test('process structure detection ignores streaming values and identifies new direct operations', () => {
@@ -979,6 +1392,18 @@ test('native diff understands current write, edit and str_replace_editor argumen
   assert.equal(replace.added, 1);
   assert.equal(replace.removed, 1);
 
+  const insert = nativeDiff(message({
+    toolName: 'str_replace_editor', phase: 'start', status: 'running',
+    args: JSON.stringify({ command: 'insert', path: 'src/insert.ts',
+      insert_line: 12, new_str: 'first\nsecond' })
+  }));
+  assert.equal(insert.matched, true);
+  assert.equal(insert.path, 'src/insert.ts');
+  assert.equal(insert.added, 2);
+  assert.equal(insert.removed, 0);
+  assert.deepEqual(Array.from(insert.rows.filter(row => row.kind === 'add')
+    .map(row => row.text)), ['first', 'second']);
+
   const applied = nativeDiff(message({
     toolName: 'write', phase: 'result', status: 'success',
     args: JSON.stringify({ file_path: 'src/new.ts', content: 'all-new\ncontent\n' }),
@@ -1296,7 +1721,8 @@ test('non-edit tools never enter diff projection and malformed diff data is iner
   assert.equal(mixed.matched, true);
   assert.equal(mixed.added, 1);
   const view = readFileSync(new URL('../../harmony/entry/src/main/ets/components/NativeToolCallView.ets', import.meta.url), 'utf8');
-  assert.match(view, /const category = nativeToolCategory\(this\.message\.toolName\);/);
+  assert.match(view,
+    /const category = nativeToolCategory\(this\.message\.toolName, this\.message\.args\);/);
   assert.match(view, /\['edit', 'write'\]\.includes\(category\) \? nativeDiff\(this\.message\)/);
 });
 
@@ -1939,7 +2365,7 @@ test('streaming scroll yields to direct manipulation and dock expansion shares o
 test('running activity uses latest still-running start time and exact upstream tool-name categories', () => {
   const types=load('NativeSessionModel',{});
   const {nativeTranscript,nativeProcessGroupPreview,nativeToolArgumentsVisible,nativeToolCategory,
-    nativeToolDetail,nativeOneLinePreview,nativeToolOutputVisible}=load(
+    nativeToolDetail,nativeOneLinePreview,nativeToolOutputVisible,nativeProcessIcon}=load(
     'NativeTranscript',{'./NativeSessionModel':types});
   const rows=[
     {id:'a',seq:1,turn:1,step:1,role:'tool',callId:'a',toolName:'exec_command',phase:'start',time:10,text:'{"cmd":"test","description":"Run checks"}'},
@@ -1960,8 +2386,20 @@ test('running activity uses latest still-running start time and exact upstream t
   assert.equal(nativeToolCategory('functions.read'),'tools');
   assert.equal(nativeToolCategory('terminal_inspect'),'search');
   assert.equal(nativeToolCategory('subagent_codex'),'subagents');
-  assert.equal(nativeToolCategory('job_output'),'commands');
-  assert.equal(nativeToolCategory('str_replace_editor'),'edit');
+  assert.equal(nativeToolCategory('job_output'),'job');
+  assert.equal(nativeToolCategory('job_lifecycle'),'jobLifecycle');
+  assert.equal(nativeToolCategory('slash_command'),'command');
+  assert.equal(nativeProcessIcon('jobLifecycle'),'queue-outline');
+  assert.equal(nativeProcessIcon('command'),'api-outline');
+  assert.equal(nativeToolCategory('str_replace_editor'),'tools');
+  assert.equal(nativeToolCategory('str_replace_editor',
+    '{"command":"view","path":"src/app.ts"}'),'read');
+  assert.equal(nativeToolCategory('str_replace_editor',
+    '{"command":"create","path":"src/app.ts"}'),'write');
+  assert.equal(nativeToolCategory('str_replace_editor',
+    '{"command":"str_replace","path":"src/app.ts"}'),'edit');
+  assert.equal(nativeToolCategory('str_replace_editor',
+    '{"command":"insert","path":"src/app.ts"}'),'edit');
   assert.equal(nativeToolCategory('workflow'),'subagents');
   assert.equal(nativeToolCategory('skill'),'subagents');
   assert.equal(nativeToolDetail({args:'{"questions":[{"question":"Choose scope"}]}',phase:'start',toolName:'request_user_input'}),'Choose scope');

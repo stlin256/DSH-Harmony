@@ -271,7 +271,7 @@ test('modern Harness control stream replaces removed per-session observers witho
   assert.equal(frames.find(x => x.type === 'title')?.title, 'Initial control title');
   const state = frames.find(x => x.type === 'state' && x.queueKnown === true && x.queue.length);
   assert.deepEqual(state?.queue, [{
-    id: 'control-queued', placement: 'queued', rpcId: 'control-request',
+    id: 'control-queued', placement: 'queued', rpcId: 'control-request', sourceKind: 'user',
     blocks: [{ kind: 'text', text: 'queued from control' }]
   }]);
   ws.close();
@@ -593,8 +593,61 @@ test('Chat filters injected source kinds at the durable source field while retai
   assert.equal(normalizeRecord(message({kind:'user'},'Current runtime context. is a phrase I want explained')).role,'user');
   assert.equal(normalizeRecord(message(undefined,'  Time sampled while preparing turn: now')),null);
   assert.equal(normalizeRecord(message(undefined,'Please explain current runtime context.')).role,'user');
+  const background = normalizeRecord(message(
+    { kind: 'tool-jobs', form: 'notice', summary: 'job completed' },
+    'background job bash-1 finished'
+  ));
+  assert.equal(background.role, 'background-notice');
+  assert.equal(background.sourceForm, 'notice');
+  assert.equal(background.sourceKind, 'tool-jobs');
+  assert.equal(normalizeRecord(message(
+    { kind: 'user', form: 'notice' },
+    '{"source":{"kind":"tool-jobs","form":"notice"}}'
+  )).role, 'user');
   const assistant=normalizeRecord({type:'event',event:{seq:2,type:'assistant/message',data:{message:{content:[{type:'tool-call',id:'x',name:'read',arguments:'{}'},{type:'text',text:'reply'}]}}}});
   assert.equal(assistant.text,'reply');
+});
+
+test('native lifecycle normalization preserves stable command and job identities', () => {
+  const command = normalizeRecord({ type: 'event', event: {
+    seq: 4, type: 'command/run', data: {
+      commandId: 'cmd-1', name: 'compact', args: '', source: { kind: 'user' }
+    }
+  }});
+  assert.equal(command.callId, 'cmd-1');
+  assert.equal(command.toolName, 'slash_command');
+  assert.equal(command.phase, 'start');
+  assert.equal(JSON.parse(command.metaRaw).name, 'compact');
+
+  const registered = normalizeRecord({ type: 'event', event: {
+    seq: 5, type: 'job/registered', data: {
+      jobId: 'job-1', owner: 'session', kind: 'bash', label: 'npm test',
+      startedAt: 1000, toolCall: { callId: 'call-1', rootCallId: 'call-1' }
+    }
+  }});
+  assert.equal(registered.callId, 'job-1');
+  assert.equal(registered.toolName, 'job_lifecycle');
+  assert.equal(JSON.parse(registered.metaRaw).toolCall.callId, 'call-1');
+
+  const settled = normalizeRecord({ type: 'event', event: {
+    seq: 6, type: 'job/settled', data: {
+      jobId: 'job-1', owner: 'session', kind: 'bash', label: 'npm test',
+      startedAt: 1000, finishedAt: 2000, status: 'completed', cause: 'producer',
+      producerReported: true, detail: 'exit code: 0'
+    }
+  }});
+  assert.equal(settled.phase, 'result');
+  assert.equal(settled.failed, false);
+  assert.equal(settled.outcome, 'completed');
+
+  const delivered = normalizeRecord({ type: 'event', event: {
+    seq: 7, type: 'deliverables/presented', data: {
+      turn: 1, callId: 'present-1', files: [{ path: 'out/report.pdf' }]
+    }
+  }});
+  assert.equal(delivered.role, 'detail');
+  assert.equal(delivered.callId, 'present-1');
+  assert.equal(JSON.parse(delivered.authoritativeRaw).files.length, 1);
 });
 
 test('native history and stream preserve arbitrarily long Unicode content without display truncation', () => {

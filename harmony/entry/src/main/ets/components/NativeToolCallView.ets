@@ -39,7 +39,7 @@ export struct NativeToolCallView {
     this.changed();
   }
   private changed(): void {
-    const category = nativeToolCategory(this.message.toolName);
+    const category = nativeToolCategory(this.message.toolName, this.message.args);
     this.diff = ['edit', 'write'].includes(category) ? nativeDiff(this.message) : new NativeDiffDocument();
     this.plan = this.message.toolName === 'todo_write' ?
       nativePlanDocument(this.message) : new NativePlanDocument();
@@ -58,9 +58,9 @@ export struct NativeToolCallView {
       if (!this.hideHeader) {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 6 }) {
-            DSHIcon({ glyph: nativeProcessIcon(nativeToolCategory(this.message.toolName)),
+            DSHIcon({ glyph: nativeProcessIcon(nativeToolCategory(this.message.toolName, this.message.args)),
               color: NativeDesign.textTertiary(this.dark), glyphSize: 14 })
-            Text(nativeActivity(nativeToolCategory(this.message.toolName),
+            Text(nativeActivity(nativeToolCategory(this.message.toolName, this.message.args),
               this.message.status === 'running' || this.message.status === 'preparing'))
               .fontSize(12).fontWeight(FontWeight.Medium)
               .fontColor(NativeDesign.textSecondary(this.dark)).maxLines(1)
@@ -190,9 +190,9 @@ struct NativeNestedToolRow {
     Column({ space: this.expanded ? 4 : 0 }) {
       Button({ type: ButtonType.Normal }) {
         Row({ space: 6 }) {
-          DSHIcon({ glyph: nativeProcessIcon(nativeToolCategory(this.message.toolName)),
+          DSHIcon({ glyph: nativeProcessIcon(nativeToolCategory(this.message.toolName, this.message.args)),
             color: NativeDesign.textTertiary(this.dark), glyphSize: 13 })
-          Text(nativeActivity(nativeToolCategory(this.message.toolName),
+          Text(nativeActivity(nativeToolCategory(this.message.toolName, this.message.args),
             this.message.status === 'running' || this.message.status === 'preparing'))
             .fontSize(11).fontColor(NativeDesign.textSecondary(this.dark))
           if (this.preview()) {

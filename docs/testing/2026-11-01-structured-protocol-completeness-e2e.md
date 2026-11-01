@@ -32,3 +32,15 @@ navigation or system behavior.
 - A short recording for streamed lifecycle transitions.
 - No private host, credential, real transcript, workspace path or notification
   content.
+
+## Automated verification (2026-11-01)
+
+- Gateway and ArkTS service contracts: `178/178` tests passed.
+- Personal Release build and signing: passed.
+- Store Release build and signing: passed.
+- Static source contracts verify plugin/media cards, read-only background
+  notices, non-editable `tool-jobs` queue rows, editor subcommand
+  classification and insert diff generation.
+
+The device rows above remain `Pending`; compilation and service tests are not
+recorded as device evidence.

@@ -72,6 +72,10 @@ export function normalizeQueuedState(value) {
       id: item.id,
       placement: 'queued',
       ...(item.rpcId === undefined ? {} : { rpcId: item.rpcId }),
+      ...(typeof item.sourceKind === 'string' && item.sourceKind
+        ? { sourceKind: item.sourceKind } : {}),
+      ...(typeof item.sourceForm === 'string' && item.sourceForm
+        ? { sourceForm: item.sourceForm } : {}),
       blocks
     });
   }
@@ -84,12 +88,15 @@ export function queueFromInbox(value) {
   return normalizeQueuedState(value['next-turn'].filter(message => {
     if (!message || typeof message !== 'object' || Array.isArray(message)) return false;
     const source = message.source;
-    return source?.kind === 'user' &&
+    return (source?.kind === 'user' || source?.kind === 'tool-jobs') &&
       (source.rpcId === undefined || typeof source.rpcId === 'string');
   }).map(message => ({
     id: message.id,
     placement: 'queued',
     ...(message.source.rpcId === undefined ? {} : { rpcId: message.source.rpcId }),
+    sourceKind: message.source.kind,
+    ...(typeof message.source.form === 'string' && message.source.form
+      ? { sourceForm: message.source.form } : {}),
     content: message.content
   })));
 }
@@ -131,13 +138,20 @@ export function normalizeRecord(record) {
   if (record?.type !== 'event' || !event || !Number.isSafeInteger(event.seq)) return null;
   const data = event.data || {};
   let role, label, content, detail = '';
+  let structuredMeta = null;
   const source = data.source || data.message?.source;
   const sourceKind = typeof source?.kind === 'string' ? source.kind : '';
+  const sourceForm = typeof source?.form === 'string' ? source.form : '';
   if (event.type === 'user/message') {
     content = textBlocks(data.content);
-    if (sourceKind && !['user', 'client', 'steer'].includes(sourceKind)) return null;
-    if (!sourceKind && /^(?:current runtime context\.|time sampled while preparing turn|browser time zone for this request:|elapsed since the preceding model-visible message:|current working directory:|current dsh file policy:|<system[-_]reminder>)/i.test(content.text.trimStart())) return null;
-    role = 'user'; label = '你';
+    if (sourceKind === 'tool-jobs' && source?.form !== 'notice') return null;
+    if (sourceKind === 'tool-jobs') {
+      role = 'background-notice'; label = '后台任务';
+    } else {
+      if (sourceKind && !['user', 'client', 'steer'].includes(sourceKind)) return null;
+      if (!sourceKind && /^(?:current runtime context\.|time sampled while preparing turn|browser time zone for this request:|elapsed since the preceding model-visible message:|current working directory:|current dsh file policy:|<system[-_]reminder>)/i.test(content.text.trimStart())) return null;
+      role = 'user'; label = '你';
+    }
   }
   else if (event.type === 'assistant/message') { role = 'assistant'; label = 'DeepSeek'; content = textBlocks(data.message?.content); }
   else if (event.type === 'tool/call') { role = 'tool'; label = '工具 · ' + fullText(data.name, 100); content = { text: fullText(data.arguments), reasoning: '' }; }
@@ -146,7 +160,26 @@ export function normalizeRecord(record) {
     role = 'tool'; label = fullText(data.name); content = event.type.endsWith('-start') ? { text: fullText(data.arguments), reasoning: '' } : textBlocks(data.content);
   }
   else if (event.type === 'command/run' || event.type === 'command/done') {
-    role = 'tool'; label = '/' + fullText(data.name); content = { text: fullText(event.type === 'command/run' ? data.args : data.text), reasoning: '' };
+    role = 'tool';
+    label = event.type === 'command/run' ? '/' + fullText(data.name) : '命令结果';
+    content = { text: fullText(event.type === 'command/run' ? data.args : data.text), reasoning: '' };
+    structuredMeta = data;
+  }
+  else if (event.type === 'job/registered' || event.type === 'job/settled') {
+    role = 'tool';
+    label = event.type === 'job/registered' ? '后台任务已启动' : '后台任务已结束';
+    content = {
+      text: fullText(event.type === 'job/settled' ? data.detail : data.label),
+      reasoning: ''
+    };
+    structuredMeta = data;
+  }
+  else if (event.type === 'deliverables/presented') {
+    role = 'detail';
+    label = '';
+    content = { text: '', reasoning: '' };
+    detail = JSON.stringify(data);
+    structuredMeta = data;
   }
   else if (event.type === 'turn/start' || event.type === 'turn/end') {
     role = 'turn'; label = event.type === 'turn/start' ? '进行中' : data.reason?.kind === 'error' ? '执行失败' : data.reason?.kind === 'cancelled' ? '已停止' : '已完成';
@@ -162,17 +195,28 @@ export function normalizeRecord(record) {
     if (part?.type === 'image' && part.attachment) return [{ kind: 'image', text: '', blocks: [], images: [part.attachment] }];
     return [];
   }) : [];
-  const callId = data.callId ?? data.subCallId ?? data.message?.source?.callId ?? data.commandId;
+  const callId = event.type === 'job/registered' || event.type === 'job/settled'
+    ? data.jobId
+    : data.callId ?? data.subCallId ?? data.message?.source?.callId ?? data.commandId;
+  const toolName = event.type === 'command/run' || event.type === 'command/done'
+    ? 'slash_command'
+    : event.type === 'job/registered' || event.type === 'job/settled'
+      ? 'job_lifecycle' : fullText(data.name);
+  const phase = /(?:tool\/call|dispatch-start|command\/run|job\/registered)$/.test(event.type)
+    ? 'start' : 'result';
   return { images, id: 'event-' + event.seq, seq: event.seq, role, label, text: content.text, reasoning: content.reasoning,
-    metaRaw: JSON.stringify(data.message?.meta ?? data.meta ?? null), contentRaw: JSON.stringify(parts || []),
+    metaRaw: JSON.stringify(structuredMeta ?? data.message?.meta ?? data.meta ?? null), contentRaw: JSON.stringify(parts || []),
     errorRaw: JSON.stringify(data.message?.error ?? data.error ?? null),
-    blocks: richBlocks(content.text), segments, detail, eventType: event.type, sourceKind,
+    blocks: richBlocks(content.text), segments, detail, eventType: event.type, sourceKind, sourceForm,
     turn: Number.isSafeInteger(data.turn) ? data.turn : -1, step: Number.isSafeInteger(data.step) ? data.step : -1,
     time: Number.isFinite(event.time) ? event.time : 0, callId: callId == null ? '' : String(callId),
-    parentCallId: fullText(data.parentCallId), rootCallId: fullText(data.rootCallId), toolName: fullText(data.name),
-    phase: /(?:tool\/call|dispatch-start|command\/run)$/.test(event.type) ? 'start' : 'result',
-    failed: data.message?.isError === true || data.isError === true || data.kind === 'error',
-    outcome: fullText(data.reason?.kind), error: fullText(data.error?.message || data.error?.reason || '') };
+    parentCallId: fullText(data.parentCallId), rootCallId: fullText(data.rootCallId),
+    toolName, phase,
+    failed: data.message?.isError === true || data.isError === true ||
+      data.kind === 'error' || data.status === 'failed' || data.status === 'killed',
+    outcome: fullText(data.reason?.kind) || fullText(data.status),
+    error: fullText(data.error?.message || data.error?.reason || data.detail || ''),
+    authoritativeRaw: event.type === 'deliverables/presented' ? JSON.stringify(data) : '' };
 }
 export function normalizedHistory(records) {
   let messages = [];

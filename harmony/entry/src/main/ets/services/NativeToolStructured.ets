@@ -67,6 +67,99 @@ export class NativeStructuredImageFacts {
   bytes: number = 0;
 }
 
+export class NativePluginMetric {
+  label: string = '';
+  value: string = '';
+  caption: string = '';
+  tone: string = 'default';
+}
+
+export class NativePluginItem {
+  title: string = '';
+  subtitle: string = '';
+  trailing: string = '';
+  tone: string = 'default';
+  selected: boolean = false;
+  value: string = '';
+}
+
+export class NativePluginTableRow {
+  cells: string[] = [];
+}
+
+export class NativePluginBlock {
+  kind: string = '';
+  id: string = '';
+  title: string = '';
+  text: string = '';
+  label: string = '';
+  value: string = '';
+  caption: string = '';
+  tone: string = 'default';
+  progress: number = 0;
+  selected: string = '';
+  multi: boolean = false;
+  confirmLabel: string = '';
+  cancelLabel: string = '';
+  metrics: NativePluginMetric[] = [];
+  items: NativePluginItem[] = [];
+  columns: string[] = [];
+  rows: NativePluginTableRow[] = [];
+}
+
+export class NativePluginDocument {
+  present: boolean = false;
+  valid: boolean = false;
+  title: string = '';
+  blocks: NativePluginBlock[] = [];
+  truncated: boolean = false;
+}
+
+export class NativeMediaRequestInfo {
+  provider: string = '';
+  model: string = '';
+  label: string = '';
+  aspect: string = '';
+  count: number = 0;
+  quality: string = '';
+  seconds: number = 0;
+  resolution: string = '';
+  refs: number = 0;
+}
+
+export class NativeMediaItem {
+  path: string = '';
+  display: string = '';
+  name: string = '';
+  mime: string = '';
+  width: number = 0;
+  height: number = 0;
+  bytes: number = 0;
+  duration: number = 0;
+  poster: string = '';
+  codec: string = '';
+}
+
+export class NativeMediaDocument {
+  present: boolean = false;
+  valid: boolean = false;
+  kind: string = '';
+  status: string = '';
+  rid: string = '';
+  job: string = '';
+  items: NativeMediaItem[] = [];
+  request: NativeMediaRequestInfo = new NativeMediaRequestInfo();
+  prompt: string = '';
+  revisedPrompt: string = '';
+  errorCode: string = '';
+  errorText: string = '';
+  costEstimate: number = -1;
+  costCurrency: string = '';
+  visibleMark: boolean = false;
+  c2pa: boolean = false;
+  implicitLabel: boolean = false;
+}
+
 export class NativeToolStructured {
   family: string = 'generic';
   parsed: boolean = false;
@@ -81,6 +174,8 @@ export class NativeToolStructured {
   sources: NativeStructuredWebSource[] = [];
   presented: NativeStructuredPresentedFile[] = [];
   image: NativeStructuredImageFacts = new NativeStructuredImageFacts();
+  plugin: NativePluginDocument = new NativePluginDocument();
+  media: NativeMediaDocument = new NativeMediaDocument();
   showRawOutput: boolean = true;
   showRawArguments: boolean = false;
 }
@@ -110,6 +205,98 @@ function parseObject(value: string): Record<string, Object> | null {
     return recordValue(JSON.parse(value) as Object);
   } catch (_) {
     return null;
+  }
+}
+
+function removeStructuredComments(source: string): string {
+  let result = '';
+  let index = 0;
+  let quoted = false;
+  let escaped = false;
+  while (index < source.length) {
+    const character = source.charAt(index);
+    const next = source.charAt(index + 1);
+    if (quoted) {
+      result += character;
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') quoted = false;
+      index++;
+      continue;
+    }
+    if (character === '"') {
+      quoted = true;
+      result += character;
+      index++;
+      continue;
+    }
+    if (character === '/' && next === '/') {
+      index += 2;
+      while (index < source.length && source.charAt(index) !== '\n') index++;
+      if (index < source.length) result += '\n';
+      index++;
+      continue;
+    }
+    if (character === '/' && next === '*') {
+      index += 2;
+      while (index + 1 < source.length &&
+        !(source.charAt(index) === '*' && source.charAt(index + 1) === '/')) {
+        if (source.charAt(index) === '\n') result += '\n';
+        index++;
+      }
+      index = Math.min(source.length, index + 2);
+      continue;
+    }
+    result += character;
+    index++;
+  }
+  return result;
+}
+
+function removeTrailingCommas(source: string): string {
+  let result = '';
+  let quoted = false;
+  let escaped = false;
+  for (let index = 0; index < source.length; index++) {
+    const character = source.charAt(index);
+    if (quoted) {
+      result += character;
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') quoted = false;
+      continue;
+    }
+    if (character === '"') {
+      quoted = true;
+      result += character;
+      continue;
+    }
+    if (character === ',') {
+      let cursor = index + 1;
+      while (cursor < source.length && /\s/.test(source.charAt(cursor))) cursor++;
+      if (cursor < source.length &&
+        (source.charAt(cursor) === '}' || source.charAt(cursor) === ']')) {
+        continue;
+      }
+    }
+    result += character;
+  }
+  return result;
+}
+
+function parseStructuredJson(source: string): Object | null {
+  const input = (source || '').trim();
+  if (!input) return null;
+  try {
+    return JSON.parse(input) as Object;
+  } catch (_) {
+    const repaired = removeTrailingCommas(removeStructuredComments(input)).trim();
+    if (!repaired || repaired === input) return null;
+    try {
+      return JSON.parse(repaired) as Object;
+    } catch (_) {
+      return null;
+    }
   }
 }
 
@@ -259,6 +446,465 @@ function addField(document: NativeToolStructured, label: string, value: string,
 function setPath(document: NativeToolStructured, path: string, workspaceRoot: string): void {
   document.path = normalizePath(path);
   document.displayPath = nativeStructuredDisplayPath(document.path, workspaceRoot);
+}
+
+function utf8ByteLength(value: string): number {
+  let bytes = 0;
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code < 0x80) bytes += 1;
+    else if (code < 0x800) bytes += 2;
+    else if (code >= 0xd800 && code <= 0xdbff && index + 1 < value.length &&
+      value.charCodeAt(index + 1) >= 0xdc00 && value.charCodeAt(index + 1) <= 0xdfff) {
+      bytes += 4;
+      index++;
+    } else bytes += 3;
+  }
+  return bytes;
+}
+
+function scalarText(value: Object | undefined, limit: number = 240): string {
+  let text = '';
+  if (typeof value === 'string') text = value as string;
+  else if (typeof value === 'number' && Number.isFinite(value as number)) text = value.toString();
+  else if (typeof value === 'boolean') return value === true ? 'true' : 'false';
+  return text.length > limit ? text.slice(0, Math.max(0, limit - 1)) + '…' : text;
+}
+
+function pluginTone(value: Object | undefined): string {
+  const tone = scalarText(value, 20);
+  if (tone === 'good' || tone === 'success') return 'success';
+  if (tone === 'warn' || tone === 'warning') return 'warning';
+  if (tone === 'bad' || tone === 'danger') return 'danger';
+  if (tone === 'info' || tone === 'accent') return 'accent';
+  return 'default';
+}
+
+function pluginItem(title: string, subtitle: string = '', trailing: string = '',
+  tone: string = 'default', selected: boolean = false, value: string = ''): NativePluginItem {
+  const item = new NativePluginItem();
+  item.title = title;
+  item.subtitle = subtitle;
+  item.trailing = trailing;
+  item.tone = tone;
+  item.selected = selected;
+  item.value = value;
+  return item;
+}
+
+function addPluginBlock(document: NativePluginDocument, kind: string): NativePluginBlock {
+  const block = new NativePluginBlock();
+  block.kind = kind;
+  if (document.blocks.length < 30) document.blocks.push(block);
+  else document.truncated = true;
+  return block;
+}
+
+class NativePluginBudget {
+  nodes: number = 0;
+  truncated: boolean = false;
+}
+
+function parsePluginNode(value: Object, document: NativePluginDocument,
+  budget: NativePluginBudget, depth: number, interactive: boolean): void {
+  if (budget.nodes >= 40 || depth > 6 || !recordValue(value)) {
+    budget.truncated = true;
+    return;
+  }
+  const node = recordValue(value) as Record<string, Object>;
+  budget.nodes++;
+  const type = stringValue(node['type']).trim();
+  if (!type) return;
+
+  if (type === 'row' && Array.isArray(node['children']) &&
+    (node['children'] as Object[]).length > 0 &&
+    (node['children'] as Object[]).every((child: Object): boolean => {
+      const record = recordValue(child);
+      return !!record && stringValue(record['type']).trim() === 'metric';
+    })) {
+    const block = addPluginBlock(document, 'metrics');
+    const metricChildren = (node['children'] as Object[]).slice(0, 16);
+    if ((node['children'] as Object[]).length > metricChildren.length) budget.truncated = true;
+    for (const child of metricChildren) {
+      if (budget.nodes >= 40) {
+        budget.truncated = true;
+        break;
+      }
+      budget.nodes++;
+      const metricNode = recordValue(child) as Record<string, Object>;
+      const label = scalarText(metricNode['label'], 120);
+      const value = scalarText(metricNode['value'], 120);
+      if (!label || !value) continue;
+      const metric = new NativePluginMetric();
+      metric.label = label;
+      metric.value = value;
+      metric.caption = scalarText(metricNode['caption'], 160);
+      metric.tone = pluginTone(metricNode['tone']);
+      block.metrics.push(metric);
+    }
+    if (!block.metrics.length) document.blocks.pop();
+    return;
+  }
+
+  if (type === 'stack' || type === 'row') {
+    if (Array.isArray(node['children'])) {
+      const children = node['children'] as Object[];
+      for (let index = 0; index < children.length; index++) {
+        if (index >= 16 || budget.nodes >= 40) {
+          budget.truncated = true;
+          break;
+        }
+        const child = children[index];
+        const record = recordValue(child);
+        if (record) parsePluginNode(record, document, budget, depth + 1, interactive);
+      }
+    }
+    return;
+  }
+  if (type === 'text') {
+    const text = scalarText(node['text'], 2000);
+    if (!text) return;
+    const block = addPluginBlock(document, 'text');
+    block.text = text;
+    block.tone = pluginTone(node['tone']);
+    return;
+  }
+  if (type === 'metric') {
+    const label = scalarText(node['label'], 120);
+    const value = scalarText(node['value'], 120);
+    if (!label || !value) return;
+    const block = addPluginBlock(document, 'metric');
+    const metric = new NativePluginMetric();
+    metric.label = label;
+    metric.value = value;
+    metric.caption = scalarText(node['caption'], 160);
+    metric.tone = pluginTone(node['tone']);
+    block.metrics.push(metric);
+    return;
+  }
+  if (type === 'progress') {
+    if (typeof node['value'] !== 'number' || !Number.isFinite(node['value'] as number)) return;
+    const value = node['value'] as number;
+    const maximum = typeof node['max'] === 'number' && Number.isFinite(node['max'] as number) &&
+      (node['max'] as number) > 0 ? node['max'] as number : 100;
+    const block = addPluginBlock(document, 'progress');
+    block.label = scalarText(node['label'], 120);
+    block.caption = scalarText(node['caption'], 160);
+    block.value = value.toString() + ' / ' + maximum.toString();
+    block.progress = Math.max(0, Math.min(100, Math.round(value / maximum * 100)));
+    block.tone = pluginTone(node['tone']);
+    return;
+  }
+  if (type === 'callout') {
+    const text = scalarText(node['text'], 2000);
+    if (!text) return;
+    const block = addPluginBlock(document, 'callout');
+    block.text = text;
+    block.tone = pluginTone(node['tone']);
+    return;
+  }
+  if (type === 'list') {
+    if (!Array.isArray(node['items'])) return;
+    const block = addPluginBlock(document, 'list');
+    (node['items'] as Object[]).slice(0, 12).forEach((raw: Object): void => {
+      const item = recordValue(raw);
+      const title = item ? scalarText(item['title'], 160) : '';
+      if (!item || !title) return;
+      block.items.push(pluginItem(title, scalarText(item['subtitle'], 200),
+        scalarText(item['trailing'], 80), pluginTone(item['tone'])));
+    });
+    if (!block.items.length) document.blocks.pop();
+    return;
+  }
+  if (type === 'keyValue') {
+    let items: Object[] = [];
+    if (Array.isArray(node['items'])) items = node['items'] as Object[];
+    else if (recordValue(node['items'])) {
+      const source = recordValue(node['items']) as Record<string, Object>;
+      Object.keys(source).forEach((key: string): void => {
+        const entry: Record<string, Object> = {};
+        entry['label'] = key;
+        entry['value'] = source[key];
+        items.push(entry);
+      });
+    }
+    const block = addPluginBlock(document, 'keyValue');
+    items.slice(0, 16).forEach((raw: Object): void => {
+      if (Array.isArray(raw)) {
+        const pair = raw as Object[];
+        if (pair.length) block.items.push(pluginItem(
+          scalarText(pair[0], 120), scalarText(pair[1], 240)));
+        return;
+      }
+      const item = recordValue(raw);
+      const label = item ? scalarText(item['label'], 120) : '';
+      if (!item || !label) return;
+      block.items.push(pluginItem(label, scalarText(item['value'], 240), '', pluginTone(item['tone'])));
+    });
+    if (!block.items.length) document.blocks.pop();
+    return;
+  }
+  if (type === 'table') {
+    if (!Array.isArray(node['columns']) || !Array.isArray(node['rows'])) return;
+    const block = addPluginBlock(document, 'table');
+    (node['columns'] as Object[]).slice(0, 8).forEach((raw: Object): void => {
+      const column = recordValue(raw);
+      block.columns.push(column ? scalarText(column['label'], 80) : scalarText(raw, 80));
+    });
+    (node['rows'] as Object[]).slice(0, 16).forEach((raw: Object): void => {
+      if (!Array.isArray(raw)) return;
+      const row = new NativePluginTableRow();
+      (raw as Object[]).slice(0, 8).forEach((cell: Object): void => {
+        row.cells.push(scalarText(cell, 200));
+      });
+      block.rows.push(row);
+    });
+    if (!block.columns.length) document.blocks.pop();
+    return;
+  }
+  if (type === 'chart') {
+    if (!Array.isArray(node['categories']) || !Array.isArray(node['series'])) return;
+    const categories = node['categories'] as Object[];
+    const series = node['series'] as Object[];
+    const first = recordValue(series[0]);
+    const values = first && Array.isArray(first['values']) ? first['values'] as Object[] : [];
+    const block = addPluginBlock(document, 'chart');
+    categories.slice(0, Math.min(12, values.length)).forEach((raw: Object, index: number): void => {
+      block.items.push(pluginItem(scalarText(raw, 100), scalarText(values[index], 80)));
+    });
+    block.caption = scalarText(node['caption'], 160);
+    if (!block.items.length) document.blocks.pop();
+    return;
+  }
+  if (type === 'compare') {
+    if (!Array.isArray(node['items'])) return;
+    const block = addPluginBlock(document, 'compare');
+    (node['items'] as Object[]).slice(0, 8).forEach((raw: Object): void => {
+      const item = recordValue(raw);
+      if (!item) return;
+      const title = scalarText(item['title'], 120);
+      if (title) block.items.push(pluginItem(title, scalarText(item['badge'], 80)));
+    });
+    if (!block.items.length) document.blocks.pop();
+    return;
+  }
+  if (type === 'steps') {
+    if (!Array.isArray(node['items'])) return;
+    const block = addPluginBlock(document, 'steps');
+    (node['items'] as Object[]).slice(0, 12).forEach((raw: Object): void => {
+      const item = recordValue(raw);
+      const title = item ? scalarText(item['label'], 160) : scalarText(raw, 160);
+      if (!title) return;
+      block.items.push(pluginItem(title, item ? scalarText(item['detail'], 220) : '',
+        item ? scalarText(item['status'], 40) : '',
+        item && item['status'] === 'failed' ? 'danger' :
+          item && item['status'] === 'done' ? 'success' : 'default'));
+    });
+    if (!block.items.length) document.blocks.pop();
+    return;
+  }
+  if (type === 'options') {
+    if (!Array.isArray(node['options'])) return;
+    const selectedValues: string[] = [];
+    if (typeof node['selected'] === 'string') selectedValues.push(node['selected'] as string);
+    else if (Array.isArray(node['selected'])) {
+      (node['selected'] as Object[]).forEach((raw: Object): void => {
+        if (typeof raw === 'string') selectedValues.push(raw as string);
+      });
+    }
+    const block = addPluginBlock(document, 'options');
+    block.id = scalarText(node['id'], 80);
+    block.multi = node['multi'] === true || node['multi'] === 'true';
+    (node['options'] as Object[]).slice(0, 12).forEach((raw: Object): void => {
+      const item = recordValue(raw);
+      const label = item ? scalarText(item['label'], 160) : scalarText(raw, 160);
+      const value = item ? scalarText(item['value'], 160) : label;
+      if (!label) return;
+      block.items.push(pluginItem(label, item ? scalarText(item['description'], 220) : '',
+        '', 'default', selectedValues.includes(value), value));
+    });
+    block.selected = selectedValues.join(', ');
+    if (!block.items.length) document.blocks.pop();
+    return;
+  }
+  if (type === 'confirm') {
+    if (!interactive) return;
+    const block = addPluginBlock(document, 'confirm');
+    block.id = scalarText(node['id'], 80);
+    block.text = scalarText(node['label'], 240);
+    block.confirmLabel = scalarText(node['confirmLabel'], 40);
+    block.cancelLabel = scalarText(node['cancelLabel'], 40);
+    return;
+  }
+  if (type === 'image') {
+    const src = scalarText(node['src'], 120);
+    if (!src) return;
+    const block = addPluginBlock(document, 'image');
+    block.label = scalarText(node['alt'], 160);
+    block.caption = scalarText(node['caption'], 160);
+    block.text = src.startsWith('data:image/') ? '内嵌图像' : '图像未加载';
+    return;
+  }
+
+  // Confirm/actions are intentionally inert in persisted tool cards. Future
+  // component types keep the surrounding card valid but show a safe placeholder.
+  if (type === 'actions') return;
+  const unsupported = addPluginBlock(document, 'unsupported');
+  unsupported.text = '此插件组件暂不支持';
+}
+
+function knownStructuredType(type: string, interactive: boolean): boolean {
+  if (interactive) {
+    return ['stack', 'row', 'text', 'metric', 'chart', 'compare', 'steps',
+      'callout', 'options', 'confirm'].includes(type);
+  }
+  return ['stack', 'row', 'text', 'metric', 'chart', 'compare', 'steps',
+    'callout', 'options', 'confirm', 'list', 'keyValue', 'progress', 'table',
+    'actions', 'image'].includes(type);
+}
+
+function parseStructuredDocument(value: Object, limit: number,
+  interactive: boolean): NativePluginDocument {
+  const document = new NativePluginDocument();
+  document.present = true;
+  let rootValue = value;
+  if (Array.isArray(rootValue)) {
+    const wrapped: Record<string, Object> = {};
+    wrapped['type'] = 'stack';
+    wrapped['children'] = rootValue as Object[];
+    rootValue = wrapped;
+  }
+  const root = recordValue(rootValue);
+  if (!root) return document;
+  const type = stringValue(root['type']).trim();
+  if (!knownStructuredType(type, interactive)) return document;
+  const serialized = JSON.stringify(rootValue);
+  if (utf8ByteLength(serialized) > limit) return document;
+  document.valid = true;
+  document.title = scalarText(root['title'], 80);
+  const budget = new NativePluginBudget();
+  parsePluginNode(rootValue, document, budget, 0, interactive);
+  document.truncated = budget.truncated;
+  return document;
+}
+
+function parsePluginView(document: NativeToolStructured,
+  meta: Record<string, Object> | null, tool: NativeMessage): void {
+  if (!successfulResult(tool) || !meta || meta['dsh-go/view'] === undefined) return;
+  const value = meta['dsh-go/view'];
+  if (!value) return;
+  document.plugin = parseStructuredDocument(value, 8192, false);
+}
+
+/** Parse one assistant `dsh-ui` fence with the larger DSH-Go model budget. */
+export function nativeDshUiDocument(source: string): NativePluginDocument {
+  const value = parseStructuredJson(source);
+  if (!value) {
+    const invalid = new NativePluginDocument();
+    invalid.present = true;
+    return invalid;
+  }
+  return parseStructuredDocument(value, 16384, true);
+}
+
+function optionalString(record: Record<string, Object>, field: string): string {
+  const value = record[field];
+  return typeof value === 'string' ? value as string : '';
+}
+
+function optionalInteger(record: Record<string, Object>, field: string,
+  minimum: number = 0): number {
+  const value = record[field];
+  return typeof value === 'number' && Number.isSafeInteger(value as number) &&
+    (value as number) >= minimum ? value as number : minimum === 0 ? 0 : -1;
+}
+
+function optionalNumber(record: Record<string, Object>, field: string,
+  minimum: number = 0): number {
+  const value = record[field];
+  return typeof value === 'number' && Number.isFinite(value as number) &&
+    (value as number) >= minimum ? value as number : 0;
+}
+
+function parseMedia(document: NativeToolStructured, meta: Record<string, Object> | null,
+  workspaceRoot: string): void {
+  if (!meta || meta['dsh-go/media'] === undefined) return;
+  document.media.present = true;
+  const raw = recordValue(meta['dsh-go/media']);
+  if (!raw) return;
+  const version = raw['v'] === undefined ? 1 : optionalInteger(raw, 'v', 1);
+  if (version < 1) return;
+  if (utf8ByteLength(JSON.stringify(raw)) > 8192) return;
+  let kind = stringValue(raw['kind']).trim();
+  let status = stringValue(raw['status']).trim();
+  if (!['running', 'done', 'failed'].includes(status)) status = 'done';
+
+  const items: NativeMediaItem[] = [];
+  if (Array.isArray(raw['items'])) {
+    for (const value of (raw['items'] as Object[]).slice(0, 32)) {
+      const item = recordValue(value);
+      if (!item || typeof item['path'] !== 'string' || !(item['path'] as string).trim()) continue;
+      const parsed = new NativeMediaItem();
+      parsed.path = normalizePath(item['path'] as string);
+      parsed.display = nativeStructuredDisplayPath(parsed.path, workspaceRoot);
+      parsed.name = basename(parsed.display);
+      parsed.mime = optionalString(item, 'mime');
+      parsed.width = optionalInteger(item, 'width');
+      parsed.height = optionalInteger(item, 'height');
+      parsed.bytes = optionalInteger(item, 'bytes');
+      parsed.duration = optionalNumber(item, 'duration');
+      parsed.poster = normalizePath(optionalString(item, 'poster'));
+      parsed.codec = optionalString(item, 'codec');
+      items.push(parsed);
+    }
+  }
+  if (kind !== 'image' && kind !== 'video') {
+    kind = items.length && items[0].mime.toLowerCase().startsWith('video/') ? 'video' :
+      items.length ? 'image' : '';
+  }
+  if (!kind || (status === 'done' && !items.length)) return;
+
+  const request = recordValue(raw['request']);
+  if (request) {
+    document.media.request.provider = optionalString(request, 'provider');
+    document.media.request.model = optionalString(request, 'model');
+    document.media.request.label = optionalString(request, 'label');
+    document.media.request.aspect = optionalString(request, 'aspect');
+    document.media.request.count = optionalInteger(request, 'n');
+    document.media.request.quality = optionalString(request, 'quality');
+    document.media.request.seconds = optionalNumber(request, 'seconds');
+    document.media.request.resolution = optionalString(request, 'resolution') ||
+      optionalString(request, 'res');
+    document.media.request.refs = optionalInteger(request, 'refs');
+  }
+  const error = recordValue(raw['error']);
+  if (error) {
+    document.media.errorCode = scalarText(error['code'], 80);
+    document.media.errorText = scalarText(error['text'], 400);
+  }
+  const cost = recordValue(raw['cost']);
+  if (cost) {
+    const rawEstimate = cost['estimate'];
+    if (typeof rawEstimate === 'number' && Number.isFinite(rawEstimate as number) &&
+      (rawEstimate as number) >= 0) {
+      document.media.costEstimate = rawEstimate as number;
+      document.media.costCurrency = scalarText(cost['currency'], 16);
+    }
+  }
+  const provenance = recordValue(raw['provenance']);
+  if (provenance) {
+    document.media.visibleMark = provenance['visibleMark'] === true;
+    document.media.c2pa = provenance['c2pa'] === true;
+    document.media.implicitLabel = provenance['implicitLabel'] === true;
+  }
+  document.media.valid = true;
+  document.media.kind = kind;
+  document.media.status = status;
+  document.media.rid = optionalString(raw, 'rid');
+  document.media.job = optionalString(raw, 'job');
+  document.media.items = items;
+  document.media.prompt = optionalString(raw, 'prompt');
+  document.media.revisedPrompt = optionalString(raw, 'revisedPrompt');
 }
 
 function genericSummary(tool: NativeMessage, args: Record<string, Object> | null): string {
@@ -656,17 +1302,95 @@ function parseAgent(document: NativeToolStructured, tool: NativeMessage,
   document.bodyStructured = document.fields.length > 0;
 }
 
+function parseCommand(document: NativeToolStructured, tool: NativeMessage,
+  meta: Record<string, Object> | null): void {
+  if (!meta) return;
+  const name = firstString(meta, ['name']);
+  const args = firstString(meta, ['args']);
+  const result = firstString(meta, ['text']);
+  const kind = firstString(meta, ['kind']);
+  const settled = tool.phase === 'result';
+  document.summary = preview((name ? '/' + name : '命令') + (args ? ' ' + args : ''));
+  document.summaryIsCode = true;
+  document.parsed = !!meta && (!!name || !!tool.output);
+  addField(document, '命令', name ? '/' + name : '', true);
+  addField(document, '参数', args, true);
+  if (settled) {
+    addField(document, '状态', kind === 'success' ? '已完成' :
+      kind === 'error' || tool.failed ? '失败' : kind, false,
+      kind === 'success' ? 'success' : 'danger');
+  } else {
+    addField(document, '状态', '正在执行', false, 'accent');
+  }
+  addField(document, '结果', result || tool.output);
+  document.bodyStructured = document.fields.length > 0;
+  document.showRawArguments = false;
+  document.showRawOutput = false;
+}
+
+function parseJobLifecycle(document: NativeToolStructured, tool: NativeMessage,
+  meta: Record<string, Object> | null): void {
+  if (!meta) return;
+  const id = firstString(meta, ['jobId']);
+  const kind = firstString(meta, ['kind']);
+  const label = firstString(meta, ['label']);
+  const status = firstString(meta, ['status']);
+  const detail = firstString(meta, ['detail']);
+  const cause = firstString(meta, ['cause']);
+  const toolCall = recordValue(meta['toolCall']);
+  document.summary = preview(label || id);
+  document.summaryIsCode = !!id;
+  document.parsed = !!id;
+  addField(document, '任务', id, true);
+  addField(document, '类型', kind, true);
+  addField(document, '名称', label);
+  addField(document, '状态', status || (tool.phase === 'result' ? '已结束' : '运行中'), false,
+    status === 'failed' || status === 'killed' || tool.failed ? 'danger' :
+      status === 'completed' ? 'success' : 'accent');
+  addField(document, '原因', cause);
+  addField(document, '详情', detail || tool.output);
+  if (toolCall) {
+    addField(document, '调用', firstString(toolCall, ['callId']), true);
+    addField(document, '根调用', firstString(toolCall, ['rootCallId']), true);
+  }
+  document.bodyStructured = document.fields.length > 0;
+  document.showRawArguments = false;
+  document.showRawOutput = false;
+}
+
 function parsePresent(document: NativeToolStructured, tool: NativeMessage,
   args: Record<string, Object> | null, workspaceRoot: string): void {
-  if (!successfulResult(tool) || !args || !Array.isArray(args['files'])) return;
+  if (!successfulResult(tool)) return;
+  let files: Object[] | null = null;
+  let authoritative = false;
+  const event = parseObject(tool.authoritativeRaw);
+  if (event && integerValue(event['turn'], false) > 0 &&
+    typeof event['callId'] === 'string' && (event['callId'] as string).length > 0 &&
+    Array.isArray(event['files'])) {
+    files = event['files'] as Object[];
+    authoritative = true;
+  }
+  if (!files && args && Array.isArray(args['files'])) files = args['files'] as Object[];
+  if (!files) return;
   const names: string[] = [];
-  for (const raw of args['files'] as Object[]) {
+  const seen: Set<string> = new Set<string>();
+  for (const raw of files) {
     const item = recordValue(raw);
     const path = item ? stringValue(item['path']).trim() : '';
     const descriptionValue = item ? item['description'] : undefined;
     if (!item || !path || (descriptionValue !== undefined && typeof descriptionValue !== 'string')) continue;
+    const normalized = normalizePath(path);
+    if (seen.has(normalized)) {
+      const existing = document.presented.find((file: NativeStructuredPresentedFile): boolean =>
+        file.path === normalized);
+      if (existing && typeof descriptionValue === 'string') {
+        existing.description = (descriptionValue as string).trim();
+      }
+      continue;
+    }
+    seen.add(normalized);
     const file = new NativeStructuredPresentedFile();
-    file.path = normalizePath(path);
+    file.path = normalized;
     file.display = nativeStructuredDisplayPath(file.path, workspaceRoot);
     file.name = basename(file.display);
     file.description = stringValue(descriptionValue).trim();
@@ -678,7 +1402,8 @@ function parsePresent(document: NativeToolStructured, tool: NativeMessage,
   document.parsed = document.presented.length > 0;
   document.bodyStructured = document.presented.length > 0;
   document.showRawOutput = false;
-  addField(document, '交付', document.presented.length.toString() + ' 个文件');
+  addField(document, authoritative ? '权威交付' : '交付',
+    document.presented.length.toString() + ' 个文件');
 }
 
 function parseQuestion(document: NativeToolStructured, tool: NativeMessage,
@@ -766,6 +1491,37 @@ function generic(document: NativeToolStructured, tool: NativeMessage,
   document.showRawOutput = true;
 }
 
+/** Exact current tool-name category shared by parsing, grouping and process UI. */
+export function nativeToolKind(name: string, argsText: string = ''): string {
+  if (name === 'str_replace_editor') {
+    const args = parseObject(argsText);
+    const command = args ? stringValue(args['command']).trim() : '';
+    if (command === 'view') return 'read';
+    if (command === 'create') return 'write';
+    if (command === 'str_replace' || command === 'insert') return 'edit';
+    return 'tools';
+  }
+  if (name === 'read') return 'read';
+  if (name === 'read_image') return 'readImage';
+  if (name === 'grep' || name === 'glob' || name.endsWith('_inspect')) return 'search';
+  if (name === 'write') return 'write';
+  if (name === 'edit' || name === 'apply_patch') return 'edit';
+  if (['bash', 'pwsh', 'exec_command', 'write_stdin'].includes(name) ||
+    name.startsWith('terminal_')) return 'commands';
+  if (name === 'job_output' || name === 'job_kill' || name === 'job_list') return 'job';
+  if (name === 'run_code') return 'code';
+  if (name === 'web_search') return 'webSearch';
+  if (name === 'web_fetch') return 'webFetch';
+  if (name === 'subagent' || name.startsWith('subagent_') || name === 'send_message' ||
+    name === 'interrupt_agent' || name === 'workflow' || name === 'ralph' ||
+    name === 'skill') return 'subagents';
+  if (['todo_write', 'create_goal', 'update_goal', 'get_goal'].includes(name)) return 'plan';
+  if (['ask_user_question', 'request_user_input'].includes(name)) return 'questions';
+  if (name === 'slash_command') return 'command';
+  if (name === 'job_lifecycle') return 'jobLifecycle';
+  return 'tools';
+}
+
 /** Project one merged tool call into a compact, strictly validated view model. */
 export function nativeToolStructured(tool: NativeMessage, workspaceRoot: string = ''): NativeToolStructured {
   const document = new NativeToolStructured();
@@ -773,33 +1529,40 @@ export function nativeToolStructured(tool: NativeMessage, workspaceRoot: string 
   const args = parseObject(tool.args);
   const meta = parseObject(tool.metaRaw);
   const name = tool.toolName || '';
+  parsePluginView(document, meta, tool);
+  parseMedia(document, meta, workspaceRoot);
+  const kind = nativeToolKind(name, tool.args);
 
-  if (name === 'read') {
+  if (kind === 'read') {
     document.family = 'read';
     parseRead(document, tool, args, meta, workspaceRoot);
-  } else if (name === 'read_image') {
+  } else if (kind === 'readImage') {
     document.family = 'image';
     parseImage(document, tool, args, meta, workspaceRoot);
-  } else if (name === 'grep' || name === 'glob' || name.endsWith('_inspect')) {
+  } else if (kind === 'search') {
     document.family = 'search';
     parseSearch(document, tool, args, meta, workspaceRoot);
-  } else if (name === 'bash' || name === 'pwsh' || name === 'exec_command' ||
-      name === 'write_stdin' || name === 'terminal_send' || name.startsWith('terminal_')) {
+  } else if (kind === 'commands') {
     document.family = 'terminal';
     parseTerminal(document, tool, args, meta, workspaceRoot);
-  } else if (name === 'web_search' || name === 'web_fetch') {
+  } else if (kind === 'webSearch' || kind === 'webFetch') {
     document.family = 'web';
     parseWeb(document, tool, args, meta);
-  } else if (name === 'create_goal' || name === 'update_goal' || name === 'get_goal') {
+  } else if (kind === 'plan' && name !== 'todo_write') {
     document.family = 'goal';
     parseGoal(document, tool, args, meta);
-  } else if (name === 'job_output' || name === 'job_kill' || name === 'job_list') {
+  } else if (kind === 'job') {
     document.family = 'job';
     parseJob(document, tool, args, meta);
-  } else if (name === 'subagent' || name === 'subagent_fork' || name === 'send_message' ||
-      name === 'interrupt_agent' || name === 'workflow' || name === 'ralph' || name === 'skill') {
+  } else if (kind === 'subagents') {
     document.family = 'agent';
     parseAgent(document, tool, args, meta);
+  } else if (kind === 'command') {
+    document.family = 'command';
+    parseCommand(document, tool, meta);
+  } else if (kind === 'jobLifecycle') {
+    document.family = 'jobLifecycle';
+    parseJobLifecycle(document, tool, meta);
   } else if (name === 'present') {
     document.family = 'present';
     parsePresent(document, tool, args, workspaceRoot);
@@ -807,7 +1570,7 @@ export function nativeToolStructured(tool: NativeMessage, workspaceRoot: string 
   } else if (name === 'ask_user_question' || name === 'request_user_input') {
     document.family = 'question';
     parseQuestion(document, tool, args);
-  } else if (name === 'write' || name === 'edit' || name === 'str_replace_editor' || name === 'apply_patch') {
+  } else if (kind === 'write' || kind === 'edit') {
     document.family = 'file';
     parseFileFamily(document, tool, args, workspaceRoot);
   } else if (name === 'todo_write') {
@@ -818,15 +1581,35 @@ export function nativeToolStructured(tool: NativeMessage, workspaceRoot: string 
     generic(document, tool, args);
   }
 
+  if (document.plugin.present) {
+    document.bodyStructured = true;
+    document.showRawArguments = !document.plugin.valid;
+    document.showRawOutput = !document.plugin.valid;
+    if (document.plugin.valid && document.plugin.title) document.summary = document.plugin.title;
+  }
+  if (document.media.valid) {
+    document.bodyStructured = true;
+    document.showRawArguments = false;
+    document.showRawOutput = false;
+    document.summary = preview(document.media.request.label || document.media.request.model ||
+      document.media.prompt || (document.media.kind === 'video' ? '生成视频' : '生成图片'));
+  }
+
   if (failedTool(tool)) {
-    document.bodyStructured = false;
+    const preserveFailedMedia = document.media.valid && document.media.status === 'failed';
+    if (!preserveFailedMedia) document.bodyStructured = false;
     document.read.valid = false;
     document.search.valid = false;
     document.sources = [];
     document.presented = [];
     document.image = new NativeStructuredImageFacts();
+    document.plugin = new NativePluginDocument();
     document.showRawArguments = true;
     document.showRawOutput = true;
+    if (preserveFailedMedia) {
+      document.bodyStructured = true;
+      document.showRawOutput = true;
+    }
   }
   if (!document.summary && name !== 'todo_write') {
     const fallback = genericSummary(tool, args);
@@ -836,20 +1619,15 @@ export function nativeToolStructured(tool: NativeMessage, workspaceRoot: string 
   return document;
 }
 
-function toolCategory(name: string): string {
-  if (name === 'bash' || name === 'pwsh' || name === 'exec_command' ||
-      name === 'write_stdin' || name === 'job_output' || name === 'job_kill' ||
-      name.startsWith('terminal_')) return 'commands';
-  if (name === 'write' || name === 'edit' || name === 'apply_patch' ||
-      name === 'str_replace_editor') return 'edit';
-  if (name === 'read' || name === 'read_image') return 'read';
-  if (name === 'grep' || name === 'glob' || name.endsWith('_inspect')) return 'search';
-  if (name === 'web_search' || name === 'web_fetch') return 'web';
-  if (name === 'subagent' || name.startsWith('subagent_') || name === 'send_message' ||
-      name === 'interrupt_agent' || name === 'workflow' || name === 'ralph' ||
-      name === 'skill') return 'agents';
-  if (name === 'todo_write' || name === 'create_goal' || name === 'update_goal' ||
-      name === 'get_goal') return 'plans';
+function toolCategory(name: string, argsText: string = ''): string {
+  const kind = nativeToolKind(name, argsText);
+  if (kind === 'commands') return 'commands';
+  if (kind === 'write' || kind === 'edit') return 'edit';
+  if (kind === 'read' || kind === 'readImage') return 'read';
+  if (kind === 'search') return 'search';
+  if (kind === 'webSearch' || kind === 'webFetch') return 'web';
+  if (kind === 'subagents') return 'agents';
+  if (kind === 'plan') return 'plans';
   return 'other';
 }
 
@@ -862,7 +1640,7 @@ export function nativeToolGroupSummary(tools: NativeMessage[]): NativeToolGroupS
     if (tool.role !== 'tool') return;
     summary.total++;
     if (failedTool(tool)) summary.failed++;
-    const category = toolCategory(tool.toolName);
+    const category = toolCategory(tool.toolName, tool.args);
     const structured = nativeToolStructured(tool);
     const path = structured.path || genericSummary(tool, parseObject(tool.args));
     const happened = !failedTool(tool) && tool.status !== 'cancelled' && tool.status !== 'interrupted' &&

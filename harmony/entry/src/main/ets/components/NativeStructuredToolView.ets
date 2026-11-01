@@ -12,6 +12,8 @@ import {
 import { NativeDesign } from '../services/NativeDesign';
 import { DSHIcon } from './DSHIcon';
 import { NativeCodeViewer } from './NativeCodeViewer';
+import { NativePluginCard } from './NativePluginCard';
+import { NativeMediaCard } from './NativeMediaCard';
 
 @Component
 export struct NativeStructuredToolView {
@@ -190,6 +192,15 @@ export struct NativeStructuredToolView {
 
   build() {
     Column({ space: 6 }) {
+      if (this.document.plugin.present) {
+        NativePluginCard({ document: this.document.plugin })
+      }
+      if (this.document.media.present) {
+        NativeMediaCard({
+          document: this.document.media,
+          onOpenFile: this.onOpenFile
+        })
+      }
       if (this.document.path &&
         (this.document.family === 'read' || this.document.family === 'image')) {
         this.targetRow()

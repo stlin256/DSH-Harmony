@@ -142,6 +142,21 @@ function lineDocument(oldText: string, newText: string, path: string): NativeDif
   countRows(out);
   return out;
 }
+
+function insertionDocument(insertLine: number, newText: string,
+  path: string): NativeDiffDocument {
+  const out = new NativeDiffDocument();
+  out.matched = newText.length > 0;
+  out.path = path || '变更';
+  add(out.rows, 'path', '', out.path);
+  const lines = splitLines(newText);
+  const firstLine = insertLine >= 0 ? insertLine + 1 : 1;
+  lines.forEach((line: string, index: number): void => {
+    add(out.rows, 'add', line, out.path, 0, firstLine + index);
+  });
+  countRows(out);
+  return out;
+}
 function appendDocument(target: NativeDiffDocument, value: NativeDiffDocument): void {
   value.rows.forEach((row: NativeDiffRow): void => {
     const copy = new NativeDiffRow();
@@ -242,6 +257,12 @@ export function nativeDiff(tool: NativeMessage): NativeDiffDocument {
         return lineDocument(typeof oldString === 'string' ? oldString : '',
           typeof newString === 'string' ? newString : '', fallbackPath);
       }
+    }
+    if (fallbackPath && command === 'insert' && typeof args['new_str'] === 'string') {
+      const line = typeof args['insert_line'] === 'number' &&
+        Number.isSafeInteger(args['insert_line'] as number) &&
+        (args['insert_line'] as number) >= 0 ? args['insert_line'] as number : 0;
+      return insertionDocument(line, args['new_str'] as string, fallbackPath);
     }
   }
   const oldText = args['oldText'];

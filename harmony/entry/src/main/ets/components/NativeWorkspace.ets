@@ -16,6 +16,7 @@ import { NativeInteraction } from './NativeInteraction';
 import { NativeSessionTools } from './NativeSessionTools';
 import { NativeModelPicker } from './NativeModelPicker';
 import { NativeMessageView } from './NativeMessageView';
+import { NativeBackgroundNoticeView } from './NativeBackgroundNoticeView';
 import { DSHIcon } from './DSHIcon';
 import { NativeProcessView } from './NativeProcessView';
 import {
@@ -41,6 +42,7 @@ import { NativeFilePreview } from './NativeFilePreview';
 import { NativeFileBrowser } from './NativeFileBrowser';
 import { NativeHistoryRetryPolicy, nativeHistoryPageAdvanced } from '../services/NativeHistoryPrefetch';
 import { NativePlanDocument, nativeLatestPlan, nativePlanSignature } from '../services/NativePlan';
+import { nativeDshUiCanReply } from '../services/NativeDshUi';
 import { NativeTaskDock } from './NativeTaskDock';
 import { NativeConversationDock } from './NativeConversationDock';
 import {
@@ -1977,6 +1979,29 @@ export struct NativeWorkspace {
     }
     finally { this.sending = false; }
   }
+  private async sendDshUiReply(text: string): Promise<boolean> {
+    const id = this.selected;
+    if (!id || !text.trim() || this.sending || this.running || this.waiting || this.uncertain) {
+      return false;
+    }
+    const requestId = util.generateRandomUUID();
+    this.sending = true;
+    this.error = '';
+    try {
+      const admittedRequestId = await this.client.prompt(id, text, 'queue', [], requestId);
+      if (admittedRequestId !== requestId) return false;
+      this.interactionTimes = NativeMetadataCache.rememberInteraction(
+        this.context, this.client.cacheKey(), id);
+      this.sessionsChanged();
+      if (this.selected === id) this.followTail = true;
+      return true;
+    } catch (error) {
+      if (this.selected === id) this.handleError(error as Error);
+      return false;
+    } finally {
+      this.sending = false;
+    }
+  }
   private attachmentsReady(): boolean {
     return this.attachments.every((item: NativeAttachmentDraft): boolean => item.status === 'ready');
   }
@@ -2646,9 +2671,19 @@ export struct NativeWorkspace {
                     }
                   }.width('100%').constraintSize({ minHeight: NativeDesign.hitTarget })
                 }
+              } else if (message.role === 'background-notice') {
+                NativeBackgroundNoticeView({ message: message })
               } else { Row() {
                 if (message.role === 'user') { Blank().layoutWeight(1) }
-                NativeMessageView({ client: this.client, sessionId: this.selected, message: message, onCompatibility: this.onCompatibility })
+                NativeMessageView({
+                  client: this.client,
+                  sessionId: this.selected,
+                  message: message,
+                  onCompatibility: this.onCompatibility,
+                  dshUiCanReply: nativeDshUiCanReply(this.visibleRows, message.id,
+                    this.running, this.waiting),
+                  onDshUiReply: (text: string): Promise<boolean> => this.sendDshUiReply(text)
+                })
               }.width('100%').alignItems(VerticalAlign.Top) }
             }
           }, (message: NativeMessage) => message.id)

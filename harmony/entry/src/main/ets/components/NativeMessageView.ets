@@ -9,8 +9,10 @@ import { nativeReasoningPreview } from '../services/NativeTranscript';
 import { NativeMessage, NativeTextBlock, NativeImageAttachment } from '../services/NativeSessionModel';
 import { NativeInlineText } from './NativeInlineText';
 import { NativeCodeBlock } from './NativeCodeBlock';
+import { NativeDshUiCard } from './NativeDshUiCard';
 import { NativeMotion } from '../services/NativeMotion';
 import { NativeDesign } from '../services/NativeDesign';
+import { nativeDshUiReplyLabel } from '../services/NativeDshUi';
 
 @Component
 export struct NativeMessageView {
@@ -19,7 +21,10 @@ export struct NativeMessageView {
   disclosures: Map<string, boolean> = new Map<string, boolean>();
   @Prop preview: boolean = true;
   @Prop runningReasoning: boolean = false;
+  @Prop dshUiCanReply: boolean = false;
   onCompatibility: () => void = (): void => {};
+  onDshUiReply: (text: string) => Promise<boolean> =
+    async (_text: string): Promise<boolean> => false;
   @Prop message: NativeMessage = new NativeMessage();
   @StorageLink('nativeDark') private dark: boolean = false;
   @State private reasoningOpen: boolean = false;
@@ -40,6 +45,10 @@ export struct NativeMessageView {
 
   private hasCopyableText(): boolean {
     return this.message.role === 'user' && (!!this.message.text || this.message.blocks.length > 0);
+  }
+
+  private dshUiReplyLabel(): string {
+    return this.message.role === 'user' ? nativeDshUiReplyLabel(this.message.text) : '';
   }
 
   private animate(action: () => void): void {
@@ -87,11 +96,28 @@ export struct NativeMessageView {
           .fontColor(NativeDesign.textSecondary(this.dark))
           .onClick(() => { this.animate(() => { this.toolOpen = !this.toolOpen; }); })
       }
-      if (this.message.role !== 'tool' || this.toolOpen) {
+      if (this.dshUiReplyLabel()) {
+        Row({ space: 6 }) {
+          DSHIcon({ glyph: 'check-outline', glyphSize: 13,
+            color: NativeDesign.accent(this.dark) })
+          Text(this.dshUiReplyLabel()).fontSize(11).fontWeight(FontWeight.Medium)
+            .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
+            .fontColor(NativeDesign.accent(this.dark))
+        }.constraintSize({ minHeight: 30 }).padding({ left: 10, right: 12, top: 6, bottom: 6 })
+          .borderRadius(15).backgroundColor(NativeDesign.accentSurface(this.dark))
+      } else if (this.message.role !== 'tool' || this.toolOpen) {
         if (!this.message.blocks.length && this.message.text) { NativeTextContent({ text: this.message.text, client: this.client, sessionId: this.sessionId }) }
         ForEach(this.message.blocks, (block: NativeTextBlock) => {
           if (block.kind === 'code') {
-            NativeCodeBlock({ code: block.text, language: block.language })
+            if ((block.language || '').trim().toLowerCase() === 'dsh-ui') {
+              NativeDshUiCard({
+                source: block.text,
+                canReply: this.dshUiCanReply,
+                onReply: this.onDshUiReply
+              })
+            } else {
+              NativeCodeBlock({ code: block.text, language: block.language })
+            }
           } else if (block.kind === 'heading') {
             NativeInlineText({ text: block.text, textSize: 18, lineHeight: '28fp',
               baseWeight: FontWeight.Medium, client: this.client, sessionId: this.sessionId })
@@ -133,10 +159,13 @@ export struct NativeMessageView {
         Text('此消息暂不支持原生显示。').fontSize(13)
           .fontColor(NativeDesign.textSecondary(this.dark))
       }
-    }.alignItems(HorizontalAlign.Start).width(this.message.role === 'user' ? '82%' : '100%')
-      .padding(this.message.role === 'user' || this.message.role === 'tool' ? 10 : this.message.role === 'reasoning' ? 0 : 2)
-      .backgroundColor(this.message.role === 'user' || this.message.role === 'tool' ?
-        NativeDesign.field(this.dark) : Color.Transparent)
+    }.alignItems(HorizontalAlign.Start)
+      .width(this.dshUiReplyLabel() ? 'auto' : this.message.role === 'user' ? '82%' : '100%')
+      .padding(this.dshUiReplyLabel() ? 0 :
+        this.message.role === 'user' || this.message.role === 'tool' ? 10 :
+          this.message.role === 'reasoning' ? 0 : 2)
+      .backgroundColor((this.message.role === 'user' && !this.dshUiReplyLabel()) ||
+        this.message.role === 'tool' ? NativeDesign.field(this.dark) : Color.Transparent)
       .borderRadius(NativeDesign.radiusGroup)
       .accessibilityText(this.hasCopyableText() ? '消息，长按复制' : '')
       .gesture(

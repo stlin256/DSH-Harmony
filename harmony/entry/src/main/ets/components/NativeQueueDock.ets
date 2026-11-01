@@ -125,7 +125,7 @@ export struct NativeQueueDock {
 
   @Builder
   private actions(item: NativeQueueItem) {
-    if (!item.pending) {
+    if (!item.pending && item.sourceKind !== 'tool-jobs') {
       Button({ type: ButtonType.Normal }) {
         DSHIcon({ glyph: 'edit-outline', glyphSize: 13,
           color: nativeQueueEditable(item) ? NativeDesign.textSecondary(this.dark) :
@@ -185,6 +185,10 @@ export struct NativeQueueDock {
         Column({ space: 5 }) {
           if (this.hasAttachments(item)) this.blocks(item)
           Row({ space: 6 }) {
+            if (item.sourceKind === 'tool-jobs') {
+              Text('后台任务').fontSize(10).fontWeight(FontWeight.Medium)
+                .fontColor(NativeDesign.textTertiary(this.dark))
+            }
             Text(this.textPreview(item)).fontSize(12).layoutWeight(1).maxLines(2)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textPrimary(this.dark))

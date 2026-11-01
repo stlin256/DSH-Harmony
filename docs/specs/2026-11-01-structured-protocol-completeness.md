@@ -27,7 +27,9 @@ records after normalization.
 - Settlement is `phase="result"`, failed for `failed` or `killed`, and keeps
   `detail`, `cause`, `producerReported`, timestamps and tool-call references in
   `metaRaw`.
-- Preserve `callId=toolCall.callId || jobId`; carry `jobId` in metadata.
+- Use `callId=jobId` for the job row and retain the creating
+  `toolCall.callId/rootCallId` inside metadata. A job is not merged into the
+  original tool invocation.
 
 ### Inbox and deliverables
 

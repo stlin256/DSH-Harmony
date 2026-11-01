@@ -22,6 +22,8 @@ export class NativeQueueItem {
   id: string = '';
   placement: string = 'queued';
   rpcId: string = '';
+  sourceKind: string = '';
+  sourceForm: string = '';
   blocks: NativeQueueBlock[] = [];
   pending: boolean = false;
 }
@@ -30,7 +32,7 @@ export function nativeQueueText(item: NativeQueueItem): string {
     .map((block: NativeQueueBlock): string => block.text).join('');
 }
 export function nativeQueueEditable(item: NativeQueueItem): boolean {
-  return !item.pending && item.blocks.length > 0 &&
+  return item.sourceKind !== 'tool-jobs' && !item.pending && item.blocks.length > 0 &&
     item.blocks.every((block: NativeQueueBlock): boolean => block.kind === 'text');
 }
 export class NativeImagePreviewRequest {
@@ -49,12 +51,14 @@ export class NativeAssistantSegment {
 }
 export class NativeMessage {
   metaRaw: string = ''; contentRaw: string = ''; errorRaw: string = '';
+  /** Durable event data that is authoritative over inferred tool arguments. */
+  authoritativeRaw: string = '';
   flat: boolean = false; preview: boolean = true; runningTurn: boolean = false;
   /** The newest process group whose turn has not ended. View-only. */
   currentTurn: boolean = false;
   groupedProcess: boolean = false;
   segments: NativeAssistantSegment[] = [];
-  eventType: string = ''; sourceKind: string = '';
+  eventType: string = ''; sourceKind: string = ''; sourceForm: string = '';
   turn: number = -1; step: number = -1; time: number = 0;
   callId: string = ''; parentCallId: string = ''; rootCallId: string = ''; toolName: string = '';
   phase: string = ''; failed: boolean = false; outcome: string = ''; error: string = '';

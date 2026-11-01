@@ -37,7 +37,7 @@ export struct NativeProcessStepView {
 
   private changed(): void {
     if (this.message.role === 'tool' &&
-      ['edit', 'write'].includes(nativeToolCategory(this.message.toolName))) {
+      ['edit', 'write'].includes(nativeToolCategory(this.message.toolName, this.message.args))) {
       const signature = this.message.id + '|' + this.message.phase + '|' + this.message.status + '|' +
         this.message.args.length + '|' + this.message.metaRaw.length + '|' + this.message.output.length;
       if (signature !== this.diffSignature) {
@@ -100,7 +100,7 @@ export struct NativeProcessStepView {
       Button({ type: ButtonType.Normal }) {
         Row({ space: 4 }) {
           DSHIcon({ glyph: nativeProcessIcon(this.message.role === 'tool' ?
-            nativeToolCategory(this.message.toolName) : 'thinking'),
+            nativeToolCategory(this.message.toolName, this.message.args) : 'thinking'),
             color: NativeDesign.textTertiary(this.dark), glyphSize: 14 })
           Text(this.message.label || nativeOperationLead(this.message)).fontSize(12)
             .fontWeight(FontWeight.Medium).maxLines(1)

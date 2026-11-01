@@ -14,6 +14,34 @@ Behavioral reference:
 DSH-Go was inspected to validate behavior and limits. No source, asset or prose
 is copied into DSH Harmony.
 
+## Structured-content coverage after this change
+
+The native transcript projection now covers these DSH-Go structured surfaces:
+
+- slash-command lifecycle (`command/run`, `command/done`);
+- job lifecycle (`job/registered`, `job/settled`) and read-only `tool-jobs`
+  completion notices;
+- authoritative `deliverables/presented` records attached to the matching
+  `present` call;
+- `str_replace_editor` subcommands and insert diffs;
+- model-authored `dsh-ui` v1 fences with bounded interaction;
+- tool-card `dsh-go/view` v1 and generated-media `dsh-go/media` v1.
+
+The following structured surfaces in the pinned DSH-Go reference remain
+deliberately outside this transcript/read-only pass:
+
+- the separate `genui` dialect that overloads the `dsh-ui` fence with a
+  different, much larger vocabulary;
+- plugin-view v2 controls, form state, data binding, formulas, panels and
+  composer strips;
+- media generation header parsing, the service/model catalog and interactive
+  job progress/cancel controls;
+- `actions` execution and mutable plugin interactions.
+
+Those require dedicated state, RPC and navigation contracts. Treating their
+JSON as inert text is intentional until the corresponding read-only projection
+and interaction boundary has its own spec.
+
 ## Remaining structured formats
 
 ### Assistant `dsh-ui` fences
