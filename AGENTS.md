@@ -236,6 +236,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-11-01-device-ui-mock-e2e.md](docs/specs/2026-11-01-device-ui-mock-e2e.md)
 - Device UI mock and bottom dock E2E:
   [2026-11-01-device-ui-mock-e2e.md](docs/testing/2026-11-01-device-ui-mock-e2e.md)
+- Queued input, pending interaction and live process motion requirement:
+  [2026-11-01-queued-interaction-process-motion.md](docs/requirements/2026-11-01-queued-interaction-process-motion.md)
+- Queue, interaction and process motion research:
+  [2026-11-01-queued-interaction-process-motion.md](docs/research/2026-11-01-queued-interaction-process-motion.md)
+- Queue, interaction and process motion implementation spec:
+  [2026-11-01-queued-interaction-process-motion.md](docs/specs/2026-11-01-queued-interaction-process-motion.md)
+- Queue, interaction and process motion device E2E:
+  [2026-11-01-queued-interaction-process-motion-e2e.md](docs/testing/2026-11-01-queued-interaction-process-motion-e2e.md)
 
 ## Upstream Tracking
 
