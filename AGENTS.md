@@ -219,6 +219,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-10-31-navigation-motion-return-polish-e2e.md](docs/testing/2026-10-31-navigation-motion-return-polish-e2e.md)
 - Native interaction baseline:
   [NATIVE-INTERACTION-SPEC.md](docs/NATIVE-INTERACTION-SPEC.md)
+- Fenced DSH UI and media compatibility requirement:
+  [2026-11-01-fenced-dsh-ui-media-compatibility.md](docs/requirements/2026-11-01-fenced-dsh-ui-media-compatibility.md)
+- Fenced DSH UI and media compatibility research:
+  [2026-11-01-fenced-dsh-ui-media-compatibility.md](docs/research/2026-11-01-fenced-dsh-ui-media-compatibility.md)
+- Fenced DSH UI and media compatibility spec:
+  [2026-11-01-fenced-dsh-ui-media-compatibility.md](docs/specs/2026-11-01-fenced-dsh-ui-media-compatibility.md)
+- Fenced DSH UI and media compatibility E2E:
+  [2026-11-01-fenced-dsh-ui-media-compatibility-e2e.md](docs/testing/2026-11-01-fenced-dsh-ui-media-compatibility-e2e.md)
 - Existing shell/performance E2E:
   [2026-10-30-native-shell-performance-e2e.md](docs/testing/2026-10-30-native-shell-performance-e2e.md)
 - HarmonyOS 7 platform notes: [HARMONY7.md](docs/HARMONY7.md)
