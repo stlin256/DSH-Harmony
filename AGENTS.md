@@ -131,6 +131,12 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-10-31-stream-recovery-composer-attachments.md](docs/specs/2026-10-31-stream-recovery-composer-attachments.md)
 - Latest DSH stream recovery and native composer attachment E2E:
   [2026-10-31-stream-recovery-composer-attachments-e2e.md](docs/testing/2026-10-31-stream-recovery-composer-attachments-e2e.md)
+- Native UI startup requirement:
+  [2026-11-01-native-ui-default.md](docs/requirements/2026-11-01-native-ui-default.md)
+- Native UI startup implementation spec:
+  [2026-11-01-native-ui-default.md](docs/specs/2026-11-01-native-ui-default.md)
+- Native UI startup E2E:
+  [2026-11-01-native-ui-default-e2e.md](docs/testing/2026-11-01-native-ui-default-e2e.md)
 - Rendering, navigation and startup requirement:
   [2026-11-01-render-navigation-startup.md](docs/requirements/2026-11-01-render-navigation-startup.md)
 - Rendering, navigation and startup research:
