@@ -17,7 +17,9 @@ param(
     'dock-queue-many',
     'dock-send-error',
     'dock-material-quiet',
-    'dock-material-elevated'
+    'dock-material-elevated',
+    'interaction-approval',
+    'interaction-question'
   )]
   [string]$State = 'live-change',
   [ValidateSet('light', 'dark', 'system')]
@@ -125,8 +127,19 @@ function Wait-FixtureReady {
         -RemotePath $RemoteProbeLayout `
         -LocalPath $ProbeLayout
       if ($lastLayoutReady) {
-        Start-Sleep -Milliseconds 600
-        return $lastProcessId
+        $firstHash = (Get-FileHash -LiteralPath $ProbeLayout -Algorithm SHA256).Hash
+        Start-Sleep -Milliseconds 320
+        $stableLayout = Test-UiLayoutReady `
+          -BundleName $BundleName `
+          -RemotePath $RemoteProbeLayout `
+          -LocalPath $ProbeLayout
+        if ($stableLayout) {
+          $secondHash = (Get-FileHash -LiteralPath $ProbeLayout -Algorithm SHA256).Hash
+          if ($firstHash -eq $secondHash) {
+            Start-Sleep -Milliseconds 180
+            return $lastProcessId
+          }
+        }
       }
     }
     Start-Sleep -Milliseconds 500

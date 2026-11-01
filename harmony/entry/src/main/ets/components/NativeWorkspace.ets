@@ -1729,17 +1729,21 @@ export struct NativeWorkspace {
     const id = this.selected; const text = this.draft; const attachmentSnapshot = this.attachments.slice();
     const mode = this.steer ? 'steer' : 'queue';
     const expectQueuedEcho = this.running && mode === 'queue';
+    const requestId = util.generateRandomUUID();
     if (!this.running && this.client.hostSettings.chat().collapseTiming === 'next-input') { this.model.collapseThrough = this.model.lastSeq(); this.renderTranscript(); }
     this.sending = true; this.error = '';
     this.client.drafts.set(id, text);
+    if (expectQueuedEcho && this.selected === id) {
+      this.pendingQueue = this.pendingQueue.concat([
+        this.queuedEcho(requestId, text, attachmentSnapshot)
+      ]);
+    }
     try {
-      const requestId = await this.client.prompt(id, text, mode, attachmentSnapshot);
-      if (this.selected === id && expectQueuedEcho &&
-          !this.model.queue.some((item: NativeQueueItem): boolean => item.rpcId === requestId) &&
-          !this.pendingQueue.some((item: NativeQueueItem): boolean => item.rpcId === requestId)) {
-        this.pendingQueue = this.pendingQueue.concat([
-          this.queuedEcho(requestId, text, attachmentSnapshot)
-        ]);
+      const admittedRequestId = await this.client.prompt(
+        id, text, mode, attachmentSnapshot, requestId);
+      if (admittedRequestId !== requestId) {
+        this.pendingQueue = this.pendingQueue.filter((item: NativeQueueItem): boolean =>
+          item.rpcId !== requestId);
       }
       this.interactionTimes = NativeMetadataCache.rememberInteraction(
         this.context, this.client.cacheKey(), id);
@@ -1747,7 +1751,17 @@ export struct NativeWorkspace {
       this.client.drafts.set(id, ''); this.client.attachments.delete(id);
       if (this.selected === id) this.attachments = [];
       if (this.selected === id) this.draft = '';
-    } catch (error) { if (this.selected === id) { this.uncertain = this.client.uncertain.has(id); this.handleError(error as Error); } }
+    } catch (error) {
+      const uncertain = this.client.uncertain.has(id);
+      if (!uncertain) {
+        this.pendingQueue = this.pendingQueue.filter((item: NativeQueueItem): boolean =>
+          item.rpcId !== requestId);
+      }
+      if (this.selected === id) {
+        this.uncertain = uncertain;
+        this.handleError(error as Error);
+      }
+    }
     finally { this.sending = false; }
   }
   private attachmentsReady(): boolean {

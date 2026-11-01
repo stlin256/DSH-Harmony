@@ -223,6 +223,8 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.equal(NativeUiFixture.state('dock-send-error'), 'dock-send-error');
   assert.equal(NativeUiFixture.state('dock-material-quiet'), 'dock-material-quiet');
   assert.equal(NativeUiFixture.state('dock-material-elevated'), 'dock-material-elevated');
+  assert.equal(NativeUiFixture.state('interaction-approval'), 'interaction-approval');
+  assert.equal(NativeUiFixture.state('interaction-question'), 'interaction-question');
   assert.equal(NativeUiFixture.state('private-path'), 'completed');
   assert.equal(NativeUiFixture.theme('dark'), 'dark');
   assert.equal(NativeUiFixture.theme('sepia'), 'system');
@@ -258,10 +260,23 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.match(showcase, /completedDiff\.diffs\.push\(completedDocs\)/);
   assert.match(showcase, /const seedRunning = this\.fixtureState === 'live-change'/);
   assert.match(showcase, /record\.running = initial\.running/);
-  assert.match(showcase, /this\.interaction\.prompt\(requestId, text, mapped, mode\)/);
+  assert.match(showcase, /this\.interaction\.prompt\(resolvedRequestId, text, mapped, mode\)/);
   assert.match(showcase, /this\.receiverReady = true/);
   assert.match(showcase, /dock-send-error[\s\S]{0,100}Mock 发送失败/);
+  assert.match(showcase, /frame\.interaction = 'approval\/request'/);
+  assert.match(showcase, /frame\.interaction = 'user-questions\/request'/);
   assert.match(showcase, /this\.attachments\.set\(SHOWCASE_SESSION, showcaseAttachments\(\)\)/);
+  const workspace = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
+  assert.match(workspace,
+    /const requestId = util\.generateRandomUUID\(\)[\s\S]{0,600}this\.pendingQueue = this\.pendingQueue\.concat\([\s\S]{0,180}this\.queuedEcho\(requestId, text, attachmentSnapshot\)/,
+    'queue latency must not delay the visible pending echo');
+  assert.match(workspace,
+    /client\.prompt\(\s*id, text, mode, attachmentSnapshot, requestId\)/,
+    'the optimistic echo and transport must use the same request id');
+  assert.match(workspace,
+    /if \(!uncertain\) \{[\s\S]{0,220}item\.rpcId !== requestId/,
+    'a definitive rejection must remove the optimistic echo');
 });
 
 test('interactive showcase inserts idle sends and reconciles queued echoes by rpcId', () => {
@@ -1964,8 +1979,12 @@ test('native transport shares only gateway cookies, disables redirects and never
   });
   const ready=new NativeAttachmentDraft();ready.status='ready';ready.receiptId='receipt-one';
   const uploading=new NativeAttachmentDraft();uploading.status='uploading';
-  await client.prompt('session','hello','queue',[ready,uploading]);
+  const explicitRequestId=await client.prompt(
+    'session','hello','queue',[ready,uploading],'request-explicit');
+  assert.equal(explicitRequestId,'request-explicit',
+    'the caller-owned request id must survive the transport round trip');
   const prompt=JSON.parse(calls.at(-1).options.extraData);
+  assert.equal(prompt.requestId,'request-explicit');
   assert.deepEqual(prompt.attachments,[{type:'file',receiptId:'receipt-one'}],
     'only ready receipts may reach prompt content');
   let release;

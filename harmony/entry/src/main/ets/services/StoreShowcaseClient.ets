@@ -10,7 +10,11 @@ import {
 } from './NativeHarnessClient';
 import {
   NativeFrame,
+  NativeInteractionRequest,
+  NativeLocalized,
   NativeMessage,
+  NativeOption,
+  NativeQuestion,
   NativeQueueItem,
   NativeSession,
   NativeSessionCacheRecord,
@@ -262,7 +266,8 @@ function showcaseLongHistoryMessages(): NativeMessage[] {
 
 function showcaseMessagesFor(state: string): NativeMessage[] {
   if (state === 'dock-send-idle' || state === 'dock-send-error' ||
-      state === 'dock-material-quiet') return showcaseDockMessages();
+      state === 'dock-material-quiet' || state === 'interaction-approval' ||
+      state === 'interaction-question') return showcaseDockMessages();
   if (state === 'dock-queue-pending') return showcaseStreamingMessages();
   if (state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
       state === 'dock-material-elevated') return showcaseLiveChangeMessages();
@@ -303,6 +308,45 @@ function showcaseQueue(state: string): NativeQueueItem[] {
   return [];
 }
 
+function showcaseInteractionFrame(state: string): NativeFrame | null {
+  if (state !== 'interaction-approval' && state !== 'interaction-question') return null;
+  const frame = new NativeFrame();
+  frame.type = 'interaction';
+  frame.connectionId = SHOWCASE_SESSION;
+  frame.callId = 'showcase-' + state;
+  frame.eventId = 'showcase-' + state + '-request';
+  if (state === 'interaction-approval') {
+    frame.interaction = 'approval/request';
+    frame.remainingMs = 30000;
+    frame.request = new NativeInteractionRequest();
+    frame.request.toolName = 'workspace/edit';
+    frame.request.reason = '需要写入一次已确认的界面修复。';
+    const localized = new NativeLocalized();
+    localized.zh = '需要写入一次已确认的界面修复。';
+    localized.en = 'Allow one confirmed UI repair.';
+    frame.request.displayReason = localized;
+    return frame;
+  }
+
+  frame.interaction = 'user-questions/request';
+  frame.remainingMs = -1;
+  frame.request = new NativeInteractionRequest();
+  const question = new NativeQuestion();
+  question.id = 'showcase-question-choice';
+  question.header = '界面偏好';
+  question.question = '哪一种底部 Dock 的反馈更清晰？';
+  question.detail = '选择后将沿用相同的紧凑布局与动画节奏。';
+  question.multiSelect = false;
+  ['渐变毛玻璃', '不透明回退'].forEach((name: string): void => {
+    const option = new NativeOption();
+    option.label = name;
+    option.description = name === '渐变毛玻璃' ? '保留背景层次' : '优先可读性';
+    question.options.push(option);
+  });
+  frame.request.questions = [question];
+  return frame;
+}
+
 function showcaseAttachments(): NativeAttachmentDraft[] {
   const rows: NativeAttachmentDraft[] = [];
   ['NativeWorkspace.ets', 'NativeBottomConversationDock.ets'].forEach((name: string, index: number): void => {
@@ -328,6 +372,8 @@ function showcaseSessions(state: string = 'completed'): NativeSession[] {
     state === 'dock-queue-authoritative' ? '权威排队消息' :
     state === 'dock-queue-many' ? '多行排队消息' :
     state === 'dock-material-elevated' ? '渐变材质与实时变更' :
+    state === 'interaction-approval' ? '审批卡样式检查' :
+    state === 'interaction-question' ? '问题卡样式检查' :
     state === 'empty' ? '空运行态' :
     state === 'long-history' ? '长会话与连续预取' :
     state === 'attachments' ? '附件与实时变更 Dock' :
@@ -349,7 +395,8 @@ function showcaseSessions(state: string = 'completed'): NativeSession[] {
     value.running = (state === 'live-change' || state === 'attachments' ||
       state === 'streaming' || state === 'empty' || state === 'dock-queue-pending' ||
       state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
-      state === 'dock-material-elevated') &&
+      state === 'dock-material-elevated' || state === 'interaction-approval' ||
+      state === 'interaction-question') &&
       row[0] === SHOWCASE_SESSION;
     value.updatedAt = 1761900000000 - definitions.findIndex((item: string[]) => item[0] === row[0]) * 60000;
     return value;
@@ -396,13 +443,17 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       this.fixtureState === 'empty' || this.fixtureState === 'dock-queue-pending' ||
       this.fixtureState === 'dock-queue-authoritative' ||
       this.fixtureState === 'dock-queue-many' ||
-      this.fixtureState === 'dock-material-elevated';
+      this.fixtureState === 'dock-material-elevated' ||
+      this.fixtureState === 'interaction-approval' ||
+      this.fixtureState === 'interaction-question';
     let seedCursor = 0;
     seedMessages.forEach((row: NativeMessage): void => {
       if (Number.isSafeInteger(row.seq) && row.seq > seedCursor) seedCursor = row.seq;
     });
     const seedQueue = showcaseQueue(this.fixtureState);
     this.interaction = new NativeShowcaseInteraction(seedMessages, seedRunning, seedCursor, seedQueue);
+    this.interaction.waiting = this.fixtureState === 'interaction-approval' ||
+      this.fixtureState === 'interaction-question';
     const initial = this.interaction.snapshot();
     const model = new NativeSessionModel();
     const record = new NativeSessionCacheRecord();
@@ -486,6 +537,8 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     this.receiver = receive;
     this.receiverReady = true;
     receive(this.interaction.snapshot());
+    const interaction = showcaseInteractionFrame(this.fixtureState);
+    if (interaction) this.emit([interaction], 90);
   }
 
   pause(): void {
@@ -659,12 +712,12 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   }
 
   async prompt(id: string, text: string, mode: string = 'queue',
-    attachments: NativeAttachmentDraft[] = []): Promise<string> {
+    attachments: NativeAttachmentDraft[] = [], requestId: string = ''): Promise<string> {
     if (id !== SHOWCASE_SESSION) throw new Error('Showcase session unavailable');
     if (this.fixtureState === 'dock-send-error') {
       throw new Error('Mock 发送失败，请重试');
     }
-    const requestId = 'showcase-request-' + (++this.promptSerial).toString();
+    const resolvedRequestId = requestId || 'showcase-request-' + (++this.promptSerial).toString();
     const mapped = attachments.map((item: NativeAttachmentDraft): NativeShowcaseAttachment => {
       const value = new NativeShowcaseAttachment();
       value.id = item.id;
@@ -675,7 +728,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       value.receiptId = item.receiptId;
       return value;
     });
-    const plan = this.interaction.prompt(requestId, text, mapped, mode);
+    const plan = this.interaction.prompt(resolvedRequestId, text, mapped, mode);
     if (!plan.accepted) throw new Error('Mock prompt rejected an empty request');
     const acknowledgementDelay = plan.queued &&
       this.fixtureState === 'dock-queue-pending' ? 4200 : plan.queued ? 650 : 120;
@@ -684,7 +737,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       this.emit(plan.streamFrames, acknowledgementDelay + 360);
       this.emit(plan.settleFrames, acknowledgementDelay + 820);
     }
-    return requestId;
+    return resolvedRequestId;
   }
 
   async cancel(_id: string): Promise<void> {

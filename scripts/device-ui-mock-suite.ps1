@@ -41,6 +41,10 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'light'; ReduceTransparency = $true },
   [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'dark'; ReduceTransparency = $true },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-approval'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-approval'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-question'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-question'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'process'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'process'; State = 'completed'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'sidebar'; State = 'completed'; Theme = 'dark' },
@@ -121,6 +125,19 @@ $contactSheet = Join-Path $OutputDir 'dock-material-contact-sheet.png'
   --out $contactSheet
 if ($LASTEXITCODE -ne 0) {
   throw "Dock material contact sheet failed: $LASTEXITCODE"
+}
+
+$materialAssert = Join-Path $PSScriptRoot 'device-ui-material-assert.py'
+foreach ($theme in @('light', 'dark')) {
+  $captureDir = Join-Path $OutputDir "dock-material-elevated-$theme-conversation"
+  & python $materialAssert `
+    (Join-Path $captureDir 'layout.json') `
+    (Join-Path $captureDir 'screen.jpeg') `
+    --theme $theme `
+    --json-out (Join-Path $OutputDir "dock-material-$theme-assert.json")
+  if ($LASTEXITCODE -ne 0) {
+    throw "Dock material pixel assertion failed for $theme."
+  }
 }
 
 $results | Format-Table -AutoSize | Out-Host
