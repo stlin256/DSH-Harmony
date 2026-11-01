@@ -260,6 +260,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-11-01-stream-scroll-dock-spring.md](docs/specs/2026-11-01-stream-scroll-dock-spring.md)
 - Streaming scroll and Dock spring device E2E:
   [2026-11-01-stream-scroll-dock-spring-e2e.md](docs/testing/2026-11-01-stream-scroll-dock-spring-e2e.md)
+- Stream stability requirement:
+  [2026-11-01-stream-stability-dsh-go-reference.md](docs/requirements/2026-11-01-stream-stability-dsh-go-reference.md)
+- DSH-Go stream stability research:
+  [2026-11-01-stream-stability-dsh-go-reference.md](docs/research/2026-11-01-stream-stability-dsh-go-reference.md)
+- Stream stability implementation spec:
+  [2026-11-01-stream-stability-dsh-go-reference.md](docs/specs/2026-11-01-stream-stability-dsh-go-reference.md)
+- Stream stability device E2E:
+  [2026-11-01-stream-stability-dsh-go-reference-e2e.md](docs/testing/2026-11-01-stream-stability-dsh-go-reference-e2e.md)
 
 ## Upstream Tracking
 
