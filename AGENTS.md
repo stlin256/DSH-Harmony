@@ -327,6 +327,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-11-01-structured-protocol-completeness.md](docs/specs/2026-11-01-structured-protocol-completeness.md)
 - Structured protocol completeness E2E:
   [2026-11-01-structured-protocol-completeness-e2e.md](docs/testing/2026-11-01-structured-protocol-completeness-e2e.md)
+- Native sidebar destinations requirement:
+  [2026-11-01-native-sidebar-destinations.md](docs/requirements/2026-11-01-native-sidebar-destinations.md)
+- Native sidebar destinations research:
+  [2026-11-01-native-sidebar-destinations.md](docs/research/2026-11-01-native-sidebar-destinations.md)
+- Native sidebar destinations implementation spec:
+  [2026-11-01-native-sidebar-destinations.md](docs/specs/2026-11-01-native-sidebar-destinations.md)
+- Native sidebar destinations device E2E:
+  [2026-11-01-native-sidebar-destinations-e2e.md](docs/testing/2026-11-01-native-sidebar-destinations-e2e.md)
 
 ## Upstream Tracking
 
