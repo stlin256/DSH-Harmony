@@ -2,7 +2,7 @@ param(
   [string]$DevEcoHome = 'C:\Users\yjzlx\AppData\Local\Programs\Huawei\DevEcoStudio-26.0.0',
   [string]$Device = '',
   [string]$HapPath = '',
-  [ValidateSet('conversation', 'process', 'sidebar', 'browser', 'settings')]
+  [ValidateSet('conversation', 'process', 'sidebar', 'browser', 'settings', 'lineage', 'subagent')]
   [string]$Screen = 'conversation',
   [ValidateSet(
     'completed',
@@ -19,7 +19,13 @@ param(
     'dock-material-quiet',
     'dock-material-elevated',
     'interaction-approval',
-    'interaction-question'
+    'interaction-question',
+    'plan-subagent',
+    'plan-off-error',
+    'subagent-continuable',
+    'subagent-one-shot',
+    'subagent-unknown',
+    'subagent-parent-offline'
   )]
   [string]$State = 'live-change',
   [ValidateSet('light', 'dark', 'system')]
@@ -40,7 +46,7 @@ if (-not (Test-Path -LiteralPath $hdc)) {
   throw "HDC not found: $hdc"
 }
 if (-not $HapPath) {
-  $HapPath = Join-Path $repo 'harmony\entry\build\default\outputs\default\entry-default-signed.hap'
+  $HapPath = Join-Path $repo 'harmony\entry\build\mock\outputs\mock\entry-mock-signed.hap'
 }
 if (-not $OutputDir) {
   $OutputDir = Join-Path $repo 'artifacts\device-ui-mock'
@@ -163,9 +169,9 @@ if (-not $Device) {
   $Device = Get-ReadyDevice
 }
 if (-not $SkipBuild) {
-  & (Join-Path $PSScriptRoot 'build-harmony.ps1') -DevEcoHome $DevEcoHome -Product default -BuildMode release
+  & (Join-Path $PSScriptRoot 'build-harmony.ps1') -DevEcoHome $DevEcoHome -Product mock -BuildMode release
   if ($LASTEXITCODE -ne 0) {
-    throw "Personal Release build failed: $LASTEXITCODE"
+    throw "Mock Release build failed: $LASTEXITCODE"
   }
 }
 $hap = (Resolve-Path -LiteralPath $HapPath).Path
@@ -241,6 +247,7 @@ $manifest = [ordered]@{
   deviceModel = $model
   apiVersion = $api
   bundleName = $bundle
+  variant = 'mock'
   bundleVersion = if ($versionMatch.Success) { $versionMatch.Groups[1].Value } else { '' }
   processId = $appProcessId
   layoutAssertion = $layoutAssertion

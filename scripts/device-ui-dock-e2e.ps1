@@ -171,6 +171,7 @@ $null = Query-Node $pendingLayout '发送中…' 'text' 1
 Capture-Screen 'queue-pending'
 
 Start-Sleep -Milliseconds 4400
+$authoritativeFixtureState = 'dock-queue-authoritative'
 $authoritativeLayout = Dump-Layout 'queue-authoritative'
 $null = Query-Node $authoritativeLayout $queueToken 'text' 1
 $null = Query-Node $authoritativeLayout '发送中…' 'text' 0
@@ -219,6 +220,7 @@ $manifest = [ordered]@{
   device = $Device
   processId = $processId
   result = 'Passed'
+  settledFixtureState = $authoritativeFixtureState
   checked = [ordered]@{
     idleSendInsertedUserMessage = $true
     idleSendSettledAssistantResponse = $true

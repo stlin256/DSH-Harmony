@@ -225,6 +225,12 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.equal(NativeUiFixture.state('dock-material-elevated'), 'dock-material-elevated');
   assert.equal(NativeUiFixture.state('interaction-approval'), 'interaction-approval');
   assert.equal(NativeUiFixture.state('interaction-question'), 'interaction-question');
+  assert.equal(NativeUiFixture.state('plan-subagent'), 'plan-subagent');
+  assert.equal(NativeUiFixture.state('plan-off-error'), 'plan-off-error');
+  assert.equal(NativeUiFixture.state('subagent-continuable'), 'subagent-continuable');
+  assert.equal(NativeUiFixture.state('subagent-one-shot'), 'subagent-one-shot');
+  assert.equal(NativeUiFixture.state('subagent-unknown'), 'subagent-unknown');
+  assert.equal(NativeUiFixture.state('subagent-parent-offline'), 'subagent-parent-offline');
   assert.equal(NativeUiFixture.state('private-path'), 'completed');
   assert.equal(NativeUiFixture.theme('dark'), 'dark');
   assert.equal(NativeUiFixture.theme('sepia'), 'system');
@@ -260,12 +266,17 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.match(showcase, /completedDiff\.diffs\.push\(completedDocs\)/);
   assert.match(showcase, /const seedRunning = this\.fixtureState === 'live-change'/);
   assert.match(showcase, /record\.running = initial\.running/);
-  assert.match(showcase, /this\.interaction\.prompt\(resolvedRequestId, text, mapped, mode\)/);
+  assert.match(showcase, /const plan = target\.prompt\(resolvedRequestId, text, mapped, mode\)/);
   assert.match(showcase, /this\.receiverReady = true/);
   assert.match(showcase, /dock-send-error[\s\S]{0,100}Mock 发送失败/);
   assert.match(showcase, /frame\.interaction = 'approval\/request'/);
   assert.match(showcase, /frame\.interaction = 'user-questions\/request'/);
   assert.match(showcase, /this\.attachments\.set\(SHOWCASE_SESSION, showcaseAttachments\(\)\)/);
+  assert.match(showcase, /isSubagentFixtureState/);
+  assert.match(showcase, /SHOWCASE_CHILD_EXTERNAL/);
+  assert.match(showcase, /operation === 'planOff'/);
+  assert.match(showcase, /showcaseProjectionJson/);
+  assert.match(showcase, /this\.childInteractions\.get\(id\)/);
   const workspace = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
   assert.match(workspace,

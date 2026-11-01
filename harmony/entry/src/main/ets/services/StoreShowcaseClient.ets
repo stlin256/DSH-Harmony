@@ -25,6 +25,12 @@ import {
   NativeWorkspaceSnapshot
 } from './NativeSessionModel';
 import {
+  NativePlanProjection,
+  NativeSessionAddress,
+  NativeSubagentIdentity,
+  NativeSubagentProjectionValues
+} from './NativeModeSubagent';
+import {
   NativeShowcaseAttachment,
   NativeShowcaseInteraction,
   nativeShowcaseQueueItem
@@ -33,6 +39,10 @@ import { NativeUiFixture } from './NativeUiFixture';
 import { http } from '@kit.NetworkKit';
 
 const SHOWCASE_SESSION = 'showcase-release';
+const SHOWCASE_CHILD_CONTINUABLE = 'showcase-child-continuable';
+const SHOWCASE_CHILD_ONE_SHOT = 'showcase-child-one-shot';
+const SHOWCASE_CHILD_UNKNOWN = 'showcase-child-unknown';
+const SHOWCASE_CHILD_EXTERNAL = 'showcase-child-external';
 const SHOWCASE_README = `# DSH Harmony
 
 DeepSeek Harness 的鸿蒙原生客户端。
@@ -60,6 +70,29 @@ class ShowcaseTodo {
 
 class ShowcaseTodoPayload {
   todos: ShowcaseTodo[] = [];
+}
+
+class ShowcaseSubagentCatalogRow {
+  id: string = '';
+  createdAt: number = 0;
+  mode: string = 'unknown';
+  label: string = '';
+}
+
+class ShowcaseModelSelection {
+  provider: string = 'deepseek-official';
+  model: string = 'deepseek-v4-pro';
+  reasoningEffort: string = 'max';
+}
+
+class ShowcaseModelSelectionProjection {
+  next: ShowcaseModelSelection = new ShowcaseModelSelection();
+}
+
+class ShowcaseProjectionEnvelope {
+  kind: string = 'sequenced';
+  asOfSeq: number = 30;
+  values: Record<string, Object> = {};
 }
 
 function showcaseTodo(content: string, status: string): ShowcaseTodo {
@@ -363,6 +396,85 @@ function showcaseAttachments(): NativeAttachmentDraft[] {
   return rows;
 }
 
+function isSubagentFixtureState(state: string): boolean {
+  return state === 'plan-subagent' || state === 'plan-off-error' ||
+    state === 'subagent-continuable' || state === 'subagent-one-shot' ||
+    state === 'subagent-unknown' || state === 'subagent-parent-offline';
+}
+
+function isPlanFixtureState(state: string): boolean {
+  return state === 'plan-subagent' || state === 'plan-off-error';
+}
+
+function showcaseSubagentCatalog(): ShowcaseSubagentCatalogRow[] {
+  const rows: ShowcaseSubagentCatalogRow[] = [];
+  const definitions: string[][] = [
+    [SHOWCASE_CHILD_CONTINUABLE, 'continuable', '可继续检查'],
+    [SHOWCASE_CHILD_ONE_SHOT, 'one-shot', '一次性检查'],
+    [SHOWCASE_CHILD_UNKNOWN, 'unknown', '未知模式记录'],
+    [SHOWCASE_CHILD_EXTERNAL, 'external', '外部任务']
+  ];
+  definitions.forEach((definition: string[], index: number): void => {
+    const row = new ShowcaseSubagentCatalogRow();
+    row.id = definition[0];
+    row.createdAt = 1761900000000 + index;
+    row.mode = definition[1];
+    row.label = definition[2];
+    rows.push(row);
+  });
+  return rows;
+}
+
+function showcaseChildIdentity(id: string): NativeSubagentIdentity {
+  const identity = new NativeSubagentIdentity();
+  identity.mode = id === SHOWCASE_CHILD_ONE_SHOT ? 'one-shot' :
+    id === SHOWCASE_CHILD_UNKNOWN ? 'unknown' : 'continuable';
+  identity.label = id === SHOWCASE_CHILD_ONE_SHOT ? '一次性检查' :
+    id === SHOWCASE_CHILD_UNKNOWN ? '未知模式记录' : '可继续检查';
+  identity.seq = 20;
+  return identity;
+}
+
+function showcaseChildMessages(id: string): NativeMessage[] {
+  const identity = showcaseChildIdentity(id);
+  const rows: NativeMessage[] = [];
+  rows.push(message('child-user-' + id, 'user', 1, 1, 1,
+    '请检查 ' + identity.label + ' 的原生呈现。'));
+  const assistant = message('child-assistant-' + id, 'assistant', 2, 1, 2,
+    identity.mode === 'continuable' ? '检查完成，可以继续发送消息。' :
+      '此记录保持只读，不提供发送入口。');
+  rows.push(assistant);
+  const end = message('child-end-' + id, 'turn', 3, 1, 2, '');
+  end.eventType = 'turn/end';
+  end.outcome = 'completed';
+  rows.push(end);
+  return rows;
+}
+
+function showcaseProjectionJson(state: string, sessionId: string, planRemoved: boolean): string {
+  const values: Record<string, Object> = {};
+  if (sessionId === SHOWCASE_CHILD_CONTINUABLE || sessionId === SHOWCASE_CHILD_ONE_SHOT ||
+      sessionId === SHOWCASE_CHILD_UNKNOWN) {
+    values.subagentKnown = true;
+    values.subagent = showcaseChildIdentity(sessionId);
+    values.subagentCatalog = [];
+  } else {
+    values.modelSelection = new ShowcaseModelSelectionProjection();
+    if (isPlanFixtureState(state)) {
+      const plan = new NativePlanProjection();
+      plan.active = !planRemoved;
+      plan.pending = false;
+      values.plan = plan;
+    }
+    if (isSubagentFixtureState(state)) {
+      values.subagentCatalog = showcaseSubagentCatalog();
+    }
+  }
+  const envelope = new ShowcaseProjectionEnvelope();
+  envelope.values = values;
+  return JSON.stringify(envelope);
+}
+
 function showcaseSessions(state: string = 'completed'): NativeSession[] {
   const firstTitle = state === 'live-change' ? '底部 Dock 运行态' :
     state === 'streaming' ? '流式输出与标题更新' :
@@ -374,6 +486,12 @@ function showcaseSessions(state: string = 'completed'): NativeSession[] {
     state === 'dock-material-elevated' ? '渐变材质与实时变更' :
     state === 'interaction-approval' ? '审批卡样式检查' :
     state === 'interaction-question' ? '问题卡样式检查' :
+    state === 'plan-subagent' ? '计划与子智能体' :
+    state === 'plan-off-error' ? '计划退出失败' :
+    state === 'subagent-continuable' ? '可继续子会话' :
+    state === 'subagent-one-shot' ? '一次性子会话' :
+    state === 'subagent-unknown' ? '未知模式子会话' :
+    state === 'subagent-parent-offline' ? '父会话不可用' :
     state === 'empty' ? '空运行态' :
     state === 'long-history' ? '长会话与连续预取' :
     state === 'attachments' ? '附件与实时变更 Dock' :
@@ -386,7 +504,7 @@ function showcaseSessions(state: string = 'completed'): NativeSession[] {
     ['showcase-settings', '外观与动效偏好', 'workspace-mobile', 'false'],
     ['showcase-mobile', '手机端交互适配', 'workspace-mobile', 'false']
   ];
-  return definitions.map((row: string[]): NativeSession => {
+  const sessions = definitions.map((row: string[]): NativeSession => {
     const value = new NativeSession();
     value.id = row[0];
     value.title = row[1];
@@ -398,9 +516,32 @@ function showcaseSessions(state: string = 'completed'): NativeSession[] {
       state === 'dock-material-elevated' || state === 'interaction-approval' ||
       state === 'interaction-question') &&
       row[0] === SHOWCASE_SESSION;
+    value.agentAvailable = row[0] === SHOWCASE_SESSION ?
+      state !== 'subagent-parent-offline' : undefined;
     value.updatedAt = 1761900000000 - definitions.findIndex((item: string[]) => item[0] === row[0]) * 60000;
     return value;
   });
+  if (isSubagentFixtureState(state)) {
+    [SHOWCASE_CHILD_CONTINUABLE, SHOWCASE_CHILD_ONE_SHOT, SHOWCASE_CHILD_UNKNOWN]
+      .forEach((id: string, index: number): void => {
+        const child = new NativeSession();
+        child.id = id;
+        child.title = showcaseChildIdentity(id).label;
+        child.cwd = 'DSH Harmony';
+        child.origin = 'subagent';
+        child.parentSessionId = SHOWCASE_SESSION;
+        child.running = id === SHOWCASE_CHILD_CONTINUABLE &&
+          state === 'subagent-continuable';
+        child.agentAvailable = true;
+        child.updatedAt = 1761900000000 - (index + 2) * 1000;
+        const projections = new NativeSubagentProjectionValues();
+        projections.subagentKnown = true;
+        projections.subagent = showcaseChildIdentity(id);
+        child.projections = projections;
+        sessions.push(child);
+      });
+  }
+  return sessions;
 }
 
 function showcaseWorkspaces(): NativeWorkspaceSnapshot {
@@ -433,6 +574,9 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   private receiverReady: boolean = false;
   private promptSerial: number = 0;
   private timers: number[] = [];
+  private childInteractions: Map<string, NativeShowcaseInteraction> =
+    new Map<string, NativeShowcaseInteraction>();
+  private planRemoved: boolean = false;
 
   constructor(state: string = 'completed') {
     super('https://showcase.invalid');
@@ -452,6 +596,16 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     });
     const seedQueue = showcaseQueue(this.fixtureState);
     this.interaction = new NativeShowcaseInteraction(seedMessages, seedRunning, seedCursor, seedQueue);
+    if (isSubagentFixtureState(this.fixtureState)) {
+      [SHOWCASE_CHILD_CONTINUABLE, SHOWCASE_CHILD_ONE_SHOT, SHOWCASE_CHILD_UNKNOWN]
+        .forEach((id: string): void => {
+          const childRunning = id === SHOWCASE_CHILD_CONTINUABLE &&
+            this.fixtureState === 'subagent-continuable';
+          const childMessages = showcaseChildMessages(id);
+          this.childInteractions.set(id,
+            new NativeShowcaseInteraction(childMessages, childRunning, 3, []));
+        });
+    }
     this.interaction.waiting = this.fixtureState === 'interaction-approval' ||
       this.fixtureState === 'interaction-question';
     const initial = this.interaction.snapshot();
@@ -528,17 +682,21 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     return showcaseWorkspaces();
   }
 
-  async page(_id: string, _before: number, _throughSeq: number = -1): Promise<NativeFrame> {
-    return this.interaction.snapshot();
+  async page(id: string, _before: number, _throughSeq: number = -1): Promise<NativeFrame> {
+    const child = this.childInteractions.get(id);
+    return child ? child.snapshot() : this.interaction.snapshot();
   }
 
   async follow(id: string, receive: (frame: NativeFrame) => void, _ended: (reason: string) => void): Promise<void> {
-    if (id !== SHOWCASE_SESSION || this.paused) return;
+    const child = this.childInteractions.get(id);
+    if ((id !== SHOWCASE_SESSION && !child) || this.paused) return;
     this.receiver = receive;
     this.receiverReady = true;
-    receive(this.interaction.snapshot());
-    const interaction = showcaseInteractionFrame(this.fixtureState);
-    if (interaction) this.emit([interaction], 90);
+    receive(child ? child.snapshot() : this.interaction.snapshot());
+    if (id === SHOWCASE_SESSION) {
+      const interaction = showcaseInteractionFrame(this.fixtureState);
+      if (interaction) this.emit([interaction], 90);
+    }
   }
 
   pause(): void {
@@ -558,6 +716,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     } catch (_) {
     }
     const operation = value.operation;
+    const sessionId = typeof value.sessionId === 'string' ? value.sessionId : SHOWCASE_SESSION;
     if (operation === 'settingsDescribe') {
       return `{
         "writable": true,
@@ -606,22 +765,39 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       }`;
     }
     if (operation === 'projections') {
-      return `{
-        "values": {
-          "modelSelection": {
-            "next": {
-              "provider": "deepseek-official",
-              "model": "deepseek-v4-pro",
-              "reasoningEffort": "max"
-            }
-          }
-        }
-      }`;
+      return showcaseProjectionJson(this.fixtureState, sessionId, this.planRemoved);
+    }
+    if (operation === 'planOff') {
+      if (this.fixtureState === 'plan-off-error') {
+        throw new Error('Mock /plan off failed');
+      }
+      this.planRemoved = true;
+      const plan = new NativePlanProjection();
+      plan.active = false;
+      plan.pending = false;
+      const frame = new NativeFrame();
+      frame.type = 'plan';
+      frame.plan = plan;
+      frame.projectionSeq = 31;
+      this.emit([frame], 20);
+      return '{"accepted":true}';
     }
     if (operation === 'capabilities') {
       return '{"copyMarkdown":true,"downloadLog":false}';
     }
     return '{}';
+  }
+
+  async answer(body: string): Promise<void> {
+    let value: Record<string, Object> = {};
+    try {
+      value = JSON.parse(body) as Record<string, Object>;
+    } catch (_) {
+    }
+    if (value.engage === true) return;
+    const id = typeof value.connectionId === 'string' ? value.connectionId : SHOWCASE_SESSION;
+    const target = id === SHOWCASE_SESSION ? this.interaction : this.childInteractions.get(id);
+    if (target) this.emit(target.cancel(), 24);
   }
 
   async request(_path: string, _method: http.RequestMethod = http.RequestMethod.GET,
@@ -712,8 +888,22 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   }
 
   async prompt(id: string, text: string, mode: string = 'queue',
-    attachments: NativeAttachmentDraft[] = [], requestId: string = ''): Promise<string> {
-    if (id !== SHOWCASE_SESSION) throw new Error('Showcase session unavailable');
+    attachments: NativeAttachmentDraft[] = [], requestId: string = '',
+    address: NativeSessionAddress | null = null): Promise<string> {
+    const child = address?.kind === 'subagent';
+    const target = child ? this.childInteractions.get(id) : this.interaction;
+    if (!target || (!child && id !== SHOWCASE_SESSION)) {
+      throw new Error('Showcase session unavailable');
+    }
+    if (child && attachments.length) {
+      throw new Error('子智能体不支持此附件');
+    }
+    if (child) {
+      const identity = this.childInteractions.has(id) ? showcaseChildIdentity(id) : null;
+      if (!identity || identity.mode !== 'continuable') {
+        throw new Error('此子智能体只读');
+      }
+    }
     if (this.fixtureState === 'dock-send-error') {
       throw new Error('Mock 发送失败，请重试');
     }
@@ -728,7 +918,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       value.receiptId = item.receiptId;
       return value;
     });
-    const plan = this.interaction.prompt(resolvedRequestId, text, mapped, mode);
+    const plan = target.prompt(resolvedRequestId, text, mapped, mode);
     if (!plan.accepted) throw new Error('Mock prompt rejected an empty request');
     const acknowledgementDelay = plan.queued &&
       this.fixtureState === 'dock-queue-pending' ? 4200 : plan.queued ? 650 : 120;
@@ -740,8 +930,9 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     return resolvedRequestId;
   }
 
-  async cancel(_id: string): Promise<void> {
-    this.emit(this.interaction.cancel(), 80);
+  async cancel(id: string, address: NativeSessionAddress | null = null): Promise<void> {
+    const target = address?.kind === 'subagent' ? this.childInteractions.get(id) : this.interaction;
+    if (target) this.emit(target.cancel(), 80);
   }
 
   private emit(frames: NativeFrame[], delay: number): void {

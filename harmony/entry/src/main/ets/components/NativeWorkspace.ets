@@ -540,6 +540,18 @@ export struct NativeWorkspace {
     return nativeSubagentReadOnlyReason(this.activeAddress, this.subagentIdentity,
       this.subagentIdentityKnown, this.currentParentAgentAvailable(), this.running);
   }
+  private currentSubagentReadOnlyTitle(): string {
+    const reason = this.currentSubagentReadOnlyReason();
+    if (reason === 'one-shot') return '一次性子智能体记录';
+    if (reason === 'parent-unavailable') return '父会话暂不可用';
+    return '此子智能体暂时只读';
+  }
+  private currentSubagentReadOnlyCaption(): string {
+    const reason = this.currentSubagentReadOnlyReason();
+    if (reason === 'one-shot') return '可查看完整执行记录';
+    if (reason === 'parent-unavailable') return '恢复后可继续此会话';
+    return '确认子会话模式后可继续';
+  }
   private currentSubagentInputEnabled(): boolean {
     return nativeSubagentComposerEnabled(this.activeAddress, this.subagentIdentity,
       this.subagentIdentityKnown, this.currentParentAgentAvailable(), this.running);
@@ -656,6 +668,23 @@ export struct NativeWorkspace {
         this.fileViewOpen = true;
         this.navigationChanged();
       }, 700);
+    } else if (showcaseScreen === 'lineage') {
+      setTimeout((): void => {
+        if (this.mounted) this.openLineage();
+      }, 900);
+    } else if (showcaseScreen === 'subagent') {
+      setTimeout((): void => {
+        if (!this.mounted) return;
+        const state = AppStorage.get<string>('storeShowcaseState') || '';
+        const childId = state === 'subagent-one-shot' ? 'showcase-child-one-shot' :
+          state === 'subagent-unknown' ? 'showcase-child-unknown' : 'showcase-child-continuable';
+        const mode = state === 'subagent-one-shot' ? 'one-shot' :
+          state === 'subagent-unknown' ? 'unknown' : 'continuable';
+        const label = state === 'subagent-one-shot' ? '一次性检查' :
+          state === 'subagent-unknown' ? '未知模式记录' : '可继续检查';
+        const address = nativeSubagentAddress('showcase-release', childId, mode);
+        if (address) this.select(childId, address, [address], label);
+      }, 900);
     }
   }
   aboutToDisappear(): void {
@@ -2813,11 +2842,9 @@ export struct NativeWorkspace {
     Row({ space: 8 }) {
       DSHIcon({ glyph: 'branch-outline', glyphSize: 15, color: this.tertiaryText() })
       Column({ space: 2 }) {
-        Text(this.currentSubagentReadOnlyReason() === 'one-shot' ?
-          '一次性子智能体记录' : '此子智能体暂时只读')
+        Text(this.currentSubagentReadOnlyTitle())
           .fontSize(12).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
-        Text(this.currentSubagentReadOnlyReason() === 'one-shot' ?
-          '可查看完整执行记录' : '确认子会话模式后可继续')
+        Text(this.currentSubagentReadOnlyCaption())
           .fontSize(10).fontColor(this.tertiaryText())
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
     }
