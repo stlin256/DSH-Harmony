@@ -91,7 +91,8 @@ export struct NativeSubagentLineage {
     .enabled(nativeSubagentCanOpen(entry))
     .opacity(nativeSubagentCanOpen(entry) ? 1 : 0.58)
     .accessibilityText((entry.label || entry.id) + '，' +
-      nativeSubagentModeLabel(entry.mode) + (entry.running ? '，正在运行' : ''))
+      nativeSubagentModeLabel(entry.mode) + (entry.running ? '，正在运行' : '') +
+      (nativeSubagentCanOpen(entry) ? '' : '，不可打开'))
     .onClick((): void => {
       if (nativeSubagentCanOpen(entry)) this.onOpen(entry);
     })

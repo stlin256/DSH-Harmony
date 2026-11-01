@@ -1,5 +1,5 @@
 param(
-  [string]$DevEcoHome = 'C:\Users\yjzlx\AppData\Local\Programs\Huawei\DevEcoStudio-26.0.0',
+  [string]$DevEcoHome = '',
   [string]$Device = '',
   [string]$HapPath = '',
   [ValidateSet('conversation', 'process', 'sidebar', 'browser', 'settings', 'lineage', 'subagent',
@@ -55,6 +55,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'resolve-deveco-home.ps1')
+$DevEcoHome = Resolve-DevEcoHome -ExplicitHome $DevEcoHome
 $hdc = Join-Path $DevEcoHome 'sdk\default\openharmony\toolchains\hdc.exe'
 if (-not (Test-Path -LiteralPath $hdc)) {
   throw "HDC not found: $hdc"
@@ -134,6 +136,7 @@ function Wait-FixtureReady {
   $lastProcessId = ''
   $lastForeground = $false
   $lastLayoutReady = $false
+  $readyStreak = 0
   while ((Get-Date) -lt $deadline) {
     $lastProcessId = ((& $hdc -t $Device shell "pidof $BundleName" 2>&1) -join ' ').Trim()
     if ($LASTEXITCODE -ne 0 -or -not $lastProcessId) {
@@ -147,20 +150,25 @@ function Wait-FixtureReady {
         -RemotePath $RemoteProbeLayout `
         -LocalPath $ProbeLayout
       if ($lastLayoutReady) {
-        $firstHash = (Get-FileHash -LiteralPath $ProbeLayout -Algorithm SHA256).Hash
-        Start-Sleep -Milliseconds 320
-        $stableLayout = Test-UiLayoutReady `
-          -BundleName $BundleName `
-          -RemotePath $RemoteProbeLayout `
-          -LocalPath $ProbeLayout
-        if ($stableLayout) {
-          $secondHash = (Get-FileHash -LiteralPath $ProbeLayout -Algorithm SHA256).Hash
-          if ($firstHash -eq $secondHash) {
-            Start-Sleep -Milliseconds 180
+        $readyStreak++
+        # Active fixture states may contain timers or progress indicators, so a
+        # whole-tree hash is not a valid readiness signal. Require repeated
+        # foreground, non-empty renders instead of waiting for an idle frame.
+        if ($readyStreak -ge 2) {
+          Start-Sleep -Milliseconds 650
+          if (Test-UiLayoutReady `
+            -BundleName $BundleName `
+            -RemotePath $RemoteProbeLayout `
+            -LocalPath $ProbeLayout) {
             return $lastProcessId
           }
+          $readyStreak = 0
         }
+      } else {
+        $readyStreak = 0
       }
+    } else {
+      $readyStreak = 0
     }
     Start-Sleep -Milliseconds 500
   }
@@ -241,7 +249,24 @@ if ($LASTEXITCODE -ne 0) {
 $layoutAssertion = 'not-requested'
 if ($Screen -eq 'conversation') {
   $assertScript = Join-Path $PSScriptRoot 'device-ui-layout-assert.py'
-  $assertionOutput = & python $assertScript $localLayout --match 'DeepSeek-V4-Pro' --require-composer-visible 2>&1
+  $assertionArguments = @(
+    $localLayout,
+    '--match',
+    'DeepSeek-V4-Pro',
+    '--require-composer-visible'
+  )
+  if ($State -eq 'completed') {
+    $topLabel = [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes(
+      '任务计划, 已完成 2 · 进行中 1 · 待处理 1'))
+    $bottomLabel = [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes(
+      '帮我检查这个版本是否达到应用商店上架条件，并整理还需要完成的发布事项。'))
+    $assertionArguments += @(
+      '--forbid-overlap-hex',
+      $topLabel,
+      $bottomLabel
+    )
+  }
+  $assertionOutput = & python $assertScript @assertionArguments 2>&1
   $assertionExit = $LASTEXITCODE
   $assertionOutput | Set-Content -LiteralPath (Join-Path $captureDir 'layout-assert.txt') -Encoding utf8
   if ($assertionExit -ne 0) {

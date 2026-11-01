@@ -136,6 +136,8 @@
 - 44vp 行、12vp 圆角、树形缩进与 1px 连接线。
 - 当前子会话高亮；运行、完成、未运行用短标签。
 - one-shot/continuable/unknown/external 显示官方短模式名。
+- 副标题模式名不得重复标题；外部成员的副标题固定为“外部”，
+  右侧不可用状态与无障碍说明负责表达“不可打开”。
 - 外部成员禁用打开；加载与失败使用紧凑状态行。
 - disclosure/toggle 使用 `NativeMotion.disclosure`，减少动效直接完成。
 

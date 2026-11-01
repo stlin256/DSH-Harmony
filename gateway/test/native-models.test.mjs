@@ -1862,8 +1862,13 @@ test('todo_write projects structured status rows and the newest replacement plan
     import.meta.url),'utf8');
   assert.match(workspaceView,/NativeConversationDock\(\) \{[\s\S]{0,100}NativeTaskDock/);
   assert.match(workspaceView,/Stack\(\{ alignContent: Alignment\.Bottom \}\)/);
-  assert.match(workspaceView,/contentStartOffset\(this\.taskPlan\.items\.length \? this\.conversationDockHeight : 0\)/);
-  assert.match(workspaceView,/NativeConversationDock\(\) \{[\s\S]{0,260}\.onAreaChange/);
+  const taskDockIndex=workspaceView.indexOf('NativeTaskDock({ document: this.taskPlan');
+  const transcriptListIndex=workspaceView.indexOf("List({ space: 12, scroller: this.scroller })");
+  assert.ok(taskDockIndex >= 0 && taskDockIndex < transcriptListIndex,
+    'task-plan dock must occupy its own row above the transcript viewport');
+  assert.doesNotMatch(workspaceView,/conversationDockHeight/);
+  assert.doesNotMatch(workspaceView,/contentStartOffset\(/);
+  assert.match(workspaceView,/\.width\('100%'\)\.height\('100%'\)\.clip\(true\)\.cachedCount\(6\)/);
   assert.match(workspaceView,/glyph: 'chevron-down-outline'/);
   assert.match(workspaceView,/\.width\(39\)\.height\(39\)\.borderRadius\(19\.5\)/);
   assert.match(workspaceView,/\.opacity\(this\.backToBottomPressed \? 0\.85 : 0\.6\)/);

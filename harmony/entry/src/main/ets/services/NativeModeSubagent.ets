@@ -137,7 +137,7 @@ export function nativeSubagentStackPush(stack: NativeSessionAddress[],
 export function nativeSubagentModeLabel(mode: string): string {
   if (mode === nativeSubagentOneShot) return '一次性';
   if (mode === nativeSubagentContinuable) return '可继续';
-  if (mode === nativeSubagentExternal) return '外部任务';
+  if (mode === nativeSubagentExternal) return '外部';
   return '模式未知';
 }
 

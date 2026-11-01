@@ -96,6 +96,10 @@ export struct NativeLaunchSurface {
     return Math.max(this.safeTop + 72, Math.min(210, this.viewportHeight * 0.2));
   }
 
+  private accountTop(): number {
+    return this.safeTop + 68 + this.logoSize() + NativeDesign.spaceXXL;
+  }
+
   private logoOpacity(): number {
     if (this.phase === NativeLaunchPhase.guide || this.phase === NativeLaunchPhase.install) return 0;
     if (this.phase === NativeLaunchPhase.login || this.phase === NativeLaunchPhase.restoring ||
@@ -524,7 +528,7 @@ export struct NativeLaunchSurface {
         else this.loginCard()
       }
       .width('100%').padding({ left: NativeDesign.pageInset + this.safeLeft, right: NativeDesign.pageInset + this.safeRight,
-        top: this.safeTop + 144, bottom: this.safeBottom + 24 })
+        top: this.accountTop(), bottom: this.safeBottom + 24 })
       .alignItems(HorizontalAlign.Center)
     }
     .width('100%').height('100%').scrollBar(BarState.Off)

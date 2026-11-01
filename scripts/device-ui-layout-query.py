@@ -27,15 +27,15 @@ def walk(node: dict[str, Any], ancestors: list[dict[str, Any]] | None = None):
 
 def label(node: dict[str, Any]) -> str:
     attributes = node.get("attributes", {})
-    return " ".join(
-        value
-        for value in (
-            attributes.get("text", ""),
-            attributes.get("accessibilityText", ""),
-            attributes.get("originalText", ""),
-        )
-        if value
-    )
+    values = []
+    for value in (
+        attributes.get("text", ""),
+        attributes.get("accessibilityText", ""),
+        attributes.get("originalText", ""),
+    ):
+        if value and value not in values:
+            values.append(value)
+    return " ".join(values) if values else attributes.get("hint", "")
 
 
 def inside(root_bounds: tuple[int, int, int, int], value: str) -> bool:
@@ -65,6 +65,13 @@ def main() -> int:
         "--find-text-hex",
         help="UTF-8 text encoded as hexadecimal; avoids shell code-page failures",
     )
+    text_group.add_argument(
+        "--rightmost-clickable-below",
+        nargs=2,
+        type=int,
+        metavar=("X", "Y"),
+        help="select the first enabled clickable row below an anchor, preferring the rightmost node",
+    )
     parser.add_argument(
         "--container-text-hex",
         help="UTF-8 container label as hexadecimal; limits the search to its nearest complete row",
@@ -85,11 +92,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    find_text = (
-        bytes.fromhex(args.find_text_hex).decode("utf-8")
-        if args.find_text_hex
-        else args.find_text
-    )
+    find_text = None
+    if args.find_text_hex:
+        find_text = bytes.fromhex(args.find_text_hex).decode("utf-8")
+    elif args.find_text:
+        find_text = args.find_text
     parsed = json.loads(args.layout.read_text(encoding="utf-8"))
     root = parsed[0] if isinstance(parsed, list) else parsed
     root_bounds = parse_bounds(root["attributes"]["bounds"])
@@ -102,20 +109,40 @@ def main() -> int:
         if not inside(root_bounds, attributes.get("bounds", "")):
             continue
         candidate_label = label(node)
-        matches_text = (
-            candidate_label == find_text
-            if args.exact_text
-            else find_text in candidate_label
-        )
-        if matches_text:
-            matches.append((node, ancestors))
+        if find_text is not None:
+            matches_text = (
+                candidate_label == find_text
+                if args.exact_text
+                else find_text in candidate_label
+            )
+            if matches_text:
+                matches.append((node, ancestors))
         if (
             args.container_text_hex
             and bytes.fromhex(args.container_text_hex).decode("utf-8") in label(node)
         ):
             container_matches.append((node, ancestors))
 
-    if args.container_text_hex:
+    if args.rightmost_clickable_below:
+        anchor_x, anchor_y = args.rightmost_clickable_below
+        candidates = []
+        for node, ancestors in walk(root):
+            attributes = node.get("attributes", {})
+            if (attributes.get("visible") != "true" or
+                    attributes.get("clickable") != "true" or
+                    attributes.get("enabled") != "true" or
+                    not inside(root_bounds, attributes.get("bounds", ""))):
+                continue
+            x, y = center(attributes["bounds"])
+            if x > anchor_x and 0 < y - anchor_y <= 500:
+                candidates.append((y, -x, node, ancestors))
+        if not candidates:
+            print("no enabled clickable node found below the anchor", file=sys.stderr)
+            return 1
+        candidates.sort(key=lambda candidate: (candidate[0], candidate[1]))
+        _, _, node, ancestors = candidates[0]
+        matches = [(node, ancestors)]
+    elif args.container_text_hex:
         if not container_matches:
             print(
                 f"visible container text not found: "

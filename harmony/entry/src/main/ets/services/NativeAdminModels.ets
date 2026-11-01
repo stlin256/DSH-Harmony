@@ -290,11 +290,12 @@ export function nativeAutomationDraftFromTask(task: NativeAutomationTask): Nativ
   draft.title = task.title;
   draft.prompt = task.prompt;
   draft.kind = task.kind || 'every';
-  draft.interval = String(Math.max(1, Math.round(
-    (task.kind === 'after' ? task.afterSeconds : task.everySeconds) / 60)));
+  const intervalSeconds = task.kind === 'after' ? task.afterSeconds : task.everySeconds;
+  draft.interval = intervalSeconds && Number.isFinite(intervalSeconds) && intervalSeconds > 0
+    ? String(Math.max(1, Math.round(intervalSeconds / 60))) : '30';
   draft.time = task.time ? task.time.slice(0, 5) : '09:00';
   draft.timeZone = task.timeZone || 'Asia/Shanghai';
-  draft.weekdays = task.weekdays.length ? task.weekdays.slice() : [1, 3, 5];
+  draft.weekdays = task.weekdays && task.weekdays.length ? task.weekdays.slice() : [1, 3, 5];
   draft.expression = task.expression || '0 9 * * *';
   draft.rrule = task.rrule || '';
   draft.atDate = task.scheduledAt ? task.scheduledAt.slice(0, 10) : '';

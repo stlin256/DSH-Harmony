@@ -1,13 +1,14 @@
-# Native visual state acceptance and pending device verification
+# Native visual state acceptance and device verification
 
 Date opened: 2026-11-01
 
-Device hold started: 2026-11-02
+Device verification date: 2026-11-02
 
-Status: physical-device execution is prohibited until the user explicitly
-confirms the connected phone is available again. Every row below remains
-`Pending` until a rebuilt HAP produces current screenshot, ArkUI layout and
-interaction evidence on the target device.
+Status: the device hold was released by the user on 2026-11-02. The current
+Mock product passed the complete 68-scene visual suite and the affected
+interaction drivers on the physical phone. Rows that require API 23, a real
+account session, landscape, reconnect conditions or additional visual proof
+remain explicitly partial or pending.
 
 Requirement:
 [`2026-11-01-device-visual-state-acceptance.md`](../requirements/2026-11-01-device-visual-state-acceptance.md)
@@ -15,73 +16,84 @@ Requirement:
 Implementation spec:
 [`2026-11-01-device-visual-state-acceptance.md`](../specs/2026-11-01-device-visual-state-acceptance.md)
 
-## Device hold rules
+## Device and evidence identity
 
-- Do not run HDC, install a HAP, launch the app, capture screenshots, inspect the
-  layout tree or interact with the connected phone during the hold.
-- Add every newly discovered device-only check to this table before ending the
-  turn that introduced or changed the behavior.
-- A static source contract, model test, build result, previous screenshot,
-  Mock run or coverage report is not device evidence.
-- Keep completed historical evidence qualified by its original commit, HAP and
-  run ID. Do not reuse it for a later working tree.
+| Field | Value |
+| --- | --- |
+| Device | `HBN-AL80` / HUAWEI Pura 70 Pro+ |
+| Serial | `33Z0224801015621` |
+| OS | HarmonyOS `7.0.0.111` SP10C10 |
+| Runtime API | `26` |
+| API 23 device | Not available |
+| Mock evidence HAP | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` |
+| Mock HAP SHA-256 | `893177598199A3DA33BFF36BDFFF0BD64ED808D9C56D79F9C5818D3DAAAD250B` |
+| Default HAP SHA-256 | `7F9173B44580975674EA9C1953C89AFB7635D13E1DA7031C9658259C4BBA1986` |
+| Store HAP SHA-256 | `BB63226FB42895102D5566D7017F83CB6EC115F376639AF6FC76919FA42B87AC` |
 
-## Pending verification queue
+## Device evidence
+
+- Complete Mock visual suite: 68/68 scenes passed.
+  `artifacts/device-ui-mock/20261102-device-visual-final/suite-summary.json`
+- Review contact sheets covering all 68 final captures:
+  `artifacts/device-ui-mock/20261102-device-visual-final/visual-contact-1.jpg`
+  through `visual-contact-4.jpg`.
+- Dock send, queue, material and failure interaction:
+  `artifacts/device-e2e/20261102-device-dock-final/send-and-queue/manifest.json`
+- Approval and question interaction:
+  `artifacts/device-e2e/20261102-device-interaction-final/approval-question/manifest.json`
+- Turn-change expansion, file preview and system Back:
+  `artifacts/device-e2e/20261102-device-turn-change-final/completed-card/manifest.json`
+- Plan/subagent lineage, child return and continuable composer:
+  `artifacts/device-e2e/20261102-device-mode-subagent-final/plan-lineage/manifest.json`
+- Settings appearance persistence:
+  `artifacts/device-e2e/20261102-device-settings-final/appearance-persistence/manifest.json`
+- Reduced motion across 13 representative surfaces:
+  `artifacts/device-e2e/20261102-reduced-motion-1`
+- Reduced-motion onboarding, guide, detailed install page and Back:
+  `artifacts/device-e2e/20261102-reduced-motion-onboarding-1`
+- Maximum system font size (`超大`) across eight high-risk dark surfaces:
+  `artifacts/device-e2e/20261102-large-text-2/large-text-contact.jpg`
+  (seven captures from `20261102-large-text-2` plus the completed conversation
+  from `20261102-large-text-1`)
+- Fixed launch/login geometry:
+  `artifacts/device-e2e/20261102-launch-2`
+- PR QA run: `20261101T192208Z-eefbe49f`
+  `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`
+
+The user's saved annotation run
+`20261101T152352Z-visual-acceptance-1` contains 32 markers across 20 source
+screens. Every marked screen and repeated issue was checked against the final
+68-scene run. The final captures no longer reproduce the marked height,
+selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
+
+## Acceptance table
 
 | ID | Surface | Required device check | Status |
 | --- | --- | --- | --- |
-| VSA-PENDING-01 | Task-plan floating banner | Dark-theme header is 32 vp tall, remains readable and touchable, and expands/collapses without clipping the progress or chevron | Pending |
-| VSA-PENDING-02 | Plan-mode header chip | The active chip renders as a filled capsule with no rectangular highlight, clipping, or detached surface while idle, pressed and leaving | Pending |
-| VSA-PENDING-03 | Turn changed-file cards | A deep Host path shows the filename first, workspace-relative directory second, fixed `+/-` metrics, and no horizontal overflow in dark and light themes | Pending |
-| VSA-PENDING-04 | Turn changed-file card expansion | More than three files expands and collapses without changing row identity; card width stays aligned to the composer and clear of the transcript scrollbar | Pending |
-| VSA-PENDING-05 | Conversation Dock ordering | Live turn-change state appears above queued input; queue, attachments and composer remain independently reachable | Pending |
-| VSA-PENDING-06 | Conversation Dock material | Elevated material spans the full horizontal bleed and falls back to an opaque full-width surface under reduced transparency and API 23 conditions | Pending |
-| VSA-PENDING-07 | Composer compact controls | Image, attachment, send, attachment-row removal and subagent-composer controls keep compact geometry without shrinking labels or overlapping | Pending |
-| VSA-PENDING-08 | Automation conflict and task rows | Conflict copy, refresh/retry actions, task metadata and chips remain one-line or bounded as designed in dark and light themes | Pending |
-| VSA-PENDING-09 | Plugin management rows | Action rows and status/content hierarchy remain compact, readable and free of path-driven overflow | Pending |
-| VSA-PENDING-10 | Pending interaction cards | Approval and question cards use compact status/control rows; custom answer input has one surface; pagination arrows and count do not overlap | Pending |
-| VSA-PENDING-11 | Plan and subagent projection restore | A valid plan projection makes the executable `计划` chip available after initial render, reconnect and session switch; no stale plan state appears for an empty target | Pending |
-| VSA-PENDING-12 | Subagent lineage and composer | Capsule highlight, lineage rows, read-only states and continuable-subagent composer remain compact and usable with system Back | Pending |
-| VSA-PENDING-13 | Reduced motion | Task-plan disclosure, chip removal, Dock insertion and all affected interaction transitions resolve directly to final state | Pending |
-| VSA-PENDING-14 | Large text and narrow layout | All affected rows and chips remain readable without text/control overlap, clipping or safe-area intrusion | Pending |
+| VSA-01 | Task-plan banner | Dark-theme banner is compact, readable and touchable without transcript drawing behind it | Passed; final `plan-subagent` and `completed` captures show the banner in normal conversation flow |
+| VSA-02 | Plan-mode header chip | Active chip is one filled capsule with no rectangular highlight or detached surface | Passed; final dark and light captures plus `plan-visible` interaction |
+| VSA-03 | Turn changed-file cards | Filename is the primary line, workspace-relative directory is secondary, fixed metrics remain visible and no horizontal overflow occurs | Passed; dark/light captures and `completed-card` layout assertions |
+| VSA-04 | Turn changed-file card expansion | Four files expand and collapse without changing row identity; preview opens and Back returns to the expanded card | Passed; `20261102-device-turn-change-final` |
+| VSA-05 | Conversation Dock ordering | Live change row stays above queued input; queue, attachments and composer remain reachable | Passed; `20261102-device-dock-final` |
+| VSA-06 | Conversation Dock material | Elevated material spans the horizontal bleed and falls back under reduced transparency | Partial; passed on API 26, while API 23 fallback remains Pending |
+| VSA-07 | Composer compact controls | Image, attachment, send, stop, queue and subagent controls keep compact geometry without overlap | Passed; final static and interaction runs |
+| VSA-08 | Automation conflict and task rows | Conflict, action, task metadata and chips stay compact and readable | Passed; final dark/light and maximum-font captures |
+| VSA-09 | Plugin management rows | Action rows and status hierarchy remain readable without path-driven overflow | Passed; final dark/light and maximum-font captures |
+| VSA-10 | Pending interaction cards | Approval and question cards use compact controls; custom answer, pagination and submit do not overlap | Passed; static dark/light plus submitted interaction |
+| VSA-11 | Plan and subagent projection | Plan chip removal waits for provider projection and failure preserves the chip | Partial; projection removal and failure passed, while reconnect and session-switch restoration remain Pending |
+| VSA-12 | Subagent lineage and composer | Capsule, external read-only row, read-only modes, continuable composer and system Back remain usable | Passed; `20261102-device-mode-subagent-final` |
+| VSA-13 | Reduced motion | Affected disclosures, Dock transitions and onboarding resolve directly to the final state | Passed; 13 representative surfaces plus onboarding frames |
+| VSA-14 | Large text | Rows and controls remain readable without overlap, clipping or safe-area intrusion | Partial; portrait at maximum `超大` passed, while landscape remains Pending |
 
-## Latest offline evidence
+## Remaining device checks
 
-Offline checks for the current 2026-11-02 working tree passed. Device execution
-remains prohibited:
+- API 23 material fallback requires a physical or emulated API 23 target.
+- Valid saved-session restore, expired-session recovery and logout/relaunch need
+  a real account exchange and must not be inferred from Mock fixtures.
+- Landscape layout requires a controlled rotation run.
+- Provider reconnect and session-switch restoration require a live Host stream.
+- Large-text onboarding/login must be repeated before claiming that complete
+  launch flow at maximum system font size.
 
-- PR QA run `20261101T170806Z-cc825f58`: passed, including diff hygiene,
-  protocol lock, Mock mapping, product variant contracts, publication scan and
-  the full Gateway suite.
-- Targeted source and model contracts: 102/102 passed.
-- Mock mapping: 10/10 screens, 34/34 states and 27/27 registered features.
-- Source contracts: task-plan header height, Plan capsule clipping, projection
-  hydration, compact interaction controls, turn-file presentation and Dock
-  hierarchy passed.
-- Release builds for `default`, `store` and `mock` compiled, packaged and signed
-  after the final control-alignment change.
-
-Current local build artifacts:
-
-| Product | HAP | Bytes | SHA-256 |
-| --- | --- | ---: | --- |
-| default | `harmony/entry/build/default/outputs/default/entry-default-signed.hap` | 2,093,133 | `6dcf2bd4d3c7047ad18c9d4939bb2c7fd3bdb27a095e48503875aea92c6618d1` |
-| store | `harmony/entry/build/store/outputs/store/entry-store-signed.hap` | 2,093,222 | `c1d1d3f5901b14cabf8440baa2d8c475d0bb335903c998aa450228c3ef320dcc` |
-| mock | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` | 2,093,190 | `36b52cbd9ba1dffabe3eda11afa3966e086ec643bbe9abf81afc3758bff65926` |
-
-These hashes identify local build inputs only. They must be rebuilt after any
-further source change and never substituted for screenshots or interaction
-evidence from the current device run.
-
-## Required evidence after the hold
-
-1. Build and install the current mock HAP.
-2. Capture each affected Mock scene in dark mode and any applicable light,
-   reduced-motion or reduced-transparency variant.
-3. Run the affected interaction drivers, including task-plan disclosure,
-   plan-mode exit, Dock queue/live-change ordering and approval/question submit.
-4. Inspect the combined screenshots and annotation metadata against this table.
-5. Record run ID, HAP hash, device model, API level and evidence paths before
-   changing a row to `Passed` or `Failed`.
-6. Rebuild the final default HAP and repeat the affected conversation/header,
-   turn-file and Dock checks using the delivery build.
+These checks remain `Pending`; source tests and the current API 26 portrait
+device run are not substitutes for them.

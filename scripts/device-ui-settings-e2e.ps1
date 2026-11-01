@@ -144,7 +144,7 @@ $null = Query-Node `
   'clickable' `
   '' `
   '' `
-  '#FFE8ECF2'
+  '#FFEEF3FF'
 Capture-Screen 'appearance-light'
 $darkChoice = Query-Node $lightAppearance (Text-Hex '深色') 'clickable'
 Invoke-Click $darkChoice
@@ -155,7 +155,7 @@ $null = Query-Node `
   'clickable' `
   '' `
   '' `
-  '#FF34353A'
+  '#FF30343B'
 
 # Exercise the full row hit target.
 $motionRow = Query-Node $appearanceBefore $reduceMotionText 'clickable' 'false'
@@ -200,7 +200,7 @@ foreach ($page in $pages) {
   $detail = Dump-Layout "$($page.Name)-page"
   $null = Query-Node $detail (Text-Hex $page.Expected) 'text'
   if ($page.Name -eq 'dsh') {
-    $null = Query-Node $detail (Text-Hex 'v0.3.6') 'text'
+    $null = Query-Node $detail (Text-Hex 'v0.3.7') 'text'
   }
   $interaction = 'opened-and-returned'
   if ($page.Name -eq 'notifications') {
@@ -219,7 +219,7 @@ foreach ($page in $pages) {
       'clickable' `
       '' `
       (Text-Hex '任务完成') `
-      '#FFB8CFFF'
+      '#FF679EFE'
     $monitorSwitch = Query-Node $detail (Text-Hex '后台任务监控') 'checkable' 'false'
     Invoke-Click $monitorSwitch
     $detail = Dump-Layout 'notifications-monitor-on'

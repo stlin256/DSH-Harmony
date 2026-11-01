@@ -140,7 +140,10 @@ function Wait-Query-Node {
 }
 
 function Invoke-Click {
-  param([object]$Node)
+  param(
+    [object]$Node,
+    [int]$SettleMilliseconds = 650
+  )
   if ($null -eq $Node.x -or $null -eq $Node.y) {
     throw "Cannot click a node without bounds: $($Node.text)"
   }
@@ -148,7 +151,51 @@ function Invoke-Click {
   if ($LASTEXITCODE -ne 0) {
     throw "Input click failed at $($Node.x),$($Node.y)"
   }
-  Start-Sleep -Milliseconds 650
+  Start-Sleep -Milliseconds $SettleMilliseconds
+}
+
+function Enter-Text {
+  param(
+    [object]$Node,
+    [string]$Text
+  )
+  if ($null -eq $Node.x -or $null -eq $Node.y) {
+    throw "Cannot enter text without focused bounds: $($Node.text)"
+  }
+  & $hdc -t $Device shell "uitest uiInput inputText $($Node.x) $($Node.y) $Text" | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw "Text input failed at $($Node.x),$($Node.y)"
+  }
+  Start-Sleep -Milliseconds 500
+}
+
+function Query-Rightmost-Action {
+  param(
+    [string]$Layout,
+    [int]$AnchorX,
+    [int]$AnchorY
+  )
+  $raw = & python $queryScript $Layout `
+    --rightmost-clickable-below $AnchorX $AnchorY 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Rightmost action query failed: $($raw -join [Environment]::NewLine)"
+  }
+  return (($raw -join '') | ConvertFrom-Json)
+}
+
+function Return-To-ParentConversation {
+  for ($attempt = 0; $attempt -lt 3; $attempt++) {
+    $layout = Dump-Layout "returned-parent-$attempt"
+    try {
+      $null = Query-Node $layout '计划' 'clickable' 1
+      $null = Query-Node $layout '4 个子智能体' 'clickable' 1
+      return
+    } catch {
+      & $hdc -t $Device shell 'uitest uiInput keyEvent Back' | Out-Null
+      Start-Sleep -Milliseconds 650
+    }
+  }
+  throw 'System Back did not return from the child conversation to the parent.'
 }
 
 Launch-Fixture -Screen 'conversation' -State 'plan-subagent' -Theme 'dark'
@@ -160,9 +207,10 @@ $null = Wait-Query-Node 'plan-removed' '计划' 'text' 0
 
 Launch-Fixture -Screen 'conversation' -State 'plan-off-error' -Theme 'dark'
 $planError = Wait-Query-Node 'plan-error-before' '计划' 'clickable'
-Invoke-Click $planError
-$null = Wait-Query-Node 'plan-error-retained' '计划' 'text' 1
-$null = Wait-Query-Node 'plan-error-after' '退出计划模式失败' 'text' 1
+Invoke-Click $planError -SettleMilliseconds 100
+$planErrorAfter = Dump-Layout 'plan-error-after'
+$null = Query-Node $planErrorAfter '计划' 'clickable' 1
+$null = Query-Node $planErrorAfter '退出计划模式失败' 'text' 1
 Capture-Screen 'plan-error-after'
 
 Launch-Fixture -Screen 'lineage' -State 'plan-subagent' -Theme 'dark'
@@ -180,13 +228,20 @@ $null = Wait-Query-Node 'lineage-closed' '计划' 'text' 1
 Launch-Fixture -Screen 'subagent' -State 'subagent-continuable' -Theme 'dark'
 $continuableLayout = Dump-Layout 'continuable'
 $null = Query-Node $continuableLayout '可继续检查' 'text' 1
-$null = Query-Node $continuableLayout '发送消息…' 'text' 1
-$null = Query-Node $continuableLayout '排队' 'clickable' 1
+$composer = Query-Node $continuableLayout '发送消息…' 'text' 1
 Capture-Screen 'continuable'
-& $hdc -t $Device shell 'uitest uiInput keyEvent Back' | Out-Null
-Start-Sleep -Milliseconds 650
-$parentLayout = Dump-Layout 'returned-parent'
-$null = Query-Node $parentLayout '发布准备与商店检查' 'text' 1
+Invoke-Click $composer
+$composerFocused = Dump-Layout 'continuable-focused'
+$focusedComposer = Query-Node $composerFocused '发送消息…' 'text' 1
+Enter-Text $focusedComposer 'subagent_probe'
+$composerActive = Dump-Layout 'continuable-active'
+$send = Query-Rightmost-Action $composerActive $focusedComposer.x $focusedComposer.y
+Invoke-Click $send
+$null = Wait-Query-Node 'subagent-sent' 'subagent_probe' 'text' 1
+$subagentSent = Dump-Layout 'subagent-sent'
+$null = Query-Node $subagentSent 'subagent_probe' 'text' 1
+Capture-Screen 'subagent-sent'
+Return-To-ParentConversation
 
 Launch-Fixture -Screen 'subagent' -State 'subagent-one-shot' -Theme 'light'
 $oneShotLayout = Dump-Layout 'one-shot'
@@ -223,7 +278,8 @@ $manifest = [ordered]@{
     lineageShowsFourModes = $true
     externalModeIsNotOpenable = $true
     drawerBackReturnsToConversation = $true
-    continuableHasQueueAndComposer = $true
+    continuableComposerAcceptsText = $true
+    continuablePromptAppearsOnce = $true
     childBackReturnsToParent = $true
     oneShotIsReadOnly = $true
     unknownIsReadOnly = $true

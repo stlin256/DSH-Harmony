@@ -39,7 +39,9 @@ No product component may add a new local number for an audited control role.
 ## 3. Screen recipes
 
 - Launch/login: 16vp page inset, 48vp primary action, 60vp two-line option row,
-  18vp section heading and 10vp micro copy.
+  18vp section heading and 10vp micro copy. The login, restoring and error sheet
+  begins below the complete brand mark with the `spaceXXL` 28vp gap; no follow-on
+  surface may clip or cover the mark.
 - Workspace/drawer: 44vp icon hit region, 36vp visual container, 44vp compact
   row, 12vp row inset and one consistent chevron role.
 - Composer/dock: 36vp inline control, 32vp task-plan disclosure header, 28vp
@@ -66,7 +68,8 @@ No product component may add a new local number for an audited control role.
 ## 5. Verification
 
 - `gateway/test/control-alignment.test.mjs` checks token presence, forbidden
-  near-duplicate literals and high-risk component migration.
+  near-duplicate literals, high-risk component migration and the launch sheet
+  clearance contract.
 - Existing design, visual-acceptance, Mock and model tests remain green.
 - `node scripts/verify-mock-coverage.mjs` remains 100%.
 - PR QA and all three Release builds pass.

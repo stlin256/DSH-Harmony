@@ -106,6 +106,11 @@ contracts:
     the session-list record does not contain those values. The deterministic
     Mock session list carries the same projection values so the executable chip
     is present before live follow delivery.
+14. A visible task-plan disclosure occupies its own row above the transcript
+    viewport. The first message and the history control must start below it in
+    both collapsed and expanded states, including when the list is initially
+    scrolled to the bottom. List start offsets and top padding are not
+    sufficient because bottom-anchored content can still paint under them.
 
 Every correction is recaptured on the connected API 26 device. A prior Mock
 marker pass is not evidence for these visual corrections.

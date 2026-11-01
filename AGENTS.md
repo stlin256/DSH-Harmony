@@ -27,14 +27,12 @@ For non-trivial UI or state changes:
    QA report path or run ID in the delivery summary.
 10. Build the default, store and mock product variants when shared ArkUI code
    changes.
-11. From 2026-11-02 until the user explicitly confirms the connected phone is
-    available again, do not run HDC, install, capture, inspect or interact with
-    the device. During this hold, update
-    `docs/testing/2026-11-01-device-visual-state-acceptance-e2e.md` before
-    ending any turn that changes UI or state. Record every affected surface,
-    interaction, theme, fallback and expected device evidence as `Pending`;
-    static tests, screenshots from before the change and Mock coverage do not
-    satisfy those rows.
+11. Device access was restored by the user on 2026-11-02. Use the connected
+    phone for current visual and interaction evidence when a UI or state change
+    affects native surfaces. Before ending any turn that changes UI or state,
+    update `docs/testing/2026-11-01-device-visual-state-acceptance-e2e.md` with
+    every affected surface, interaction, theme and fallback. Do not mark a row
+    passed from static tests, pre-change screenshots or Mock coverage alone.
 12. Add or update the device E2E table. Do not claim device completion without
    actual device evidence.
 13. Use `node scripts/qa.mjs release --evidence <manifest>` only with current,

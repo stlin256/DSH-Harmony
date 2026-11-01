@@ -77,6 +77,10 @@ test('major native pages share the documented content edge', () => {
 
   const workspace = readComponent('NativeWorkspace.ets');
   assert.match(workspace, /left: NativeDesign\.drawerInset, right: NativeDesign\.drawerInset/);
+
+  const launch = readComponent('NativeLaunchSurface.ets');
+  assert.match(launch, /private accountTop\(\): number \{[\s\S]{0,160}this\.logoSize\(\) \+ NativeDesign\.spaceXXL/);
+  assert.match(launch, /top: this\.accountTop\(\)/);
 });
 
 test('files, plugin rows and settings use the shared row and field recipes', () => {

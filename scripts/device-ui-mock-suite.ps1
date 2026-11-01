@@ -1,5 +1,5 @@
 param(
-  [string]$DevEcoHome = 'C:\Users\yjzlx\AppData\Local\Programs\Huawei\DevEcoStudio-26.0.0',
+  [string]$DevEcoHome = '',
   [string]$Device = '',
   [string]$OutputDir = '',
   [ValidateRange(5, 120)]
@@ -10,6 +10,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'resolve-deveco-home.ps1')
+$DevEcoHome = Resolve-DevEcoHome -ExplicitHome $DevEcoHome
 if (-not $OutputDir) {
   $OutputDir = Join-Path $repo 'artifacts\device-ui-mock'
 }
@@ -87,9 +89,77 @@ $scenarios = @(
 )
 
 $mockScript = Join-Path $PSScriptRoot 'device-ui-mock.ps1'
+$queryScript = Join-Path $PSScriptRoot 'device-ui-layout-query.py'
 $results = [System.Collections.Generic.List[object]]::new()
 $firstRun = $true
 $failedCount = 0
+
+function Text-Hex {
+  param([string]$Text)
+  return [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($Text))
+}
+
+function Get-ExpectedMarker {
+  param([string]$Screen, [string]$State)
+  switch ("$Screen/$State") {
+    'conversation/completed' { return '发布检查完成' }
+    'conversation/live-change' { return '底部 Dock 运行态' }
+    'conversation/attachments' { return '附件与实时变更 Dock' }
+    'conversation/streaming' { return '流式输出与标题更新' }
+    'conversation/empty' { return '空运行态' }
+    'conversation/long-history' { return '长会话与连续预取' }
+    'conversation/dock-send-idle' { return 'Dock 空闲与发送' }
+    'conversation/dock-queue-authoritative' { return '权威排队消息' }
+    'conversation/dock-queue-many' { return '多行排队消息' }
+    'conversation/dock-send-error' { return '发送失败与重试' }
+    'conversation/dock-material-quiet' { return 'Dock 空闲与发送' }
+    'conversation/dock-material-elevated' { return '渐变材质与实时变更' }
+    'conversation/interaction-approval' { return '等待审批' }
+    'conversation/interaction-question' { return '问题卡样式检查' }
+    'conversation/plan-subagent' { return '计划与子智能体' }
+    'conversation/plan-off-error' { return '计划退出失败' }
+    'lineage/plan-subagent' { return '4 个子智能体' }
+    'subagent/subagent-continuable' { return '可继续子会话' }
+    'subagent/subagent-one-shot' { return '一次性子会话' }
+    'subagent/subagent-unknown' { return '未知模式子会话' }
+    'subagent/subagent-parent-offline' { return '父会话不可用' }
+    'process/completed' { return '更新了计划' }
+    'sidebar/completed' { return '置顶' }
+    'browser/completed' { return '工作区根目录' }
+    'settings/completed' { return '外观与动效' }
+    'plugins/plugins-list' { return 'Workspace Tools' }
+    'plugins/plugins-empty' { return '还没有可显示的插件' }
+    'plugins/plugins-error' { return '插件服务暂不可用' }
+    'plugins/plugins-detail' { return '包名' }
+    'plugins/plugins-restart' { return 'DSH 重启后生效' }
+    'plugins/plugins-install-failed' { return '无法读取插件包' }
+    'automation/automation-list' { return '每日检查构建状态' }
+    'automation/automation-empty' { return '还没有自动化任务' }
+    'automation/automation-detail' { return '任务指令' }
+    'automation/automation-editor' { return '编辑任务' }
+    'automation/automation-history' { return '投递记录' }
+    'automation/automation-conflict' { return '任务已在其他设备更新' }
+    'more/more-actions' { return '文件浏览' }
+    default { return '' }
+  }
+}
+
+function Assert-LayoutMarker {
+  param(
+    [string]$LayoutPath,
+    [string]$Marker,
+    [bool]$MustExist = $true
+  )
+  if (-not $Marker -or -not (Test-Path -LiteralPath $LayoutPath)) { return }
+  $output = & python $queryScript $LayoutPath `
+    --find-text-hex (Text-Hex $Marker) `
+    --target text 2>&1
+  $found = $LASTEXITCODE -eq 0
+  if ($found -ne $MustExist) {
+    $mode = if ($MustExist) { 'missing' } else { 'unexpected' }
+    throw "Fixture marker $mode '$Marker': $($output -join [Environment]::NewLine)"
+  }
+}
 
 foreach ($scenario in $scenarios) {
   $startedAt = Get-Date
@@ -121,6 +191,24 @@ foreach ($scenario in $scenarios) {
   $message = ''
   try {
     & $mockScript @arguments | Out-Host
+    $captureDir = Join-Path $OutputDir "$($scenario.State)-$($scenario.Theme)-$($scenario.Screen)"
+    if ($scenario.PSObject.Properties.Name -contains 'ReduceTransparency' -and
+        $scenario.ReduceTransparency) {
+      $captureDir += '-reduced-transparency'
+    }
+    if ($scenario.PSObject.Properties.Name -contains 'ReduceMotion' -and
+        $scenario.ReduceMotion) {
+      $captureDir += '-reduced-motion'
+    }
+    Assert-LayoutMarker `
+      -LayoutPath (Join-Path $captureDir 'layout.json') `
+      -Marker (Get-ExpectedMarker -Screen $scenario.Screen -State $scenario.State)
+    if ($scenario.Screen -in @('plugins', 'automation')) {
+      Assert-LayoutMarker `
+        -LayoutPath (Join-Path $captureDir 'layout.json') `
+        -Marker 'Invalid URL format or missing URL' `
+        -MustExist $false
+    }
     $result = 'Passed'
   } catch {
     $result = 'Failed'

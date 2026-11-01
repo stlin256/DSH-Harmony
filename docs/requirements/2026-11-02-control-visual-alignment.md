@@ -63,7 +63,8 @@ The compatibility-mode DSH web page remains an upstream visual exception.
 - Making every control the same size regardless of role.
 - Copying desktop DSH spacing into phone surfaces.
 - Restyling the upstream compatibility page.
-- Using the connected phone before the user explicitly restores access.
+- Treating static layout trees or screenshots from an older HAP as current
+  physical-device evidence.
 
 ## Completion
 

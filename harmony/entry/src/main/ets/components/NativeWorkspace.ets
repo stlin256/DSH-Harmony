@@ -202,7 +202,6 @@ export struct NativeWorkspace {
   @State private drawerFollowing: boolean = false;
   @State private drawerTranslation: number = 0;
   @State private transcriptViewportHeight: number = 0;
-  @State private conversationDockHeight: number = 0;
   @State private footerCopiedId: string = '';
   @State private taskPlan: NativePlanDocument = new NativePlanDocument();
   @State private planProjection: NativePlanProjection | null = null;
@@ -3150,6 +3149,15 @@ export struct NativeWorkspace {
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.selectionSurface())
       }
+      if (this.taskPlan.items.length) {
+        Column() {
+          NativeConversationDock() {
+            NativeTaskDock({ document: this.taskPlan, sessionId: this.selected })
+          }
+        }.width('100%')
+          .transition(NativeMotion.disclosureTransition())
+          .animation(NativeMotion.disclosureParam())
+      }
       Stack({ alignContent: Alignment.TopStart }) {
         List({ space: 12, scroller: this.scroller }) {
           if (this.hasMore) {
@@ -3231,8 +3239,7 @@ export struct NativeWorkspace {
               }.width('100%').alignItems(VerticalAlign.Top) }
             }
           }, (message: NativeMessage) => message.id)
-        }.contentStartOffset(this.taskPlan.items.length ? this.conversationDockHeight : 0)
-          .width('100%').height('100%').cachedCount(6)
+        }.width('100%').height('100%').clip(true).cachedCount(6)
           .edgeEffect(NativeExperience.reducedMotion() ? EdgeEffect.None : EdgeEffect.Spring)
           .onReachStart(() => {
             if (this.userHasScrolled && this.hasMore && this.connectionPhase === 'live') this.startHistoryDrain(false);
@@ -3265,19 +3272,6 @@ export struct NativeWorkspace {
             else if (this.scrollMotionActive) this.scheduleScrollMotionSettle();
             else this.updateScrollTail();
           })
-        if (this.taskPlan.items.length) {
-          Column() {
-            NativeConversationDock() {
-              NativeTaskDock({ document: this.taskPlan, sessionId: this.selected })
-            }
-          }.width('100%').zIndex(4)
-            .onAreaChange((_old: Area, area: Area): void => {
-              const height = Number(area.height);
-              if (height > 0 && height !== this.conversationDockHeight) this.conversationDockHeight = height;
-            })
-            .transition(NativeMotion.disclosureTransition())
-            .animation(NativeMotion.disclosureParam())
-        }
         if (this.backToBottomVisible && !this.menuId && !this.utilityOpen &&
           !this.modelPickerOpen && !this.toolsOpen && !this.workspacePickerOpen &&
           !this.showSessions) {

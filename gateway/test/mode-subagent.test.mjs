@@ -130,6 +130,7 @@ test('ArkTS mode model resolves Plan target, read-only rules and reliable addres
   assert.equal(stack.length, model.nativeSubagentMaxDepth);
   assert.equal(model.nativeSubagentCanOpen(
     Object.assign(new model.NativeSubagentEntry(), { id: 'external', mode: 'external' })), false);
+  assert.equal(model.nativeSubagentModeLabel('external'), '外部');
   assert.equal(model.nativeSubagentDuration(61000, 1000, null), '1分');
 });
 
@@ -151,6 +152,7 @@ test('native shell keeps mode UI separate from todo plans and hides child sessio
   assert.match(lineage, /constraintSize\(\{ maxHeight: this\.maxHeight \}\)/);
   assert.match(lineage, /constraintSize\(\{ minHeight: NativeDesign\.standardRow \}\)/);
   assert.match(lineage, /nativeSubagentCanOpen\(entry\)/);
+  assert.match(lineage, /nativeSubagentCanOpen\(entry\) \? '' : '，不可打开'/);
   assert.match(session, /origin !== 'subagent'/);
   assert.match(showcase,
     /value\.projections = new NativeSubagentProjectionValues\(\);[\s\S]{0,180}value\.projections\.plan = showcasePlanProjection\(planRemoved\)/);
