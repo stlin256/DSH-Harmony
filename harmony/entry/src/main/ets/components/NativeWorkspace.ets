@@ -70,6 +70,8 @@ import {
 import { NativeBottomConversationDock } from './NativeBottomConversationDock';
 import { NativeQueueDock } from './NativeQueueDock';
 import { NativeIconButton } from './NativeIconButton';
+import { NativePluginsSurface } from './NativePluginsSurface';
+import { NativeAutomationSurface } from './NativeAutomationSurface';
 
 class NativeExportCapabilities { copyMarkdown: boolean = false; downloadLog: boolean = false; }
 class NativeWorkspaceOrderRequest {
@@ -163,6 +165,8 @@ export struct NativeWorkspace {
   @State @Watch('sessionsChanged') private workspaceId: string = '';
   @State @Watch('sessionsChanged') private query: string = '';
   @State private searchOpen: boolean = false;
+  @State @Watch('navigationChanged') private moreOpen: boolean = false;
+  @State @Watch('navigationChanged') private adminDestination: string = '';
   @State private newWorkspaceId: string = '';
   @State private newCwd: string = '';
   @State private newPreset: string = '';
@@ -373,7 +377,8 @@ export struct NativeWorkspace {
     state.filePreview = this.fileViewOpen;
     state.lineage = this.lineageOpen;
     state.subagentHistory = this.activeAddress.kind === 'subagent';
-    AppStorage.setOrCreate<boolean>('nativeWorkspaceCanGoBack', nativeCanGoBack(state));
+    AppStorage.setOrCreate<boolean>('nativeWorkspaceCanGoBack',
+      nativeCanGoBack(state) || !!this.adminDestination || this.moreOpen);
     AppStorage.setOrCreate<boolean>('nativeWorkspaceHasSelection', this.selected.length > 0);
   }
   private imagePreviewChanged(): void {
@@ -656,6 +661,22 @@ export struct NativeWorkspace {
     if (showcaseScreen === 'sidebar') {
       setTimeout((): void => {
         if (this.mounted) this.openDrawer(false);
+      }, 700);
+    } else if (showcaseScreen === 'plugins') {
+      setTimeout((): void => {
+        if (this.mounted) this.openDrawerDestination('plugins');
+      }, 700);
+    } else if (showcaseScreen === 'automation') {
+      setTimeout((): void => {
+        if (this.mounted) this.openDrawerDestination('automation');
+      }, 700);
+    } else if (showcaseScreen === 'more') {
+      setTimeout((): void => {
+        if (!this.mounted) return;
+        this.openDrawer(false);
+        setTimeout((): void => {
+          if (this.mounted) this.moreOpen = true;
+        }, NativeMotion.enabled() ? NativeMotion.duration('drawer') : 0);
       }, 700);
     } else if (showcaseScreen === 'browser') {
       setTimeout((): void => {
@@ -995,6 +1016,7 @@ export struct NativeWorkspace {
   }
   private closeDrawer(): void {
     clearTimeout(this.drawerSettleTimer);
+    this.moreOpen = false;
     this.drawerFollowing = true;
     const width = this.mobileDrawerWidth();
     NativeMotion.animate(this.getUIContext(), 'drawer', (): void => {
@@ -1009,13 +1031,53 @@ export struct NativeWorkspace {
     }, NativeMotion.enabled() ? NativeMotion.duration('drawer') : 0);
     this.restoreScrollTailAfterDrawer();
   }
-  private openDrawerDestination(): void {
+  private openDrawerDestination(destination: string): void {
     clearTimeout(this.destinationTimer);
-    this.closeDrawer();
-    this.getUIContext().getPromptAction().showToast({
-      message: '功能未开放',
-      duration: 1600
+    this.moreOpen = false;
+    NativeMotion.animate(this.getUIContext(), 'navigation', (): void => {
+      this.adminDestination = destination;
     });
+    this.navigationChanged();
+  }
+  private closeAdminDestination(): void {
+    NativeMotion.animate(this.getUIContext(), 'navigation', (): void => {
+      this.adminDestination = '';
+    });
+    this.navigationChanged();
+  }
+  private requestAdminBack(): void {
+    AppStorage.setOrCreate<number>('nativeAdminBackRevision',
+      (AppStorage.get<number>('nativeAdminBackRevision') || 0) + 1);
+  }
+  private toggleMore(): void {
+    NativeMotion.disclosure(this.getUIContext(), (): void => {
+      this.moreOpen = !this.moreOpen;
+    });
+    this.navigationChanged();
+  }
+  private moreFileSession(): string {
+    if (this.selected && this.sessions.some((item: NativeSession): boolean => item.id === this.selected)) {
+      return this.selected;
+    }
+    return this.sessions.find((item: NativeSession): boolean => item.blank !== true)?.id || '';
+  }
+  private openMoreFileBrowser(): void {
+    const sessionId = this.moreFileSession();
+    this.moreOpen = false;
+    if (!sessionId) return;
+    const request = new NativeFileViewRequest();
+    request.kind = 'browser';
+    request.sessionId = sessionId;
+    request.path = this.client.lastBrowsePath(sessionId);
+    request.requestId = util.generateRandomUUID();
+    this.fileView = request;
+    this.fileViewOpen = true;
+    this.navigationChanged();
+  }
+  private openMoreSettings(): void {
+    this.moreOpen = false;
+    this.onSettings();
+    this.navigationChanged();
   }
   private toggleWorkspaceGroup(id: string): void {
     NativeMotion.disclosure(this.getUIContext(), (): void => {
@@ -1094,6 +1156,8 @@ export struct NativeWorkspace {
     }, NativeMotion.enabled() ? NativeMotion.duration('surface') : 0);
   }
   private backToSessions(): void {
+    if (this.adminDestination) { this.requestAdminBack(); return; }
+    if (this.moreOpen) { this.toggleMore(); return; }
     if (this.imagePreviewOpen) { this.closeImagePreview(); return; }
     if (this.fileViewOpen) return;
     if (this.lineageOpen) {
@@ -2748,21 +2812,57 @@ export struct NativeWorkspace {
         .fontColor(this.primaryText()).enabled(!this.loading)
         .onClick(() => { this.openNewSession(); })
       Column({ space: 1 }) {
-        Row({ space: 10 }) {
-          DSHIcon({ glyph: 'code-outline', glyphSize: 17, color: this.secondaryText() })
-          Text('插件').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
-        }.width('100%').height(NativeDesign.hitTarget).padding({ left: 10, right: 10 })
-          .onClick(() => { this.openDrawerDestination(); })
-        Row({ space: 10 }) {
-          DSHIcon({ glyph: 'plan-outline', glyphSize: 17, color: this.secondaryText() })
-          Text('自动化任务').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
-        }.width('100%').height(NativeDesign.hitTarget).padding({ left: 10, right: 10 })
-          .onClick(() => { this.openDrawerDestination(); })
-        Row({ space: 10 }) {
-          DSHIcon({ glyph: 'ellipsis-outline', glyphSize: 17, color: this.secondaryText() })
-          Text('更多').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
-        }.width('100%').height(NativeDesign.hitTarget).padding({ left: 10, right: 10 })
-          .onClick(() => { this.openDrawerDestination(); })
+        Button({ type: ButtonType.Normal }) {
+          Row({ space: 10 }) {
+            DSHIcon({ glyph: 'code-outline', glyphSize: 17, color: this.secondaryText() })
+            Text('插件').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
+            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12, color: this.tertiaryText() })
+              .rotate({ angle: 180 })
+          }.width('100%').padding({ left: 10, right: 10 })
+        }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(Color.Transparent)
+          .onClick((): void => { this.openDrawerDestination('plugins'); })
+        Button({ type: ButtonType.Normal }) {
+          Row({ space: 10 }) {
+            DSHIcon({ glyph: 'plan-outline', glyphSize: 17, color: this.secondaryText() })
+            Text('自动化任务').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
+            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12, color: this.tertiaryText() })
+              .rotate({ angle: 180 })
+          }.width('100%').padding({ left: 10, right: 10 })
+        }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(Color.Transparent)
+          .onClick((): void => { this.openDrawerDestination('automation'); })
+        Button({ type: ButtonType.Normal }) {
+          Row({ space: 10 }) {
+            DSHIcon({ glyph: 'ellipsis-outline', glyphSize: 17, color: this.secondaryText() })
+            Text('更多').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
+            DSHIcon({ glyph: 'chevron-down-outline', glyphSize: 12, color: this.tertiaryText() })
+              .rotate({ angle: this.moreOpen ? 180 : 0 })
+              .animation(NativeMotion.implicit('micro'))
+          }.width('100%').padding({ left: 10, right: 10 })
+        }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(this.moreOpen ? this.fieldSurface() : Color.Transparent)
+          .onClick((): void => { this.toggleMore(); })
+        if (this.moreOpen) {
+          Column({ space: 1 }) {
+            Button({ type: ButtonType.Normal }) {
+              Row({ space: 10 }) {
+                DSHIcon({ glyph: 'folder-outline', glyphSize: 16, color: this.secondaryText() })
+                Text('文件浏览').fontSize(13).layoutWeight(1).fontColor(this.primaryText())
+              }.width('100%').padding({ left: 30, right: 10 })
+            }.width('100%').height(40).borderRadius(NativeDesign.radiusControl)
+              .backgroundColor(Color.Transparent).enabled(!!this.moreFileSession())
+              .onClick((): void => { this.openMoreFileBrowser(); })
+            Button({ type: ButtonType.Normal }) {
+              Row({ space: 10 }) {
+                DSHIcon({ glyph: 'settings-outline', glyphSize: 16, color: this.secondaryText() })
+                Text('应用设置').fontSize(13).layoutWeight(1).fontColor(this.primaryText())
+              }.width('100%').padding({ left: 30, right: 10 })
+            }.width('100%').height(40).borderRadius(NativeDesign.radiusControl)
+              .backgroundColor(Color.Transparent)
+              .onClick((): void => { this.openMoreSettings(); })
+          }.width('100%').transition(NativeMotion.disclosureTransition())
+        }
       }.width('100%')
       if (this.searchOpen) {
         TextInput({ text: this.query, placeholder: '搜索工作区和会话' })
@@ -3496,6 +3596,17 @@ export struct NativeWorkspace {
           })
       }
 
+      if (this.adminDestination === 'plugins') {
+        NativePluginsSurface({
+          client: this.client,
+          onClose: (): void => { this.closeAdminDestination(); }
+        })
+      } else if (this.adminDestination === 'automation') {
+        NativeAutomationSurface({
+          client: this.client,
+          onClose: (): void => { this.closeAdminDestination(); }
+        })
+      }
       if (this.utilityOpen) { this.utilityOverlay() }
       if (this.lineageOpen) { this.lineageOverlay() }
       if (this.workspacePickerOpen) {
