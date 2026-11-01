@@ -1,5 +1,6 @@
 import { DSHIcon } from './DSHIcon';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
 
 /** Compact preview/source switch for SVG and Markdown workspace documents. */
 @Component
@@ -13,15 +14,16 @@ export struct NativeDocumentModeSwitch {
   }
 
   private iconColor(selected: boolean): ResourceColor {
-    if (selected) return this.dark ? '#101216' : '#FFFFFF';
-    return this.dark ? '#93969B' : '#777A80';
+    if (selected) return NativeDesign.textInverse(this.dark);
+    return NativeDesign.textTertiary(this.dark);
   }
 
   @Builder
   private modeButton(mode: string, glyph: string, label: string) {
     Button({ type: ButtonType.Normal }) {
       DSHIcon({ glyph: glyph, glyphSize: 14, color: this.iconColor(this.mode === mode) })
-    }.width(34).height(26).padding(0).borderRadius(8).backgroundColor(Color.Transparent)
+    }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget).padding(0)
+      .borderRadius(NativeDesign.radiusCompact).backgroundColor(Color.Transparent)
       .accessibilityText(label)
       .onClick((): void => { this.select(mode); })
   }
@@ -29,17 +31,18 @@ export struct NativeDocumentModeSwitch {
   build() {
     Stack({ alignContent: Alignment.Start }) {
       Column()
-        .width(34).height(26).borderRadius(8)
-        .backgroundColor(this.dark ? '#B8CFFF' : '#254DAB')
-        .translate({ x: this.mode === 'preview' ? 2 : 40 })
+        .width(NativeDesign.hitTarget).height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusCompact)
+        .backgroundColor(NativeDesign.accentSurface(this.dark))
+        .translate({ x: this.mode === 'preview' ? 0 : NativeDesign.hitTarget })
         .animation(NativeMotion.implicit('micro'))
-      Row({ space: 4 }) {
+      Row() {
         this.modeButton('preview', 'eye-outline', '预览')
         this.modeButton('code', 'code-outline', '代码')
-      }.padding({ left: 2, right: 2 })
-    }.width(76).height(32).padding(0).borderRadius(10)
-      .backgroundColor(this.dark ? '#2C2D31' : '#F0F2F5')
-      .border({ width: 0.5, color: this.dark ? '#3B3D42' : '#E0E3E8' })
+      }
+    }.width(NativeDesign.hitTarget * 2).height(NativeDesign.hitTarget).padding(0)
+      .borderRadius(NativeDesign.radiusControl)
+      .backgroundColor(NativeDesign.field(this.dark))
+      .border({ width: 0.5, color: NativeDesign.border(this.dark) })
       .clip(true)
   }
 }

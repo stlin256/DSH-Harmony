@@ -7,6 +7,7 @@ import { nativeOperationLead, nativeProcessIcon, nativeToolCategory } from '../s
 import { NativeMotion } from '../services/NativeMotion';
 import { NativeTextContent } from './NativeTextContent';
 import { nativeDiff } from '../services/NativeDiff';
+import { NativeDesign } from '../services/NativeDesign';
 
 /** One direct operation inside the turn-level process container. */
 @Component
@@ -64,8 +65,8 @@ export struct NativeProcessStepView {
     Column() {
       NativeTextContent({ text: this.message.reasoning || this.message.text,
         client: this.client, sessionId: this.sessionId })
-    }.padding(8).width('100%').borderRadius(9)
-      .backgroundColor(this.dark ? '#232324' : '#F5F6F7')
+    }.padding(8).width('100%').borderRadius(NativeDesign.radiusControl)
+      .backgroundColor(NativeDesign.field(this.dark))
   }
 
   @Builder
@@ -97,15 +98,15 @@ export struct NativeProcessStepView {
         Row({ space: 4 }) {
           DSHIcon({ glyph: nativeProcessIcon(this.message.role === 'tool' ?
             nativeToolCategory(this.message.toolName) : 'thinking'),
-            color: this.dark ? '#93969B' : '#8A8D91', glyphSize: 14 })
+            color: NativeDesign.textTertiary(this.dark), glyphSize: 14 })
           Text(this.message.label || nativeOperationLead(this.message)).fontSize(12)
             .fontWeight(FontWeight.Medium).maxLines(1)
-            .fontColor(this.dark ? '#CFD3D6' : '#61666B')
+            .fontColor(NativeDesign.textSecondary(this.dark))
           if (this.message.detail) {
-            Text('·').fontSize(12).fontColor(this.dark ? '#777A80' : '#A1A4A9')
+            Text('·').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
             Text(this.message.detail).fontSize(12).layoutWeight(1).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .fontColor(this.dark ? '#93969B' : '#8A8D91')
+              .fontColor(NativeDesign.textTertiary(this.dark))
               .opacity(this.expanded ? 0 : 1)
               .animation(NativeMotion.disclosureParam())
           } else {
@@ -113,22 +114,24 @@ export struct NativeProcessStepView {
           }
           if (this.diffAdded > 0 || this.diffRemoved > 0) {
             Text('+' + this.diffAdded).fontSize(10).fontWeight(FontWeight.Medium).maxLines(1)
-              .fontColor(this.dark ? '#9BE2B0' : '#187940')
+              .fontColor(NativeDesign.success(this.dark))
             Text('-' + this.diffRemoved).fontSize(10).fontWeight(FontWeight.Medium).maxLines(1)
-              .fontColor(this.dark ? '#FFB1B1' : '#B3261E')
+              .fontColor(NativeDesign.danger(this.dark))
           }
           if (this.message.status === 'error' || this.message.status === 'interrupted') {
             Text(this.message.status === 'error' ? '失败' : '已中断').fontSize(10)
-              .fontColor(this.message.status === 'error' ? '#D55E5E' : '#A56A00')
+              .fontColor(this.message.status === 'error' ?
+                NativeDesign.danger(this.dark) : NativeDesign.warning(this.dark))
           }
           if (this.message.phase !== 'preparing') {
             DSHIcon({ glyph: 'chevron-left-outline',
-              color: this.dark ? '#93969B' : '#8A8D91', glyphSize: 12 })
+              color: NativeDesign.textTertiary(this.dark), glyphSize: 12 })
               .rotate({ angle: this.expanded ? -90 : 180 })
               .animation(NativeMotion.disclosureParam())
           }
         }.width('100%')
       }.height(30).width('100%').padding({ left: 2, right: 2 })
+        .responseRegion({ x: 0, y: -7, width: '100%', height: NativeDesign.hitTarget })
         .backgroundColor(Color.Transparent).enabled(this.message.phase !== 'preparing')
         .onClick((): void => { this.toggle(); })
       if (this.expanded) { this.detail() }

@@ -4,6 +4,7 @@ import { DSHIcon } from './DSHIcon';
 import { NativeMotion } from '../services/NativeMotion';
 import { NativeProcessStepView } from './NativeProcessStepView';
 import { NativeListSource } from '../services/NativeListSource';
+import { NativeDesign } from '../services/NativeDesign';
 
 /** Turn-level process disclosure containing direct operation rows. */
 @Component
@@ -79,25 +80,26 @@ export struct NativeProcessView {
     Column({ space: this.expanded ? 6 : 0 }) {
       Button({ type: ButtonType.Normal }) {
         Row({ space: 4 }) {
-          DSHIcon({ glyph: 'think-outline', color: this.dark ? '#93969B' : '#8A8D91', glyphSize: 14 })
+          DSHIcon({ glyph: 'think-outline', color: NativeDesign.textTertiary(this.dark), glyphSize: 14 })
           Text('工作过程').fontSize(12).fontWeight(FontWeight.Medium)
-            .fontColor(this.dark ? '#CFD3D6' : '#61666B')
+            .fontColor(NativeDesign.textSecondary(this.dark))
           if (this.message.detail) {
-            Text('·').fontSize(12).fontColor(this.dark ? '#777A80' : '#A1A4A9')
+            Text('·').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
             Text(this.message.detail).fontSize(12).layoutWeight(1).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .fontColor(this.dark ? '#93969B' : '#8A8D91')
+              .fontColor(NativeDesign.textTertiary(this.dark))
               .opacity(this.expanded ? 0 : 1)
               .animation(NativeMotion.disclosureParam())
           } else {
             Blank().layoutWeight(1)
           }
           DSHIcon({ glyph: 'chevron-left-outline',
-            color: this.dark ? '#93969B' : '#8A8D91', glyphSize: 12 })
+            color: NativeDesign.textTertiary(this.dark), glyphSize: 12 })
             .rotate({ angle: this.expanded ? -90 : 180 })
             .animation(NativeMotion.disclosureParam())
         }.width('100%')
       }.height(30).width('100%').padding({ left: 2, right: 2 })
+        .responseRegion({ x: 0, y: -7, width: '100%', height: NativeDesign.hitTarget })
         .backgroundColor(Color.Transparent).onClick((): void => { this.toggle(); })
       if (this.expanded) { this.members() }
     }.width('100%').alignItems(HorizontalAlign.Start)

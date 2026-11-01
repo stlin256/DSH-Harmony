@@ -19,6 +19,8 @@ import { NativeDocumentModeSwitch } from './NativeDocumentModeSwitch';
 import { NativeCodeViewer } from './NativeCodeViewer';
 import { NativeMarkdownPreview } from './NativeMarkdownPreview';
 import { NativeHtmlPreview } from './NativeHtmlPreview';
+import { NativeDesign } from '../services/NativeDesign';
+import { NativeIconButton } from './NativeIconButton';
 import {
   NativeWorkspaceCache,
   NativeWorkspaceCachedBinary,
@@ -683,40 +685,38 @@ export struct NativeFilePreview {
           Row({ space: 6 }) {
             Text(this.title).fontSize(14).fontWeight(FontWeight.Medium).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
-              .fontColor(this.dark ? '#F9FAFB' : '#17181B')
+              .fontColor(NativeDesign.textPrimary(this.dark))
             if (this.loading || this.previewBusy || this.pdfOpening) {
               LoadingProgress().width(12).height(12)
-                .color(this.dark ? '#8AB4FF' : '#3964FE')
+                .color(NativeDesign.accent(this.dark))
                 .accessibilityText('正在加载文件')
             }
           }.width('100%')
           if (this.lineLabel || this.bytesLabel) {
             Text([this.lineLabel, this.bytesLabel].filter((value: string) => !!value).join(' · '))
               .fontSize(10).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-              .fontColor(this.dark ? '#93969B' : '#8A8D91')
+              .fontColor(NativeDesign.textTertiary(this.dark))
           }
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'copy-outline', glyphSize: 15,
-            color: this.dark ? '#CFD3D6' : '#61666B' })
-        }.width(32).height(32).borderRadius(9).backgroundColor(Color.Transparent)
-          .accessibilityText('复制文件路径').onClick((): void => { this.copy(); })
-        Button({ type: ButtonType.Normal }) {
-          if (this.downloading) {
-            LoadingProgress().width(14).height(14).color(this.dark ? '#8AB4FF' : '#3964FE')
-          } else {
-            DSHIcon({ glyph: 'download-outline', glyphSize: 15,
-              color: this.dark ? '#CFD3D6' : '#61666B' })
-          }
-        }.width(32).height(32).borderRadius(9).backgroundColor(Color.Transparent)
-          .enabled(!this.downloading).accessibilityText('下载文件')
-          .onClick((): void => { this.download(); })
-        Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'close-outline', glyphSize: 15,
-            color: this.dark ? '#F9FAFB' : '#17181B' })
-        }.width(32).height(32).borderRadius(9).backgroundColor(Color.Transparent)
-          .accessibilityText('关闭预览').onClick((): void => { this.onClose(); })
-      }.width('100%').height(40)
+        NativeIconButton({
+          glyph: 'copy-outline', label: '复制文件路径', glyphSize: 15,
+          onPressed: (): void => { this.copy(); }
+        })
+        if (this.downloading) {
+          Stack({ alignContent: Alignment.Center }) {
+            LoadingProgress().width(14).height(14).color(NativeDesign.accent(this.dark))
+          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+        } else {
+          NativeIconButton({
+            glyph: 'download-outline', label: '下载文件', glyphSize: 15,
+            onPressed: (): void => { this.download(); }
+          })
+        }
+        NativeIconButton({
+          glyph: 'close-outline', label: '关闭预览', tone: 'primary', glyphSize: 15,
+          onPressed: (): void => { this.onClose(); }
+        })
+      }.width('100%').height(NativeDesign.headerHeight)
       if (this.canToggle) {
         Row() {
           NativeDocumentModeSwitch({ mode: this.mode,
@@ -778,44 +778,46 @@ export struct NativeFilePreview {
         showScroll: true,
         pageFit: pdfService.PageFit.FIT_WIDTH
       }).width('100%').height('100%')
-        .backgroundColor(this.dark ? '#151517' : '#EEF0F3')
+        .backgroundColor(NativeDesign.subtleSurface(this.dark))
         .onAppear((): void => { this.openEmbeddedPdf(); })
       if (this.pdfOpening) {
-        LoadingProgress().width(24).height(24).color(this.dark ? '#8AB4FF' : '#3964FE')
+        LoadingProgress().width(24).height(24).color(NativeDesign.accent(this.dark))
       } else if (this.error) {
         Column({ space: 10 }) {
-          Text(this.error).fontSize(12).fontColor(this.dark ? '#FFB1B1' : '#B3261E')
+          Text(this.error).fontSize(12).fontColor(NativeDesign.danger(this.dark))
           Button({ type: ButtonType.Normal }) {
-            Text('重试').fontSize(12).fontColor(this.dark ? '#F9FAFB' : '#17181B')
+            Text('重试').fontSize(12).fontColor(NativeDesign.textPrimary(this.dark))
               .padding({ left: 12, right: 12 })
-          }.height(34).borderRadius(9).backgroundColor(this.dark ? '#353638' : '#EBEEF2')
+          }.height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
+            .backgroundColor(NativeDesign.selection(this.dark))
             .onClick((): void => { this.openEmbeddedPdf(); })
-        }.padding(14).borderRadius(12)
-          .backgroundColor(this.dark ? '#E6242527' : '#F2FFFFFF')
+        }.padding(NativeDesign.cardPadding).borderRadius(NativeDesign.radiusRow)
+          .backgroundColor(NativeDesign.overlay(this.dark))
       }
     }.layoutWeight(1).width('100%').clip(true)
-      .backgroundColor(this.dark ? '#151517' : '#EEF0F3')
+      .backgroundColor(NativeDesign.subtleSurface(this.dark))
   }
   @Builder
   private body() {
     if (this.loading) {
       Column({ space: 10 }) {
-        LoadingProgress().width(24).height(24).color(this.dark ? '#8AB4FF' : '#3964FE')
-        Text('正在读取…').fontSize(12).fontColor(this.dark ? '#93969B' : '#8A8D91')
+        LoadingProgress().width(24).height(24).color(NativeDesign.accent(this.dark))
+        Text('正在读取…').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
       }.layoutWeight(1).justifyContent(FlexAlign.Center)
     } else if (this.documentKind === 'pdf' && this.pdfUri) {
       this.pdfBody()
     } else if (this.error && !this.imageMap && !this.textLoaded) {
       Column({ space: 12 }) {
         Text(this.error).fontSize(13).textAlign(TextAlign.Center)
-          .fontColor(this.dark ? '#FFB1B1' : '#B3261E')
+          .fontColor(NativeDesign.danger(this.dark))
         Button({ type: ButtonType.Normal }) {
           Row({ space: 5 }) {
             DSHIcon({ glyph: 'browse-outline', glyphSize: 15,
-              color: this.dark ? '#F9FAFB' : '#17181B' })
-            Text('重试').fontSize(12).fontColor(this.dark ? '#F9FAFB' : '#17181B')
+              color: NativeDesign.textPrimary(this.dark) })
+            Text('重试').fontSize(12).fontColor(NativeDesign.textPrimary(this.dark))
           }.padding({ left: 8, right: 10 })
-        }.height(36).borderRadius(10).backgroundColor(this.dark ? '#353638' : '#EBEEF2')
+        }.height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(NativeDesign.selection(this.dark))
           .accessibilityText('重试').onClick((): void => { this.reload(); })
       }.layoutWeight(1).justifyContent(FlexAlign.Center)
     } else if (this.imageMap) {
@@ -832,22 +834,23 @@ export struct NativeFilePreview {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 5 }) {
             if (this.loadingMore) {
-              LoadingProgress().width(14).height(14).color(this.dark ? '#8AB4FF' : '#3964FE')
+              LoadingProgress().width(14).height(14).color(NativeDesign.accent(this.dark))
             } else {
               DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
-                color: this.dark ? '#93969B' : '#8A8D91' }).rotate({ angle: -90 })
+                color: NativeDesign.textTertiary(this.dark) }).rotate({ angle: -90 })
             }
-            Text('加载更多').fontSize(11).fontColor(this.dark ? '#93969B' : '#8A8D91')
+            Text('加载更多').fontSize(11).fontColor(NativeDesign.textTertiary(this.dark))
           }
-        }.height(30).borderRadius(9).padding({ left: 9, right: 11 })
-          .backgroundColor(this.dark ? '#2C2C2E' : '#F1F3F5')
+        }.height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
+          .padding({ left: 9, right: 11 })
+          .backgroundColor(NativeDesign.field(this.dark))
           .enabled(!this.loadingMore).accessibilityText('加载更多文件内容')
           .onClick((): void => { this.more(); })
       }
     }.padding({
       left: 12 + this.safeLeft, right: 12 + this.safeRight,
       top: 8 + this.safeTop, bottom: 12 + Math.max(16, this.safeBottom)
-    }).width('100%').height('100%').backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+    }).width('100%').height('100%').backgroundColor(NativeDesign.base(this.dark))
       .transition(NativeMotion.previewTransition())
   }
 }

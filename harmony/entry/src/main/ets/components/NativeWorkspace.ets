@@ -35,6 +35,7 @@ import { NativeTranscriptCache } from '../services/NativeTranscriptCache';
 import { NativeWorkspaceCache } from '../services/NativeWorkspaceCache';
 import { NativeStorageManager } from '../services/NativeStorageManager';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
 import { NativeImageLightbox } from './NativeImageLightbox';
 import { NativeFilePreview } from './NativeFilePreview';
 import { NativeFileBrowser } from './NativeFileBrowser';
@@ -59,6 +60,7 @@ import {
 } from './NativeTurnChangesView';
 import { NativeBottomConversationDock } from './NativeBottomConversationDock';
 import { NativeQueueDock } from './NativeQueueDock';
+import { NativeIconButton } from './NativeIconButton';
 
 class NativeExportCapabilities { copyMarkdown: boolean = false; downloadLog: boolean = false; }
 class NativeWorkspaceOrderRequest {
@@ -218,6 +220,54 @@ export struct NativeWorkspace {
   private historyRetryTimer: number = -1;
   private followWatchdogTimer: number = -1;
   private settlementTimer: number = -1;
+
+  private baseSurface(): string {
+    return NativeDesign.base(this.dark);
+  }
+
+  private raisedSurface(): string {
+    return NativeDesign.raised(this.dark);
+  }
+
+  private fieldSurface(): string {
+    return NativeDesign.field(this.dark);
+  }
+
+  private selectionSurface(): string {
+    return NativeDesign.selection(this.dark);
+  }
+
+  private semanticBorderColor(): string {
+    return NativeDesign.border(this.dark);
+  }
+
+  private dividerColor(): string {
+    return NativeDesign.divider(this.dark);
+  }
+
+  private primaryText(): string {
+    return NativeDesign.textPrimary(this.dark);
+  }
+
+  private secondaryText(): string {
+    return NativeDesign.textSecondary(this.dark);
+  }
+
+  private tertiaryText(): string {
+    return NativeDesign.textTertiary(this.dark);
+  }
+
+  private accentColor(): string {
+    return NativeDesign.accent(this.dark);
+  }
+
+  private dangerText(): string {
+    return NativeDesign.danger(this.dark);
+  }
+
+  private warningText(): string {
+    return NativeDesign.warning(this.dark);
+  }
   private followActivityAt: number = 0;
   private assistantProgressAt: number = 0;
   private followProgressKey: string = '';
@@ -706,7 +756,7 @@ export struct NativeWorkspace {
     this.drawerTranslation = -width;
     this.backToBottomVisible = false;
     this.returningToBottom = false;
-    NativeMotion.animate(this.getUIContext(), 'surface', (): void => {
+    NativeMotion.animate(this.getUIContext(), 'drawer', (): void => {
       this.drawerTranslation = 0;
     });
     this.drawerSettleTimer = setTimeout((): void => {
@@ -714,14 +764,14 @@ export struct NativeWorkspace {
       this.showSessions = true;
       this.drawerFollowing = false;
       this.navigationChanged();
-    }, NativeMotion.enabled() ? NativeMotion.duration('surface') : 0);
+    }, NativeMotion.enabled() ? NativeMotion.duration('drawer') : 0);
     if (refresh) this.refreshSessionList().catch((): void => {});
   }
   private closeDrawer(): void {
     clearTimeout(this.drawerSettleTimer);
     this.drawerFollowing = true;
     const width = this.mobileDrawerWidth();
-    NativeMotion.animate(this.getUIContext(), 'surface', (): void => {
+    NativeMotion.animate(this.getUIContext(), 'drawer', (): void => {
       this.drawerTranslation = -width;
     });
     this.drawerSettleTimer = setTimeout((): void => {
@@ -730,7 +780,7 @@ export struct NativeWorkspace {
       this.drawerFollowing = false;
       this.drawerTranslation = -width;
       this.navigationChanged();
-    }, NativeMotion.enabled() ? NativeMotion.duration('surface') : 0);
+    }, NativeMotion.enabled() ? NativeMotion.duration('drawer') : 0);
     this.restoreScrollTailAfterDrawer();
   }
   private openDrawerDestination(): void {
@@ -752,7 +802,7 @@ export struct NativeWorkspace {
   private restoreScrollTailAfterDrawer(): void {
     setTimeout((): void => {
       if (this.mounted && !this.showSessions) this.updateScrollTail();
-    }, NativeMotion.enabled() ? NativeMotion.duration('surface') + 10 : 0);
+    }, NativeMotion.enabled() ? NativeMotion.duration('drawer') + 10 : 0);
   }
   private drawerProgress(width: number): number {
     return Math.max(0, Math.min(1, (this.drawerTranslation + width) / Math.max(1, width)));
@@ -776,7 +826,7 @@ export struct NativeWorkspace {
     clearTimeout(this.drawerSettleTimer);
     if (this.showSessions) {
       const dismiss = progress < 0.62 || event.offsetX < -48;
-      NativeMotion.animate(this.getUIContext(), 'surface', (): void => {
+      NativeMotion.animate(this.getUIContext(), 'drawer', (): void => {
         this.drawerTranslation = dismiss ? -width : 0;
       });
       this.drawerSettleTimer = setTimeout((): void => {
@@ -788,11 +838,11 @@ export struct NativeWorkspace {
         this.drawerFollowing = false;
         this.navigationChanged();
         if (dismiss) this.restoreScrollTailAfterDrawer();
-      }, NativeMotion.enabled() ? NativeMotion.duration('surface') : 0);
+      }, NativeMotion.enabled() ? NativeMotion.duration('drawer') : 0);
       return;
     }
     const open = progress > 0.38 || event.offsetX > 44;
-    NativeMotion.animate(this.getUIContext(), 'surface', (): void => {
+    NativeMotion.animate(this.getUIContext(), 'drawer', (): void => {
       this.drawerTranslation = open ? 0 : -width;
     });
     this.drawerSettleTimer = setTimeout((): void => {
@@ -802,7 +852,7 @@ export struct NativeWorkspace {
       this.drawerFollowing = false;
       this.navigationChanged();
       if (!open) this.restoreScrollTailAfterDrawer();
-    }, NativeMotion.enabled() ? NativeMotion.duration('surface') : 0);
+    }, NativeMotion.enabled() ? NativeMotion.duration('drawer') : 0);
   }
   private cancelDrawerPan(): void {
     const width = this.mobileDrawerWidth();
@@ -906,7 +956,8 @@ export struct NativeWorkspace {
       catch (error) {
         if (action !== 'archive' || !(error instanceof NativeHttpError) || error.code !== 'workspace/session-active') throw error as Error;
         const choice = await this.getUIContext().getPromptAction().showDialog({ title: '停止活动并归档？',
-          buttons: [{ text: '取消', color: '#777A80' }, { text: '停止并归档', color: '#C53737' }] });
+          buttons: [{ text: '取消', color: NativeDesign.textTertiary(this.dark) },
+            { text: '停止并归档', color: NativeDesign.danger(this.dark) }] });
         if (choice.index !== 1) return;
         await this.client.operation(JSON.stringify({ operation: 'archive', sessionId: id, stopActivity: true }));
       }
@@ -1031,13 +1082,13 @@ export struct NativeWorkspace {
   private workspaceDragBuilder() {
     Row({ space: 7 }) {
       DSHIcon({ glyph: 'drag-handle-outline', glyphSize: 14,
-        color: this.dark ? '#F9FAFB' : '#17181B' })
+        color: this.primaryText() })
       Text(this.workspaces.items.find((item: NativeWorkspaceItem): boolean =>
         item.workspaceId === this.dragWorkspaceId)?.title || '工作区')
-        .fontSize(13).maxLines(1).fontColor(this.dark ? '#F9FAFB' : '#17181B')
+        .fontSize(13).maxLines(1).fontColor(this.primaryText())
     }.padding({ left: 12, right: 12, top: 9, bottom: 9 }).borderRadius(10)
-      .backgroundColor(this.dark ? '#353638' : '#FFFFFF')
-      .border({ width: 0.5, color: this.dark ? '#4A4B4F' : '#D8DADF' })
+      .backgroundColor(this.selectionSurface())
+      .border({ width: 0.5, color: this.semanticBorderColor() })
   }
   private async copyMarkdown(): Promise<void> {
     this.utilityOpen = false; if (this.copying) return;
@@ -1093,7 +1144,7 @@ export struct NativeWorkspace {
       Column() { this.utilityMenu() }
         .width(208).margin({ top: this.safeTop + 40, right: 12 })
         .borderRadius(16)
-        .backgroundColor(this.dark ? '#232324' : '#FFFFFF')
+        .backgroundColor(this.raisedSurface())
         .clip(true)
         .shadow({ radius: 16, color: this.dark ? '#99000000' : '#2E000000', offsetY: 5 })
         .transition(NativeMotion.rowTransition())
@@ -2265,40 +2316,44 @@ export struct NativeWorkspace {
       Column({ space: 2 }) {
         Text(row.session.title.trim() || '未命名会话').fontSize(14).maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
-          .fontColor(this.dark ? '#F9FAFB' : '#0F1115')
+          .fontColor(this.primaryText())
         if (row.section === 'pinnedSession' && row.workspaceTitle) {
           Text(row.workspaceTitle).fontSize(10).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
-            .fontColor(this.dark ? '#93969B' : '#8A8D91')
+            .fontColor(this.tertiaryText())
         }
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       if (row.session.running) {
-        Text('运行中').fontSize(10).fontColor(this.dark ? '#C7D8FF' : '#3B5B9A')
+        Text('运行中').fontSize(10).fontColor(NativeDesign.accent(this.dark))
       }
       if (row.pinned) {
-        DSHIcon({ glyph: 'pin-fill', glyphSize: 12, color: this.dark ? '#93969B' : '#8A8D91' })
+        DSHIcon({ glyph: 'pin-fill', glyphSize: 12, color: this.tertiaryText() })
       }
       if (row.session.blank !== true) {
         Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'ellipsis-outline',
-            color: this.menuId === row.session.id ?
-              this.dark ? '#F9FAFB' : '#17181B' : this.dark ? '#93969B' : '#8A8D91' })
+          Stack({ alignContent: Alignment.Center }) {
+            DSHIcon({ glyph: 'ellipsis-outline',
+              color: this.menuId === row.session.id ? this.primaryText() : this.tertiaryText() })
+          }.width(NativeDesign.visualIconContainer).height(NativeDesign.visualIconContainer)
+            .borderRadius(NativeDesign.radiusControl)
+            .backgroundColor(this.menuId === row.session.id ? this.selectionSurface() : Color.Transparent)
         }
-          .width(34).height(34).padding(6).borderRadius(8)
-          .backgroundColor(this.menuId === row.session.id ?
-            this.dark ? '#45464B' : '#DBDEE4' : Color.Transparent).enabled(!this.menuBusy)
+          .width(NativeDesign.hitTarget).height(NativeDesign.hitTarget).padding(4)
+          .borderRadius(NativeDesign.radiusRow)
+          .backgroundColor(Color.Transparent).enabled(!this.menuBusy)
           .accessibilityText(row.session.title + '，会话操作')
           .onClick(() => { this.menuTarget = row.session.id; this.menuId = row.session.id; })
           .bindPopup(this.menuId === row.session.id, { builder: this.sessionMenu, placement: Placement.BottomRight,
-            enableArrow: false, targetSpace: 4, radius: 16, mask: true,
-            popupColor: this.dark ? '#37383C' : '#F8F9FA', backgroundBlurStyle: BlurStyle.NONE,
+            enableArrow: false, targetSpace: 4, radius: 16, mask: false,
+            popupColor: NativeDesign.overlay(this.dark), backgroundBlurStyle: BlurStyle.NONE,
             onStateChange: (event): void => {
               if (!event.isVisible && this.menuId === row.session.id) this.menuId = '';
             } })
       }
-    }.padding({ left: 10, right: 4, top: 5, bottom: 5 }).width('100%').constraintSize({ minHeight: 44 }).borderRadius(10)
-      .backgroundColor(this.wide && this.selected === row.session.id ?
-        this.dark ? '#2C2C2E' : '#EBEEF2' : Color.Transparent)
+    }.padding({ left: 10, right: 4, top: 2, bottom: 2 }).width('100%')
+      .constraintSize({ minHeight: NativeDesign.standardRow }).borderRadius(NativeDesign.radiusRow)
+      .backgroundColor(this.selected === row.session.id ?
+        this.selectionSurface() : Color.Transparent)
       .animation(NativeMotion.implicit('micro'))
       .transition(NativeMotion.workspaceChildrenTransition())
   }
@@ -2307,27 +2362,28 @@ export struct NativeWorkspace {
   private workspaceHeader(entry: NativeWorkspaceRow) {
     Row({ space: 6 }) {
       DSHIcon({ glyph: entry.section === 'pinnedHeader' ? 'pin-fill' : 'chevron-left-outline',
-        glyphSize: 12, color: this.dark ? '#93969B' : '#777A80' })
+        glyphSize: 12, color: this.tertiaryText() })
         .rotate({ angle: entry.section === 'pinnedHeader' ? 0 :
           this.collapsedGroups.includes(entry.workspaceId) ? 180 : -90 })
         .animation(NativeMotion.disclosureParam())
       Text(entry.title).fontSize(12).fontWeight(FontWeight.Medium).layoutWeight(1)
-        .fontColor(this.dark ? '#B5B8BD' : '#61666B')
-      Text(String(entry.count)).fontSize(11).fontColor(this.dark ? '#93969B' : '#8A8D91')
+        .fontColor(this.secondaryText())
+      Text(String(entry.count)).fontSize(11).fontColor(this.tertiaryText())
       if (entry.section === 'pinnedHeader') {
         DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
-          color: this.dark ? '#93969B' : '#777A80' })
+          color: this.tertiaryText() })
           .rotate({ angle: this.collapsedGroups.includes(entry.workspaceId) ? 180 : -90 })
           .animation(NativeMotion.disclosureParam())
       }
       if (entry.section === 'workspaceHeader') {
         DSHIcon({ glyph: 'drag-handle-outline', glyphSize: 13,
           color: this.dragWorkspaceId === entry.workspaceId ?
-            this.dark ? '#8AB4FF' : '#3964FE' : this.dark ? '#777A80' : '#A2A5AA' })
+            this.accentColor() : this.tertiaryText() })
         Button({ type: ButtonType.Normal }) {
           DSHIcon({ glyph: 'plus-outline', glyphSize: 13,
-            color: this.dark ? '#CFD3D6' : '#61666B' })
-        }.width(34).height(34).borderRadius(8).backgroundColor(Color.Transparent)
+            color: this.secondaryText() })
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .accessibilityText('在工作区新建会话')
           .onClick(() => { this.createQuickSession(entry.workspaceId); })
       }
@@ -2337,7 +2393,7 @@ export struct NativeWorkspace {
           top: this.dropWorkspaceId === entry.workspaceId && !this.dropWorkspaceAfter ? 2 : 0,
           bottom: this.dropWorkspaceId === entry.workspaceId && this.dropWorkspaceAfter ? 2 : 0
         },
-        color: this.dark ? '#8AB4FF' : '#3964FE'
+        color: this.accentColor()
       })
       .opacity(this.dragWorkspaceId === entry.workspaceId ? 0.72 : 1)
       .scale({ x: this.dragWorkspaceId === entry.workspaceId ? 1.01 : 1,
@@ -2374,70 +2430,74 @@ export struct NativeWorkspace {
     Column({ space: 6 }) {
       Row({ space: 4 }) {
         Text('DSH Harmony').fontSize(21).fontWeight(FontWeight.Bold).layoutWeight(1)
-          .fontColor(this.dark ? '#F9FAFB' : '#0F1115')
-        Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'search-outline', glyphSize: 17, color: this.dark ? '#CFD3D6' : '#61666B' })
-        }.width(40).height(40).borderRadius(12).backgroundColor(Color.Transparent)
-          .accessibilityText(this.searchOpen ? '关闭搜索' : '搜索工作区和会话')
-          .onClick(() => {
+          .fontColor(this.primaryText())
+        NativeIconButton({
+          glyph: 'search-outline',
+          label: this.searchOpen ? '关闭搜索' : '搜索工作区和会话',
+          active: this.searchOpen,
+          glyphSize: 17,
+          onPressed: (): void => {
             if (this.searchOpen) this.query = '';
             NativeMotion.animate(this.getUIContext(), 'micro', (): void => {
               this.searchOpen = !this.searchOpen;
             });
-          })
+          }
+        })
         if (!this.wide) {
-          Button({ type: ButtonType.Circle }) {
-            DSHIcon({ glyph: 'close-outline', glyphSize: 16, color: this.dark ? '#CFD3D6' : '#61666B' })
-          }.width(40).height(40).borderRadius(12).backgroundColor(Color.Transparent)
-            .accessibilityText('关闭侧边栏').onClick(() => { this.closeDrawer(); })
+          NativeIconButton({ glyph: 'close-outline', label: '关闭侧边栏', glyphSize: 16,
+            onPressed: (): void => { this.closeDrawer(); } })
         }
-      }.width('100%').height(52)
+      }.width('100%').height(NativeDesign.headerHeight)
       Button({ type: ButtonType.Normal }) {
         Row({ space: 9 }) {
-          DSHIcon({ glyph: 'new-chat-outline', glyphSize: 17, color: this.dark ? '#F9FAFB' : '#0F1115' })
+          DSHIcon({ glyph: 'new-chat-outline', glyphSize: 17, color: this.primaryText() })
           Text('新会话').fontSize(14).fontWeight(FontWeight.Medium)
           Blank()
         }.width('100%').padding({ left: 10, right: 10 })
-      }.width('100%').height(42).borderRadius(12).backgroundColor(this.dark ? '#353638' : '#EBEEF2')
-        .fontColor(this.dark ? '#F9FAFB' : '#0F1115').enabled(!this.loading)
+      }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusRow)
+        .backgroundColor(this.fieldSurface())
+        .fontColor(this.primaryText()).enabled(!this.loading)
         .onClick(() => { this.openNewSession(); })
       Column({ space: 1 }) {
         Row({ space: 10 }) {
-          DSHIcon({ glyph: 'code-outline', glyphSize: 17, color: this.dark ? '#CFD3D6' : '#61666B' })
-          Text('插件').fontSize(14).layoutWeight(1).fontColor(this.dark ? '#F1F1F2' : '#25262A')
-        }.width('100%').height(40).padding({ left: 10, right: 10 })
+          DSHIcon({ glyph: 'code-outline', glyphSize: 17, color: this.secondaryText() })
+          Text('插件').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
+        }.width('100%').height(NativeDesign.hitTarget).padding({ left: 10, right: 10 })
           .onClick(() => { this.openDrawerDestination(); })
         Row({ space: 10 }) {
-          DSHIcon({ glyph: 'plan-outline', glyphSize: 17, color: this.dark ? '#CFD3D6' : '#61666B' })
-          Text('自动化任务').fontSize(14).layoutWeight(1).fontColor(this.dark ? '#F1F1F2' : '#25262A')
-        }.width('100%').height(40).padding({ left: 10, right: 10 })
+          DSHIcon({ glyph: 'plan-outline', glyphSize: 17, color: this.secondaryText() })
+          Text('自动化任务').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
+        }.width('100%').height(NativeDesign.hitTarget).padding({ left: 10, right: 10 })
           .onClick(() => { this.openDrawerDestination(); })
         Row({ space: 10 }) {
-          DSHIcon({ glyph: 'ellipsis-outline', glyphSize: 17, color: this.dark ? '#CFD3D6' : '#61666B' })
-          Text('更多').fontSize(14).layoutWeight(1).fontColor(this.dark ? '#F1F1F2' : '#25262A')
-        }.width('100%').height(40).padding({ left: 10, right: 10 })
+          DSHIcon({ glyph: 'ellipsis-outline', glyphSize: 17, color: this.secondaryText() })
+          Text('更多').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
+        }.width('100%').height(NativeDesign.hitTarget).padding({ left: 10, right: 10 })
           .onClick(() => { this.openDrawerDestination(); })
       }.width('100%')
       if (this.searchOpen) {
-        TextInput({ text: this.query, placeholder: '搜索工作区和会话' }).height(36).fontSize(13).borderRadius(10)
-          .placeholderColor(this.dark ? '#93969B' : '#8A8D91')
-          .backgroundColor(this.dark ? '#232324' : '#F5F6F7').fontColor(this.dark ? '#F9FAFB' : '#0F1115')
+        TextInput({ text: this.query, placeholder: '搜索工作区和会话' })
+          .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontCompact)
+          .borderRadius(NativeDesign.radiusControl)
+          .placeholderColor(this.tertiaryText())
+          .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
           .onChange((value: string) => { this.query = value; })
           .transition(NativeMotion.rowTransition())
       }
       Row() {
-        Text('工作区').fontSize(12).fontWeight(FontWeight.Medium).fontColor(this.dark ? '#B5B8BD' : '#61666B')
+        Text('工作区').fontSize(12).fontWeight(FontWeight.Medium).fontColor(this.secondaryText())
         Blank()
         Button({ type: ButtonType.Normal }) {
           Row({ space: 5 }) {
-            DSHIcon({ glyph: 'browse-outline', glyphSize: 14, color: this.dark ? '#93969B' : '#8A8D91' })
+            DSHIcon({ glyph: 'browse-outline', glyphSize: 14, color: this.tertiaryText() })
             Text(this.workspaces.items.find((item: NativeWorkspaceItem) => item.workspaceId === this.workspaceId)?.title || '全部')
               .fontSize(11).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
               .constraintSize({ maxWidth: 110 })
               .textAlign(TextAlign.End)
-              .fontColor(this.dark ? '#93969B' : '#8A8D91')
+              .fontColor(this.tertiaryText())
           }
-        }.height(30).padding({ left: 8, right: 0 }).borderRadius(8).backgroundColor(Color.Transparent)
+        }.height(NativeDesign.hitTarget).padding({ left: 8, right: 0 })
+          .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .onClick(() => { this.openWorkspacePicker(); })
       }.width('100%').padding({ left: 4, right: 0, top: 4 })
       List({ space: 2 }) {
@@ -2459,30 +2519,32 @@ export struct NativeWorkspace {
       }.layoutWeight(1).width('100%').margin({ right: -8 }).cachedCount(8).scrollBar(BarState.Auto)
       if (this.workspaceError) {
         Row() {
-          Text(this.workspaceError).fontSize(12).layoutWeight(1).fontColor(this.dark ? '#FF9393' : '#C53737')
-          Button('重试', { type: ButtonType.Normal }).height(32).fontSize(12).onClick(() => { this.refreshWorkspaces(); })
+          Text(this.workspaceError).fontSize(12).layoutWeight(1).fontColor(this.dangerText())
+          Button('重试', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(12)
+            .onClick(() => { this.refreshWorkspaces(); })
         }.width('100%')
       }
       if (this.connectionPhase === 'retrying' && !this.selected) {
         Text('连接中断，正在尝试重连').fontSize(11).padding({ left: 10, right: 10, top: 6, bottom: 6 })
-          .width('100%').borderRadius(9).fontColor(this.dark ? '#CFD3D6' : '#61666B')
-          .backgroundColor(this.dark ? '#2C2C2E' : '#F5F6F7')
+          .width('100%').borderRadius(9).fontColor(this.secondaryText())
+          .backgroundColor(this.selectionSurface())
       }
-      if (this.loading) { Text('正在连接…').fontSize(13).fontColor(this.dark ? '#CFD3D6' : '#61666B') }
-      if (!this.loading && !this.visibleSessionCount) { Text('新建会话，开始你的任务').fontSize(13).fontColor(this.dark ? '#CFD3D6' : '#61666B') }
-      Divider().strokeWidth(0.5).color(this.dark ? '#353638' : '#E8E9EC')
+      if (this.loading) { Text('正在连接…').fontSize(13).fontColor(this.secondaryText()) }
+      if (!this.loading && !this.visibleSessionCount) { Text('新建会话，开始你的任务').fontSize(13).fontColor(this.secondaryText()) }
+      Divider().strokeWidth(0.5).color(this.dividerColor())
       Button({ type: ButtonType.Normal }) {
         Row({ space: 10 }) {
-          DSHIcon({ glyph: 'settings-outline', glyphSize: 17, color: this.dark ? '#CFD3D6' : '#61666B' })
-          Text('设置').fontSize(14).layoutWeight(1).fontColor(this.dark ? '#F1F1F2' : '#25262A')
+          DSHIcon({ glyph: 'settings-outline', glyphSize: 17, color: this.secondaryText() })
+          Text('设置').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
         }.width('100%').padding({ left: 10, right: 10 })
-      }.width('100%').height(44).borderRadius(10).backgroundColor(Color.Transparent)
+      }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusRow)
+        .backgroundColor(Color.Transparent)
         .accessibilityText('应用设置').onClick(() => {
           this.onSettings();
         })
     }.padding({ left: 12, right: 12, top: this.safeTop + (inMobileDrawer ? 6 : 8),
       bottom: this.safeBottom + 8 }).height('100%').width('100%')
-      .backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+      .backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition())
   }
 
@@ -2491,36 +2553,28 @@ export struct NativeWorkspace {
     Column({ space: 8 }) {
       Row({ space: 6 }) {
         if (!this.wide) {
-          Button({ type: ButtonType.Normal }) {
-            DSHIcon({ glyph: 'panel-left-outline', color: this.dark ? '#F9FAFB' : '#0F1115' })
-          }.width(36).height(36).borderRadius(10)
-            .backgroundColor(Color.Transparent).fontColor(this.dark ? '#F9FAFB' : '#0F1115')
-            .accessibilityText('打开侧边栏')
-            .onClick(() => { this.openDrawer(); })
+          NativeIconButton({ glyph: 'panel-left-outline', label: '打开侧边栏', tone: 'primary',
+            onPressed: (): void => { this.openDrawer(); } })
         }
         Text(this.title).fontSize(15).fontWeight(FontWeight.Medium).layoutWeight(1)
-          .maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.dark ? '#F9FAFB' : '#0F1115')
-          .onClick(() => { this.getUIContext().getPromptAction().showDialog({ title: '会话标题', message: this.title, buttons: [{ text: '关闭', color: this.dark ? '#AFC9FF' : '#315ECA' }] }); })
+          .maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.primaryText())
+          .onClick(() => { this.getUIContext().getPromptAction().showDialog({ title: '会话标题', message: this.title, buttons: [{ text: '关闭', color: this.accentColor() }] }); })
         if ((this.connectionPhase === 'opening' || this.connectionPhase === 'syncing') &&
           !this.model.messages.length) {
-          LoadingProgress().width(14).height(14).color(this.dark ? '#8AB4FF' : '#3964FE')
+          LoadingProgress().width(14).height(14).color(this.accentColor())
             .accessibilityText('正在加载会话')
         }
-        Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'ellipsis-outline', color: this.dark ? '#CFD3D6' : '#61666B' })
-        }.width(36).height(36).borderRadius(10)
-          .backgroundColor(this.utilityOpen ? this.dark ? '#353638' : '#EBEEF2' : Color.Transparent)
-          .fontColor(this.dark ? '#F9FAFB' : '#0F1115')
-          .animation(NativeMotion.implicit('press'))
-          .accessibilityText('更多操作').onClick(() => { this.openUtilities(); })
+        NativeIconButton({ glyph: 'ellipsis-outline', label: '更多操作',
+          active: this.utilityOpen, glyphSize: 16,
+          onPressed: (): void => { this.openUtilities(); } })
       }.width('100%')
       if (this.connectionPhase === 'retrying') {
         Row({ space: 8 }) {
-          Text('•').fontSize(14).fontColor(this.dark ? '#F8C86A' : '#A56A00')
-          Text('连接中断，正在尝试重连').fontSize(12).fontColor(this.dark ? '#CFD3D6' : '#61666B')
+          Text('•').fontSize(14).fontColor(this.warningText())
+          Text('连接中断，正在尝试重连').fontSize(12).fontColor(this.secondaryText())
           Blank()
         }.padding({ left: 10, right: 10, top: 6, bottom: 6 }).width('100%').borderRadius(9)
-          .backgroundColor(this.dark ? '#2C2C2E' : '#F5F6F7')
+          .backgroundColor(this.selectionSurface())
       }
       Stack({ alignContent: Alignment.TopStart }) {
         List({ space: 12, scroller: this.scroller }) {
@@ -2530,11 +2584,12 @@ export struct NativeWorkspace {
                 Row({ space: 4 }) {
                   if (this.paging) LoadingProgress().width(12).height(12)
                   else DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
-                    color: this.dark ? '#93969B' : '#8A8D91' }).rotate({ angle: 90 })
+                    color: this.tertiaryText() }).rotate({ angle: 90 })
                   Text(this.paging ? '读取中' : '更早').fontSize(11)
-                    .fontColor(this.dark ? '#93969B' : '#8A8D91')
+                    .fontColor(this.tertiaryText())
                 }
-              }.enabled(!this.paging).height(30).padding({ left: 9, right: 9 }).borderRadius(9)
+              }.enabled(!this.paging).height(NativeDesign.hitTarget).padding({ left: 9, right: 9 })
+                .borderRadius(NativeDesign.radiusControl)
                 .backgroundColor(Color.Transparent).onClick(() => { this.startHistoryDrain(false); })
             }
           }
@@ -2565,20 +2620,22 @@ export struct NativeWorkspace {
                 } else {
                   Row({ space: 8 }) {
                     Text(message.label + (message.text ? ' · ' + message.text : '')).fontSize(11).layoutWeight(1)
-                      .fontColor(message.footerOutcome === 'failed' ? '#D55E5E' : this.dark ? '#93969B' : '#8A8D91')
+                      .fontColor(message.footerOutcome === 'failed' ?
+                        NativeDesign.danger(this.dark) : this.tertiaryText())
                     if (message.footerCopyText) {
                       Button({ type: ButtonType.Normal }) {
                         DSHIcon({ glyph: this.footerCopiedId === message.footerCopyMessageId ?
                           'check-outline' : 'copy-outline', glyphSize: 13,
-                          color: this.dark ? '#93969B' : '#8A8D91' })
-                      }.width(28).height(28).borderRadius(9).backgroundColor(Color.Transparent)
+                          color: this.tertiaryText() })
+                      }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+                        .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
                         .accessibilityText(this.footerCopiedId === message.footerCopyMessageId ?
                           '答复已复制' : '复制最终答复')
                         .onClick((): void => {
                           this.copyFooter(message.footerCopyText, message.footerCopyMessageId);
                         })
                     }
-                  }.width('100%').constraintSize({ minHeight: 28 })
+                  }.width('100%').constraintSize({ minHeight: NativeDesign.hitTarget })
                 }
               } else { Row() {
                 if (message.role === 'user') { Blank().layoutWeight(1) }
@@ -2637,18 +2694,21 @@ export struct NativeWorkspace {
           !this.modelPickerOpen && !this.toolsOpen && !this.workspacePickerOpen &&
           !this.showSessions) {
           Stack({ alignContent: Alignment.Bottom }) {
-            Stack({ alignContent: Alignment.Center }) {
-              DSHIcon({ glyph: 'chevron-down-outline', glyphSize: 17,
-                color: this.dark ? '#F9FAFB' : '#17181B' })
-              if (this.backToBottomNew) {
-                Text('').position({ x: 12, y: -12 }).width(6).height(6).borderRadius(6)
-                  .backgroundColor(this.dark ? '#8AB4FF' : '#3964FE')
-              }
-            }.width(34).height(34).borderRadius(17).clip(true)
-              .backgroundColor(this.dark ? '#202124' : '#FFFFFF')
-              .opacity(this.backToBottomPressed ? 0.85 : 0.6)
-              .border({ width: 0.7, color: this.dark ? '#6B6E73' : '#C8CCD2' })
-              .shadow({ radius: 12, color: this.dark ? '#40000000' : '#26000000', offsetY: 2 })
+            Button({ type: ButtonType.Circle }) {
+              Stack({ alignContent: Alignment.Center }) {
+                DSHIcon({ glyph: 'chevron-down-outline', glyphSize: 17,
+                  color: this.primaryText() })
+                if (this.backToBottomNew) {
+                  Text('').position({ x: 12, y: -12 }).width(6).height(6).borderRadius(6)
+                    .backgroundColor(this.accentColor())
+                }
+              }.width(39).height(39).borderRadius(19.5).clip(true)
+                .backgroundColor(this.raisedSurface())
+                .opacity(this.backToBottomPressed ? 0.85 : 0.6)
+                .border({ width: 0.7, color: this.semanticBorderColor() })
+                .shadow({ radius: 12, color: this.dark ? '#40000000' : '#26000000', offsetY: 2 })
+            }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+              .padding(2.5).backgroundColor(Color.Transparent)
               .accessibilityText(this.backToBottomNew ? '回到底部，有新内容' : '回到底部')
               .onTouch((event: TouchEvent): void => {
                 this.backToBottomPressed = event.type === TouchType.Down;
@@ -2674,13 +2734,15 @@ export struct NativeWorkspace {
         } })
       }, (frame: NativeFrame) => frame.eventId)
       if (this.waiting && !this.interactions.length && !this.continued.length) {
-          Button('有待处理输入 · 打开完整交互', { type: ButtonType.Normal }).height(38).fontSize(12).borderRadius(11)
-          .backgroundColor(this.dark ? '#353638' : '#F5F6F7').fontColor(this.dark ? '#F9FAFB' : '#0F1115')
+          Button('有待处理输入 · 打开完整交互', { type: ButtonType.Normal })
+            .height(NativeDesign.hitTarget).fontSize(12).borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
           .onClick(this.onCompatibility)
       }
       if (this.uncertain) {
-        Button('发送结果未确认 · 已检查会话，允许再次发送', { type: ButtonType.Normal }).height(38).fontSize(11)
-          .backgroundColor(Color.Transparent).fontColor(this.dark ? '#CFD3D6' : '#61666B')
+        Button('发送结果未确认 · 已检查会话，允许再次发送', { type: ButtonType.Normal })
+          .height(NativeDesign.hitTarget).fontSize(11)
+          .backgroundColor(Color.Transparent).fontColor(this.secondaryText())
           .onClick(() => { this.client.uncertain.delete(this.selected); this.uncertain = false; })
       }
       NativeBottomConversationDock({
@@ -2693,21 +2755,18 @@ export struct NativeWorkspace {
           if (this.error) {
             Row({ space: 8 }) {
               Text('!').fontSize(11).fontWeight(FontWeight.Bold)
-                .fontColor(this.dark ? '#FFD7D7' : '#9F2D2D')
+                .fontColor(this.dangerText())
                 .width(18).height(18).borderRadius(9).textAlign(TextAlign.Center)
-                .backgroundColor(this.dark ? '#4A292B' : '#FBE6E4')
+                .backgroundColor(NativeDesign.dangerSurface(this.dark))
               Text(this.error).fontSize(11).lineHeight(16).maxLines(2)
                 .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
-                .fontColor(this.dark ? '#FFB1B1' : '#A12F2F')
-              Button({ type: ButtonType.Normal }) {
-                DSHIcon({ glyph: 'close-outline', glyphSize: 11,
-                  color: this.dark ? '#CFD3D6' : '#61666B' })
-              }.width(28).height(28).borderRadius(8).backgroundColor(Color.Transparent)
-                .accessibilityText('关闭错误').onClick((): void => { this.error = ''; })
+                .fontColor(this.dangerText())
+              NativeIconButton({ glyph: 'close-outline', label: '关闭错误', glyphSize: 12,
+                onPressed: (): void => { this.error = ''; } })
             }.width('100%').padding({ left: 8, right: 2, top: 5, bottom: 5 })
               .borderRadius(12)
-              .backgroundColor(this.dark ? '#2A2526' : '#FFF7F6')
-              .border({ width: 0.5, color: this.dark ? '#674044' : '#F1D5D1' })
+              .backgroundColor(NativeDesign.dangerSurface(this.dark))
+              .border({ width: 0.5, color: this.semanticBorderColor() })
               .transition(NativeMotion.disclosureTransition())
           }
           if (this.queueItems().length) {
@@ -2747,31 +2806,39 @@ export struct NativeWorkspace {
                             .backgroundColor('#C34B4B')
                         }
                         Button({ type: ButtonType.Circle }) {
-                          DSHIcon({ glyph: 'close-outline', glyphSize: 9, color: '#FFFFFF' })
-                        }.width(20).height(20).backgroundColor('#99000000').align(Alignment.TopEnd)
+                          Stack({ alignContent: Alignment.Center }) {
+                            DSHIcon({ glyph: 'close-outline', glyphSize: 9, color: '#FFFFFF' })
+                          }.width(20).height(20).borderRadius(10).backgroundColor('#99000000')
+                        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+                          .backgroundColor(Color.Transparent).align(Alignment.TopEnd)
                           .accessibilityText('移除附件').onClick(() => { this.removeAttachment(item.id); })
                       }.width(48).height(48).borderRadius(12)
-                        .backgroundColor(this.dark ? '#2C2C2E' : '#F1F3F5')
+                        .backgroundColor(this.fieldSurface())
                         .shadow({ radius: 7, color: this.dark ? '#66000000' : '#22000000', offsetY: 2 })
                         .accessibilityText(item.status === 'error' ? '图片上传失败，点击重试' : '图片附件')
                         .onClick(() => { if (item.status === 'error') this.retryAttachment(item); })
                         .transition(NativeMotion.disclosureTransition())
                     } else {
                       Row({ space: 6 }) {
-                        DSHIcon({ glyph: 'file-outline', glyphSize: 16, color: this.dark ? '#CFD3D6' : '#61666B' })
+                        DSHIcon({ glyph: 'file-outline', glyphSize: 16, color: this.secondaryText() })
                         Text(item.name).fontSize(11).maxLines(1).constraintSize({ maxWidth: 120 })
-                          .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.dark ? '#F9FAFB' : '#17181B')
+                          .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.primaryText())
                         if (item.status === 'uploading') LoadingProgress().width(12).height(12)
                         else if (item.status === 'error') {
-                          Button(item.retryable ? '重试' : '失败', { type: ButtonType.Normal }).height(26).fontSize(10)
+                          Button(item.retryable ? '重试' : '失败', { type: ButtonType.Normal })
+                            .height(NativeDesign.hitTarget).fontSize(10)
+                            .fontColor(item.retryable ?
+                              NativeDesign.danger(this.dark) : NativeDesign.textTertiary(this.dark))
                             .enabled(item.retryable).onClick(() => { this.retryAttachment(item); })
                         }
                         Button({ type: ButtonType.Circle }) {
-                          DSHIcon({ glyph: 'close-outline', glyphSize: 10, color: this.dark ? '#93969B' : '#8A8D91' })
-                        }.width(22).height(22).backgroundColor(Color.Transparent)
+                          DSHIcon({ glyph: 'close-outline', glyphSize: 10, color: this.tertiaryText() })
+                        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+                          .backgroundColor(Color.Transparent)
                           .accessibilityText('移除附件').onClick(() => { this.removeAttachment(item.id); })
-                      }.height(42).padding({ left: 7, right: 3 }).borderRadius(10)
-                        .backgroundColor(this.dark ? '#2C2C2E' : '#F1F3F5')
+                      }.height(NativeDesign.standardRow).padding({ left: 7, right: 3 })
+                        .borderRadius(NativeDesign.radiusControl)
+                        .backgroundColor(this.fieldSurface())
                         .transition(NativeMotion.disclosureTransition())
                     }
                   }, (item: NativeAttachmentDraft) => item.id)
@@ -2782,9 +2849,9 @@ export struct NativeWorkspace {
           }
           Column({ space: 8 }) {
           TextArea({ text: this.draft, placeholder: '发送消息…' }).height(44).enabled(!this.sending)
-            .placeholderColor(this.dark ? '#93969B' : '#8A8D91')
+            .placeholderColor(this.tertiaryText())
             .fontSize(14).borderRadius(0).padding({ left: 7, right: 7, top: 3, bottom: 3 })
-            .backgroundColor(Color.Transparent).fontColor(this.dark ? '#F9FAFB' : '#0F1115')
+            .backgroundColor(Color.Transparent).fontColor(this.primaryText())
             .onChange((value: string) => { this.draft = value; this.client.drafts.set(this.selected, value); })
           Row({ space: 6 }) {
             Button({ type: ButtonType.Normal }) {
@@ -2792,48 +2859,58 @@ export struct NativeWorkspace {
                 Text(this.modelCaption).fontSize(11).maxLines(1).constraintSize({ maxWidth: 160 })
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
               }.constraintSize({ maxWidth: 168 })
-            }.height(32).padding({ left: 4, right: 4 }).backgroundColor(Color.Transparent)
-              .fontColor(this.dark ? '#CFD3D6' : '#61666B').accessibilityText('模型与推理')
+            }.height(NativeDesign.hitTarget).padding({ left: 4, right: 4 })
+              .backgroundColor(Color.Transparent)
+              .fontColor(this.secondaryText()).accessibilityText('模型与推理')
               .onClick(() => { this.utilityOpen = false; this.modelPickerOpen = true; })
               .bindPopup(this.modelPickerOpen, { builder: this.modelPicker, placement: Placement.Top,
                 enableArrow: false, targetSpace: 8, radius: 16, mask: false,
-                popupColor: this.dark ? '#242527' : '#FFFFFF', backgroundBlurStyle: BlurStyle.NONE,
+                popupColor: NativeDesign.overlay(this.dark), backgroundBlurStyle: BlurStyle.NONE,
                 onStateChange: (event): void => { if (!event.isVisible) this.modelPickerOpen = false; } })
             Blank()
             Button({ type: ButtonType.Normal }) {
-              if (this.attaching) { LoadingProgress().width(14).height(14).color(this.dark ? '#F9FAFB' : '#0F1115') }
-              else { DSHIcon({ glyph: 'image-outline', color: this.dark ? '#F9FAFB' : '#0F1115' }) }
-            }.width(32).height(32).borderRadius(16)
-              .backgroundColor(this.dark ? '#353638' : '#EBEEF2').fontColor(this.dark ? '#F9FAFB' : '#0F1115')
+              if (this.attaching) { LoadingProgress().width(14).height(14).color(this.primaryText()) }
+              else { DSHIcon({ glyph: 'image-outline', color: this.primaryText() }) }
+            }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+              .borderRadius(NativeDesign.hitTarget / 2)
+              .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
               .accessibilityText(this.attaching ? '读取中' : '添加图片')
               .enabled(!this.attaching && !this.sending).onClick(() => { this.attachImages(); })
             Button({ type: ButtonType.Normal }) {
-              DSHIcon({ glyph: 'file-outline', color: this.dark ? '#CFD3D6' : '#61666B' })
-            }.width(32).height(32).borderRadius(16)
-              .backgroundColor(this.dark ? '#353638' : '#EBEEF2').fontColor(this.dark ? '#F9FAFB' : '#0F1115')
+              DSHIcon({ glyph: 'file-outline', color: this.secondaryText() })
+            }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+              .borderRadius(NativeDesign.hitTarget / 2)
+              .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
               .accessibilityText('添加文件')
               .enabled(!this.attaching && !this.sending).onClick(() => { this.attachFiles(); })
             if (this.running) { Button({ type: ButtonType.Normal }) {
               Row({ space: 5 }) {
-                DSHIcon({ glyph: this.steer ? 'paper-plane-outline' : 'queue-outline', color: this.dark ? '#CFD3D6' : '#61666B', glyphSize: 14 })
-                Text(this.steer ? '接管' : '排队').fontSize(11).fontColor(this.dark ? '#CFD3D6' : '#61666B')
+                DSHIcon({ glyph: this.steer ? 'paper-plane-outline' : 'queue-outline', color: this.secondaryText(), glyphSize: 14 })
+                Text(this.steer ? '接管' : '排队').fontSize(11).fontColor(this.secondaryText())
               }
-            }.height(32).borderRadius(9).backgroundColor(Color.Transparent)
+            }.height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
+              .backgroundColor(Color.Transparent)
               .accessibilityText(this.steer ? '发送模式：接管' : '发送模式：排队，点击切换')
               .onClick(() => { this.steer = !this.steer; })
             }
             if (this.running && !this.sending && !this.draft.trim() && !this.attachments.length) {
               Button({ type: ButtonType.Normal }) {
-                DSHIcon({ glyph: 'stop-fill', color: '#FFFFFF' })
-              }.width(34).height(34).borderRadius(17)
-                .backgroundColor(this.dark ? '#679EFE' : '#3964FE').accessibilityText('停止任务')
+                DSHIcon({ glyph: 'stop-fill', color: NativeDesign.textInverse(this.dark) })
+              }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+                .borderRadius(NativeDesign.hitTarget / 2)
+                .backgroundColor(NativeDesign.accentStrong(this.dark)).accessibilityText('停止任务')
                 .onClick(() => { this.client.cancel(this.selected).catch((error: Error) => this.handleError(error)); })
             } else {
               Button({ type: ButtonType.Normal }) {
-                if (this.sending) { LoadingProgress().width(16).height(16).color('#FFFFFF') }
-                else { DSHIcon({ glyph: 'send-arrow', color: '#FFFFFF' }) }
-              }.width(34).height(34).borderRadius(17)
-                .backgroundColor(this.dark ? '#679EFE' : '#3964FE')
+                if (this.sending) {
+                  LoadingProgress().width(16).height(16)
+                    .color(NativeDesign.textInverse(this.dark))
+                } else {
+                  DSHIcon({ glyph: 'send-arrow', color: NativeDesign.textInverse(this.dark) })
+                }
+              }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+                .borderRadius(NativeDesign.hitTarget / 2)
+                .backgroundColor(NativeDesign.accentStrong(this.dark))
                 .enabled(this.connectionPhase === 'live' && !this.sending && !this.uncertain && this.attachmentsReady() &&
                   (this.draft.trim().length > 0 || this.attachments.length > 0))
                 .opacity(this.connectionPhase === 'live' && !this.sending && !this.uncertain && this.attachmentsReady() &&
@@ -2842,8 +2919,8 @@ export struct NativeWorkspace {
             }
           }.width('100%')
         }.padding(8).width('100%').borderRadius(16)
-          .border({ width: 0.5, color: this.dark ? '#3B3B3E' : '#DFE1E5' })
-          .backgroundColor(this.dark ? '#232324' : '#FFFFFF')
+          .border({ width: 0.5, color: this.semanticBorderColor() })
+          .backgroundColor(this.raisedSurface())
           .onAreaChange((_old: Area, area: Area): void => {
             const height = Number(area.height);
             if (height > 0 && height !== this.composerHeight) this.composerHeight = height;
@@ -2865,50 +2942,47 @@ export struct NativeWorkspace {
         Stack({ alignContent: Alignment.TopStart }) {
           Column({ space: 14 }) {
           Text(this.loading ? '正在恢复会话…' : '开始你的任务').fontSize(22).fontWeight(FontWeight.Medium)
-            .fontColor(this.dark ? '#F9FAFB' : '#0F1115')
+            .fontColor(this.primaryText())
             if (!this.loading) {
               Button({ type: ButtonType.Normal }) {
                 Row({ space: 8 }) {
-                  DSHIcon({ glyph: 'new-chat-outline', glyphSize: 17, color: this.dark ? '#151517' : '#FFFFFF' })
+                  DSHIcon({ glyph: 'new-chat-outline', glyphSize: 17, color: this.baseSurface() })
                   Text('新建会话').fontSize(14)
                 }
-              }.height(42).padding({ left: 16, right: 16 }).borderRadius(12)
-                .backgroundColor(this.dark ? '#F9FAFB' : '#0F1115')
-                .fontColor(this.dark ? '#151517' : '#FFFFFF').onClick(() => { this.openNewSession(); })
+              }.height(NativeDesign.standardRow).padding({ left: 16, right: 16 })
+                .borderRadius(NativeDesign.radiusRow)
+                .backgroundColor(this.primaryText())
+                .fontColor(this.baseSurface()).onClick(() => { this.openNewSession(); })
             } else {
-              LoadingProgress().width(22).height(22).color(this.dark ? '#F9FAFB' : '#0F1115')
+              LoadingProgress().width(22).height(22).color(this.primaryText())
             }
           }.width('100%').height('100%').justifyContent(FlexAlign.Center).padding(24)
           if (!this.wide) {
-            Button({ type: ButtonType.Normal }) {
-              DSHIcon({ glyph: 'panel-left-outline', color: this.dark ? '#F9FAFB' : '#0F1115' })
-            }.width(36).height(36).borderRadius(10).padding(0)
-              .backgroundColor(this.dark ? '#2C2C2E' : '#FFFFFF')
-              .border({ width: 0.5, color: this.dark ? '#45464A' : '#DDE0E5' })
-              .margin({ left: 12, top: this.safeTop + 8 })
-              .accessibilityText('打开侧边栏')
-              .onClick((): void => { this.openDrawer(); })
+            Row() {
+              NativeIconButton({ glyph: 'panel-left-outline', label: '打开侧边栏',
+                tone: 'primary', onPressed: (): void => { this.openDrawer(); } })
+            }.margin({ left: 8, top: this.safeTop + 4 })
           }
         }.width('100%').height('100%')
       }
       if (this.archivedUndo) {
         Row() {
           Text('已归档会话').fontSize(12).layoutWeight(1)
-          Button('撤销', { type: ButtonType.Normal }).height(36).fontSize(12).backgroundColor(Color.Transparent)
+          Button('撤销', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(12)
+            .backgroundColor(Color.Transparent)
             .onClick(() => {
               const id = this.archivedUndo; this.archivedUndo = '';
               this.client.operation(JSON.stringify({ operation: 'unarchive', sessionId: id }))
                 .then(() => { this.refreshSessionList(); }).catch((error: Error) => this.handleError(error));
             })
-          Button({ type: ButtonType.Normal }) {
-            DSHIcon({ glyph: 'close-outline', glyphSize: 12, color: this.dark ? '#93969B' : '#8A8D91' })
-          }.height(36).width(32).backgroundColor(Color.Transparent).onClick(() => { this.archivedUndo = ''; })
-        }.padding({ left: 12, right: 8 }).width('100%').backgroundColor(this.dark ? '#232324' : '#F5F6F7')
+          NativeIconButton({ glyph: 'close-outline', label: '关闭归档提示', glyphSize: 12,
+            onPressed: (): void => { this.archivedUndo = ''; } })
+        }.padding({ left: 12, right: 8 }).width('100%').backgroundColor(this.fieldSurface())
       }
       if (this.error && !this.selected) {
-        Text(this.error).fontSize(12).padding(12).width('100%').fontColor(this.dark ? '#FF9393' : '#C53030')
+        Text(this.error).fontSize(12).padding(12).width('100%').fontColor(this.dangerText())
       }
-    }.width('100%').height('100%').backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+    }.width('100%').height('100%').backgroundColor(this.baseSurface())
   }
 
   @Builder
@@ -2917,8 +2991,9 @@ export struct NativeWorkspace {
       Column() { this.mainSurface() }.width('100%').height('100%')
       Column()
         .width('100%').height('100%')
-        .backgroundColor(this.dark ? '#66000000' : '#3D000000')
+        .backgroundColor(NativeDesign.mask(this.dark))
         .opacity(this.drawerProgress(this.mobileDrawerWidth()))
+        .animation(NativeMotion.maskParam())
         .hitTestBehavior(this.showSessions || this.drawerFollowing ? HitTestMode.Default : HitTestMode.None)
         .onClick(() => { this.closeDrawer(); })
       Column() { this.sessionList(true) }.width(this.mobileDrawerWidth()).height('100%')
@@ -2926,7 +3001,7 @@ export struct NativeWorkspace {
         .visibility(this.showSessions || this.drawerFollowing ? Visibility.Visible : Visibility.Hidden)
         .hitTestBehavior(this.showSessions || this.drawerFollowing ? HitTestMode.Default : HitTestMode.None)
         .shadow({
-          radius: 20,
+          radius: 28,
           color: this.dark ? '#99000000' : '#33000000',
           offsetX: 5,
           offsetY: 0
@@ -2989,11 +3064,11 @@ export struct NativeWorkspace {
               this.workspaceId = id; this.closeWorkspacePicker(); this.setDrawerState(true);
             },
             onChanged: (value: NativeWorkspaceSnapshot): void => { this.workspaces = value; } })
-        }.width('100%').height('100%').backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+        }.width('100%').height('100%').backgroundColor(this.baseSurface())
       }
       if (this.newSessionOpen) {
         Column() { this.newSessionForm() }.width('100%').height('100%')
-          .backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+          .backgroundColor(this.baseSurface())
       }
       if (this.toolsOpen) {
         NativeSessionTools({ client: this.client, sessionId: this.toolsId,
@@ -3017,33 +3092,42 @@ export struct NativeWorkspace {
           attachment: this.imagePreview.attachment,
           onClose: (): void => { this.closeImagePreview(); } })
       }
-    }.width('100%').height('100%').backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+    }.width('100%').height('100%').backgroundColor(this.baseSurface())
   }
   @Builder
   private newSessionForm() {
     Column({ space: 12 }) {
       Row({ space: 6 }) {
-        Button({ type: ButtonType.Normal }) { DSHIcon({ glyph: 'chevron-left-outline', color: this.dark ? '#F9FAFB' : '#17181B' }) }
-          .width(36).height(36).backgroundColor(Color.Transparent).onClick(() => { this.newSessionOpen = false; })
+        NativeIconButton({ glyph: 'chevron-left-outline', label: '关闭新建会话', tone: 'primary',
+          onPressed: (): void => { this.newSessionOpen = false; } })
         Text('新建会话').fontSize(18).fontWeight(FontWeight.Medium)
       }.width('100%')
       Scroll() {
         Column({ space: 8 }) {
-          Text('工作区').fontSize(12).fontColor(this.dark ? '#93969B' : '#8A8D91')
-          Button('默认目录', { type: ButtonType.Normal }).width('100%').height(40).borderRadius(9)
-            .backgroundColor(!this.newWorkspaceId ? this.dark ? '#353638' : '#EBEEF2' : Color.Transparent)
+          Text('工作区').fontSize(12).fontColor(this.tertiaryText())
+          Button('默认目录', { type: ButtonType.Normal }).width('100%').height(NativeDesign.hitTarget)
+            .borderRadius(NativeDesign.radiusControl)
+            .backgroundColor(!this.newWorkspaceId ? this.fieldSurface() : Color.Transparent)
             .onClick(() => { this.newWorkspaceId = ''; })
           ForEach(this.workspaces.items, (workspace: NativeWorkspaceItem) => {
-            Button(workspace.title, { type: ButtonType.Normal }).height(40).width('100%').borderRadius(9)
-              .backgroundColor(this.newWorkspaceId === workspace.workspaceId ? this.dark ? '#353638' : '#EBEEF2' : Color.Transparent)
+            Button(workspace.title, { type: ButtonType.Normal }).height(NativeDesign.hitTarget)
+              .width('100%').borderRadius(NativeDesign.radiusControl)
+              .backgroundColor(this.newWorkspaceId === workspace.workspaceId ? this.fieldSurface() : Color.Transparent)
               .onClick(() => { this.newWorkspaceId = workspace.workspaceId; })
           }, (workspace: NativeWorkspaceItem) => workspace.workspaceId)
-          if (!this.newWorkspaceId) { TextInput({ text: this.newCwd, placeholder: '工作目录' }).height(42).fontSize(13).onChange((value: string) => { this.newCwd = value; }) }
-          TextInput({ text: this.newPreset, placeholder: '智能体预设 · 默认' }).height(42).fontSize(13).onChange((value: string) => { this.newPreset = value; })
-          Button(this.loading ? '创建中…' : '创建会话', { type: ButtonType.Normal }).height(42).width('100%').borderRadius(10)
-            .backgroundColor(this.dark ? '#679EFE' : '#3964FE').fontColor('#FFFFFF').enabled(!this.loading).onClick(() => { this.createSession(); })
+          if (!this.newWorkspaceId) { TextInput({ text: this.newCwd, placeholder: '工作目录' })
+            .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontCompact)
+            .onChange((value: string) => { this.newCwd = value; }) }
+          TextInput({ text: this.newPreset, placeholder: '智能体预设 · 默认' })
+            .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontCompact)
+            .onChange((value: string) => { this.newPreset = value; })
+          Button(this.loading ? '创建中…' : '创建会话', { type: ButtonType.Normal })
+            .height(NativeDesign.hitTarget).width('100%').borderRadius(NativeDesign.radiusControl)
+            .backgroundColor(NativeDesign.accentStrong(this.dark))
+            .fontColor(NativeDesign.textInverse(this.dark))
+            .enabled(!this.loading).onClick(() => { this.createSession(); })
         }.width('100%').alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.Top)
-    }.padding(12).width('100%').height('100%').foregroundColor(this.dark ? '#F9FAFB' : '#17181B')
+    }.padding(12).width('100%').height('100%').foregroundColor(this.primaryText())
   }
 }

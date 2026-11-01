@@ -1,8 +1,9 @@
 import { webview } from '@kit.ArkWeb';
 import { common } from '@kit.AbilityKit';
 import { picker } from '@kit.CoreFileKit';
-import { DSHIcon } from './DSHIcon';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
+import { NativeIconButton } from './NativeIconButton';
 
 /** A temporary surface: the native workspace stays mounted underneath. */
 @Component
@@ -49,31 +50,30 @@ export struct NativeCompatibilitySurface {
   build() {
     Column({ space: 8 }) {
       Row({ space: 6 }) {
-        Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 17,
-            color: this.dark ? '#F2F2F3' : '#25262A' })
-        }.width(40).height(40).borderRadius(12)
-          .backgroundColor(this.dark ? '#2C2C2E' : '#F5F6F7')
-          .border({ width: 0.5, color: this.dark ? '#45464A' : '#DFE1E5' })
-          .opacity(this.canGoBack ? 1 : 0.42)
-          .enabled(this.canGoBack)
-          .accessibilityText('网页后退').onClick((): void => { this.goBack(); })
+        NativeIconButton({
+          glyph: 'chevron-left-outline',
+          label: '网页后退',
+          tone: 'primary',
+          glyphSize: 17,
+          controlEnabled: this.canGoBack,
+          onPressed: (): void => { this.goBack(); }
+        })
         Text(this.title()).fontSize(16).fontWeight(FontWeight.Medium).layoutWeight(1)
-          .fontColor(this.dark ? '#F9FAFB' : '#0F1115')
-        Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'close-outline', glyphSize: 17,
-            color: this.dark ? '#F2F2F3' : '#25262A' })
-        }.width(40).height(40).borderRadius(12)
-          .backgroundColor(this.dark ? '#2C2C2E' : '#F5F6F7')
-          .border({ width: 0.5, color: this.dark ? '#45464A' : '#DFE1E5' })
-          .accessibilityText('关闭并返回原生').onClick(this.onClose)
-      }.height(48).padding({ left: 12, right: 12 }).width('100%')
+          .fontColor(NativeDesign.textPrimary(this.dark))
+        NativeIconButton({
+          glyph: 'close-outline',
+          label: '关闭并返回原生',
+          tone: 'primary',
+          glyphSize: 17,
+          onPressed: this.onClose
+        })
+      }.height(NativeDesign.headerHeight).padding({ left: 12, right: 12 }).width('100%')
       if (this.progress < 100) { Progress({ value: this.progress, total: 100 }).height(2).width('100%') }
       Web({ src: this.source(), controller: this.controller })
         .width('100%').layoutWeight(1).javaScriptAccess(true).domStorageAccess(true).databaseAccess(true)
         .fileAccess(false).mixedMode(MixedMode.None).darkMode(WebDarkMode.Auto).forceDarkAccess(false)
         .keyboardAvoidMode(WebKeyboardAvoidMode.RESIZE_CONTENT)
-        .backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+        .backgroundColor(NativeDesign.base(this.dark))
         .onLoadIntercept((event) => { const blocked = !this.allowed(event.data.getRequestUrl());
           if (blocked) this.error = '站外链接请使用系统浏览器打开'; return blocked; })
         .onWindowNew((event) => { if (this.allowed(event.targetUrl)) this.controller.loadUrl(event.targetUrl); })
@@ -91,7 +91,9 @@ export struct NativeCompatibilitySurface {
             .then((uris: string[]) => event.result.handleFileList(uris)).catch(() => event.result.handleFileList([]));
           return true;
         })
-      if (this.error) { Text(this.error).fontSize(12).fontColor(this.dark ? '#FF9393' : '#C53030').padding(12) }
-    }.width('100%').height('100%').backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+      if (this.error) {
+        Text(this.error).fontSize(12).fontColor(NativeDesign.danger(this.dark)).padding(12)
+      }
+    }.width('100%').height('100%').backgroundColor(NativeDesign.base(this.dark))
   }
 }

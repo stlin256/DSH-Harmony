@@ -4,6 +4,8 @@ import { NativeCatalogModel, NativeModelProvider, NativeModelEffort, NativeModel
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeMotion } from '../services/NativeMotion';
 import { DSHIcon } from './DSHIcon';
+import { NativeDesign } from '../services/NativeDesign';
+import { NativeIconButton } from './NativeIconButton';
 
 class Part { type: string = ''; text: string = ''; }
 class QueueItem { id: string = ''; content: Part[] = []; }
@@ -99,37 +101,39 @@ export struct NativeSessionTools {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 8 }) {
         Text(label).fontSize(13).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
-        if (detail) { Text(detail).fontSize(12).maxLines(1).constraintSize({ maxWidth: '45%' }).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.dark ? '#93969B' : '#8A8D91') }
-        if (selected) { DSHIcon({ glyph: 'check-outline', glyphSize: 14, color: this.dark ? '#F9FAFB' : '#17181B' }) }
-        else if (child) { DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12, color: this.dark ? '#93969B' : '#8A8D91' }).rotate({ angle: 180 }) }
+        if (detail) { Text(detail).fontSize(12).maxLines(1).constraintSize({ maxWidth: '45%' }).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(NativeDesign.textTertiary(this.dark)) }
+        if (selected) { DSHIcon({ glyph: 'check-outline', glyphSize: 14, color: NativeDesign.textPrimary(this.dark) }) }
+        else if (child) { DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12, color: NativeDesign.textTertiary(this.dark) }).rotate({ angle: 180 }) }
       }.width('100%')
-    }.width('100%').height(44).padding({ left: 8, right: 8 }).borderRadius(12).backgroundColor(Color.Transparent)
-      .fontColor(this.dark ? '#F9FAFB' : '#17181B').enabled(!this.busy).onClick(action)
+    }.width('100%').height(NativeDesign.standardRow).padding({ left: 8, right: 8 })
+      .borderRadius(NativeDesign.radiusRow).backgroundColor(Color.Transparent)
+      .fontColor(NativeDesign.textPrimary(this.dark)).enabled(!this.busy).onClick(action)
   }
   build() {
     Column({ space: 8 }) {
       Row({ space: 6 }) {
-        Button({ type: ButtonType.Normal }) { DSHIcon({ glyph: 'chevron-left-outline', color: this.dark ? '#F9FAFB' : '#17181B' }) }
-          .width(40).height(40).backgroundColor(Color.Transparent).accessibilityText('返回').enabled(!this.busy).onClick(() => { this.back(); })
+        NativeIconButton({ glyph: 'chevron-left-outline', label: '返回', tone: 'primary',
+          controlEnabled: !this.busy, onPressed: (): void => { this.back(); } })
         Text(this.heading()).fontSize(17).fontWeight(FontWeight.Medium).layoutWeight(1)
         if (this.busy) { LoadingProgress().width(16).height(16) }
       }.width('100%')
       Scroll() {
         Column({ space: 4 }) {
           if (this.page === 'rename') {
-            TextInput({ text: this.title, placeholder: '会话名称' }).height(44).fontSize(14).enabled(!this.busy).onChange((value: string) => { this.title = value; })
-            Button('保存', { type: ButtonType.Normal }).width('100%').height(42).borderRadius(12)
-              .backgroundColor(this.dark ? '#F9FAFB' : '#17181B').fontColor(this.dark ? '#151517' : '#FFFFFF')
+            TextInput({ text: this.title, placeholder: '会话名称' }).height(NativeDesign.hitTarget).fontSize(14).enabled(!this.busy).onChange((value: string) => { this.title = value; })
+            Button('保存', { type: ButtonType.Normal }).width('100%').height(NativeDesign.hitTarget)
+              .borderRadius(NativeDesign.radiusRow)
+              .backgroundColor(NativeDesign.textPrimary(this.dark)).fontColor(NativeDesign.textInverse(this.dark))
               .enabled(!this.busy && this.title.trim().length > 0).onClick(() => { this.saveName(); })
           } else if (this.page === 'modelsRoot') {
             this.row('模型', this.currentModel()?.name || this.directory.selected.model, false, true, () => { this.pane('models'); })
             if (this.currentModel()?.reasoning) { this.row('推理', this.directory.selected.reasoningEffort || this.currentModel()?.reasoning?.defaultEffort || '提供方默认', false, true, () => { this.pane('efforts'); }) }
           } else if (this.page === 'models') {
             if (this.directory.catalog.groups.reduce((sum: number, provider: NativeModelProvider) => sum + provider.models.length, 0) > 4) {
-              TextInput({ text: this.query, placeholder: '搜索模型' }).height(36).fontSize(13).onChange((value: string) => { this.query = value; })
+              TextInput({ text: this.query, placeholder: '搜索模型' }).height(NativeDesign.hitTarget).fontSize(13).onChange((value: string) => { this.query = value; })
             }
             ForEach(this.directory.catalog.groups, (provider: NativeModelProvider) => {
-              Text(provider.name).fontSize(11).fontColor(this.dark ? '#93969B' : '#8A8D91').padding({ left: 8, top: 12, bottom: 4 })
+              Text(provider.name).fontSize(11).fontColor(NativeDesign.textTertiary(this.dark)).padding({ left: 8, top: 12, bottom: 4 })
               ForEach(provider.models.filter((model: NativeCatalogModel) => !this.query || (model.name + ' ' + model.id).toLowerCase().includes(this.query.toLowerCase())), (model: NativeCatalogModel) => {
                 this.row(model.name, '', this.directory.selected.provider === provider.id && this.directory.selected.model === model.id, false,
                   () => { this.choose(provider.id, model, model.reasoning?.defaultEffort || ''); })
@@ -143,23 +147,25 @@ export struct NativeSessionTools {
             }, (effort: NativeModelEffort) => effort.id)
           } else if (this.page === 'queueEdit') {
             TextArea({ text: this.editingText }).height(140).fontSize(14).onChange((value: string) => { this.editingText = value; })
-            Button('保存').height(40).enabled(!this.busy && !!this.editingText.trim()).onClick(() => { this.mutateQueue(this.editingId, 'edit'); })
+            Button('保存').height(NativeDesign.hitTarget).enabled(!this.busy && !!this.editingText.trim()).onClick(() => { this.mutateQueue(this.editingId, 'edit'); })
           } else if (this.page === 'queue') {
             if (!this.queue.length) { Text('没有排队消息').fontSize(13).padding(12) }
             ForEach(this.queue, (item: QueueItem) => {
               Column({ space: 8 }) {
                 Text(item.content.filter((part: Part) => part.type === 'text').map((part: Part) => part.text).join('\n') || '包含附件').fontSize(13).maxLines(5).textOverflow({ overflow: TextOverflow.Ellipsis })
                 Row({ space: 8 }) {
-                  if (item.content.every((part: Part) => part.type === 'text')) { Button('编辑').height(32).fontSize(12).enabled(!this.busy).onClick(() => { this.editingId = item.id; this.editingText = item.content.map((part: Part) => part.text).join('\n'); this.pane('queueEdit'); }) }
-                  if (this.running) { Button('立即干预').height(32).fontSize(12).enabled(!this.busy).onClick(() => { this.mutateQueue(item.id, 'steer'); }) }
-                  Button('移除').height(32).fontSize(12).enabled(!this.busy).onClick(() => { this.mutateQueue(item.id, 'remove'); })
+                  if (item.content.every((part: Part) => part.type === 'text')) { Button('编辑').height(NativeDesign.hitTarget).fontSize(12).enabled(!this.busy).onClick(() => { this.editingId = item.id; this.editingText = item.content.map((part: Part) => part.text).join('\n'); this.pane('queueEdit'); }) }
+                  if (this.running) { Button('立即干预').height(NativeDesign.hitTarget).fontSize(12).enabled(!this.busy).onClick(() => { this.mutateQueue(item.id, 'steer'); }) }
+                  Button('移除').height(NativeDesign.hitTarget).fontSize(12).enabled(!this.busy).onClick(() => { this.mutateQueue(item.id, 'remove'); })
                 }
-              }.padding(10).width('100%').alignItems(HorizontalAlign.Start).borderRadius(12).backgroundColor(this.dark ? '#232324' : '#F5F6F7')
+              }.padding(10).width('100%').alignItems(HorizontalAlign.Start)
+                .borderRadius(NativeDesign.radiusRow).backgroundColor(NativeDesign.field(this.dark))
             }, (item: QueueItem) => item.id)
           }
         }.width('100%').alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.Top)
-      if (this.error) { Row() { Text(this.error).fontSize(12).layoutWeight(1); Button('重试').height(36).onClick(() => { this.refresh(); }) }.width('100%') }
-    }.padding(12).width('100%').height('100%').backgroundColor(this.dark ? '#151517' : '#FFFFFF').foregroundColor(this.dark ? '#F9FAFB' : '#17181B')
+      if (this.error) { Row() { Text(this.error).fontSize(12).layoutWeight(1); Button('重试').height(NativeDesign.hitTarget).onClick(() => { this.refresh(); }) }.width('100%') }
+    }.padding(12).width('100%').height('100%').backgroundColor(NativeDesign.base(this.dark))
+      .foregroundColor(NativeDesign.textPrimary(this.dark))
   }
 }

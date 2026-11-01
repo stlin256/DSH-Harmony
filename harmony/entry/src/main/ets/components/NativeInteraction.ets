@@ -4,6 +4,7 @@ import { nativeStructuredText } from '../services/NativeInteractionFormat';
 import { NativeTextContent } from './NativeTextContent';
 import { DSHIcon } from './DSHIcon';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
 
 class Answer {
   id: string = '';
@@ -227,49 +228,53 @@ export struct NativeInteraction {
   private approvalCard() {
     Column({ space: 0 }) {
       Row({ space: 7 }) {
-        Circle().width(7).height(7).backgroundColor(this.dark ? '#F0B84A' : '#A56A00')
+        Circle().width(7).height(7).backgroundColor(NativeDesign.warning(this.dark))
         Text('等待审批').fontSize(12).fontWeight(FontWeight.Medium)
-          .fontColor(this.dark ? '#F0B84A' : '#8A5A00')
+          .fontColor(NativeDesign.warning(this.dark))
         Blank()
         if (this.remaining >= 0) {
           Text(Math.ceil(this.remaining / 1000).toString() + 's').fontSize(11)
-            .fontColor(this.dark ? '#B5B8BD' : '#777A80')
+            .fontColor(NativeDesign.textTertiary(this.dark))
         }
       }.width('100%').height(34).padding({ left: 12, right: 12 })
-        .backgroundColor(this.dark ? '#3C3426' : '#FFF7E7')
+        .backgroundColor(NativeDesign.warningSurface(this.dark))
       Scroll() {
         Column({ space: 7 }) {
           if (this.frame.request.toolName) {
             Text(this.frame.request.toolName).fontSize(11).fontWeight(FontWeight.Medium)
               .padding({ left: 7, right: 7, top: 3, bottom: 3 }).borderRadius(7)
-              .backgroundColor(this.dark ? '#353638' : '#F0F2F5')
-              .fontColor(this.dark ? '#CFD3D6' : '#61666B')
+              .backgroundColor(NativeDesign.selection(this.dark))
+              .fontColor(NativeDesign.textSecondary(this.dark))
           }
           Text(this.approvalReason() || '该工具请求执行需要你确认').fontSize(14)
-            .fontWeight(FontWeight.Medium).fontColor(this.dark ? '#F9FAFB' : '#17181B')
+            .fontWeight(FontWeight.Medium).fontColor(NativeDesign.textPrimary(this.dark))
         }.width('100%').alignItems(HorizontalAlign.Start)
       }.width('100%').constraintSize({ maxHeight: 220 }).scrollBar(BarState.Auto)
         .edgeEffect(EdgeEffect.None).padding(12)
       Row({ space: 8 }) {
         Button({ type: ButtonType.Normal }) {
           Text('拒绝').fontSize(13).fontWeight(FontWeight.Medium)
-        }.layoutWeight(1).height(38).borderRadius(11)
-          .backgroundColor(this.dark ? '#353638' : '#F5F6F7')
-          .fontColor(this.dark ? '#F1F1F2' : '#25262A')
-          .border({ width: 0.5, color: this.dark ? '#4A4B4F' : '#DDE0E5' })
+        }.layoutWeight(1).height(NativeDesign.hitTarget)
+          .borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(NativeDesign.field(this.dark))
+          .fontColor(NativeDesign.textPrimary(this.dark))
+          .border({ width: 0.5, color: NativeDesign.border(this.dark) })
           .enabled(!this.busy && !this.unconfirmed)
           .onClick((): void => { this.submit('rejected'); })
         Button({ type: ButtonType.Normal }) {
-          if (this.busy) LoadingProgress().width(15).height(15).color('#FFFFFF')
+          if (this.busy) LoadingProgress().width(15).height(15)
+            .color(NativeDesign.textInverse(this.dark))
           else Text('允许一次').fontSize(13).fontWeight(FontWeight.Medium)
-        }.layoutWeight(1).height(38).borderRadius(11)
-          .backgroundColor(this.dark ? '#679EFE' : '#3964FE').fontColor('#FFFFFF')
+        }.layoutWeight(1).height(NativeDesign.hitTarget)
+          .borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(NativeDesign.accentStrong(this.dark))
+          .fontColor(NativeDesign.textInverse(this.dark))
           .enabled(!this.busy && !this.unconfirmed)
           .onClick((): void => { this.submit('allowed-once'); })
       }.width('100%').padding({ left: 12, right: 12, bottom: 12 })
-    }.width('100%').borderRadius(15).clip(true)
-      .backgroundColor(this.dark ? '#292A2C' : '#FFFFFF')
-      .border({ width: 0.5, color: this.dark ? '#414247' : '#E1E3E7' })
+    }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true)
+      .backgroundColor(NativeDesign.overlay(this.dark))
+      .border({ width: 0.5, color: NativeDesign.border(this.dark) })
   }
 
   @Builder
@@ -278,36 +283,39 @@ export struct NativeInteraction {
       if (question.multiSelect) {
         Stack({ alignContent: Alignment.Center }) {
           if (this.selected(question.id, option.label)) {
-            DSHIcon({ glyph: 'check-outline', glyphSize: 11, color: '#FFFFFF' })
+            DSHIcon({ glyph: 'check-outline', glyphSize: 11,
+              color: NativeDesign.textInverse(this.dark) })
           }
         }.width(20).height(20).borderRadius(6)
           .backgroundColor(this.selected(question.id, option.label) ?
-            this.dark ? '#679EFE' : '#3964FE' : Color.Transparent)
+            NativeDesign.accentStrong(this.dark) : Color.Transparent)
           .border({ width: 1, color: this.selected(question.id, option.label) ?
-            this.dark ? '#679EFE' : '#3964FE' : this.dark ? '#6B6E73' : '#B8BDC5' })
+            NativeDesign.accentStrong(this.dark) : NativeDesign.border(this.dark) })
       } else {
         Text((optionIndex + 1).toString()).fontSize(11).fontWeight(FontWeight.Medium)
           .width(22).height(22).textAlign(TextAlign.Center)
-          .fontColor(this.selected(question.id, option.label) ? '#FFFFFF' :
-            this.dark ? '#B5B8BD' : '#61666B')
+          .fontColor(this.selected(question.id, option.label) ?
+            NativeDesign.textInverse(this.dark) : NativeDesign.textSecondary(this.dark))
           .backgroundColor(this.selected(question.id, option.label) ?
-            this.dark ? '#679EFE' : '#3964FE' : this.dark ? '#353638' : '#EEF0F3')
+            NativeDesign.accentStrong(this.dark) : NativeDesign.selection(this.dark))
           .borderRadius(11)
       }
       Column({ space: 3 }) {
         Text(this.optionLabel(option)).fontSize(13).fontWeight(FontWeight.Medium)
-          .fontColor(this.dark ? '#F1F1F2' : '#25262A').width('100%')
+          .fontColor(NativeDesign.textPrimary(this.dark)).width('100%')
         if (this.optionDescription(option)) {
           Text(this.optionDescription(option)).fontSize(11).maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .fontColor(this.dark ? '#A2A5AA' : '#777A80').width('100%')
+            .fontColor(NativeDesign.textTertiary(this.dark)).width('100%')
         }
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-    }.width('100%').padding({ left: 9, right: 9, top: 8, bottom: 8 }).borderRadius(11)
+    }.width('100%').constraintSize({ minHeight: NativeDesign.hitTarget })
+      .padding({ left: 9, right: 9, top: 8, bottom: 8 })
+      .borderRadius(NativeDesign.radiusRow)
       .backgroundColor(this.selected(question.id, option.label) ?
-        this.dark ? '#303942' : '#F1F5FF' : Color.Transparent)
+        NativeDesign.selectedSurface(this.dark) : Color.Transparent)
       .border({ width: this.selected(question.id, option.label) ? 0.8 : 0,
-        color: this.dark ? '#679EFE' : '#3964FE' })
+        color: NativeDesign.accentStrong(this.dark) })
       .enabled(!this.busy && !this.unconfirmed)
       .onClick((): void => { this.toggle(question, option.label); })
       .animation(NativeMotion.implicit('press'))
@@ -320,18 +328,18 @@ export struct NativeInteraction {
         Text(question.header ? nativeStructuredText(question.header) : '需要你的回答')
           .fontSize(11).fontWeight(FontWeight.Medium).maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
-          .fontColor(this.dark ? '#8AB4FF' : '#315ECA')
+          .fontColor(NativeDesign.accent(this.dark))
         Text((this.index + 1).toString() + ' / ' + this.frame.request.questions.length.toString())
-          .fontSize(11).fontColor(this.dark ? '#93969B' : '#8A8D91')
+          .fontSize(11).fontColor(NativeDesign.textTertiary(this.dark))
         if (this.remaining >= 0) {
           Text(' · ' + Math.ceil(this.remaining / 1000).toString() + 's').fontSize(11)
-            .fontColor(this.dark ? '#B5B8BD' : '#777A80')
+            .fontColor(NativeDesign.textTertiary(this.dark))
         }
       }.width('100%').height(34).padding({ left: 12, right: 12 })
       Scroll() {
         Column({ space: 10 }) {
           Text(this.questionTitle(question)).fontSize(15).fontWeight(FontWeight.Medium)
-            .fontColor(this.dark ? '#F9FAFB' : '#17181B').width('100%')
+            .fontColor(NativeDesign.textPrimary(this.dark)).width('100%')
           if (question.detail) {
             NativeTextContent({ text: nativeStructuredText(question.detail),
               client: this.client, sessionId: this.frame.connectionId })
@@ -348,29 +356,31 @@ export struct NativeInteraction {
               if (question.multiSelect) {
                 Stack({ alignContent: Alignment.Center }) {
                   if (this.answerFor(question.id).custom.trim()) {
-                    DSHIcon({ glyph: 'check-outline', glyphSize: 11, color: '#FFFFFF' })
+                    DSHIcon({ glyph: 'check-outline', glyphSize: 11,
+                      color: NativeDesign.textInverse(this.dark) })
                   }
                 }.width(20).height(20).borderRadius(6)
                   .backgroundColor(this.answerFor(question.id).custom.trim() ?
-                    this.dark ? '#679EFE' : '#3964FE' : Color.Transparent)
-                  .border({ width: 1, color: this.dark ? '#6B6E73' : '#B8BDC5' })
+                    NativeDesign.accentStrong(this.dark) : Color.Transparent)
+                  .border({ width: 1, color: NativeDesign.border(this.dark) })
               } else {
                 DSHIcon({ glyph: 'edit-outline', glyphSize: 14,
                   color: this.answerFor(question.id).custom.trim() ?
-                    this.dark ? '#8AB4FF' : '#3964FE' : this.dark ? '#93969B' : '#8A8D91' })
+                    NativeDesign.accent(this.dark) : NativeDesign.textTertiary(this.dark) })
               }
               TextArea({ text: this.answerFor(question.id).custom, placeholder: '自定义回答' })
                 .layoutWeight(1).height(44).fontSize(13).borderRadius(10)
                 .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-                .backgroundColor(this.dark ? '#353638' : '#F5F6F7')
-                .fontColor(this.dark ? '#F9FAFB' : '#17181B')
-                .placeholderColor(this.dark ? '#93969B' : '#8A8D91')
+                .backgroundColor(NativeDesign.field(this.dark))
+                .fontColor(NativeDesign.textPrimary(this.dark))
+                .placeholderColor(NativeDesign.textTertiary(this.dark))
                 .enabled(!this.busy && !this.unconfirmed)
                 .onFocus((): void => { this.engage(); })
                 .onChange((text: string): void => { this.custom(question, text); })
             }.width('100%').padding({ left: 9, right: 3, top: 4, bottom: 4 })
-              .borderRadius(12).backgroundColor(this.dark ? '#2D2E31' : '#F8F9FA')
-              .border({ width: 0.5, color: this.dark ? '#44454A' : '#E1E3E7' })
+              .borderRadius(NativeDesign.radiusRow)
+              .backgroundColor(NativeDesign.subtleSurface(this.dark))
+              .border({ width: 0.5, color: NativeDesign.border(this.dark) })
           }
         }.width('100%').alignItems(HorizontalAlign.Start).padding(12)
       }.width('100%').constraintSize({ maxHeight: 330 }).scrollBar(BarState.Auto)
@@ -378,36 +388,44 @@ export struct NativeInteraction {
       Row({ space: 6 }) {
         Button({ type: ButtonType.Normal }) {
           DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 13,
-            color: this.dark ? '#CFD3D6' : '#61666B' }).rotate({ angle: 180 })
-        }.width(32).height(32).borderRadius(9).backgroundColor(Color.Transparent)
+            color: NativeDesign.textSecondary(this.dark) }).rotate({ angle: 180 })
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .enabled(this.index > 0 && !this.busy)
           .accessibilityText('上一题').onClick((): void => { this.move(this.index - 1); })
         Text((this.index + 1).toString() + ' / ' + this.frame.request.questions.length.toString())
-          .fontSize(11).fontColor(this.dark ? '#93969B' : '#8A8D91')
+          .fontSize(11).fontColor(NativeDesign.textTertiary(this.dark))
         Button({ type: ButtonType.Normal }) {
           DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 13,
-            color: this.dark ? '#CFD3D6' : '#61666B' }).rotate({ angle: 0 })
-        }.width(32).height(32).borderRadius(9).backgroundColor(Color.Transparent)
+            color: NativeDesign.textSecondary(this.dark) }).rotate({ angle: 0 })
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .enabled(this.index < this.frame.request.questions.length - 1 && !this.busy)
           .accessibilityText('下一题').onClick((): void => { this.move(this.index + 1); })
         Blank()
-        Button(question.intent?.reject || '跳过', { type: ButtonType.Normal }).height(34).fontSize(11)
-          .borderRadius(9).backgroundColor(this.dark ? '#353638' : '#F5F6F7')
-          .fontColor(this.dark ? '#CFD3D6' : '#61666B')
+        Button(question.intent?.reject || '跳过', { type: ButtonType.Normal })
+          .height(NativeDesign.hitTarget).fontSize(11)
+          .borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(NativeDesign.field(this.dark))
+          .fontColor(NativeDesign.textSecondary(this.dark))
           .enabled(!this.busy && !this.unconfirmed).onClick((): void => { this.skipQuestion(); })
         Button({ type: ButtonType.Normal }) {
-          if (this.busy) LoadingProgress().width(14).height(14).color('#FFFFFF')
+          if (this.busy) LoadingProgress().width(14).height(14)
+            .color(NativeDesign.textInverse(this.dark))
           else Text(this.index < this.frame.request.questions.length - 1 ?
             '下一题' : (question.intent?.approve || '提交')).fontSize(11).fontWeight(FontWeight.Medium)
-        }.height(34).padding({ left: 12, right: 12 }).borderRadius(9)
-          .backgroundColor(this.dark ? '#679EFE' : '#3964FE').fontColor('#FFFFFF')
+        }.height(NativeDesign.hitTarget).padding({ left: 12, right: 12 })
+          .borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(NativeDesign.accentStrong(this.dark))
+          .fontColor(NativeDesign.textInverse(this.dark))
           .enabled(!this.busy && !this.unconfirmed && this.answered(this.answerFor(question.id)))
           .opacity(this.answered(this.answerFor(question.id)) ? 1 : 0.42)
           .onClick((): void => { this.continueQuestions(); })
-      }.width('100%').height(48).padding({ left: 8, right: 8 })
-    }.width('100%').borderRadius(15).clip(true)
-      .backgroundColor(this.dark ? '#292A2C' : '#FFFFFF')
-      .border({ width: 0.5, color: this.dark ? '#414247' : '#E1E3E7' })
+      }.width('100%').constraintSize({ minHeight: 56 })
+        .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+    }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true)
+      .backgroundColor(NativeDesign.overlay(this.dark))
+      .border({ width: 0.5, color: NativeDesign.border(this.dark) })
   }
 
   build() {
@@ -420,7 +438,7 @@ export struct NativeInteraction {
         }, (question: NativeQuestion) => this.frame.eventId + ':' + question.id)
       }
       if (this.error) {
-        Text(this.error).fontSize(11).fontColor(this.dark ? '#FF9393' : '#C53030')
+        Text(this.error).fontSize(11).fontColor(NativeDesign.danger(this.dark))
           .padding({ left: 12, right: 12 })
       }
     }.width('100%').alignItems(HorizontalAlign.Start)

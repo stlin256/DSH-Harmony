@@ -2,7 +2,9 @@ import { common } from '@kit.AbilityKit';
 import { BuildInfo } from '../services/BuildInfo';
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
 import { DSHIcon } from './DSHIcon';
+import { NativeIconButton } from './NativeIconButton';
 
 @Component
 export struct AboutSettings {
@@ -23,82 +25,87 @@ export struct AboutSettings {
 
   build() {
     Scroll() {
-      Column({ space: 13 }) {
+      Column({ space: NativeDesign.spaceM }) {
         if (!this.embedded) {
         Row({ space: 8 }) {
-          Button({ type: ButtonType.Normal }) { DSHIcon({ glyph: 'chevron-left-outline', color: this.dark ? '#F9FAFB' : '#33353A' }) }
-            .width(38).height(38).borderRadius(12).backgroundColor(Color.Transparent)
-            .accessibilityText('返回设置').onClick(this.onBack)
+          NativeIconButton({ glyph: 'chevron-left-outline', label: '返回设置', tone: 'primary',
+            onPressed: this.onBack })
           Column({ space: 2 }) {
-            Text('关于').fontSize(19).fontWeight(FontWeight.Medium)
-              .fontColor(this.dark ? '#F9FAFB' : '#17181B')
-            Text('DSH Harmony').fontSize(11).fontColor(this.dark ? '#929298' : '#888B91')
+            Text('关于').fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium)
+              .fontColor(NativeDesign.textPrimary(this.dark))
+            Text('DSH Harmony').fontSize(NativeDesign.fontCaption)
+              .fontColor(NativeDesign.textTertiary(this.dark))
           }.alignItems(HorizontalAlign.Start).layoutWeight(1)
         }.width('100%')
         }
         Column({ space: 8 }) {
-          Image($r('app.media.app_icon')).width(72).height(72).borderRadius(18)
-          Text(BuildInfo.appName).fontSize(20).fontWeight(FontWeight.Medium)
-            .fontColor(this.dark ? '#F9FAFB' : '#17181B')
-          Text('版本 ' + BuildInfo.version + ' · HarmonyOS').fontSize(12)
-            .fontColor(this.dark ? '#A1A1AA' : '#777A80')
+          Image($r('app.media.app_icon')).width(72).height(72).borderRadius(NativeDesign.radiusGroup)
+          Text(BuildInfo.appName).fontSize(NativeDesign.fontPageTitle).fontWeight(FontWeight.Medium)
+            .fontColor(NativeDesign.textPrimary(this.dark))
+          Text('版本 ' + BuildInfo.version + ' · HarmonyOS').fontSize(NativeDesign.fontCaption)
+            .fontColor(NativeDesign.textTertiary(this.dark))
         }.width('100%').alignItems(HorizontalAlign.Center).padding({ top: 24, bottom: 24 })
-          .borderRadius(18).backgroundColor(this.dark ? '#222225' : '#FFFFFF')
-          .border({ width: 1, color: this.dark ? '#353538' : '#E8E9EC' })
+          .borderRadius(NativeDesign.radiusGroup).backgroundColor(NativeDesign.raised(this.dark))
+          .border({ width: 0.5, color: NativeDesign.border(this.dark) })
         Column({ space: 10 }) {
           Button({ type: ButtonType.Normal }) {
             Row({ space: 12 }) {
               Image($rawfile('maintainer-avatar.png')).width(48).height(48).borderRadius(24).objectFit(ImageFit.Cover)
               Column({ space: 3 }) {
-                Text(BuildInfo.author).fontSize(15).fontWeight(FontWeight.Medium)
-                  .fontColor(this.dark ? '#F9FAFB' : '#0F1115')
-                Text('github.com/' + BuildInfo.author).fontSize(12)
-                  .fontColor(this.dark ? '#8AB4FF' : '#3964FE')
+                Text(BuildInfo.author).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium)
+                  .fontColor(NativeDesign.textPrimary(this.dark))
+                Text('github.com/' + BuildInfo.author).fontSize(NativeDesign.fontCaption)
+                  .fontColor(NativeDesign.accent(this.dark))
               }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-              Text('↗').fontSize(16).fontColor(this.dark ? '#929298' : '#888B91')
+              DSHIcon({ glyph: 'external-link-outline', glyphSize: 15, color: NativeDesign.textTertiary(this.dark) })
             }.width('100%')
-          }.width('100%').constraintSize({ minHeight: 76 }).padding(14).borderRadius(16)
-            .backgroundColor(this.dark ? '#222225' : '#FFFFFF')
-            .border({ width: 1, color: this.dark ? '#353538' : '#E8E9EC', radius: 14 }).clip(true)
+          }.width('100%').constraintSize({ minHeight: 76 }).padding(NativeDesign.cardPadding)
+            .borderRadius(NativeDesign.radiusGroup).backgroundColor(NativeDesign.raised(this.dark))
+            .border({ width: 0.5, color: NativeDesign.border(this.dark) }).clip(true)
             .accessibilityText('打开作者 ' + BuildInfo.author + ' 的 GitHub 主页')
             .onClick(() => this.open(BuildInfo.authorProfile))
           Button({ type: ButtonType.Normal }) {
             Row() {
               Column({ space: 3 }) {
-                Text('项目仓库').fontSize(13).fontWeight(FontWeight.Medium)
-                  .fontColor(this.dark ? '#E7E7E9' : '#25262A')
-                Text('github.com/stlin256/DSH-Harmony').fontSize(11).fontColor(this.dark ? '#929298' : '#888B91')
+                Text('项目仓库').fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
+                  .fontColor(NativeDesign.textPrimary(this.dark))
+                Text('github.com/stlin256/DSH-Harmony').fontSize(NativeDesign.fontCaption)
+                  .fontColor(NativeDesign.textTertiary(this.dark))
               }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-              Text('↗').fontSize(16).fontColor(this.dark ? '#929298' : '#888B91')
+              DSHIcon({ glyph: 'external-link-outline', glyphSize: 15, color: NativeDesign.textTertiary(this.dark) })
             }.width('100%')
-          }.width('100%').constraintSize({ minHeight: 58 }).padding({ left: 14, right: 14, top: 10, bottom: 10 }).borderRadius(14)
-            .backgroundColor(this.dark ? '#222225' : '#FFFFFF')
-            .border({ width: 1, color: this.dark ? '#353538' : '#E8E9EC', radius: 14 }).clip(true)
+          }.width('100%').constraintSize({ minHeight: NativeDesign.standardRow + 4 })
+            .padding({ left: 14, right: 14, top: 10, bottom: 10 })
+            .borderRadius(NativeDesign.radiusGroup).backgroundColor(NativeDesign.raised(this.dark))
+            .border({ width: 0.5, color: NativeDesign.border(this.dark) }).clip(true)
             .onClick(() => this.open(BuildInfo.repository))
           Button({ type: ButtonType.Normal }) {
             Row() {
               Column({ space: 3 }) {
-                Text('报告问题').fontSize(13).fontWeight(FontWeight.Medium)
-                  .fontColor(this.dark ? '#E7E7E9' : '#25262A')
-                Text('在 GitHub Issues 提交反馈').fontSize(11).fontColor(this.dark ? '#929298' : '#888B91')
+                Text('报告问题').fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
+                  .fontColor(NativeDesign.textPrimary(this.dark))
+                Text('在 GitHub Issues 提交反馈').fontSize(NativeDesign.fontCaption)
+                  .fontColor(NativeDesign.textTertiary(this.dark))
               }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-              Text('↗').fontSize(16).fontColor(this.dark ? '#929298' : '#888B91')
+              DSHIcon({ glyph: 'external-link-outline', glyphSize: 15, color: NativeDesign.textTertiary(this.dark) })
             }.width('100%')
-          }.width('100%').constraintSize({ minHeight: 58 }).padding({ left: 14, right: 14, top: 10, bottom: 10 }).borderRadius(14)
-            .backgroundColor(this.dark ? '#222225' : '#FFFFFF')
-            .border({ width: 1, color: this.dark ? '#353538' : '#E8E9EC', radius: 14 }).clip(true)
+          }.width('100%').constraintSize({ minHeight: NativeDesign.standardRow + 4 })
+            .padding({ left: 14, right: 14, top: 10, bottom: 10 })
+            .borderRadius(NativeDesign.radiusGroup).backgroundColor(NativeDesign.raised(this.dark))
+            .border({ width: 0.5, color: NativeDesign.border(this.dark) }).clip(true)
             .onClick(() => this.open(BuildInfo.issues))
         }.width('100%')
         Text(BuildInfo.copyright + ' · AGPL-3.0-only').fontSize(11).lineHeight(18)
           .width('100%').textAlign(TextAlign.Center).padding({ top: 3, bottom: 3 })
-          .fontColor(this.dark ? '#85858B' : '#92959A')
+          .fontColor(NativeDesign.textTertiary(this.dark))
         if (this.status) {
-          Text(this.status).fontSize(12).fontColor(this.dark ? '#A1A1AA' : '#74777D')
+          Text(this.status).fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
             .width('100%').textAlign(TextAlign.Center).transition(TransitionEffect.OPACITY)
         }
-      }.padding({ left: 16, right: 16, top: 12, bottom: this.safeBottom + 24 }).width('100%')
+      }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset, top: 12,
+        bottom: this.safeBottom + 24 }).width('100%')
         .constraintSize({ maxWidth: 560 }).alignItems(HorizontalAlign.Start)
-    }.width('100%').height('100%').align(Alignment.TopStart).backgroundColor(this.dark ? '#171719' : '#F5F6F8')
+    }.width('100%').height('100%').align(Alignment.TopStart).backgroundColor(NativeDesign.base(this.dark))
       .transition(NativeMotion.navigationTransition())
   }
 }

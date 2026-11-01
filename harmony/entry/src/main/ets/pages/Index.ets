@@ -22,6 +22,7 @@ import { ProductCapabilities } from 'entry/ProductCapabilities';
 import { NativeLaunchFlow, NativeLaunchPhase } from '../services/NativeLaunchFlow';
 import { NativeLaunchSurface } from '../components/NativeLaunchSurface';
 import { UiModePreference } from '../services/UiModePreference';
+import { NativeDesign } from '../services/NativeDesign';
 
 @Entry
 @Component
@@ -611,22 +612,28 @@ struct Index {
         Scroll() {
           Column({ space: 16 }) {
             Text('连接管理').fontSize(24).fontWeight(FontWeight.Medium)
-              .fontColor(this.nativeDark ? '#F9FAFB' : '#0F1115')
-            Text('当前服务').fontSize(13).fontColor(this.nativeDark ? '#CFD3D6' : '#61666B')
-            Text(this.origin).fontSize(14).fontColor(this.nativeDark ? '#F9FAFB' : '#0F1115').copyOption(CopyOptions.InApp)
+              .fontColor(NativeDesign.textPrimary(this.nativeDark))
+            Text('当前服务').fontSize(13)
+              .fontColor(NativeDesign.textSecondary(this.nativeDark))
+            Text(this.origin).fontSize(14)
+              .fontColor(NativeDesign.textPrimary(this.nativeDark)).copyOption(CopyOptions.InApp)
             Text('退出后可更换服务地址。')
-              .fontSize(13).lineHeight(20).fontColor(this.nativeDark ? '#CFD3D6' : '#61666B')
+              .fontSize(13).lineHeight(20)
+              .fontColor(NativeDesign.textSecondary(this.nativeDark))
             if (this.uiMode !== 'native' || this.authSurface) {
               Button('打开网页设置', { type: ButtonType.Normal }).height(44).fontSize(13).borderRadius(12)
-                .backgroundColor(this.nativeDark ? '#353638' : '#F5F6F7').fontColor(this.nativeDark ? '#F9FAFB' : '#0F1115')
+                .backgroundColor(NativeDesign.field(this.nativeDark))
+                .fontColor(NativeDesign.textPrimary(this.nativeDark))
                 .onClick(() => { this.connectionManager = false; this.controller.loadUrl(this.origin + '/pocket/'); })
             }
             Button(this.busy ? '正在退出…' : '退出当前连接', { type: ButtonType.Normal }).height(48).fontSize(14).borderRadius(12)
-              .width('100%').enabled(!this.busy).backgroundColor(this.nativeDark ? '#4A2224' : '#FDECEC')
-              .fontColor(this.nativeDark ? '#FFD7D8' : '#A52025')
+              .width('100%').enabled(!this.busy)
+              .backgroundColor(NativeDesign.dangerSurface(this.nativeDark))
+              .fontColor(NativeDesign.danger(this.nativeDark))
               .onClick(() => { this.disconnectConnection().catch(() => { this.error = '退出失败，请重试'; }); })
             Button('返回', { type: ButtonType.Normal }).height(44).fontSize(13).borderRadius(12)
-              .backgroundColor(Color.Transparent).fontColor(this.nativeDark ? '#CFD3D6' : '#61666B')
+              .backgroundColor(Color.Transparent)
+              .fontColor(NativeDesign.textSecondary(this.nativeDark))
               .onClick(() => { this.connectionManager = false; })
           }.padding(24).width('100%').constraintSize({ maxWidth: 600 }).alignItems(HorizontalAlign.Start)
         }.layoutWeight(1).width('100%')
@@ -650,7 +657,10 @@ struct Index {
             onCompatibility: (): void => { this.compatibility(); },
             onWorkspaceReady: (): void => { this.finishLaunch(); } })
         } else {
-          if (this.progress < 100) { Progress({ value: this.progress, total: 100 }).width('100%').color(this.nativeDark ? '#5686FE' : '#4176E6').height(2) }
+          if (this.progress < 100) {
+            Progress({ value: this.progress, total: 100 }).width('100%')
+              .color(NativeDesign.accent(this.nativeDark)).height(2)
+          }
           Web({ src: this.origin + '/pocket/?mode=' + this.mode, controller: this.controller })
             .width('100%').layoutWeight(1)
             .javaScriptAccess(true).domStorageAccess(true).databaseAccess(true)
@@ -658,7 +668,7 @@ struct Index {
             .onRenderExited(() => { this.error = '网页渲染已中断，请点击刷新恢复'; })
             .fileAccess(false).mixedMode(MixedMode.None)
             .darkMode(WebDarkMode.Auto).forceDarkAccess(false)
-            .backgroundColor(this.nativeDark ? '#151517' : '#FFFFFF')
+            .backgroundColor(NativeDesign.base(this.nativeDark))
             .onControllerAttached(() => {
               if (this.bridge !== null) this.controller.registerJavaScriptProxy(this.bridge, 'dshPocket', ['request']);
             })
@@ -691,9 +701,9 @@ struct Index {
         }
       }
       if (this.error && this.launchPhase === NativeLaunchPhase.hidden) {
-        Text(this.error).fontColor('#b91c1c').fontSize(13).padding(10)
+        Text(this.error).fontColor(NativeDesign.danger(this.nativeDark)).fontSize(13).padding(10)
       }
-    }.width('100%').height('100%').backgroundColor(this.nativeDark ? '#151517' : '#FFFFFF')
+    }.width('100%').height('100%').backgroundColor(NativeDesign.base(this.nativeDark))
       .visibility(this.nativeSettings || this.settingsLayer ? Visibility.Hidden : Visibility.Visible)
       if (this.ready && this.settingsCached && this.settingsLayer) {
         Column() { this.settingsSheet() }.width('100%').height('100%')
@@ -735,10 +745,10 @@ struct Index {
           })
         }
         .width('100%').height('100%').opacity(this.launchOpacity)
-        .backgroundColor(this.nativeDark ? '#151517' : '#FFFFFF')
+        .backgroundColor(NativeDesign.base(this.nativeDark))
         .hitTestBehavior(this.launchOpacity > 0 ? HitTestMode.Default : HitTestMode.None)
       }
-    }.width('100%').height('100%').backgroundColor(this.nativeDark ? '#151517' : '#FFFFFF')
+    }.width('100%').height('100%').backgroundColor(NativeDesign.base(this.nativeDark))
   }
 
   build() {
@@ -751,7 +761,7 @@ struct Index {
     .hideBackButton(true)
     .hideToolBar(true)
     .width('100%').height('100%')
-    .backgroundColor(this.nativeDark ? '#151517' : '#FFFFFF')
+    .backgroundColor(NativeDesign.base(this.nativeDark))
     }
   }
 

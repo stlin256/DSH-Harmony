@@ -4,7 +4,9 @@ import { BuildInfo } from '../services/BuildInfo';
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeLaunchPhase } from '../services/NativeLaunchFlow';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
 import { DSHIcon } from './DSHIcon';
+import { NativeIconButton } from './NativeIconButton';
 
 @Component
 export struct NativeLaunchSurface {
@@ -43,27 +45,27 @@ export struct NativeLaunchSurface {
   }
 
   private primary(): string {
-    return this.dark ? '#8AB4FF' : '#3964FE';
+    return NativeDesign.accent(this.dark);
   }
 
   private foreground(): string {
-    return this.dark ? '#F6F7F9' : '#17181B';
+    return NativeDesign.textPrimary(this.dark);
   }
 
   private secondary(): string {
-    return this.dark ? '#A4A7AD' : '#6E737A';
+    return NativeDesign.textSecondary(this.dark);
   }
 
   private surface(): string {
-    return this.dark ? '#202124' : '#FFFFFF';
+    return NativeDesign.raised(this.dark);
   }
 
   private raised(): string {
-    return this.dark ? '#292A2E' : '#F1F3F6';
+    return NativeDesign.field(this.dark);
   }
 
   private subtleStroke(): string {
-    return this.dark ? '#383A3F' : '#E3E5E9';
+    return NativeDesign.border(this.dark);
   }
 
   private logoSize(): number {
@@ -123,26 +125,21 @@ export struct NativeLaunchSurface {
 
   @Builder
   private iconButton(glyph: string, label: string, action: () => void) {
-    Button({ type: ButtonType.Normal }) {
-      DSHIcon({ glyph, glyphSize: 18, color: this.foreground() })
-    }
-    .width(40).height(40).borderRadius(13)
-    .backgroundColor(this.raised())
-    .accessibilityText(label)
-    .onClick(action)
+    NativeIconButton({ glyph, label, glyphSize: 18, tone: 'primary', onPressed: action })
   }
 
   @Builder
   private primaryButton(label: string, loading: boolean, action: () => void) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 8 }) {
-        if (loading) LoadingProgress().width(17).height(17).color(this.dark ? '#17181B' : '#FFFFFF')
+        if (loading) LoadingProgress().width(17).height(17)
+          .color(NativeDesign.textInverse(this.dark))
         Text(loading ? '正在连接' : label).fontSize(15).fontWeight(FontWeight.Medium)
-          .fontColor(this.dark ? '#17181B' : '#FFFFFF')
+          .fontColor(NativeDesign.textInverse(this.dark))
       }
     }
-    .width('100%').height(48).borderRadius(14)
-    .backgroundColor(this.dark ? '#F6F7F9' : '#17181B')
+    .width('100%').height(48).borderRadius(NativeDesign.radiusRow)
+    .backgroundColor(NativeDesign.textPrimary(this.dark))
     .enabled(!loading)
     .onClick(action)
   }
@@ -152,7 +149,7 @@ export struct NativeLaunchSurface {
     Button({ type: ButtonType.Normal }) {
       Text(label).fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.foreground())
     }
-      .width('100%').height(48).borderRadius(14)
+      .width('100%').height(48).borderRadius(NativeDesign.radiusRow)
       .backgroundColor(this.raised())
       .onClick(action)
   }
@@ -190,7 +187,7 @@ export struct NativeLaunchSurface {
     Row({ space: 13 }) {
       Stack({ alignContent: Alignment.Center }) {
         Column().width(40).height(40).borderRadius(20)
-          .backgroundColor(this.dark ? '#2D3035' : '#EBEFF5')
+          .backgroundColor(NativeDesign.selection(this.dark))
         DSHIcon({ glyph, glyphSize: 19, color: this.primary() })
       }.width(40).height(40)
       Column({ space: 2 }) {
@@ -221,14 +218,14 @@ export struct NativeLaunchSurface {
             this.guideStep('02', 'download-outline', '安装 DSH Harmony 插件', '粘贴安装提示词并启用')
             Divider().strokeWidth(0.5).margin({ left: 53 }).color(this.subtleStroke())
             this.guideStep('03', 'check-outline', '连接工作空间', '返回 App，选择登录方式')
-          }.width('100%').padding({ left: 14, right: 14 })
-            .borderRadius(18).backgroundColor(this.surface())
+          }.width('100%').padding({ left: NativeDesign.cardPadding, right: NativeDesign.cardPadding })
+            .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.surface())
             .border({ width: 1, color: this.subtleStroke() })
           Button({ type: ButtonType.Normal }) {
             Row({ space: 12 }) {
               Stack({ alignContent: Alignment.Center }) {
                 Column().width(36).height(36).borderRadius(18)
-                  .backgroundColor(this.dark ? '#25334E' : '#EAF0FF')
+                  .backgroundColor(NativeDesign.accentSurface(this.dark))
                 DSHIcon({ glyph: 'copy-outline', glyphSize: 17, color: this.primary() })
               }
               Column({ space: 3 }) {
@@ -240,7 +237,7 @@ export struct NativeLaunchSurface {
             }.width('100%')
           }
           .width('100%').constraintSize({ minHeight: 62 }).padding({ left: 12, right: 12 })
-          .borderRadius(16).backgroundColor(this.surface()).border({ width: 1, color: this.subtleStroke() })
+          .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.surface()).border({ width: 1, color: this.subtleStroke() })
           .accessibilityText('复制 DSH Harmony 插件安装提示词')
           .onClick((): void => { this.copy(BuildInfo.pluginInstallPrompt, 'prompt'); })
           Row({ space: 8 }) {
@@ -249,11 +246,11 @@ export struct NativeLaunchSurface {
                 DSHIcon({ glyph: 'branch-outline', glyphSize: 15, color: this.secondary() })
                 Text('打开仓库').fontSize(12).fontColor(this.foreground())
               }
-            }.layoutWeight(1).height(42).borderRadius(12).backgroundColor(this.raised())
+            }.layoutWeight(1).height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusRow).backgroundColor(this.raised())
               .onClick((): void => { this.open(BuildInfo.repository); })
             Button({ type: ButtonType.Normal }) {
               Text('详细安装说明').fontSize(12).fontColor(this.foreground())
-            }.layoutWeight(1).height(42).borderRadius(12).backgroundColor(this.raised())
+            }.layoutWeight(1).height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusRow).backgroundColor(this.raised())
               .onClick(this.onOpenInstall)
           }.width('100%')
         }.width('100%').padding({ top: 20, bottom: 16 })
@@ -265,7 +262,7 @@ export struct NativeLaunchSurface {
       }
     }
     .width('100%').height('100%')
-    .padding({ left: 18 + this.safeLeft, right: 18 + this.safeRight,
+    .padding({ left: NativeDesign.pageInset + this.safeLeft, right: NativeDesign.pageInset + this.safeRight,
       top: this.safeTop + 12, bottom: this.safeBottom + 18 })
     .constraintSize({ maxWidth: 560 })
     .transition(NativeMotion.navigationTransition())
@@ -276,7 +273,7 @@ export struct NativeLaunchSurface {
     Row({ space: 12 }) {
       Stack({ alignContent: Alignment.Center }) {
         Column().width(38).height(38).borderRadius(19)
-          .backgroundColor(this.dark ? '#25334E' : '#EAF0FF')
+          .backgroundColor(NativeDesign.accentSurface(this.dark))
         DSHIcon({ glyph, glyphSize: 18, color: this.primary() })
       }.width(38).height(38)
       Column({ space: 3 }) {
@@ -285,7 +282,8 @@ export struct NativeLaunchSurface {
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       Text(badge).fontSize(10).fontWeight(FontWeight.Medium)
         .fontColor(this.primary()).padding({ left: 8, right: 8, top: 4, bottom: 4 })
-        .borderRadius(8).backgroundColor(this.dark ? '#25334E' : '#EAF0FF')
+        .borderRadius(NativeDesign.radiusCompact)
+        .backgroundColor(NativeDesign.accentSurface(this.dark))
     }
     .width('100%').padding({ top: 12, bottom: 12 })
   }
@@ -296,7 +294,7 @@ export struct NativeLaunchSurface {
       Row({ space: 12 }) {
         Stack({ alignContent: Alignment.Center }) {
           Column().width(38).height(38).borderRadius(19)
-            .backgroundColor(this.dark ? '#25334E' : '#EAF0FF')
+            .backgroundColor(NativeDesign.accentSurface(this.dark))
           DSHIcon({ glyph, glyphSize: 18, color: this.primary() })
         }.width(38).height(38)
         Column({ space: 3 }) {
@@ -309,7 +307,7 @@ export struct NativeLaunchSurface {
       }.width('100%')
     }
     .width('100%').constraintSize({ minHeight: 62 }).padding({ left: 13, right: 13 })
-    .borderRadius(15).backgroundColor(this.surface()).border({ width: 1, color: this.subtleStroke() })
+    .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.surface()).border({ width: 1, color: this.subtleStroke() })
     .accessibilityText(title)
     .onClick((): void => { this.copy(value, key); })
   }
@@ -344,7 +342,7 @@ export struct NativeLaunchSurface {
               .width('100%').height(142).objectFit(ImageFit.Contain).opacity(0.96)
           }
           .width('100%').height(154).borderRadius(18)
-          .backgroundColor(this.dark ? '#182338' : '#EEF3FF')
+          .backgroundColor(NativeDesign.accentSurface(this.dark))
           Column({ space: 8 }) {
             this.detailSectionTitle('交给 DSH 自动安装', '推荐 · Agent 会完成下载、启用与版本检查')
             this.detailCopyAction('复制安装提示词', '发送给 DSH Agent', 'agent-preset-outline',
@@ -364,7 +362,7 @@ export struct NativeLaunchSurface {
               Divider().strokeWidth(0.5).margin({ left: 50 }).color(this.subtleStroke())
               this.installDetailRow('check-outline', '版本匹配', BuildInfo.pluginArtifactVersion, '02')
             }.width('100%').padding({ left: 14, right: 14 })
-              .borderRadius(16).backgroundColor(this.surface())
+              .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.surface())
               .border({ width: 1, color: this.subtleStroke() })
           }.width('100%').alignItems(HorizontalAlign.Start)
           Column({ space: 8 }) {
@@ -384,7 +382,7 @@ export struct NativeLaunchSurface {
       this.primaryButton('返回连接', false, this.onCloseInstall)
     }
     .width('100%').height('100%')
-    .padding({ left: 18 + this.safeLeft, right: 18 + this.safeRight,
+    .padding({ left: NativeDesign.pageInset + this.safeLeft, right: NativeDesign.pageInset + this.safeRight,
       top: this.safeTop + 12, bottom: this.safeBottom + 18 })
     .constraintSize({ maxWidth: 560 })
     .transition(NativeMotion.navigationTransition())
@@ -409,8 +407,9 @@ export struct NativeLaunchSurface {
         }
       }.width('100%').padding({ left: 13, right: 13 })
     }
-    .width('100%').constraintSize({ minHeight: 50 }).borderRadius(13)
-    .backgroundColor(this.mode === value ? this.dark ? '#22314B' : '#EAF0FF' : this.raised())
+    .width('100%').constraintSize({ minHeight: NativeDesign.standardRow + 2 }).borderRadius(NativeDesign.radiusRow)
+    .backgroundColor(this.mode === value ?
+      NativeDesign.accentSurface(this.dark) : this.raised())
     .border({ width: 1, color: this.mode === value ? this.primary() : this.subtleStroke() })
     .onClick((): void => { this.onModeChange(value); })
   }
@@ -428,7 +427,7 @@ export struct NativeLaunchSurface {
       Column({ space: 7 }) {
         this.formLabel('服务地址')
         TextInput({ text: this.address, placeholder: 'https://dsh.example.com' })
-          .height(48).borderRadius(13).type(InputType.URL)
+          .height(NativeDesign.standardRow).borderRadius(NativeDesign.radiusRow).type(InputType.URL)
           .backgroundColor(this.raised()).fontColor(this.foreground())
           .placeholderColor(this.secondary())
           .border({ width: 1, color: this.subtleStroke() })
@@ -439,7 +438,7 @@ export struct NativeLaunchSurface {
         this.modeButton('访问密钥', '默认 · 局域网与公网', 'native')
         if (this.mode === 'native') {
           TextInput({ text: this.accessKey, placeholder: '输入 Harness 访问密钥' })
-            .height(46).borderRadius(13).type(InputType.Password)
+            .height(NativeDesign.pickerRow).borderRadius(NativeDesign.radiusRow).type(InputType.Password)
             .backgroundColor(this.raised()).fontColor(this.foreground())
             .placeholderColor(this.secondary())
             .border({ width: 1, color: this.subtleStroke() })
@@ -453,21 +452,21 @@ export struct NativeLaunchSurface {
         Row({ space: 10 }) {
           Column({ space: 3 }) {
             Text('登录失败').fontSize(12).fontWeight(FontWeight.Medium)
-              .fontColor(this.dark ? '#FFB4B4' : '#B83A3A')
+              .fontColor(NativeDesign.danger(this.dark))
             Text(this.errorText).fontSize(11).lineHeight(17).maxLines(3)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .fontColor(this.dark ? '#E3B6B6' : '#874242')
+              .fontColor(NativeDesign.textSecondary(this.dark))
           }.layoutWeight(1).alignItems(HorizontalAlign.Start)
           this.iconButton(this.copied === 'error' ? 'check-outline' : 'copy-outline', '复制错误',
             (): void => { this.copy(this.errorText, 'error'); })
         }
-        .width('100%').padding(10).borderRadius(13)
-        .backgroundColor(this.dark ? '#392326' : '#FFF1F1')
-        .border({ width: 1, color: this.dark ? '#5B3237' : '#F0CFD1' })
+        .width('100%').padding(NativeDesign.spaceM).borderRadius(NativeDesign.radiusRow)
+        .backgroundColor(NativeDesign.dangerSurface(this.dark))
+        .border({ width: 1, color: NativeDesign.border(this.dark) })
       }
       this.primaryButton('连接工作空间', this.busy, this.onConnect)
     }
-    .width('100%').padding(18).borderRadius(22)
+    .width('100%').padding(18).borderRadius(NativeDesign.radiusSurface)
     .backgroundColor(this.surface()).border({ width: 1, color: this.subtleStroke() })
     .shadow({ radius: NativeExperience.materialsEnabled() ? 22 : 0,
       color: this.dark ? '#55000000' : '#16000000', offsetY: 8 })
@@ -498,7 +497,7 @@ export struct NativeLaunchSurface {
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       }.width('100%')
       Text(this.errorText).fontSize(13).lineHeight(20).fontColor(this.secondary())
-        .width('100%').padding(13).borderRadius(13).backgroundColor(this.raised())
+        .width('100%').padding(NativeDesign.spaceM).borderRadius(NativeDesign.radiusRow).backgroundColor(this.raised())
       Row({ space: 8 }) {
         this.iconButton(this.copied === 'error' ? 'check-outline' : 'copy-outline', '复制错误',
           (): void => { this.copy(this.errorText, 'error'); })
@@ -508,7 +507,7 @@ export struct NativeLaunchSurface {
       this.primaryButton('重试', this.busy, this.onRetry)
       this.secondaryButton('修改地址', this.onEditAddress)
     }
-    .width('100%').padding(18).borderRadius(22).backgroundColor(this.surface())
+    .width('100%').padding(18).borderRadius(NativeDesign.radiusSurface).backgroundColor(this.surface())
     .border({ width: 1, color: this.subtleStroke() })
     .constraintSize({ maxWidth: 500 })
   }
@@ -520,7 +519,7 @@ export struct NativeLaunchSurface {
         if (this.phase === NativeLaunchPhase.error) this.errorCard()
         else this.loginCard()
       }
-      .width('100%').padding({ left: 18 + this.safeLeft, right: 18 + this.safeRight,
+      .width('100%').padding({ left: NativeDesign.pageInset + this.safeLeft, right: NativeDesign.pageInset + this.safeRight,
         top: this.safeTop + 144, bottom: this.safeBottom + 24 })
       .alignItems(HorizontalAlign.Center)
     }
@@ -540,10 +539,10 @@ export struct NativeLaunchSurface {
             : [['#FFFFFF', 0.0], ['#F7F9FC', 0.58], ['#F0F4FB', 1.0]]
         })
       Column().width(260).height(260).borderRadius(130)
-        .backgroundColor(this.dark ? '#101C32' : '#EAF1FF').opacity(0.62)
+        .backgroundColor(NativeDesign.accentSurface(this.dark)).opacity(0.62)
         .position({ x: this.viewportWidth - 176, y: -84 })
       Column().width(190).height(190).borderRadius(95)
-        .backgroundColor(this.dark ? '#13221F' : '#EAF8F5').opacity(0.45)
+        .backgroundColor(NativeDesign.successSurface(this.dark)).opacity(0.45)
         .position({ x: -78, y: this.viewportHeight * 0.56 })
       if (this.phase !== NativeLaunchPhase.restoring &&
         this.phase !== NativeLaunchPhase.entering) {

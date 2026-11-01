@@ -3,6 +3,7 @@ import { preferences } from '@kit.ArkData';
 import { deviceInfo, power } from '@kit.BasicServicesKit';
 import { accessibility } from '@kit.AccessibilityKit';
 import { uiMaterial } from '@kit.ArkUI';
+import { NativeDesign } from './NativeDesign';
 
 export class NativeExperience {
   static refresh(context: common.Context): void {
@@ -50,7 +51,10 @@ export class NativeExperience {
   }
 
   static titleOptions(dark: boolean, _revision: number): NavigationTitleOptions {
-    const options: NavigationTitleOptions = { backgroundColor: dark ? '#151517' : '#FFFFFF', barStyle: BarStyle.STANDARD };
+    const options: NavigationTitleOptions = {
+      backgroundColor: NativeDesign.base(dark),
+      barStyle: BarStyle.STANDARD
+    };
     if (deviceInfo.sdkApiVersion >= 26) {
       // Explicit empty also disables system defaults when accessibility or power
       // policy requests an opaque surface. It differs from undefined.

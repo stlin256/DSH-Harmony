@@ -4,6 +4,7 @@ import { NativeMarkdownTable, nativeMarkdownTable } from '../services/NativeMark
 import { NativeCodeBlock } from './NativeCodeBlock';
 import { NativeInlineText } from './NativeInlineText';
 import { NativeTable } from './NativeTable';
+import { NativeDesign } from '../services/NativeDesign';
 
 /** Native Markdown file preview using the same inline and table primitives as chat. */
 @Component
@@ -32,7 +33,7 @@ export struct NativeMarkdownPreview {
         if (block.kind === 'heading') {
           Text(block.text).width('100%').fontSize(this.headingSize(block.level))
             .fontWeight(block.level <= 2 ? FontWeight.Bold : FontWeight.Medium)
-            .fontColor(this.dark ? '#F9FAFB' : '#15171B').copyOption(CopyOptions.InApp)
+            .fontColor(NativeDesign.textPrimary(this.dark)).copyOption(CopyOptions.InApp)
             .padding({ top: block.level <= 2 ? 4 : 1 })
         } else if (block.kind === 'code') {
           NativeCodeBlock({ code: block.text, language: block.language })
@@ -41,8 +42,9 @@ export struct NativeMarkdownPreview {
             NativeInlineText({ text: block.text, textSize: 13, lineHeight: '21fp',
               muted: true, client: this.client, sessionId: this.sessionId })
           }.width('100%').padding({ left: 11, right: 9, top: 8, bottom: 8 })
-            .borderRadius(9).backgroundColor(this.dark ? '#2A2B2F' : '#EEF1F5')
-            .border({ width: { left: 2 }, color: this.dark ? '#5E88D8' : '#3964FE' })
+            .borderRadius(NativeDesign.radiusControl)
+            .backgroundColor(NativeDesign.subtleSurface(this.dark))
+            .border({ width: { left: 2 }, color: NativeDesign.accent(this.dark) })
         } else if (block.kind === 'table' && this.table(block)) {
           NativeTable({ table: this.table(block) as NativeMarkdownTable,
             client: this.client, sessionId: this.sessionId })
@@ -52,7 +54,7 @@ export struct NativeMarkdownPreview {
         }
       }, (_block: NativeMarkdownBlock, index: number) => index.toString())
       if (!this.blocks.length) {
-        Text('空文件').fontSize(12).fontColor(this.dark ? '#93969B' : '#8A8D91')
+        Text('空文件').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
       }
     }.width('100%').justifyContent(FlexAlign.Start).alignItems(HorizontalAlign.Start)
       .align(Alignment.TopStart)

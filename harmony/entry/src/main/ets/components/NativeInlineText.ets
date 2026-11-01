@@ -10,8 +10,9 @@ import { NativeHarnessClient } from '../services/NativeHarnessClient';
 import { nativeBareFileName, nativeFileTarget, nativeLinkKind } from '../services/NativeLinkResolver';
 import { NativeFileViewRequest } from '../services/NativeSessionModel';
 import { NativeWorkspaceTarget } from '../services/NativeWorkspaceTarget';
-import { DSHIcon } from './DSHIcon';
 import { NativeExperience } from '../services/NativeExperience';
+import { NativeDesign } from '../services/NativeDesign';
+import { NativeIconButton } from './NativeIconButton';
 
 @Component
 export struct NativeInlineText {
@@ -49,15 +50,16 @@ export struct NativeInlineText {
   }
   private changed(): void { this.runs = nativeInlineMarkdown(this.text); }
   private runColor(run: NativeInlineRun): ResourceColor {
-    if (run.href) return this.dark ? '#8AB4FF' : '#3964FE';
-    if (this.muted) return this.dark ? '#CFD3D6' : '#61666B';
-    return this.dark ? '#F9FAFB' : '#0F1115';
+    if (run.href) return NativeDesign.accent(this.dark);
+    if (this.muted) return NativeDesign.textSecondary(this.dark);
+    return NativeDesign.textPrimary(this.dark);
   }
   private runBackground(run: NativeInlineRun): TextBackgroundStyle {
-    return { color: run.code ? this.dark ? '#353638' : '#EBEEF2' : Color.Transparent, radius: run.code ? 3 : 0 };
+    return { color: run.code ? NativeDesign.selection(this.dark) : Color.Transparent,
+      radius: run.code ? NativeDesign.spaceXS - 1 : 0 };
   }
   private externalIconFilter(): drawing.ColorFilter {
-    const color = ColorMetrics.resourceColor(this.dark ? '#8AB4FF' : '#3964FE');
+    const color = ColorMetrics.resourceColor(NativeDesign.accent(this.dark));
     return drawing.ColorFilter.createBlendModeColorFilter({
       alpha: color.alpha,
       red: color.red,
@@ -156,15 +158,15 @@ export struct NativeInlineText {
       Row({ space: 4 }) {
         Text(this.remoteTitle || '图片').fontSize(14).fontWeight(FontWeight.Medium).layoutWeight(1)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-          .fontColor(this.dark ? '#F9FAFB' : '#17181B')
-        Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'close-outline', glyphSize: 15, color: this.dark ? '#F9FAFB' : '#17181B' })
-        }.width(32).height(32).borderRadius(9).backgroundColor(Color.Transparent)
-          .accessibilityText('关闭图片预览').onClick(() => { this.remotePreview = false; })
-      }.height(40).width('100%')
+          .fontColor(NativeDesign.textPrimary(this.dark))
+        NativeIconButton({
+          glyph: 'close-outline', label: '关闭图片预览', tone: 'primary', glyphSize: 15,
+          onPressed: (): void => { this.remotePreview = false; }
+        })
+      }.height(NativeDesign.headerHeight).width('100%')
       if (this.remoteError) {
         Text(this.remoteError).fontSize(13).layoutWeight(1).textAlign(TextAlign.Center)
-          .fontColor(this.dark ? '#FFB1B1' : '#B3261E')
+          .fontColor(NativeDesign.danger(this.dark))
       } else {
         Scroll() {
           Image(this.remoteUrl).objectFit(ImageFit.Contain).width('100%')
@@ -174,7 +176,7 @@ export struct NativeInlineText {
     }.padding({
       left: 12 + this.safeLeft, right: 12 + this.safeRight,
       top: 8 + this.safeTop, bottom: 10 + this.safeBottom
-    }).width('100%').height('100%').backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+    }).width('100%').height('100%').backgroundColor(NativeDesign.base(this.dark))
   }
   build() {
     Text() {

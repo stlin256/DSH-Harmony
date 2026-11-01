@@ -5,6 +5,7 @@ import { NativeHarnessClient } from '../services/NativeHarnessClient';
 import { NativeImageAttachment, NativeImagePreviewRequest } from '../services/NativeSessionModel';
 import { NativeAttachmentCache } from '../services/NativeAttachmentCache';
 import { NativeStorageManager } from '../services/NativeStorageManager';
+import { NativeDesign } from '../services/NativeDesign';
 
 class AttachmentResult { data: string = ''; }
 @Component
@@ -66,7 +67,8 @@ export struct NativeImageView {
   build() {
     Column({ space: this.compact ? 0 : 8 }) {
       if (!this.compact) {
-        Text(this.attachment.name || '图片').fontSize(12).fontColor(this.dark ? '#CFD3D6' : '#61666B')
+        Text(this.attachment.name || '图片').fontSize(12)
+          .fontColor(NativeDesign.textSecondary(this.dark))
       }
       if (this.bitmap) {
         Button({ type: ButtonType.Normal }) {
@@ -77,7 +79,7 @@ export struct NativeImageView {
           .height(this.compact ? this.compactHeight() : Math.min(320, Math.max(140, 320 * this.attachment.height /
             Math.max(1, this.attachment.width))))
           .padding(0).borderRadius(this.compact ? 10 : 12)
-          .backgroundColor(this.dark ? '#232324' : '#F5F6F7').clip(true)
+          .backgroundColor(NativeDesign.field(this.dark)).clip(true)
           .accessibilityText('预览图片 ' + (this.attachment.name || ''))
           .onClick((): void => { this.openLightbox(); })
       } else {
@@ -85,16 +87,16 @@ export struct NativeImageView {
           if (this.loading) {
             LoadingProgress().width(this.compact ? Math.max(16, Math.round(this.compactSize * 0.22)) : 24)
               .height(this.compact ? Math.max(16, Math.round(this.compactSize * 0.22)) : 24)
-              .color(this.dark ? '#8AB4FF' : '#3964FE')
+              .color(NativeDesign.accent(this.dark))
           } else {
             Text(this.compact ? '重试' : (this.error || '图片 · ' + this.attachment.width + ' × ' +
               this.attachment.height))
               .fontSize(this.compact ? 10 : 12)
-              .fontColor(this.dark ? '#CFD3D6' : '#61666B')
+              .fontColor(NativeDesign.textSecondary(this.dark))
           }
         }.height(this.compact ? this.compactHeight() : 48).width(this.compact ? this.compactSize : '100%')
           .borderRadius(this.compact ? 10 : 12).enabled(!this.loading)
-          .backgroundColor(this.dark ? '#232324' : '#F5F6F7')
+          .backgroundColor(NativeDesign.field(this.dark))
           .accessibilityText(this.loading ? '正在加载图片' : '重试加载图片')
           .onClick((): void => { if (!this.loading) this.load(); })
       }

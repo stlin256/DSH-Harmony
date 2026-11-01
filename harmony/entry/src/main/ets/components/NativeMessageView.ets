@@ -10,6 +10,7 @@ import { NativeMessage, NativeTextBlock, NativeImageAttachment } from '../servic
 import { NativeInlineText } from './NativeInlineText';
 import { NativeCodeBlock } from './NativeCodeBlock';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
 
 @Component
 export struct NativeMessageView {
@@ -49,12 +50,13 @@ export struct NativeMessageView {
     Column({ space: 6 }) {
       if (this.message.role !== 'user' && this.message.role !== 'assistant' && this.message.role !== 'tool' && this.message.role !== 'reasoning') {
         Text(this.message.label).fontSize(12).fontWeight(FontWeight.Medium)
-          .fontColor(this.dark ? '#CFD3D6' : '#61666B')
+          .fontColor(NativeDesign.textSecondary(this.dark))
       }
       if (this.message.reasoning) {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 6 }) {
-            DSHIcon({ glyph: 'chevron-left-outline', color: this.dark ? '#93969B' : '#8A8D91', glyphSize: 12 })
+            DSHIcon({ glyph: 'chevron-left-outline',
+              color: NativeDesign.textTertiary(this.dark), glyphSize: 12 })
               .rotate({ angle: this.reasoningOpen ? -90 : 180 })
             Text('思考过程').fontSize(12)
             if (!this.reasoningOpen && this.preview) {
@@ -62,8 +64,10 @@ export struct NativeMessageView {
                 .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
             }
           }.width('100%')
-        }.width('100%').height(28).padding(0).fontSize(12).borderRadius(8)
-          .backgroundColor(Color.Transparent).fontColor(this.dark ? '#CFD3D6' : '#61666B')
+        }.width('100%').height(NativeDesign.hitTarget).padding(0)
+          .fontSize(NativeDesign.fontBody).borderRadius(NativeDesign.radiusCompact)
+          .backgroundColor(Color.Transparent)
+          .fontColor(NativeDesign.textSecondary(this.dark))
           .onClick(() => { this.animate(() => { this.reasoningOpen = !this.reasoningOpen;
             this.disclosures.set(this.message.turnKey + '|' + this.message.id, this.reasoningOpen); }); })
         if (this.reasoningOpen) {
@@ -73,12 +77,14 @@ export struct NativeMessageView {
       if (this.message.role === 'tool') {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 6 }) {
-            DSHIcon({ glyph: 'chevron-left-outline', color: this.dark ? '#93969B' : '#8A8D91', glyphSize: 12 })
+            DSHIcon({ glyph: 'chevron-left-outline',
+              color: NativeDesign.textTertiary(this.dark), glyphSize: 12 })
               .rotate({ angle: this.toolOpen ? -90 : 180 })
             Text(this.message.label).fontSize(12).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           }
-        }.height(30).fontSize(12).borderRadius(8).backgroundColor(Color.Transparent)
-          .fontColor(this.dark ? '#CFD3D6' : '#61666B')
+        }.height(NativeDesign.hitTarget).fontSize(NativeDesign.fontBody)
+          .borderRadius(NativeDesign.radiusCompact).backgroundColor(Color.Transparent)
+          .fontColor(NativeDesign.textSecondary(this.dark))
           .onClick(() => { this.animate(() => { this.toolOpen = !this.toolOpen; }); })
       }
       if (this.message.role !== 'tool' || this.toolOpen) {
@@ -93,8 +99,8 @@ export struct NativeMessageView {
             Column() {
               NativeInlineText({ text: block.text, textSize: 13, muted: true,
                 client: this.client, sessionId: this.sessionId })
-            }.padding(12).borderRadius(12)
-              .backgroundColor(this.dark ? '#353638' : '#F5F6F7')
+            }.padding(NativeDesign.spaceM).borderRadius(NativeDesign.radiusRow)
+              .backgroundColor(NativeDesign.field(this.dark))
           } else {
             NativeTextContent({ text: block.text, client: this.client, sessionId: this.sessionId })
           }
@@ -116,18 +122,22 @@ export struct NativeMessageView {
         }
       }
       if (this.message.role === 'notice') {
-        Button('打开完整交互', { type: ButtonType.Normal }).height(36).fontSize(12).borderRadius(10)
-          .backgroundColor(this.dark ? '#353638' : '#F5F6F7').fontColor(this.dark ? '#F9FAFB' : '#0F1115')
+        Button('打开完整交互', { type: ButtonType.Normal })
+          .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontBody)
+          .borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(NativeDesign.field(this.dark))
+          .fontColor(NativeDesign.textPrimary(this.dark))
           .onClick(this.onCompatibility)
       }
       if (!this.message.text && !this.message.reasoning && !this.message.images?.length) {
         Text('此消息暂不支持原生显示。').fontSize(13)
-          .fontColor(this.dark ? '#CFD3D6' : '#61666B')
+          .fontColor(NativeDesign.textSecondary(this.dark))
       }
     }.alignItems(HorizontalAlign.Start).width(this.message.role === 'user' ? '82%' : '100%')
       .padding(this.message.role === 'user' || this.message.role === 'tool' ? 10 : this.message.role === 'reasoning' ? 0 : 2)
-      .backgroundColor(this.message.role === 'user' || this.message.role === 'tool' ? this.dark ? '#2C2C2E' : '#F5F6F7' : Color.Transparent)
-      .borderRadius(16)
+      .backgroundColor(this.message.role === 'user' || this.message.role === 'tool' ?
+        NativeDesign.field(this.dark) : Color.Transparent)
+      .borderRadius(NativeDesign.radiusGroup)
       .accessibilityText(this.hasCopyableText() ? '消息，长按复制' : '')
       .gesture(
         LongPressGesture({ repeat: false })

@@ -1,5 +1,6 @@
 import { DSHIcon } from './DSHIcon';
 import { NativePlanDocument, NativePlanItem, nativePlanProgress } from '../services/NativePlan';
+import { NativeDesign } from '../services/NativeDesign';
 
 @Component
 export struct NativePlanView {
@@ -18,13 +19,13 @@ export struct NativePlanView {
     Stack() {
       if (item.status === 'completed') {
         DSHIcon({ glyph: 'check-outline', glyphSize: 9,
-          color: this.dark ? '#9BE2B0' : '#187940' })
+          color: NativeDesign.success(this.dark) })
       } else if (item.status === 'in_progress') {
         Text('●').fontSize(8)
-          .fontColor(this.dark ? '#8AB4FF' : '#3964FE')
+          .fontColor(NativeDesign.accent(this.dark))
       } else {
         Text('○').fontSize(12)
-          .fontColor(this.dark ? '#63666B' : '#B8BBC0')
+          .fontColor(NativeDesign.textTertiary(this.dark))
       }
     }.width(16).height(16)
   }
@@ -34,14 +35,14 @@ export struct NativePlanView {
       if (this.showHeader) {
         Row({ space: 7 }) {
           DSHIcon({ glyph: 'plan-outline', glyphSize: 15,
-            color: this.dark ? '#93969B' : '#777A80' })
+            color: NativeDesign.textTertiary(this.dark) })
           Text('任务计划').fontSize(12).fontWeight(FontWeight.Medium)
-            .fontColor(this.dark ? '#E7E7E9' : '#202124')
+            .fontColor(NativeDesign.textPrimary(this.dark))
           Text(nativePlanProgress(this.document)).fontSize(11).layoutWeight(1).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .fontColor(this.dark ? '#93969B' : '#777A80')
+            .fontColor(NativeDesign.textTertiary(this.dark))
         }.width('100%')
-        Divider().color(this.dark ? '#353538' : '#E5E6E8')
+        Divider().color(NativeDesign.divider(this.dark))
       }
       Column({ space: 5 }) {
         ForEach(this.document.items, (item: NativePlanItem, index: number) => {
@@ -50,8 +51,7 @@ export struct NativePlanView {
             Text(item.content).fontSize(11).lineHeight(16).layoutWeight(1)
               .maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(item.status === 'completed' ?
-                (this.dark ? '#AEB1B5' : '#6A6E73') :
-                (this.dark ? '#D7D9DC' : '#363A3F'))
+                NativeDesign.textSecondary(this.dark) : NativeDesign.textPrimary(this.dark))
           }.width('100%').alignItems(VerticalAlign.Top)
             .accessibilityText(this.statusLabel(item.status) + '：' + item.content)
         }, (item: NativePlanItem, index: number) =>

@@ -2,6 +2,7 @@ import { DSHIcon } from './DSHIcon';
 import { NativeMotion } from '../services/NativeMotion';
 import { NativePlanDocument, nativePlanProgress } from '../services/NativePlan';
 import { NativePlanView } from './NativePlanView';
+import { NativeDesign } from '../services/NativeDesign';
 
 /** Floating current-plan control anchored below the conversation title. */
 @Component
@@ -28,30 +29,26 @@ export struct NativeTaskDock {
     });
   }
 
-  private surfaceColor(): string {
-    return this.dark ? '#242527' : '#FFFFFF';
-  }
-
   build() {
     Column({ space: 0 }) {
       Button({ type: ButtonType.Normal }) {
         Row({ space: 5 }) {
           DSHIcon({ glyph: 'plan-outline', glyphSize: 14,
-            color: this.dark ? '#B7BABE' : '#60656B' })
-          Text('任务计划').fontSize(11).fontWeight(FontWeight.Medium)
-            .fontColor(this.dark ? '#F0F0F2' : '#202124')
+            color: NativeDesign.textSecondary(this.dark) })
+          Text('任务计划').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
+            .fontColor(NativeDesign.textPrimary(this.dark))
           Text(nativePlanProgress(this.document)).fontSize(10).layoutWeight(1).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .fontColor(this.dark ? '#A5A8AC' : '#777B80')
+            .fontColor(NativeDesign.textTertiary(this.dark))
           DSHIcon({ glyph: this.expanded ? 'chevron-up-outline' : 'chevron-down-outline',
-            glyphSize: 11, color: this.dark ? '#93969B' : '#777B80' })
+            glyphSize: 11, color: NativeDesign.textTertiary(this.dark) })
         }.width('100%').padding({ left: 10, right: 8 })
-      }.height(32).width('100%').padding(0).borderRadius(0)
+      }.height(NativeDesign.hitTarget).width('100%').padding(0).borderRadius(0)
         .backgroundColor(Color.Transparent)
         .accessibilityText((this.expanded ? '收起' : '展开') + '任务计划')
         .onClick((): void => { this.toggle(); })
       if (this.expanded) {
-        Divider().color(this.dark ? '#3A3B3E' : '#E4E5E8')
+        Divider().color(NativeDesign.divider(this.dark))
         Scroll() {
           NativePlanView({ document: this.document, showHeader: false })
             .padding({ left: 10, right: 7, top: 7, bottom: 8 })
@@ -61,9 +58,9 @@ export struct NativeTaskDock {
           .transition(NativeMotion.disclosureTransition())
       }
     }.width('100%').constraintSize({ maxWidth: 620 }).clip(true)
-      .borderRadius(this.expanded ? 14 : 16)
-      .backgroundColor(this.surfaceColor())
-      .border({ width: 0.5, color: this.dark ? '#4A4B4F' : '#D9DBDF' })
+      .borderRadius(NativeDesign.radiusGroup)
+      .backgroundColor(NativeDesign.raised(this.dark))
+      .border({ width: 0.5, color: NativeDesign.border(this.dark) })
       .shadow({ radius: 18, color: this.dark ? '#88000000' : '#26000000',
         offsetX: 0, offsetY: 5 })
       .animation(NativeMotion.disclosureParam())

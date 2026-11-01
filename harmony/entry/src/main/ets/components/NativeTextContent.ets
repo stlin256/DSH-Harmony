@@ -4,8 +4,9 @@ import { NativeInlineText } from './NativeInlineText';
 import { NativeMarkdownTable, nativeMarkdownTable } from '../services/NativeMarkdownTable';
 import { NativeTable } from './NativeTable';
 import { NativeHarnessClient } from '../services/NativeHarnessClient';
-import { DSHIcon } from './DSHIcon';
 import { NativeExperience } from '../services/NativeExperience';
+import { NativeDesign } from '../services/NativeDesign';
+import { NativeIconButton } from './NativeIconButton';
 
 /** Full text is retained. Very long bodies open a virtualised native reader. */
 @Component
@@ -35,7 +36,7 @@ export struct NativeTextContent {
     } else if (this.monospace) {
       Text(value).width('100%').fontSize(12).lineHeight('22fp')
         .fontFamily('Noto Sans Mono, monospace').copyOption(CopyOptions.InApp)
-        .fontColor(this.dark ? '#F9FAFB' : '#0F1115')
+        .fontColor(NativeDesign.textPrimary(this.dark))
     } else {
       NativeInlineText({ text: value, client: this.client, sessionId: this.sessionId })
     }
@@ -45,20 +46,21 @@ export struct NativeTextContent {
     Column({ space: 12 }) {
       Row({ space: 4 }) {
         Text('完整内容').fontSize(14).fontWeight(FontWeight.Medium).layoutWeight(1)
-          .fontColor(this.dark ? '#F9FAFB' : '#0F1115')
-        Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: this.copied ? 'check-outline' : 'copy-outline', glyphSize: 15,
-            color: this.dark ? '#CFD3D6' : '#61666B' })
-        }.width(32).height(32).borderRadius(9).backgroundColor(Color.Transparent)
-          .accessibilityText(this.copied ? '已复制全文' : '复制全文').onClick(() => {
+          .fontColor(NativeDesign.textPrimary(this.dark))
+        NativeIconButton({
+          glyph: this.copied ? 'check-outline' : 'copy-outline',
+          label: this.copied ? '已复制全文' : '复制全文',
+          glyphSize: 15,
+          onPressed: (): void => {
           pasteboard.getSystemPasteboard().setData(pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, this.text))
             .then(() => { this.copied = true; }).catch(() => { this.copied = false; });
+          }
         })
-        Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'close-outline', glyphSize: 15, color: this.dark ? '#F9FAFB' : '#0F1115' })
-        }.width(32).height(32).borderRadius(9).backgroundColor(Color.Transparent)
-          .accessibilityText('关闭完整内容').onClick(() => { this.reading = false; })
-      }.width('100%').height(40)
+        NativeIconButton({
+          glyph: 'close-outline', label: '关闭完整内容', tone: 'primary', glyphSize: 15,
+          onPressed: (): void => { this.reading = false; }
+        })
+      }.width('100%').height(NativeDesign.headerHeight)
       List() {
         LazyForEach(this.source, (part: string) => {
           ListItem() {
@@ -69,15 +71,17 @@ export struct NativeTextContent {
     }.padding({
       left: 12 + this.safeLeft, right: 12 + this.safeRight,
       top: 8 + this.safeTop, bottom: 10 + this.safeBottom
-    }).width('100%').height('100%').backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+    }).width('100%').height('100%').backgroundColor(NativeDesign.base(this.dark))
   }
   build() {
     Column({ space: 8 }) {
       this.body(this.text.length > 8192 ? this.source.getData(0) : this.text)
       if (this.text.length > 8192) {
-        Button('阅读全文 · ' + this.text.length + ' 字符', { type: ButtonType.Normal }).height(34).fontSize(12)
-          .borderRadius(9).backgroundColor(this.dark ? '#2C2C2E' : '#F5F6F7')
-          .fontColor(this.dark ? '#CFD3D6' : '#61666B')
+        Button('阅读全文 · ' + this.text.length + ' 字符', { type: ButtonType.Normal })
+          .height(NativeDesign.hitTarget).fontSize(12)
+          .borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(NativeDesign.field(this.dark))
+          .fontColor(NativeDesign.textSecondary(this.dark))
           .onClick(() => { this.reading = true; this.copied = false; })
       }
     }.width('100%').alignItems(HorizontalAlign.Start)

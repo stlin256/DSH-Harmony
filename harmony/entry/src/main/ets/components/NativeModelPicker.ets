@@ -9,6 +9,8 @@ import {
 import { DSHIcon } from './DSHIcon';
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
+import { NativeIconButton } from './NativeIconButton';
 
 /** Compact composer popover. It paints the per-session cache before refreshing. */
 @Component
@@ -88,43 +90,45 @@ export struct NativeModelPicker {
       Row({ space: 8 }) {
         Column({ space: 2 }) {
           Text(title).fontSize(13).fontWeight(selected ? FontWeight.Medium : FontWeight.Regular)
-            .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.dark ? '#F9FAFB' : '#17181B')
+            .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(NativeDesign.textPrimary(this.dark))
           if (detail) {
             Text(detail).fontSize(11).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-              .fontColor(this.dark ? '#93969B' : '#8A8D91')
+              .fontColor(NativeDesign.textTertiary(this.dark))
           }
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        if (selected) { DSHIcon({ glyph: 'check-outline', glyphSize: 14, color: this.dark ? '#F9FAFB' : '#17181B' }) }
+        if (selected) { DSHIcon({ glyph: 'check-outline', glyphSize: 14, color: NativeDesign.textPrimary(this.dark) }) }
       }.width('100%')
-    }.width('100%').height(detail ? 46 : 38).padding({ left: 9, right: 9 }).borderRadius(10)
-      .backgroundColor(selected ? this.dark ? '#353638' : '#F1F3F5' : Color.Transparent)
+    }.width('100%').height(detail ? NativeDesign.pickerRow : NativeDesign.hitTarget)
+      .padding({ left: 9, right: 9 }).borderRadius(NativeDesign.radiusControl)
+      .backgroundColor(selected ? NativeDesign.selection(this.dark) : Color.Transparent)
       .enabled(enabled && !this.busy).onClick(action)
   }
   build() {
     Column({ space: 8 }) {
       Row({ space: 8 }) {
         Column({ space: 2 }) {
-          Text('模型与推理').fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.dark ? '#F9FAFB' : '#17181B')
+          Text('模型与推理').fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium)
+            .fontColor(NativeDesign.textPrimary(this.dark))
           Text(this.currentCaption).fontSize(11).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-            .fontColor(this.dark ? '#93969B' : '#8A8D91')
+            .fontColor(NativeDesign.textTertiary(this.dark))
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         if (this.busy || this.loading) { LoadingProgress().width(16).height(16) }
-        Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'close-outline', glyphSize: 13, color: this.dark ? '#93969B' : '#8A8D91' })
-        }.width(30).height(30).backgroundColor(Color.Transparent).onClick(this.onClose).accessibilityText('关闭模型选择')
+        NativeIconButton({ glyph: 'close-outline', label: '关闭模型选择', glyphSize: 13,
+          onPressed: this.onClose })
       }.width('100%').padding({ left: 2, right: 2 })
       if (this.modelCount() > 4) {
-        TextInput({ text: this.query, placeholder: '搜索模型' }).height(34).fontSize(12).borderRadius(9)
-          .backgroundColor(this.dark ? '#232324' : '#F5F6F7').fontColor(this.dark ? '#F9FAFB' : '#17181B')
-          .placeholderColor(this.dark ? '#93969B' : '#8A8D91').onChange((value: string) => { this.query = value; })
+        TextInput({ text: this.query, placeholder: '搜索模型' }).height(NativeDesign.hitTarget)
+          .fontSize(12).borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(NativeDesign.field(this.dark)).fontColor(NativeDesign.textPrimary(this.dark))
+          .placeholderColor(NativeDesign.textTertiary(this.dark)).onChange((value: string) => { this.query = value; })
       }
       Scroll() {
         Column({ space: 3 }) {
           ForEach(this.directory.catalog.groups, (provider: NativeModelProvider) => {
             if (provider.models.some((model: NativeCatalogModel) => !this.query ||
               (model.name + ' ' + model.id).toLowerCase().includes(this.query.toLowerCase()))) {
-              Text(provider.name).fontSize(10).fontWeight(FontWeight.Medium).padding({ left: 9, top: 5, bottom: 2 })
-                .fontColor(this.dark ? '#93969B' : '#8A8D91')
+              Text(provider.name).fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium)
+                .padding({ left: 9, top: 5, bottom: 2 }).fontColor(NativeDesign.textTertiary(this.dark))
             }
             ForEach(provider.models.filter((model: NativeCatalogModel) => !this.query ||
               (model.name + ' ' + model.id).toLowerCase().includes(this.query.toLowerCase())), (model: NativeCatalogModel) => {
@@ -135,7 +139,7 @@ export struct NativeModelPicker {
           }, (provider: NativeModelProvider) => provider.id)
           if (this.currentModel()?.reasoning) {
             Text('推理').fontSize(10).fontWeight(FontWeight.Medium).padding({ left: 9, top: 8, bottom: 2 })
-              .fontColor(this.dark ? '#93969B' : '#8A8D91')
+              .fontColor(NativeDesign.textTertiary(this.dark))
             this.choice('默认', '', !this.directory.selected.reasoningEffort, true, () => {
               const model = this.currentModel();
               if (model) this.choose(this.directory.selected.provider, model, '', true);
@@ -152,22 +156,24 @@ export struct NativeModelPicker {
           if (this.loading && !this.modelCount()) {
             Row({ space: 8 }) {
               LoadingProgress().width(16).height(16)
-              Text(this.currentCaption).fontSize(12).fontColor(this.dark ? '#CFD3D6' : '#61666B')
+              Text(this.currentCaption).fontSize(12).fontColor(NativeDesign.textSecondary(this.dark))
             }.height(44).padding({ left: 9 })
           }
           if (!this.loading && !this.modelCount()) {
             Text('此服务未提供模型目录').fontSize(12).padding({ left: 9, top: 10, bottom: 10 })
-              .fontColor(this.dark ? '#93969B' : '#8A8D91')
+              .fontColor(NativeDesign.textTertiary(this.dark))
           }
         }.width('100%').alignItems(HorizontalAlign.Start)
       }.width('100%').constraintSize({ maxHeight: 340 }).align(Alignment.Top)
       if (this.error) {
         Row() {
-          Text(this.error).fontSize(11).layoutWeight(1).fontColor(this.dark ? '#FF9393' : '#C53737')
-          Button('重试', { type: ButtonType.Normal }).height(30).fontSize(11).enabled(!this.busy).onClick(() => { this.refresh(); })
+          Text(this.error).fontSize(11).layoutWeight(1).fontColor(NativeDesign.danger(this.dark))
+          Button('重试', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(11)
+            .enabled(!this.busy).onClick(() => { this.refresh(); })
         }.width('100%')
       }
-    }.width(320).padding(10).borderRadius(16).backgroundColor(this.dark ? '#242527' : '#FFFFFF')
+    }.width(320).padding(10).borderRadius(NativeDesign.radiusGroup)
+      .backgroundColor(NativeDesign.overlay(this.dark))
       .transition(NativeMotion.overlayTransition())
   }
 }

@@ -1,6 +1,7 @@
 import { NativeCodeToken, nativeHighlightCode } from '../services/NativeCodeHighlight';
 import { NativeSourceLine, nativeSourceLines } from '../services/NativeDocumentModel';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
 
 /** Read-only source reader with a stable line-number gutter. */
 @Component
@@ -118,7 +119,7 @@ export struct NativeCodeViewer {
     Row() {
       Stack({ alignContent: Alignment.Start }) {
         Row().width(this.horizontalThumbWidth()).height(3).borderRadius(1.5)
-          .backgroundColor(this.dark ? '#8F949C' : '#7A8088')
+          .backgroundColor(NativeDesign.textTertiary(this.dark))
           .translate({ x: this.horizontalThumbOffset() })
       }.layoutWeight(1).height(3)
         .onAreaChange((_old: Area, area: Area): void => {
@@ -138,11 +139,11 @@ export struct NativeCodeViewer {
             ForEach(this.lines, (line: NativeSourceLine) => {
               Text(String(line.number)).width('100%').height(22).lineHeight(22)
                 .fontSize(11).fontFamily('Noto Sans Mono, monospace').textAlign(TextAlign.End)
-                .fontColor(this.dark ? '#74777D' : '#93969B')
+                .fontColor(NativeDesign.textTertiary(this.dark))
             }, (line: NativeSourceLine) => String(line.number))
           }.width(this.gutterWidth()).height(this.workspaceHeight())
             .padding({ top: 4, right: 10 })
-            .border({ width: { right: 0.5 }, color: this.dark ? '#34363B' : '#E4E6EA' })
+            .border({ width: { right: 0.5 }, color: NativeDesign.divider(this.dark) })
           Scroll(this.horizontalScroller) {
             Column({ space: 0 }) {
               ForEach(this.lines, (line: NativeSourceLine) => {
@@ -152,7 +153,7 @@ export struct NativeCodeViewer {
                   }, (_token: NativeCodeToken, index: number) => index.toString())
                 }.height(22).lineHeight(22).fontSize(12).maxLines(1)
                   .fontFamily('Noto Sans Mono, monospace').copyOption(CopyOptions.InApp)
-                  .fontColor(this.dark ? '#E8E9EB' : '#202124')
+                  .fontColor(NativeDesign.textPrimary(this.dark))
               }, (line: NativeSourceLine) => String(line.number))
             }.padding({ left: 10, top: 4, bottom: 4 }).alignItems(HorizontalAlign.Start)
               .onAreaChange((_old: Area, area: Area): void => {
@@ -186,8 +187,8 @@ export struct NativeCodeViewer {
       .onAreaChange((_old: Area, area: Area): void => {
         this.viewerHeight = Math.max(1, Number(area.height));
       })
-      .backgroundColor(this.dark ? '#111214' : '#F7F8FA')
-      .border({ width: 0.5, color: this.dark ? '#2F3136' : '#E6E8EC' })
-      .borderRadius(10)
+      .backgroundColor(NativeDesign.subtleSurface(this.dark))
+      .border({ width: 0.5, color: NativeDesign.border(this.dark) })
+      .borderRadius(NativeDesign.radiusControl)
   }
 }

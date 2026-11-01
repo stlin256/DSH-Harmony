@@ -1,7 +1,9 @@
 import { curves, UIContext } from '@kit.ArkUI';
 import { NativeExperience } from './NativeExperience';
 
-export type NativeMotionToken = 'press' | 'micro' | 'overlay' | 'navigation' | 'surface' | 'brand';
+export type NativeMotionToken =
+  'press' | 'micro' | 'overlay' | 'navigation' | 'drawer' | 'surface' |
+  'mask' | 'scrollReturn' | 'brand';
 
 /**
  * Semantic motion entry point for the native shell.
@@ -23,10 +25,17 @@ export class NativeMotion {
       case 'micro': return 140;
       case 'overlay': return 190;
       case 'navigation': return 220;
+      case 'drawer': return 280;
       case 'surface': return 260;
+      case 'mask': return 240;
+      case 'scrollReturn': return 280;
       case 'brand': return 560;
       default: return 190;
     }
+  }
+
+  static exitDuration(token: NativeMotionToken): number {
+    return Math.max(100, NativeMotion.duration(token) - (token === 'surface' || token === 'drawer' ? 60 : 40));
   }
 
   static animate(context: UIContext, token: NativeMotionToken, action: () => void): void {
@@ -43,6 +52,11 @@ export class NativeMotion {
   static implicit(token: NativeMotionToken): AnimateParam {
     if (!NativeMotion.enabled()) return { duration: 0 };
     return { duration: NativeMotion.duration(token), curve: Curve.FastOutSlowIn };
+  }
+
+  static maskParam(): AnimateParam {
+    if (!NativeMotion.enabled()) return { duration: 0 };
+    return { duration: NativeMotion.duration('mask'), curve: Curve.FastOutSlowIn };
   }
 
   static spring(context: UIContext, action: () => void): void {
@@ -137,7 +151,7 @@ export class NativeMotion {
     if (!NativeMotion.enabled()) return TransitionEffect.IDENTITY;
     return TransitionEffect.OPACITY.combine(
       TransitionEffect.translate({ x: -28 }))
-      .animation(NativeMotion.implicit('surface'));
+      .animation(NativeMotion.implicit('drawer'));
   }
 
   static previewTransition(): TransitionEffect {

@@ -18,6 +18,8 @@ import {
 import { NativeStorageManager } from '../services/NativeStorageManager';
 import { NativeBrowserHistory, NativeBrowserHistoryEntry } from '../services/NativeBrowserHistory';
 import { NativeFileViewRequest } from '../services/NativeSessionModel';
+import { NativeDesign } from '../services/NativeDesign';
+import { NativeIconButton } from './NativeIconButton';
 
 class NativePathPart {
   label: string = '';
@@ -306,35 +308,40 @@ export struct NativeFileBrowser {
   @Builder
   private header() {
     Row({ space: 4 }) {
-      Button({ type: ButtonType.Normal }) {
-        DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 17,
-          color: this.dark ? '#F9FAFB' : '#17181B' })
-      }.width(32).height(32).borderRadius(9).backgroundColor(Color.Transparent)
-        .accessibilityText('返回').onClick(() => { this.back(false); })
+      NativeIconButton({
+        glyph: 'chevron-left-outline',
+        label: '返回',
+        tone: 'primary',
+        glyphSize: 17,
+        onPressed: (): void => { this.back(false); }
+      })
       Column({ space: 1 }) {
         Row({ space: 5 }) {
           Text(this.navigationPath || '工作区').fontSize(14).fontWeight(FontWeight.Medium).maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.dark ? '#F9FAFB' : '#17181B')
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .fontColor(NativeDesign.textPrimary(this.dark))
           if (this.navigating) {
-            LoadingProgress().width(13).height(13).color(this.dark ? '#8AB4FF' : '#3964FE')
+            LoadingProgress().width(13).height(13).color(NativeDesign.accent(this.dark))
           }
         }.width('100%')
         Text(this.navigationPath ? '文件夹' : '工作区根目录').fontSize(10)
-          .fontColor(this.dark ? '#93969B' : '#8A8D91')
+          .fontColor(NativeDesign.textTertiary(this.dark))
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-      Button({ type: ButtonType.Normal }) {
-        DSHIcon({ glyph: 'browse-outline', glyphSize: 15,
-          color: this.dark ? '#CFD3D6' : '#61666B' })
-      }.width(32).height(32).borderRadius(9).backgroundColor(Color.Transparent)
-        .accessibilityText('在工作区根目录中查找文件').onClick(() => {
-          if (this.navigationPath) this.navigate('');
-        })
-      Button({ type: ButtonType.Normal }) {
-        DSHIcon({ glyph: 'close-outline', glyphSize: 15,
-          color: this.dark ? '#F9FAFB' : '#17181B' })
-      }.width(32).height(32).borderRadius(9).backgroundColor(Color.Transparent)
-        .accessibilityText('关闭文件浏览器').onClick(() => { this.onClose(); })
-    }.width('100%').height(40)
+      NativeIconButton({
+        glyph: 'browse-outline',
+        label: '在工作区根目录中查找文件',
+        glyphSize: 15,
+        controlEnabled: !!this.navigationPath,
+        onPressed: (): void => { if (this.navigationPath) this.navigate(''); }
+      })
+      NativeIconButton({
+        glyph: 'close-outline',
+        label: '关闭文件浏览器',
+        tone: 'primary',
+        glyphSize: 15,
+        onPressed: (): void => { this.onClose(); }
+      })
+    }.width('100%').height(NativeDesign.headerHeight)
   }
   @Builder
   private breadcrumb() {
@@ -342,15 +349,18 @@ export struct NativeFileBrowser {
       Row({ space: 2 }) {
         Button(this.navigationPath ? '工作区' : '根目录', { type: ButtonType.Normal })
           .height(26).fontSize(10).borderRadius(7).padding({ left: 6, right: 6 })
-          .backgroundColor(Color.Transparent).fontColor(this.dark ? '#93969B' : '#8A8D91')
+          .backgroundColor(Color.Transparent)
+          .fontColor(NativeDesign.textTertiary(this.dark))
+          .responseRegion({ x: 0, y: -9, width: '100%', height: NativeDesign.hitTarget })
           .enabled(!!this.navigationPath).onClick(() => { this.navigate(''); })
         ForEach(this.crumbs(), (part: NativePathPart, index: number) => {
-          Text('/').fontSize(10).fontColor(this.dark ? '#777A80' : '#A1A1AA')
+          Text('/').fontSize(10).fontColor(NativeDesign.textTertiary(this.dark))
           Button(part.label, { type: ButtonType.Normal })
             .height(26).fontSize(10).borderRadius(7).padding({ left: 5, right: 5 })
             .backgroundColor(Color.Transparent)
             .fontColor(index === this.crumbs().length - 1 ?
-              this.dark ? '#F9FAFB' : '#17181B' : this.dark ? '#93969B' : '#8A8D91')
+              NativeDesign.textPrimary(this.dark) : NativeDesign.textTertiary(this.dark))
+            .responseRegion({ x: 0, y: -9, width: '100%', height: NativeDesign.hitTarget })
             .onClick(() => { this.navigate(part.path); })
         }, (part: NativePathPart) => part.path)
       }.constraintSize({ minWidth: '100%' }).justifyContent(FlexAlign.Start)
@@ -360,8 +370,8 @@ export struct NativeFileBrowser {
   private fileIcon(entry: NativeDirectoryEntry) {
     DSHIcon({
       glyph: entry.type === 'directory' ? 'folder-outline' : entry.type === 'file' ? 'code-outline' : 'question-outline',
-      glyphSize: 16, color: entry.type === 'directory' ? this.dark ? '#8AB4FF' : '#3964FE' :
-        this.dark ? '#CFD3D6' : '#61666B'
+      glyphSize: 16, color: entry.type === 'directory' ?
+        NativeDesign.accent(this.dark) : NativeDesign.textSecondary(this.dark)
     })
   }
   @Builder
@@ -372,10 +382,10 @@ export struct NativeFileBrowser {
           this.fileIcon(entry)
           Column({ space: 1 }) {
             Text(entry.name).fontSize(13).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-              .fontColor(this.dark ? '#F9FAFB' : '#17181B')
+              .fontColor(NativeDesign.textPrimary(this.dark))
             if (entry.type === 'file' && entry.size >= 0 || entry.type === 'other') {
               Text(entry.type === 'other' ? '不支持预览' : this.formatBytes(entry.size)).fontSize(10)
-                .fontColor(this.dark ? '#93969B' : '#8A8D91')
+                .fontColor(NativeDesign.textTertiary(this.dark))
             }
           }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         }.width('100%')
@@ -386,25 +396,26 @@ export struct NativeFileBrowser {
         .onClick(() => { this.open(entry); })
       if (entry.type === 'directory') {
         DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
-          color: this.dark ? '#777A80' : '#A1A1AA' }).rotate({ angle: 180 })
+          color: NativeDesign.textTertiary(this.dark) }).rotate({ angle: 180 })
       } else if (entry.type === 'file') {
         Button({ type: ButtonType.Normal }) {
           if (this.downloadingFile === this.filePath(entry)) {
-            LoadingProgress().width(14).height(14).color(this.dark ? '#8AB4FF' : '#3964FE')
+            LoadingProgress().width(14).height(14).color(NativeDesign.accent(this.dark))
           } else {
             DSHIcon({ glyph: 'download-outline', glyphSize: 15,
-              color: this.dark ? '#93969B' : '#777A80' })
+              color: NativeDesign.textTertiary(this.dark) })
           }
         }.width(44).height(44).padding(0).borderRadius(10).backgroundColor(Color.Transparent)
           .accessibilityText('下载 ' + entry.name)
           .enabled(!this.downloadingFile)
           .onClick((): void => { this.download(entry); })
       }
-    }.width('100%').height(48).padding({ left: 8, right: 4 }).borderRadius(10).clip(true)
+    }.width('100%').height(NativeDesign.standardRow)
+      .padding({ left: 8, right: 4 })
+      .borderRadius(NativeDesign.radiusRow).clip(true)
       .backgroundColor(this.pressedEntry === this.entryKey(entry) ?
-        this.dark ? '#353638' : '#EBEEF2' : Color.Transparent)
-      .animation({ duration: NativeMotion.enabled() ? NativeMotion.duration('press') : 0,
-        curve: Curve.FastOutSlowIn })
+        NativeDesign.selection(this.dark) : Color.Transparent)
+      .animation(NativeMotion.implicit('press'))
       .onTouch((event: TouchEvent): void => {
         this.pressedEntry = event.type === TouchType.Down ? this.entryKey(entry) : '';
       })
@@ -413,26 +424,29 @@ export struct NativeFileBrowser {
   private content() {
     if (this.loading && !this.hasLoaded) {
       Column({ space: 10 }) {
-        LoadingProgress().width(24).height(24).color(this.dark ? '#8AB4FF' : '#3964FE')
-        Text('正在读取…').fontSize(12).fontColor(this.dark ? '#93969B' : '#8A8D91')
+        LoadingProgress().width(24).height(24).color(NativeDesign.accent(this.dark))
+        Text('正在读取…').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
       }.layoutWeight(1).justifyContent(FlexAlign.Center)
     } else if (this.error && !this.hasLoaded) {
       Column({ space: 10 }) {
-        Text(this.error).fontSize(13).fontColor(this.dark ? '#FFB1B1' : '#B3261E')
+        Text(this.error).fontSize(13).fontColor(NativeDesign.danger(this.dark))
         Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'browse-outline', glyphSize: 15, color: this.dark ? '#F9FAFB' : '#17181B' })
-        }.width(36).height(36).borderRadius(18).backgroundColor(this.dark ? '#353638' : '#EBEEF2')
+          DSHIcon({ glyph: 'browse-outline', glyphSize: 15,
+            color: NativeDesign.textPrimary(this.dark) })
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          .borderRadius(NativeDesign.hitTarget / 2)
+          .backgroundColor(NativeDesign.selection(this.dark))
           .accessibilityText('重试').onClick(() => { this.load(this.navigationPath); })
       }.layoutWeight(1).justifyContent(FlexAlign.Center)
     } else if (!this.entries.length) {
-      Text('此文件夹为空').fontSize(12).fontColor(this.dark ? '#93969B' : '#8A8D91')
+      Text('此文件夹为空').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
         .layoutWeight(1).textAlign(TextAlign.Center)
     } else {
       List({ space: 2 }) {
         if (this.directoryEntries().length) {
           ListItem() {
             Text('文件夹').fontSize(11).fontWeight(FontWeight.Medium)
-              .fontColor(this.dark ? '#93969B' : '#8A8D91')
+              .fontColor(NativeDesign.textTertiary(this.dark))
               .width('100%').height(26).padding({ left: 8 })
           }
           ForEach(this.directoryEntries(), (entry: NativeDirectoryEntry) => {
@@ -442,7 +456,7 @@ export struct NativeFileBrowser {
         if (this.fileEntries().length) {
           ListItem() {
             Text('文件').fontSize(11).fontWeight(FontWeight.Medium)
-              .fontColor(this.dark ? '#93969B' : '#8A8D91')
+              .fontColor(NativeDesign.textTertiary(this.dark))
               .width('100%').height(26).padding({ left: 8, top: this.directoryEntries().length ? 4 : 0 })
           }
           ForEach(this.fileEntries(), (entry: NativeDirectoryEntry) => {
@@ -452,7 +466,7 @@ export struct NativeFileBrowser {
         if (this.truncated) {
           ListItem() {
             Text('文件过多，仅显示前一部分').fontSize(11).padding(10)
-              .fontColor(this.dark ? '#93969B' : '#8A8D91')
+              .fontColor(NativeDesign.textTertiary(this.dark))
           }
         }
       }.layoutWeight(1).width('100%').cachedCount(8)
@@ -470,7 +484,7 @@ export struct NativeFileBrowser {
       }.padding({
         left: 10 + this.safeLeft, right: 10 + this.safeRight,
         top: 8 + this.safeTop, bottom: 10 + this.safeBottom
-      }).width('100%').height('100%').backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+      }).width('100%').height('100%').backgroundColor(NativeDesign.base(this.dark))
       if (this.previewPath) {
         NativeFilePreview({ client: this.client, sessionId: this.sessionId, path: this.previewPath,
           onClose: (): void => { this.back(); } })

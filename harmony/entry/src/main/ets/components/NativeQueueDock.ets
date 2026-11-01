@@ -9,6 +9,7 @@ import {
 import { DSHIcon } from './DSHIcon';
 import { NativeImageView } from './NativeImageView';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
 
 class QueueActionPayload {
   operation: string = 'updateQueue';
@@ -105,16 +106,17 @@ export struct NativeQueueDock {
           } else if (block.kind === 'file' && block.file) {
             Row({ space: 5 }) {
               DSHIcon({ glyph: 'file-outline', glyphSize: 14,
-                color: this.dark ? '#CFD3D6' : '#61666B' })
+                color: NativeDesign.textSecondary(this.dark) })
               Column({ space: 1 }) {
                 Text(block.file.name).fontSize(10).maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  .fontColor(this.dark ? '#F1F1F2' : '#25262A')
+                  .fontColor(NativeDesign.textPrimary(this.dark))
                 Text(this.fileSize(block.file.bytes)).fontSize(9)
-                  .fontColor(this.dark ? '#93969B' : '#8A8D91')
+                  .fontColor(NativeDesign.textTertiary(this.dark))
               }.constraintSize({ maxWidth: 132 }).alignItems(HorizontalAlign.Start)
-            }.height(34).padding({ left: 7, right: 8 }).borderRadius(9)
-              .backgroundColor(this.dark ? '#353638' : '#EEF0F3')
+            }.height(NativeDesign.hitTarget).padding({ left: 7, right: 8 })
+              .borderRadius(NativeDesign.radiusCompact)
+              .backgroundColor(NativeDesign.selection(this.dark))
           }
         }, (block: NativeQueueBlock, index: number) => item.id + ':' + index.toString())
       }.padding({ right: 6 })
@@ -126,22 +128,25 @@ export struct NativeQueueDock {
     if (!item.pending) {
       Button({ type: ButtonType.Normal }) {
         DSHIcon({ glyph: 'edit-outline', glyphSize: 13,
-          color: nativeQueueEditable(item) ? this.dark ? '#CFD3D6' : '#61666B' :
-            this.dark ? '#55575B' : '#C4C7CC' })
-      }.width(30).height(30).borderRadius(8).backgroundColor(Color.Transparent)
+          color: nativeQueueEditable(item) ? NativeDesign.textSecondary(this.dark) :
+            NativeDesign.textTertiary(this.dark) })
+      }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+        .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
         .enabled(nativeQueueEditable(item) && !this.busyId)
         .accessibilityText('修改排队消息').onClick((): void => { this.beginEdit(item); })
       Button({ type: ButtonType.Normal }) {
         DSHIcon({ glyph: 'close-outline', glyphSize: 13,
-          color: this.dark ? '#93969B' : '#777A80' })
-      }.width(30).height(30).borderRadius(8).backgroundColor(Color.Transparent)
+          color: NativeDesign.textTertiary(this.dark) })
+      }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+        .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
         .enabled(!this.busyId).accessibilityText('移除排队消息')
         .onClick((): void => { this.act(item, 'remove'); })
       Button({ type: ButtonType.Normal }) {
         DSHIcon({ glyph: 'send-arrow', glyphSize: 13,
-          color: this.running ? this.dark ? '#8AB4FF' : '#3964FE' :
-            this.dark ? '#55575B' : '#C4C7CC' })
-      }.width(30).height(30).borderRadius(8).backgroundColor(Color.Transparent)
+          color: this.running ? NativeDesign.accent(this.dark) :
+            NativeDesign.textTertiary(this.dark) })
+      }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+        .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
         .enabled(this.running && !this.busyId).accessibilityText('立即发送排队消息')
         .onClick((): void => { this.act(item, 'steer'); })
     }
@@ -152,25 +157,28 @@ export struct NativeQueueDock {
     Row({ space: 6 }) {
       if (this.items.length === 1) {
         DSHIcon({ glyph: 'queue-outline', glyphSize: 14,
-          color: this.dark ? '#93969B' : '#8A8D91' })
+          color: NativeDesign.textTertiary(this.dark) })
       }
       if (this.editingId === item.id) {
-        TextInput({ text: this.editText }).layoutWeight(1).height(34).fontSize(12)
-          .borderRadius(9).padding({ left: 9, right: 9 })
-          .backgroundColor(this.dark ? '#353638' : '#F5F6F7')
-          .fontColor(this.dark ? '#F9FAFB' : '#17181B')
+        TextInput({ text: this.editText }).layoutWeight(1).height(NativeDesign.hitTarget)
+          .fontSize(NativeDesign.fontBody).borderRadius(NativeDesign.radiusControl)
+          .padding({ left: 9, right: 9 })
+          .backgroundColor(NativeDesign.field(this.dark))
+          .fontColor(NativeDesign.textPrimary(this.dark))
           .onChange((value: string): void => { this.editText = value; })
         Button({ type: ButtonType.Normal }) {
           if (this.busyId === item.id) LoadingProgress().width(13).height(13)
           else DSHIcon({ glyph: 'check-outline', glyphSize: 13,
-            color: this.dark ? '#8AB4FF' : '#3964FE' })
-        }.width(30).height(30).borderRadius(8).backgroundColor(Color.Transparent)
+            color: NativeDesign.accent(this.dark) })
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .enabled(!!this.editText.trim() && !this.busyId)
           .accessibilityText('保存排队消息').onClick((): void => { this.act(item, 'edit', this.editText); })
         Button({ type: ButtonType.Normal }) {
           DSHIcon({ glyph: 'close-outline', glyphSize: 13,
-            color: this.dark ? '#93969B' : '#777A80' })
-        }.width(30).height(30).borderRadius(8).backgroundColor(Color.Transparent)
+            color: NativeDesign.textTertiary(this.dark) })
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .enabled(!this.busyId).accessibilityText('取消修改')
           .onClick((): void => { this.editingId = ''; })
       } else {
@@ -179,18 +187,19 @@ export struct NativeQueueDock {
           Row({ space: 6 }) {
             Text(this.textPreview(item)).fontSize(12).layoutWeight(1).maxLines(2)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .fontColor(this.dark ? '#F1F1F2' : '#25262A')
+              .fontColor(NativeDesign.textPrimary(this.dark))
             if (item.pending) {
               Text('发送中…').fontSize(10)
-                .fontColor(this.dark ? '#8AB4FF' : '#315ECA')
+                .fontColor(NativeDesign.accent(this.dark))
             }
           }.width('100%')
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         this.actions(item)
       }
     }.width('100%').padding({ left: 8, right: 5, top: 6, bottom: 6 })
-      .borderRadius(11).backgroundColor(this.dark ? '#292A2C' : '#F7F8FA')
-      .border({ width: 0.5, color: this.dark ? '#414247' : '#E3E5E9' })
+      .borderRadius(NativeDesign.radiusRow)
+      .backgroundColor(NativeDesign.overlay(this.dark))
+      .border({ width: 0.5, color: NativeDesign.border(this.dark) })
       .animation(NativeMotion.disclosureParam())
       .transition(NativeMotion.disclosureTransition())
   }
@@ -202,19 +211,19 @@ export struct NativeQueueDock {
           Button({ type: ButtonType.Normal }) {
             Row({ space: 6 }) {
               DSHIcon({ glyph: 'queue-outline', glyphSize: 14,
-                color: this.dark ? '#93969B' : '#8A8D91' })
+                color: NativeDesign.textTertiary(this.dark) })
               Text(this.items.length.toString() + ' 条排队消息').fontSize(11).fontWeight(FontWeight.Medium)
-                .fontColor(this.dark ? '#CFD3D6' : '#61666B')
+                .fontColor(NativeDesign.textSecondary(this.dark))
               if (this.items.some((item: NativeQueueItem): boolean => item.pending)) {
-                Text('发送中…').fontSize(10).fontColor(this.dark ? '#8AB4FF' : '#315ECA')
+                Text('发送中…').fontSize(10).fontColor(NativeDesign.accent(this.dark))
               }
               Blank()
               DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
-                color: this.dark ? '#93969B' : '#8A8D91' })
+                color: NativeDesign.textTertiary(this.dark) })
                 .rotate({ angle: this.expanded() ? -90 : 90 })
                 .animation(NativeMotion.disclosureParam())
             }.width('100%')
-          }.width('100%').height(30).padding({ left: 8, right: 8 })
+          }.width('100%').height(NativeDesign.hitTarget).padding({ left: 8, right: 8 })
             .backgroundColor(Color.Transparent).onClick((): void => { this.toggleCollapsed(); })
         }
         if (this.expanded()) {
@@ -227,7 +236,7 @@ export struct NativeQueueDock {
             .transition(NativeMotion.disclosureTransition())
         }
         if (this.error) {
-          Text(this.error).fontSize(10).fontColor(this.dark ? '#FF9393' : '#C53030')
+          Text(this.error).fontSize(10).fontColor(NativeDesign.danger(this.dark))
             .padding({ left: 8, right: 8, bottom: 3 })
         }
       }.width('100%')

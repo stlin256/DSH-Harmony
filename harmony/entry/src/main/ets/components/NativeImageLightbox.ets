@@ -10,6 +10,7 @@ import { NativeStorageManager } from '../services/NativeStorageManager';
 import { NativeImageZoom, NativeImageZoomTarget } from '../services/NativeImageZoom';
 import { NativeMotion } from '../services/NativeMotion';
 import { DSHIcon } from './DSHIcon';
+import { NativeDesign } from '../services/NativeDesign';
 
 class LightboxAttachmentResult {
   data: string = '';
@@ -388,8 +389,10 @@ export struct NativeImageLightbox {
       } else {
         Column({ space: 12 }) {
           Text(this.error || '图片不可用').fontSize(14).fontColor('#F2F3F5')
-          Button('重试', { type: ButtonType.Normal }).height(40).fontSize(13).borderRadius(10)
-            .backgroundColor('#303136').fontColor('#FFFFFF')
+          Button('重试', { type: ButtonType.Normal })
+            .height(NativeDesign.hitTarget).fontSize(13)
+            .borderRadius(NativeDesign.radiusControl)
+            .backgroundColor(NativeDesign.selection(true)).fontColor('#FFFFFF')
             .onClick((): void => { this.load(); })
         }
       }
@@ -401,12 +404,14 @@ export struct NativeImageLightbox {
         } else {
           Button({ type: ButtonType.Circle }) {
             DSHIcon({ glyph: 'download-outline', glyphSize: 16, color: '#FFFFFF' })
-          }.width(40).height(40).backgroundColor('#303136').accessibilityText('下载图片')
+          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+            .backgroundColor(NativeDesign.selection(true)).accessibilityText('下载图片')
             .onClick((): void => { this.saveToGallery(); })
         }
         Button({ type: ButtonType.Circle }) {
           DSHIcon({ glyph: 'close-outline', glyphSize: 17, color: '#FFFFFF' })
-        }.width(40).height(40).backgroundColor('#303136').accessibilityText('关闭图片预览')
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          .backgroundColor(NativeDesign.selection(true)).accessibilityText('关闭图片预览')
           .onClick((): void => { this.onClose(); })
       }.width('100%').height(58 + this.safeTop)
         .padding({ left: 8 + this.safeLeft, right: 8 + this.safeRight, top: 10 + this.safeTop })

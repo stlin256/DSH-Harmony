@@ -1,6 +1,7 @@
 import { pasteboard } from '@kit.BasicServicesKit';
 import { NativeCodeToken, nativeHighlightCode } from '../services/NativeCodeHighlight';
 import { DSHIcon } from './DSHIcon';
+import { NativeDesign } from '../services/NativeDesign';
 
 @Component
 export struct NativeCodeBlock {
@@ -37,11 +38,12 @@ export struct NativeCodeBlock {
     Column({ space: 6 }) {
       Row({ space: 6 }) {
         Text(this.language || '代码').fontSize(11).layoutWeight(1)
-          .fontColor(this.dark ? '#8F9298' : '#74787F')
+          .fontColor(NativeDesign.textTertiary(this.dark))
         Button({ type: ButtonType.Normal }) {
           DSHIcon({ glyph: this.copied ? 'check-outline' : 'copy-outline', glyphSize: 14,
-            color: this.dark ? '#9EA1A7' : '#6E7279' })
-        }.width(30).height(30).borderRadius(8).backgroundColor(Color.Transparent)
+            color: NativeDesign.textTertiary(this.dark) })
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .accessibilityText(this.copied ? '代码已复制' : '复制代码').onClick(() => { this.copy(); })
       }.width('100%')
       Scroll() {
@@ -55,8 +57,10 @@ export struct NativeCodeBlock {
         }.width('100%').scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Auto)
       }.width('100%').height(this.codeHeight).scrollable(ScrollDirection.Vertical)
         .scrollBar(BarState.Auto)
-    }.padding({ left: 11, right: 8, top: 6, bottom: 10 }).width('100%').alignItems(HorizontalAlign.Start)
-      .borderRadius(12).backgroundColor(this.dark ? '#242529' : '#F3F4F6')
-      .border({ width: 0.5, color: this.dark ? '#35363A' : '#E1E3E7' })
+    }.padding({ left: 11, right: 8, top: 6, bottom: 10 }).width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .borderRadius(NativeDesign.radiusRow)
+      .backgroundColor(NativeDesign.subtleSurface(this.dark))
+      .border({ width: 0.5, color: NativeDesign.border(this.dark) })
   }
 }

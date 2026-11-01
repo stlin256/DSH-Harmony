@@ -1,5 +1,6 @@
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
 
 /**
  * Shared bottom conversation layout. Extra dock content enables a conditionally
@@ -34,8 +35,12 @@ export struct NativeBottomConversationDock {
             .linearGradient({
               angle: 180,
               colors: this.dark
-                ? [['#001D1E20', 0], ['#241D1E20', 0.18], ['#661F2022', 0.62], ['#B3232528', 1]]
-                : [['#00FFFFFF', 0], ['#24FFFFFF', 0.18], ['#70FFFFFF', 0.62], ['#B8FFFFFF', 1]]
+                ? [[NativeDesign.blurScrimTop(true), 0], [NativeDesign.blurScrimMid(true), 0.18],
+                  [NativeDesign.blurScrimLower(true), 0.62],
+                  [NativeDesign.blurScrimBottom(true), 1]]
+                : [[NativeDesign.blurScrimTop(false), 0], [NativeDesign.blurScrimMid(false), 0.18],
+                  [NativeDesign.blurScrimLower(false), 0.62],
+                  [NativeDesign.blurScrimBottom(false), 1]]
             })
         }.width('100%').height(this.measuredHeight)
           .clip(true)

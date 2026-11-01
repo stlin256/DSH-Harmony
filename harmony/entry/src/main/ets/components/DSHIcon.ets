@@ -1,5 +1,6 @@
 import { ColorMetrics } from '@kit.ArkUI';
 import { drawing } from '@kit.ArkGraphics2D';
+import { NativeDesign } from '../services/NativeDesign';
 
 /**
  * DSH product glyphs adapted from deepseek-ai/deepseek-harness's
@@ -54,15 +55,7 @@ export struct DSHIcon {
    */
   private resolvedColor(color: ResourceColor, dark: boolean): ResourceColor {
     if (typeof color !== 'string') return color;
-    const value = color.toUpperCase();
-    if (['#F9FAFB', '#0F1115', '#17181B', '#202124', '#25262A', '#33353A', '#E7E7E9', '#F4F4F5'].includes(value)) {
-      return dark ? '#F9FAFB' : '#17181B';
-    }
-    if (['#CFD3D6', '#93969B', '#8A8D91', '#777A80', '#A1A1AA', '#B5B8BD', '#61666B'].includes(value)) {
-      return dark ? '#CFD3D6' : '#61666B';
-    }
-    if (['#8AB4FF', '#3964FE'].includes(value)) return dark ? '#8AB4FF' : '#3964FE';
-    return color;
+    return NativeDesign.iconTone(color, dark);
   }
   private tint(color: ResourceColor, dark: boolean): drawing.ColorFilter {
     let alpha = 255;

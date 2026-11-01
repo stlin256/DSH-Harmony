@@ -3,6 +3,7 @@ import { NativeDiffDocument, NativeDiffRow, nativeDiffText } from '../services/N
 import { DSHIcon } from './DSHIcon';
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
 
 @Component
 export struct NativeDiffBlock {
@@ -13,15 +14,15 @@ export struct NativeDiffBlock {
   @State private copied: boolean = false;
 
   private color(kind: string): ResourceColor {
-    if (kind === 'add') return this.dark ? '#9BE2B0' : '#187940';
-    if (kind === 'del') return this.dark ? '#FFB1B1' : '#B3261E';
-    if (kind === 'path') return this.dark ? '#8AB4FF' : '#315ECA';
-    if (kind === 'gap') return this.dark ? '#777A80' : '#A1A1AA';
-    return this.dark ? '#CFD3D6' : '#61666B';
+    if (kind === 'add') return NativeDesign.success(this.dark);
+    if (kind === 'del') return NativeDesign.danger(this.dark);
+    if (kind === 'path') return NativeDesign.accent(this.dark);
+    if (kind === 'gap') return NativeDesign.textTertiary(this.dark);
+    return NativeDesign.textSecondary(this.dark);
   }
   private rowBackground(kind: string): ResourceColor {
-    if (kind === 'add') return this.dark ? '#173423' : '#ECF8F0';
-    if (kind === 'del') return this.dark ? '#3B2022' : '#FDEEEE';
+    if (kind === 'add') return NativeDesign.successSurface(this.dark);
+    if (kind === 'del') return NativeDesign.dangerSurface(this.dark);
     return Color.Transparent;
   }
   private toggle(): void {
@@ -81,29 +82,34 @@ export struct NativeDiffBlock {
       Row({ space: 2 }) {
         Text(this.document.path || '变更').fontSize(11).fontWeight(FontWeight.Medium).layoutWeight(1)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-          .fontColor(this.dark ? '#8AB4FF' : '#315ECA')
+          .fontColor(NativeDesign.accent(this.dark))
         Button({ type: ButtonType.Normal }) {
           Text('#').fontSize(13).fontWeight(FontWeight.Medium)
             .fontFamily('Noto Sans Mono, monospace')
-            .fontColor(this.showLineNumbers ? this.dark ? '#F9FAFB' : '#0F1115' :
-              this.dark ? '#93969B' : '#8A8D91')
-        }.width(28).height(28).padding(0).borderRadius(7)
-          .backgroundColor(this.showLineNumbers ? this.dark ? '#3A3B3F' : '#E9EBEF' : Color.Transparent)
+            .fontColor(this.showLineNumbers ? NativeDesign.textPrimary(this.dark) :
+              NativeDesign.textTertiary(this.dark))
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          .padding(0).borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(this.showLineNumbers ?
+            NativeDesign.selection(this.dark) : Color.Transparent)
           .accessibilityText(this.showLineNumbers ? '隐藏行号' : '显示行号')
           .onClick((): void => { this.toggleLineNumbers(); })
         Button({ type: ButtonType.Normal }) {
           DSHIcon({ glyph: this.copied ? 'check-outline' : 'copy-outline', glyphSize: 13,
-            color: this.dark ? '#93969B' : '#8A8D91' })
-        }.width(28).height(28).borderRadius(7).backgroundColor(Color.Transparent)
+            color: NativeDesign.textTertiary(this.dark) })
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .accessibilityText(this.copied ? '已复制 Diff' : '复制 Diff').onClick(() => { this.copy(); })
         if (this.document.rows.length > 16) {
           Button({ type: ButtonType.Normal }) {
-            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12, color: this.dark ? '#93969B' : '#8A8D91' })
+            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
+              color: NativeDesign.textTertiary(this.dark) })
               .rotate({ angle: this.expanded ? -90 : 180 })
-          }.width(28).height(28).borderRadius(7).backgroundColor(Color.Transparent)
+          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+            .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
             .accessibilityText(this.expanded ? '收起 Diff' : '展开 Diff').onClick(() => { this.toggle(); })
         }
-      }.height(32).width('100%')
+      }.height(NativeDesign.hitTarget).width('100%')
       Scroll() {
         Column({ space: 0 }) {
           ForEach(this.shownRows(), (row: NativeDiffRow) => {
@@ -113,7 +119,8 @@ export struct NativeDiffBlock {
       }.scrollable(ScrollDirection.Horizontal).width('100%')
         .constraintSize({ maxHeight: this.expanded ? 420 : 224 })
         .animation(NativeMotion.disclosureParam())
-    }.padding({ left: 7, right: 7, top: 4, bottom: 7 }).width('100%').borderRadius(9)
-      .backgroundColor(this.dark ? '#232324' : '#F7F8FA')
+    }.padding({ left: 7, right: 7, top: 4, bottom: 7 }).width('100%')
+      .borderRadius(NativeDesign.radiusControl)
+      .backgroundColor(NativeDesign.subtleSurface(this.dark))
   }
 }

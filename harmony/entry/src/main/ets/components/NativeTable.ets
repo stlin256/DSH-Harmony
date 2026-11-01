@@ -1,6 +1,7 @@
 import { NativeMarkdownTable } from '../services/NativeMarkdownTable';
 import { NativeInlineText } from './NativeInlineText';
 import { NativeHarnessClient } from '../services/NativeHarnessClient';
+import { NativeDesign } from '../services/NativeDesign';
 
 @Component
 export struct NativeTable {
@@ -15,7 +16,7 @@ export struct NativeTable {
       NativeInlineText({ text: value, textSize: 12, muted: !header, alignment: align,
         client: this.client, sessionId: this.sessionId })
     }.width(148).padding({ left: 10, right: 10, top: 8, bottom: 8 }).alignItems(HorizontalAlign.Start)
-      .backgroundColor(header ? this.dark ? '#292A2D' : '#F1F3F5' : Color.Transparent)
+      .backgroundColor(header ? NativeDesign.field(this.dark) : Color.Transparent)
   }
 
   build() {
@@ -31,11 +32,12 @@ export struct NativeTable {
             ForEach(row, (value: string, index: number) => {
               this.cell(value, false, this.table.aligns[index])
             }, (_value: string, index: number) => rowIndex + ':' + index)
-          }.backgroundColor(rowIndex % 2 ? this.dark ? '#1B1B1D' : '#FAFBFC' : Color.Transparent)
+          }.backgroundColor(rowIndex % 2 ? NativeDesign.subtleSurface(this.dark) : Color.Transparent)
         }, (_row: string[], index: number) => 'r' + index)
       }.alignItems(HorizontalAlign.Start)
     }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Auto).width('100%')
-      .border({ width: 0.5, color: this.dark ? '#414247' : '#DDE0E5', radius: 10 })
-      .backgroundColor(this.dark ? '#18181A' : '#FFFFFF')
+      .border({ width: 0.5, color: NativeDesign.border(this.dark),
+        radius: NativeDesign.radiusControl })
+      .backgroundColor(NativeDesign.base(this.dark))
   }
 }

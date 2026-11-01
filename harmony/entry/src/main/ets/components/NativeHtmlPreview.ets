@@ -12,6 +12,7 @@ import {
   nativeHtmlInlineCss
 } from '../services/NativeHtmlDocument';
 import { NativeMotion } from '../services/NativeMotion';
+import { NativeDesign } from '../services/NativeDesign';
 
 const htmlAssetLimit: number = 32 * 1024 * 1024;
 const htmlTextAssetLimit: number = 8 * 1024 * 1024;
@@ -73,8 +74,8 @@ export struct NativeHtmlPreview {
     return response;
   }
   private presentation(source: string): string {
-    const background = this.dark ? '#151517' : '#FFFFFF';
-    const foreground = this.dark ? '#E8EAED' : '#17181B';
+    const background = NativeDesign.base(this.dark);
+    const foreground = NativeDesign.textPrimary(this.dark);
     const base = '<style id="dsh-html-preview-base">html{' +
       'min-height:100%;background:' + background + ';color:' + foreground + ';' +
       'color-scheme:' + (this.dark ? 'dark' : 'light') + ';}' +
@@ -220,7 +221,7 @@ export struct NativeHtmlPreview {
           .overScrollMode(OverScrollMode.NEVER)
           .javaScriptAccess(true).fileAccess(false).domStorageAccess(false)
           .darkMode(WebDarkMode.Auto).forceDarkAccess(false)
-          .backgroundColor(this.dark ? '#151517' : '#FFFFFF')
+          .backgroundColor(NativeDesign.base(this.dark))
           .onControllerAttached((): void => {
             this.controllerReady = true;
             this.awaitingPage = true;
@@ -243,8 +244,10 @@ export struct NativeHtmlPreview {
           })
       }
       if (this.error) {
-        Text(this.error).fontSize(13).fontColor(this.dark ? '#FFB1B1' : '#B3261E')
-          .padding(14).borderRadius(14).backgroundColor(this.dark ? '#242527' : '#FFFFFF')
+        Text(this.error).fontSize(13).fontColor(NativeDesign.danger(this.dark))
+          .padding(NativeDesign.cardPadding)
+          .borderRadius(NativeDesign.radiusGroup)
+          .backgroundColor(NativeDesign.raised(this.dark))
       }
     }.width('100%').height('100%')
   }
