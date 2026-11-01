@@ -1084,8 +1084,10 @@ test('turn change card and bottom live control keep compact ownership and motion
   assert.match(view, /nativeTurnFilePresentation/);
   assert.match(view, /Text\(this\.fileDirectory\(file\)\)/);
   assert.match(view, /Text\(this\.fileName\(file\)\)/);
-  assert.match(view, /layoutWeight\(this\.fileDirectory\(file\) \? 2 : 1\)/);
-  assert.match(view, /\.width\('96%'\)/);
+  assert.match(view, /Text\(this\.fileDirectory\(file\)\)[\s\S]{0,180}\.flexShrink\(3\)/);
+  assert.match(view, /Text\(this\.fileName\(file\)\)[\s\S]{0,100}\.flexShrink\(1\)/);
+  assert.doesNotMatch(view, /layoutWeight\(this\.fileDirectory\(file\) \? 2 : 1\)/);
+  assert.match(view, /\.width\('100%'\)\.clip\(true\)\.borderRadius\(14\)/);
   assert.match(view, /duration: 170/);
   assert.match(view, /translate\(\{ y: -7 \* this\.progress \}\)/);
   assert.match(view, /!NativeMotion\.enabled\(\)/);
@@ -1114,9 +1116,12 @@ test('turn change card and bottom live control keep compact ownership and motion
   assert.match(dock, /if \(this\.elevated && NativeExperience\.materialsEnabled\(\)\)/);
   assert.match(dock, /\.width\('100%'\)\.height\(this\.measuredHeight\)/);
   assert.doesNotMatch(dock, /\.width\('100%'\)\.height\('100%'\)/);
-  assert.match(dock, /\.backgroundBlurStyle\(BlurStyle\.Thin\)/);
-  assert.match(dock, /\.linearGradientBlur\(18/);
+  assert.match(dock, /\.backgroundBlurStyle\(BlurStyle\.COMPONENT_ULTRA_THIN/);
+  assert.match(dock, /\.linearGradientBlur\(24/);
   assert.match(dock, /direction: GradientDirection\.Bottom/);
+  assert.match(dock, /\.linearGradient\(\{[\s\S]{0,300}angle: 180/);
+  assert.match(dock, /#00FFFFFF[\s\S]{0,140}#D9FFFFFF/);
+  assert.match(dock, /#001D1E20[\s\S]{0,140}#A627292C/);
   assert.doesNotMatch(dock, /\.backgroundColor\(/);
   assert.match(dock, /margin\(\{ left: -this\.horizontalBleed, right: -this\.horizontalBleed \}\)/);
   assert.match(dock, /nativeSafeBottom/);

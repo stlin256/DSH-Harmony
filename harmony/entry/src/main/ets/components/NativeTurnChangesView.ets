@@ -184,22 +184,27 @@ export struct NativeTurnChangesCard {
           color: this.dark ? '#BFC3C8' : '#5F646A' })
         Row({ space: 4 }) {
           if (this.fileDirectory(file)) {
-            Text(this.fileDirectory(file)).fontSize(11).layoutWeight(1).maxLines(1)
+            Text(this.fileDirectory(file)).fontSize(11).flexShrink(3).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .constraintSize({ minWidth: 0 })
               .fontColor(this.dark ? '#969A9F' : '#777C82')
           }
           Text(this.fileName(file)).fontSize(12)
-            .layoutWeight(this.fileDirectory(file) ? 2 : 1).maxLines(1)
+            .flexShrink(1).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .constraintSize({ minWidth: 0 })
             .fontColor(this.dark ? '#E8E9EB' : '#2B2D30')
-        }.layoutWeight(1)
+        }
         if (file.binary || file.oversized) {
           Text(this.fileMetric(file)).fontSize(11)
+            .flexShrink(0)
             .fontColor(this.dark ? '#A8ABAF' : '#686D73')
         } else {
           Text('+' + formattedCount(file.added)).fontSize(11).fontWeight(FontWeight.Medium)
+            .flexShrink(0)
             .fontColor(this.metricColor(true))
           Text('-' + formattedCount(file.removed)).fontSize(11).fontWeight(FontWeight.Medium)
+            .flexShrink(0)
             .fontColor(this.metricColor(false))
         }
       }.width('100%').padding({ left: 10, right: 10 })
@@ -284,7 +289,7 @@ export struct NativeTurnChangesCard {
           .fontColor(this.dark ? '#D5D7DA' : '#45494E')
           .onClick((): void => { this.toggle(); })
       }
-    }.width('96%').clip(true).borderRadius(14)
+    }.width('100%').clip(true).borderRadius(14)
       .backgroundColor(this.dark ? '#202124' : '#FFFFFF')
       .border({ width: 0.5, color: this.dark ? '#484A4D' : '#D9DCE1' })
       .animation(NativeMotion.disclosureParam())
