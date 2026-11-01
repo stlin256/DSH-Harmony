@@ -27,6 +27,7 @@ import {
 import {
   NativePlanProjection,
   NativeSessionAddress,
+  NativeSubagentEntry,
   NativeSubagentIdentity,
   NativeSubagentProjectionValues
 } from './NativeModeSubagent';
@@ -425,6 +426,18 @@ function showcaseSubagentCatalog(): ShowcaseSubagentCatalogRow[] {
   return rows;
 }
 
+function showcaseNativeSubagentCatalog(state: string): NativeSubagentEntry[] {
+  return showcaseSubagentCatalog().map((row: ShowcaseSubagentCatalogRow): NativeSubagentEntry => {
+    const entry = new NativeSubagentEntry();
+    entry.id = row.id;
+    entry.createdAt = row.createdAt;
+    entry.mode = row.mode;
+    entry.label = row.label;
+    entry.running = row.id === SHOWCASE_CHILD_CONTINUABLE && state === 'subagent-continuable';
+    return entry;
+  });
+}
+
 function showcaseChildIdentity(id: string): NativeSubagentIdentity {
   const identity = new NativeSubagentIdentity();
   identity.mode = id === SHOWCASE_CHILD_ONE_SHOT ? 'one-shot' :
@@ -451,6 +464,13 @@ function showcaseChildMessages(id: string): NativeMessage[] {
   return rows;
 }
 
+function showcasePlanProjection(planRemoved: boolean): NativePlanProjection {
+  const plan = new NativePlanProjection();
+  plan.active = !planRemoved;
+  plan.pending = false;
+  return plan;
+}
+
 function showcaseProjectionJson(state: string, sessionId: string, planRemoved: boolean): string {
   const values: Record<string, Object> = {};
   if (sessionId === SHOWCASE_CHILD_CONTINUABLE || sessionId === SHOWCASE_CHILD_ONE_SHOT ||
@@ -461,10 +481,7 @@ function showcaseProjectionJson(state: string, sessionId: string, planRemoved: b
   } else {
     values.modelSelection = new ShowcaseModelSelectionProjection();
     if (isPlanFixtureState(state)) {
-      const plan = new NativePlanProjection();
-      plan.active = !planRemoved;
-      plan.pending = false;
-      values.plan = plan;
+      values.plan = showcasePlanProjection(planRemoved);
     }
     if (isSubagentFixtureState(state)) {
       values.subagentCatalog = showcaseSubagentCatalog();
@@ -475,7 +492,7 @@ function showcaseProjectionJson(state: string, sessionId: string, planRemoved: b
   return JSON.stringify(envelope);
 }
 
-function showcaseSessions(state: string = 'completed'): NativeSession[] {
+function showcaseSessions(state: string = 'completed', planRemoved: boolean = false): NativeSession[] {
   const firstTitle = state === 'live-change' ? '底部 Dock 运行态' :
     state === 'streaming' ? '流式输出与标题更新' :
     state === 'dock-send-idle' || state === 'dock-material-quiet' ? 'Dock 空闲与发送' :
@@ -519,6 +536,14 @@ function showcaseSessions(state: string = 'completed'): NativeSession[] {
     value.agentAvailable = row[0] === SHOWCASE_SESSION ?
       state !== 'subagent-parent-offline' : undefined;
     value.updatedAt = 1761900000000 - definitions.findIndex((item: string[]) => item[0] === row[0]) * 60000;
+    if (row[0] === SHOWCASE_SESSION &&
+        (isPlanFixtureState(state) || isSubagentFixtureState(state))) {
+      value.projections = new NativeSubagentProjectionValues();
+      if (isPlanFixtureState(state)) value.projections.plan = showcasePlanProjection(planRemoved);
+      if (isSubagentFixtureState(state)) {
+        value.projections.subagentCatalog = showcaseNativeSubagentCatalog(state);
+      }
+    }
     return value;
   });
   if (isSubagentFixtureState(state)) {
@@ -670,7 +695,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   async sessions(): Promise<NativeSessionList> {
     const value = new NativeSessionList();
     value.protocol = 2;
-    value.items = showcaseSessions(this.fixtureState);
+    value.items = showcaseSessions(this.fixtureState, this.planRemoved);
     return value;
   }
 
@@ -929,6 +954,12 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     }
     const operation = value.operation;
     const sessionId = typeof value.sessionId === 'string' ? value.sessionId : SHOWCASE_SESSION;
+    if (operation === 'answerQuestion') {
+      const target = sessionId === SHOWCASE_SESSION ?
+        this.interaction : this.childInteractions.get(sessionId);
+      if (target) this.emit(target.cancel(), 24);
+      return 'true';
+    }
     if (operation === 'pluginsList') {
       if (this.fixtureState === 'plugins-error') throw new Error('插件服务暂不可用');
       return this.pluginInventoryJson();

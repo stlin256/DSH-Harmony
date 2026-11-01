@@ -43,7 +43,7 @@ export struct NativeTaskDock {
           DSHIcon({ glyph: this.expanded ? 'chevron-up-outline' : 'chevron-down-outline',
             glyphSize: 11, color: NativeDesign.textTertiary(this.dark) })
         }.width('100%').padding({ left: 10, right: 8 })
-      }.height(NativeDesign.hitTarget).width('100%').padding(0).borderRadius(0)
+      }.height(NativeDesign.compactHitTarget).width('100%').padding(0).borderRadius(0)
         .backgroundColor(Color.Transparent)
         .accessibilityText((this.expanded ? '收起' : '展开') + '任务计划')
         .onClick((): void => { this.toggle(); })

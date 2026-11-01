@@ -1,5 +1,5 @@
 param(
-  [string]$DevEcoHome = 'C:\Users\yjzlx\AppData\Local\Programs\DevEco Studio\DevEcoStudio-26.0.0',
+  [string]$DevEcoHome = '',
   [string]$Device = '',
   [string]$OutputDir = '',
   [switch]$SkipBuild,
@@ -8,11 +8,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$defaultDevEcoHome = 'C:\Users\yjzlx\AppData\Local\Programs\Huawei\DevEcoStudio-26.0.0'
-if (-not (Test-Path -LiteralPath (Join-Path $DevEcoHome 'sdk\default\openharmony\toolchains\hdc.exe')) -and
-    (Test-Path -LiteralPath (Join-Path $defaultDevEcoHome 'sdk\default\openharmony\toolchains\hdc.exe'))) {
-  $DevEcoHome = $defaultDevEcoHome
-}
+. (Join-Path $PSScriptRoot 'resolve-deveco-home.ps1')
+$DevEcoHome = Resolve-DevEcoHome -ExplicitHome $DevEcoHome
 $hdc = Join-Path $DevEcoHome 'sdk\default\openharmony\toolchains\hdc.exe'
 if (-not (Test-Path -LiteralPath $hdc)) {
   throw "HDC not found: $hdc"
@@ -73,6 +70,7 @@ function Launch-Fixture {
 
 function Dump-Layout {
   param([string]$Name)
+  [OutputType([string])]
   $remote = "/data/local/tmp/dsh-dock-$Name.json"
   $local = Join-Path $captureDir "$Name.json"
   & $hdc -t $Device shell "uitest dumpLayout -p $remote -i -b $bundle" | Out-Null
@@ -83,7 +81,7 @@ function Dump-Layout {
   if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $local)) {
     throw "Layout receive failed: $Name"
   }
-  return $local
+  return [string]$local
 }
 
 function Capture-Screen {
@@ -120,6 +118,60 @@ function Query-Node {
   return (($raw -join '') | ConvertFrom-Json)
 }
 
+function Wait-Query-Node {
+  param(
+    [string]$Name,
+    [string]$Text,
+    [ValidateSet('text', 'clickable', 'checkable')]
+    [string]$Target = 'clickable',
+    [int]$ExpectCount = 1,
+    [int]$TimeoutMilliseconds = 6000,
+    [int]$MinimumY = -1
+  )
+  $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMilliseconds)
+  $lastError = ''
+  $attempt = 0
+  do {
+    $attempt++
+    [string]$layoutPath = @(Dump-Layout "$Name-$attempt")[-1]
+    try {
+      $node = Query-Node $layoutPath $Text $Target $ExpectCount
+      if ($MinimumY -lt 0 -or [int]$node.y -ge $MinimumY) {
+        return $node
+      }
+      $lastError = "Layout match is still above y=$MinimumY (found y=$($node.y))."
+    } catch {
+      $lastError = $_.Exception.Message
+    }
+    Start-Sleep -Milliseconds 250
+  } while ([DateTime]::UtcNow -lt $deadline)
+  throw "Layout wait failed for '$Text' after $TimeoutMilliseconds ms: $lastError"
+}
+
+function Wait-Send-Node {
+  param(
+    [string]$Name,
+    [int]$AnchorX,
+    [int]$AnchorY,
+    [int]$TimeoutMilliseconds = 6000
+  )
+  $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMilliseconds)
+  $lastError = ''
+  $attempt = 0
+  do {
+    $attempt++
+    [string]$layoutPath = @(Dump-Layout "$Name-$attempt")[-1]
+    $raw = & python $queryScript $layoutPath --rightmost-clickable-below $AnchorX $AnchorY `
+      --expect-count 1 2>&1
+    if ($LASTEXITCODE -eq 0) {
+      return (($raw -join '') | ConvertFrom-Json)
+    }
+    $lastError = $raw -join [Environment]::NewLine
+    Start-Sleep -Milliseconds 250
+  } while ([DateTime]::UtcNow -lt $deadline)
+  throw "Send node wait failed after $TimeoutMilliseconds ms: $lastError"
+}
+
 function Invoke-Click {
   param([object]$Node)
   if ($null -eq $Node.x -or $null -eq $Node.y) {
@@ -134,17 +186,22 @@ function Invoke-Click {
 
 function Send-Token {
   param([string]$Token)
-  $before = Dump-Layout ('before-' + $Token)
+  [string]$before = @(Dump-Layout ('before-' + $Token))[-1]
   $composer = Query-Node $before '发送消息…' 'text'
   Invoke-Click $composer
-  & $hdc -t $Device shell "uitest uiInput inputText $Token" | Out-Null
+  $focusedComposer = Wait-Query-Node ('focused-' + $Token) '发送消息…' 'text'
+  & $hdc -t $Device shell "uitest uiInput inputText $($focusedComposer.x) $($focusedComposer.y) $Token" | Out-Null
   if ($LASTEXITCODE -ne 0) {
     throw "Text input failed: $Token"
   }
-  Start-Sleep -Milliseconds 180
-  $entered = Dump-Layout ('entered-' + $Token)
-  $null = Query-Node $entered $Token 'text' 1
-  $send = Query-Node $entered '发送' 'clickable'
+  $null = Wait-Query-Node ('entered-' + $Token) $Token 'text' 1
+  & $hdc -t $Device shell 'uitest uiInput keyEvent Back' | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw "Keyboard dismissal failed: $Token"
+  }
+  $sendComposer = Wait-Query-Node ('send-ready-' + $Token) $Token 'text' 1 6000 `
+    ([int]$focusedComposer.y + 300)
+  $send = Wait-Send-Node ('send-' + $Token) $sendComposer.x $sendComposer.y
   Invoke-Click $send
 }
 
@@ -152,11 +209,9 @@ function Send-Token {
 Launch-Fixture -State 'dock-send-idle' -Theme 'dark' -First $true
 $idleToken = 'dock_send_probe'
 Send-Token $idleToken
-Start-Sleep -Milliseconds 1500
-$idleLayout = Dump-Layout 'idle-settled'
-$null = Query-Node $idleLayout $idleToken 'text' 1
-$null = Query-Node $idleLayout '已收到这条测试消息。Dock、发送与流式状态均已正常更新。' 'text' 1
-$null = Query-Node $idleLayout '发送消息…' 'text' 1
+$null = Wait-Query-Node 'idle-settled' $idleToken 'text' 2
+$null = Wait-Query-Node 'idle-response' '已收到这条测试消息。Dock、发送与流式状态均已正常更新。' 'text' 1
+$null = Wait-Query-Node 'idle-ready' '发送消息…' 'text' 1
 Capture-Screen 'idle-settled'
 
 # Running Queue Send: capture the local echo before authoritative reconciliation,
@@ -183,18 +238,18 @@ Capture-Screen 'queue-authoritative'
 Launch-Fixture -State 'dock-material-quiet' -Theme 'dark' -First $false
 $quietLayout = Dump-Layout 'dock-material-quiet'
 $null = Query-Node $quietLayout '发送消息…' 'text' 1
-$null = Query-Node $quietLayout '检查 Dock 背景材质。' 'text' 0
+$null = Query-Node $quietLayout '2 条排队消息' 'text' 0
 Capture-Screen 'dock-material-quiet'
 
 Launch-Fixture -State 'dock-material-elevated' -Theme 'dark' -First $false
 $elevatedLayout = Dump-Layout 'dock-material-elevated'
-$null = Query-Node $elevatedLayout '检查 Dock 背景材质。' 'text' 1
+$null = Query-Node $elevatedLayout '2 条排队消息' 'text' 1
 $null = Query-Node $elevatedLayout '发送消息…' 'text' 1
 Capture-Screen 'dock-material-elevated'
 
 Launch-Fixture -State 'dock-material-elevated' -Theme 'dark' -First $false -ReduceTransparency $true
 $reducedLayout = Dump-Layout 'dock-material-reduced-transparency'
-$null = Query-Node $reducedLayout '检查 Dock 背景材质。' 'text' 1
+$null = Query-Node $reducedLayout '2 条排队消息' 'text' 1
 $null = Query-Node $reducedLayout '发送消息…' 'text' 1
 Capture-Screen 'dock-material-reduced-transparency'
 

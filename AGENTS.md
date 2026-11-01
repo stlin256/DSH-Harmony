@@ -23,10 +23,23 @@ For non-trivial UI or state changes:
    screenshot alone is insufficient for interactive behavior.
 8. Run `node scripts/verify-mock-coverage.mjs`. Do not deliver a frontend change
    when this check fails.
-9. Build the default, store and mock product variants when shared ArkUI code
+9. Run `node scripts/qa.mjs pr` for a non-trivial change and keep the generated
+   QA report path or run ID in the delivery summary.
+10. Build the default, store and mock product variants when shared ArkUI code
    changes.
-10. Add or update the device E2E table. Do not claim device completion without
+11. From 2026-11-02 until the user explicitly confirms the connected phone is
+    available again, do not run HDC, install, capture, inspect or interact with
+    the device. During this hold, update
+    `docs/testing/2026-11-01-device-visual-state-acceptance-e2e.md` before
+    ending any turn that changes UI or state. Record every affected surface,
+    interaction, theme, fallback and expected device evidence as `Pending`;
+    static tests, screenshots from before the change and Mock coverage do not
+    satisfy those rows.
+12. Add or update the device E2E table. Do not claim device completion without
    actual device evidence.
+13. Use `node scripts/qa.mjs release --evidence <manifest>` only with current,
+    clean evidence. Mapping coverage, a Pending row or a stale HAP hash is never
+    device proof.
 
 Do not put private hosts, internal addresses, credentials, cookies, signatures,
 or real transcript content in source, tests, docs, logs or commits.
@@ -48,6 +61,12 @@ or real transcript content in source, tests, docs, logs or commits.
 ## Design, Spec and Evidence Index
 
 - Visual baseline: [DESIGN.md](docs/DESIGN.md)
+- Physical-device visual acceptance requirement:
+  [2026-11-01-device-visual-state-acceptance.md](docs/requirements/2026-11-01-device-visual-state-acceptance.md)
+- Physical-device visual acceptance implementation spec:
+  [2026-11-01-device-visual-state-acceptance.md](docs/specs/2026-11-01-device-visual-state-acceptance.md)
+- Physical-device visual acceptance and pending verification ledger:
+  [2026-11-01-device-visual-state-acceptance-e2e.md](docs/testing/2026-11-01-device-visual-state-acceptance-e2e.md)
 - Authoritative design system and motion baseline:
   [2026-11-01-dsh-harmony-design-system.md](docs/design/2026-11-01-dsh-harmony-design-system.md)
 - Design-system unification requirement:
@@ -236,6 +255,12 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-10-31-navigation-motion-return-polish-e2e.md](docs/testing/2026-10-31-navigation-motion-return-polish-e2e.md)
 - Native interaction baseline:
   [NATIVE-INTERACTION-SPEC.md](docs/NATIVE-INTERACTION-SPEC.md)
+- Agent quality-gate requirement:
+  [2026-11-01-agent-quality-gates.md](docs/requirements/2026-11-01-agent-quality-gates.md)
+- Agent quality-gate implementation spec:
+  [2026-11-01-agent-quality-gates.md](docs/specs/2026-11-01-agent-quality-gates.md)
+- Agent quality-gate E2E:
+  [2026-11-01-agent-quality-gates-e2e.md](docs/testing/2026-11-01-agent-quality-gates-e2e.md)
 - Fenced DSH UI and media compatibility requirement:
   [2026-11-01-fenced-dsh-ui-media-compatibility.md](docs/requirements/2026-11-01-fenced-dsh-ui-media-compatibility.md)
 - Fenced DSH UI and media compatibility research:

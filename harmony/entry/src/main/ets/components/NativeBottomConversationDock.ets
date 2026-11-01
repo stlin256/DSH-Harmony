@@ -43,10 +43,16 @@ export struct NativeBottomConversationDock {
                   [NativeDesign.blurScrimBottom(false), 1]]
             })
         }.width('100%').height(this.measuredHeight)
+          .margin({ left: -this.horizontalBleed, right: -this.horizontalBleed })
           .clip(true)
           .transition(TransitionEffect.OPACITY.animation(
             NativeMotion.disclosureParam()))
           .animation(NativeMotion.disclosureParam())
+      } else if (this.elevated) {
+        Column()
+          .width('100%').height(this.measuredHeight)
+          .margin({ left: -this.horizontalBleed, right: -this.horizontalBleed })
+          .backgroundColor(NativeDesign.subtleSurface(this.dark))
       }
       Column() {
         this.content()

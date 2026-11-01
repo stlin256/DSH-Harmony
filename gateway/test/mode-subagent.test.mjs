@@ -139,9 +139,12 @@ test('native shell keeps mode UI separate from todo plans and hides child sessio
   const lineage = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/components/NativeSubagentLineage.ets', import.meta.url), 'utf8');
   const session = readFileSync(new URL('NativeSessionModel.ets', services), 'utf8');
+  const showcase = readFileSync(new URL('StoreShowcaseClient.ets', services), 'utf8');
   assert.match(workspace, /nativePlanTargetActive\(this\.planProjection\)/);
   assert.match(workspace, /Text\('计划'\)/);
   assert.match(workspace, /this\.client\.planOff\(this\.selected\)/);
+  assert.match(workspace,
+    /this\.refreshSelectedProjection\(\);\s*this\.loadSelectedProjections\(\);/);
   assert.ok(workspace.indexOf('NativeTaskDock') !== workspace.lastIndexOf('NativeTaskDock'));
   assert.match(workspace, /NativeSubagentLineage\(\{/);
   assert.match(workspace, /subagentPath/);
@@ -149,4 +152,9 @@ test('native shell keeps mode UI separate from todo plans and hides child sessio
   assert.match(lineage, /constraintSize\(\{ minHeight: 48 \}\)/);
   assert.match(lineage, /nativeSubagentCanOpen\(entry\)/);
   assert.match(session, /origin !== 'subagent'/);
+  assert.match(showcase,
+    /value\.projections = new NativeSubagentProjectionValues\(\);[\s\S]{0,180}value\.projections\.plan = showcasePlanProjection\(planRemoved\)/);
+  assert.match(showcase,
+    /value\.projections\.subagentCatalog = showcaseNativeSubagentCatalog\(state\)/);
+  assert.match(showcase, /value\.items = showcaseSessions\(this\.fixtureState, this\.planRemoved\)/);
 });

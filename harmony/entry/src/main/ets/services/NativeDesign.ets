@@ -139,6 +139,9 @@ export class NativeDesign {
   }
 
   static hitTarget: number = 44;
+  static compactHitTarget: number = 36;
+  static compactControl: number = 32;
+  static compactChip: number = 30;
   static visualIconContainer: number = 36;
   static compactRow: number = 44;
   static standardRow: number = 48;

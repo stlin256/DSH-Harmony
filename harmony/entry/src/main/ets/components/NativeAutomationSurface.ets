@@ -78,6 +78,9 @@ export struct NativeAutomationSurface {
 
   aboutToAppear(): void {
     this.mounted = true;
+    // ArkUI injects component parameters after field initialization. Rebind the
+    // adapter so this surface never falls back to the empty-URL default client.
+    this.admin = new NativeAdminClient(this.client);
     this.refresh();
   }
 
@@ -426,7 +429,7 @@ export struct NativeAutomationSurface {
         .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.primaryText())
       if (this.refreshing) LoadingProgress().width(18).height(18).color(this.accent())
       if (actionLabel) {
-        Button(actionLabel, { type: ButtonType.Normal }).height(NativeDesign.hitTarget)
+        Button(actionLabel, { type: ButtonType.Normal }).height(NativeDesign.compactHitTarget)
           .padding({ left: 12, right: 12 }).fontSize(12).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.fieldSurface()).fontColor(this.primaryText()).onClick(action)
       }
@@ -483,7 +486,7 @@ export struct NativeAutomationSurface {
         DSHIcon({ glyph: 'warning-outline', glyphSize: 16, color: this.danger() })
         Text(this.actionError || this.error).fontSize(11).layoutWeight(1).maxLines(4)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.danger())
-        Button(this.conflict ? '刷新' : '重试', { type: ButtonType.Normal }).height(NativeDesign.hitTarget)
+        Button(this.conflict ? '刷新' : '重试', { type: ButtonType.Normal }).height(NativeDesign.compactControl)
           .fontSize(11).backgroundColor(Color.Transparent).fontColor(this.accent())
           .onClick((): void => {
             if (this.conflict) this.reloadConflict();
@@ -491,7 +494,8 @@ export struct NativeAutomationSurface {
             else if (this.page === 'history') this.loadHistory(false);
             else this.refresh(true);
           })
-      }.width('100%').padding({ left: 10, right: 4, top: 8, bottom: 8 })
+      }.width('100%').constraintSize({ minHeight: NativeDesign.compactHitTarget })
+        .padding({ left: 10, right: 4, top: 3, bottom: 3 })
         .borderRadius(NativeDesign.radiusRow).backgroundColor(NativeDesign.dangerSurface(this.dark))
         .transition(NativeMotion.rowTransition())
     }
@@ -519,7 +523,7 @@ export struct NativeAutomationSurface {
                 .borderRadius(5).backgroundColor(this.statusSurface(task.status))
             }
           }.width('100%')
-          Text(nativeAutomationRule(task)).fontSize(11).layoutWeight(1).maxLines(1)
+          Text(nativeAutomationRule(task)).fontSize(11).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.secondaryText())
           Text(task.status === 'active' ?
             '下次 ' + nativeAutomationTimestamp(task.scheduledAt) +
@@ -530,7 +534,7 @@ export struct NativeAutomationSurface {
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 13, color: this.tertiaryText() })
           .rotate({ angle: 180 })
-      }.width('100%').constraintSize({ minHeight: 68 }).padding({ left: 10, right: 10, top: 7, bottom: 7 })
+      }.width('100%').constraintSize({ minHeight: 60 }).padding({ left: 10, right: 10, top: 7, bottom: 7 })
     }.width('100%').borderRadius(NativeDesign.radiusRow).backgroundColor(Color.Transparent)
       .onClick((): void => { this.openDetail(task); })
       .transition(NativeMotion.rowTransition())
@@ -691,10 +695,12 @@ export struct NativeAutomationSurface {
 
   @Builder
   private choiceChip(label: string, value: string, current: string, action: (value: string) => void) {
-    Button(label, { type: ButtonType.Normal }).height(34).padding({ left: 10, right: 10 })
+    Button(label, { type: ButtonType.Normal }).height(NativeDesign.compactChip).padding({ left: 9, right: 9 })
       .fontSize(11).borderRadius(NativeDesign.radiusControl)
       .backgroundColor(current === value ? NativeDesign.accentSurface(this.dark) : this.fieldSurface())
       .fontColor(current === value ? this.accent() : this.secondaryText())
+      .margin({ right: 6, bottom: 6 })
+      .clip(true)
       .onClick((): void => { action(value); })
   }
 

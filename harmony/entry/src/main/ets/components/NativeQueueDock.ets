@@ -114,7 +114,7 @@ export struct NativeQueueDock {
                 Text(this.fileSize(block.file.bytes)).fontSize(9)
                   .fontColor(NativeDesign.textTertiary(this.dark))
               }.constraintSize({ maxWidth: 132 }).alignItems(HorizontalAlign.Start)
-            }.height(NativeDesign.hitTarget).padding({ left: 7, right: 8 })
+            }.height(NativeDesign.compactHitTarget).padding({ left: 7, right: 8 })
               .borderRadius(NativeDesign.radiusCompact)
               .backgroundColor(NativeDesign.selection(this.dark))
           }
@@ -130,14 +130,14 @@ export struct NativeQueueDock {
         DSHIcon({ glyph: 'edit-outline', glyphSize: 13,
           color: nativeQueueEditable(item) ? NativeDesign.textSecondary(this.dark) :
             NativeDesign.textTertiary(this.dark) })
-      }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+      }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
         .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
         .enabled(nativeQueueEditable(item) && !this.busyId)
         .accessibilityText('修改排队消息').onClick((): void => { this.beginEdit(item); })
       Button({ type: ButtonType.Normal }) {
         DSHIcon({ glyph: 'close-outline', glyphSize: 13,
           color: NativeDesign.textTertiary(this.dark) })
-      }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+      }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
         .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
         .enabled(!this.busyId).accessibilityText('移除排队消息')
         .onClick((): void => { this.act(item, 'remove'); })
@@ -145,7 +145,7 @@ export struct NativeQueueDock {
         DSHIcon({ glyph: 'send-arrow', glyphSize: 13,
           color: this.running ? NativeDesign.accent(this.dark) :
             NativeDesign.textTertiary(this.dark) })
-      }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+      }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
         .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
         .enabled(this.running && !this.busyId).accessibilityText('立即发送排队消息')
         .onClick((): void => { this.act(item, 'steer'); })
@@ -160,7 +160,7 @@ export struct NativeQueueDock {
           color: NativeDesign.textTertiary(this.dark) })
       }
       if (this.editingId === item.id) {
-        TextInput({ text: this.editText }).layoutWeight(1).height(NativeDesign.hitTarget)
+        TextInput({ text: this.editText }).layoutWeight(1).height(NativeDesign.compactHitTarget)
           .fontSize(NativeDesign.fontBody).borderRadius(NativeDesign.radiusControl)
           .padding({ left: 9, right: 9 })
           .backgroundColor(NativeDesign.field(this.dark))
@@ -170,14 +170,14 @@ export struct NativeQueueDock {
           if (this.busyId === item.id) LoadingProgress().width(13).height(13)
           else DSHIcon({ glyph: 'check-outline', glyphSize: 13,
             color: NativeDesign.accent(this.dark) })
-        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+        }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .enabled(!!this.editText.trim() && !this.busyId)
           .accessibilityText('保存排队消息').onClick((): void => { this.act(item, 'edit', this.editText); })
         Button({ type: ButtonType.Normal }) {
           DSHIcon({ glyph: 'close-outline', glyphSize: 13,
             color: NativeDesign.textTertiary(this.dark) })
-        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+        }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .enabled(!this.busyId).accessibilityText('取消修改')
           .onClick((): void => { this.editingId = ''; })
@@ -200,7 +200,7 @@ export struct NativeQueueDock {
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         this.actions(item)
       }
-    }.width('100%').padding({ left: 8, right: 5, top: 6, bottom: 6 })
+    }.width('100%').padding({ left: 8, right: 5, top: 4, bottom: 4 })
       .borderRadius(NativeDesign.radiusRow)
       .backgroundColor(NativeDesign.overlay(this.dark))
       .border({ width: 0.5, color: NativeDesign.border(this.dark) })
@@ -227,7 +227,7 @@ export struct NativeQueueDock {
                 .rotate({ angle: this.expanded() ? -90 : 90 })
                 .animation(NativeMotion.disclosureParam())
             }.width('100%')
-          }.width('100%').height(NativeDesign.hitTarget).padding({ left: 8, right: 8 })
+          }.width('100%').height(NativeDesign.compactControl).padding({ left: 8, right: 8 })
             .backgroundColor(Color.Transparent).onClick((): void => { this.toggleCollapsed(); })
         }
         if (this.expanded()) {

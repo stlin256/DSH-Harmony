@@ -160,19 +160,19 @@ export struct NativeInteraction {
     this.busy = true;
     this.error = '';
     try {
-      if (this.frame.callId) {
+      if (this.frame.interaction === 'approval/request') {
+        const payload = new ApprovalSubmissionPayload();
+        payload.connectionId = this.frame.connectionId;
+        payload.eventId = this.frame.eventId;
+        payload.value = value;
+        await this.client.answer(JSON.stringify(payload));
+      } else if (this.frame.callId) {
         const payload = new OperationAnswerPayload();
         payload.sessionId = this.frame.connectionId;
         payload.callId = this.frame.callId;
         payload.answer.answers = this.answers;
         const result = await this.client.operation(JSON.stringify(payload));
         if (result !== 'true') throw new Error('Question no longer answerable');
-      } else if (this.frame.interaction === 'approval/request') {
-        const payload = new ApprovalSubmissionPayload();
-        payload.connectionId = this.frame.connectionId;
-        payload.eventId = this.frame.eventId;
-        payload.value = value;
-        await this.client.answer(JSON.stringify(payload));
       } else {
         const payload = new QuestionSubmissionPayload();
         payload.connectionId = this.frame.connectionId;
@@ -228,7 +228,8 @@ export struct NativeInteraction {
   private approvalCard() {
     Column({ space: 0 }) {
       Row({ space: 7 }) {
-        Circle().width(7).height(7).backgroundColor(NativeDesign.warning(this.dark))
+        Text('').width(8).height(8).borderRadius(4)
+          .backgroundColor(NativeDesign.warning(this.dark))
         Text('等待审批').fontSize(12).fontWeight(FontWeight.Medium)
           .fontColor(NativeDesign.warning(this.dark))
         Blank()
@@ -236,7 +237,7 @@ export struct NativeInteraction {
           Text(Math.ceil(this.remaining / 1000).toString() + 's').fontSize(11)
             .fontColor(NativeDesign.textTertiary(this.dark))
         }
-      }.width('100%').height(34).padding({ left: 12, right: 12 })
+      }.width('100%').height(NativeDesign.compactChip).padding({ left: 12, right: 12 })
         .backgroundColor(NativeDesign.warningSurface(this.dark))
       Scroll() {
         Column({ space: 7 }) {
@@ -254,7 +255,7 @@ export struct NativeInteraction {
       Row({ space: 8 }) {
         Button({ type: ButtonType.Normal }) {
           Text('拒绝').fontSize(13).fontWeight(FontWeight.Medium)
-        }.layoutWeight(1).height(NativeDesign.hitTarget)
+        }.layoutWeight(1).height(NativeDesign.compactHitTarget)
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.field(this.dark))
           .fontColor(NativeDesign.textPrimary(this.dark))
@@ -265,13 +266,13 @@ export struct NativeInteraction {
           if (this.busy) LoadingProgress().width(15).height(15)
             .color(NativeDesign.textInverse(this.dark))
           else Text('允许一次').fontSize(13).fontWeight(FontWeight.Medium)
-        }.layoutWeight(1).height(NativeDesign.hitTarget)
+        }.layoutWeight(1).height(NativeDesign.compactHitTarget)
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.accentStrong(this.dark))
           .fontColor(NativeDesign.textInverse(this.dark))
           .enabled(!this.busy && !this.unconfirmed)
           .onClick((): void => { this.submit('allowed-once'); })
-      }.width('100%').padding({ left: 12, right: 12, bottom: 12 })
+      }.width('100%').padding({ left: 12, right: 12, bottom: 8 })
     }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true)
       .backgroundColor(NativeDesign.overlay(this.dark))
       .border({ width: 0.5, color: NativeDesign.border(this.dark) })
@@ -335,7 +336,7 @@ export struct NativeInteraction {
           Text(' · ' + Math.ceil(this.remaining / 1000).toString() + 's').fontSize(11)
             .fontColor(NativeDesign.textTertiary(this.dark))
         }
-      }.width('100%').height(34).padding({ left: 12, right: 12 })
+      }.width('100%').height(NativeDesign.compactChip).padding({ left: 12, right: 12 })
       Scroll() {
         Column({ space: 10 }) {
           Text(this.questionTitle(question)).fontSize(15).fontWeight(FontWeight.Medium)
@@ -369,18 +370,15 @@ export struct NativeInteraction {
                     NativeDesign.accent(this.dark) : NativeDesign.textTertiary(this.dark) })
               }
               TextArea({ text: this.answerFor(question.id).custom, placeholder: '自定义回答' })
-                .layoutWeight(1).height(44).fontSize(13).borderRadius(10)
-                .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+                .layoutWeight(1).height(NativeDesign.compactHitTarget).fontSize(13).borderRadius(8)
+                .padding({ left: 9, right: 9, top: 4, bottom: 4 })
                 .backgroundColor(NativeDesign.field(this.dark))
                 .fontColor(NativeDesign.textPrimary(this.dark))
                 .placeholderColor(NativeDesign.textTertiary(this.dark))
                 .enabled(!this.busy && !this.unconfirmed)
                 .onFocus((): void => { this.engage(); })
                 .onChange((text: string): void => { this.custom(question, text); })
-            }.width('100%').padding({ left: 9, right: 3, top: 4, bottom: 4 })
-              .borderRadius(NativeDesign.radiusRow)
-              .backgroundColor(NativeDesign.subtleSurface(this.dark))
-              .border({ width: 0.5, color: NativeDesign.border(this.dark) })
+            }.width('100%')
           }
         }.width('100%').alignItems(HorizontalAlign.Start).padding(12)
       }.width('100%').constraintSize({ maxHeight: 330 }).scrollBar(BarState.Auto)
@@ -388,23 +386,23 @@ export struct NativeInteraction {
       Row({ space: 6 }) {
         Button({ type: ButtonType.Normal }) {
           DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 13,
-            color: NativeDesign.textSecondary(this.dark) }).rotate({ angle: 180 })
-        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+            color: NativeDesign.textSecondary(this.dark) })
+        }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .enabled(this.index > 0 && !this.busy)
           .accessibilityText('上一题').onClick((): void => { this.move(this.index - 1); })
         Text((this.index + 1).toString() + ' / ' + this.frame.request.questions.length.toString())
           .fontSize(11).fontColor(NativeDesign.textTertiary(this.dark))
         Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 13,
-            color: NativeDesign.textSecondary(this.dark) }).rotate({ angle: 0 })
-        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          DSHIcon({ glyph: 'chevron-right-outline', glyphSize: 13,
+            color: NativeDesign.textSecondary(this.dark) })
+        }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .enabled(this.index < this.frame.request.questions.length - 1 && !this.busy)
           .accessibilityText('下一题').onClick((): void => { this.move(this.index + 1); })
         Blank()
         Button(question.intent?.reject || '跳过', { type: ButtonType.Normal })
-          .height(NativeDesign.hitTarget).fontSize(11)
+          .height(NativeDesign.compactHitTarget).fontSize(11)
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.field(this.dark))
           .fontColor(NativeDesign.textSecondary(this.dark))
@@ -414,15 +412,15 @@ export struct NativeInteraction {
             .color(NativeDesign.textInverse(this.dark))
           else Text(this.index < this.frame.request.questions.length - 1 ?
             '下一题' : (question.intent?.approve || '提交')).fontSize(11).fontWeight(FontWeight.Medium)
-        }.height(NativeDesign.hitTarget).padding({ left: 12, right: 12 })
+        }.height(NativeDesign.compactHitTarget).padding({ left: 12, right: 12 })
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.accentStrong(this.dark))
           .fontColor(NativeDesign.textInverse(this.dark))
           .enabled(!this.busy && !this.unconfirmed && this.answered(this.answerFor(question.id)))
           .opacity(this.answered(this.answerFor(question.id)) ? 1 : 0.42)
           .onClick((): void => { this.continueQuestions(); })
-      }.width('100%').constraintSize({ minHeight: 56 })
-        .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+      }.width('100%').constraintSize({ minHeight: NativeDesign.compactHitTarget + 8 })
+        .padding({ left: 8, right: 8, top: 4, bottom: 4 })
     }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true)
       .backgroundColor(NativeDesign.overlay(this.dark))
       .border({ width: 0.5, color: NativeDesign.border(this.dark) })

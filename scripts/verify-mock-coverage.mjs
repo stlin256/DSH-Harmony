@@ -22,8 +22,8 @@ export function missingCoverage(declared, covered) {
 
 function collectPairs(source) {
   const pairs = [];
-  for (const match of source.matchAll(
-    /Screen\s*=\s*'([^']+)'\s*;\s*State\s*=\s*'([^']+)'/g,
+  for (const match of stripPowerShellComments(source).matchAll(
+    /Screen\s*=\s*'([^']+)'\s*;\s*State\s*=\s*'([^']+)'/gi,
   )) {
     pairs.push({ screen: match[1], state: match[2] });
   }
@@ -36,7 +36,9 @@ function collectNamedValues(source, name) {
     `(?:${name}\\s*=\\s*|\\s+-${name}\\s+)'([^']+)'`,
     'g',
   );
-  for (const match of source.matchAll(expression)) values.push(match[1]);
+  for (const match of stripPowerShellComments(source).matchAll(expression)) {
+    values.push(match[1]);
+  }
   return values;
 }
 
@@ -54,11 +56,126 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function driverMentionsState(source, state) {
+export function stripPowerShellComments(source) {
+  let output = '';
+  let quote = '';
+  for (let index = 0; index < source.length; index++) {
+    const char = source[index];
+    const next = source[index + 1];
+
+    if (quote === "'") {
+      output += char;
+      if (char === "'" && next === "'") {
+        output += next;
+        index++;
+      } else if (char === "'") {
+        quote = '';
+      }
+      continue;
+    }
+    if (quote === '"') {
+      output += char;
+      if (char === '`' && next !== undefined) {
+        output += next;
+        index++;
+      } else if (char === '"') {
+        quote = '';
+      }
+      continue;
+    }
+
+    if (char === '<' && next === '#') {
+      while (index + 1 < source.length &&
+          !(source[index] === '#' && source[index + 1] === '>')) {
+        if (source[index] === '\n') output += '\n';
+        index++;
+      }
+      index++;
+      continue;
+    }
+    if (char === '#') {
+      while (index < source.length && source[index] !== '\n') index++;
+      if (source[index] === '\n') output += '\n';
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      quote = char;
+      output += char;
+      continue;
+    }
+    output += char;
+  }
+  return output;
+}
+
+function stateArguments(source) {
+  const values = [];
+  const sanitized = stripPowerShellComments(source);
+  const argument = /(?<![\w-])-State(?:\s*:\s*|\s+)(?:'([^']+)'|"([^"]+)")/gi;
+  const fixtureState = /\$[\w-]*FixtureState\s*=\s*(?:'([^']+)'|"([^"]+)")/gi;
+  for (const match of sanitized.matchAll(argument)) {
+    values.push(match[1] ?? match[2]);
+  }
+  for (const match of sanitized.matchAll(fixtureState)) {
+    values.push(match[1] ?? match[2]);
+  }
+  return values;
+}
+
+export function driverMentionsState(source, state) {
+  const sanitized = stripPowerShellComments(source);
   return collectPairs(source).some((pair) => pair.state === state) ||
-    collectNamedValues(source, 'State').includes(state) ||
-    source.includes(`'${state}'`) ||
-    source.includes(`"${state}"`);
+    stateArguments(sanitized).includes(state);
+}
+
+export function stripPowerShellFunctionBodies(source) {
+  const sanitized = stripPowerShellComments(source);
+  let output = '';
+  let cursor = 0;
+  const declaration = /\bfunction\s+[\w-]+\s*(?:\([^)]*\))?\s*\{/gi;
+  let match;
+  while ((match = declaration.exec(sanitized))) {
+    if (match.index < cursor) continue;
+    output += sanitized.slice(cursor, match.index);
+    let depth = 1;
+    let quote = '';
+    let index = match.index + match[0].length;
+    for (; index < sanitized.length && depth > 0; index++) {
+      const char = sanitized[index];
+      const next = sanitized[index + 1];
+      if (quote === "'") {
+        if (char === "'" && next === "'") index++;
+        else if (char === "'") quote = '';
+      } else if (quote === '"') {
+        if (char === '`') index++;
+        else if (char === '"') quote = '';
+      } else if (char === "'" || char === '"') {
+        quote = char;
+      } else if (char === '{') {
+        depth++;
+      } else if (char === '}') {
+        depth--;
+      }
+    }
+    cursor = index;
+    declaration.lastIndex = cursor;
+  }
+  return output + sanitized.slice(cursor);
+}
+
+export function analyzeInteractionDriver(source) {
+  const sourceWithoutComments = stripPowerShellComments(source);
+  const commands = stripPowerShellFunctionBodies(source);
+  return {
+    hasInteractionCommand:
+      /\buiInput\s+(?:click|inputText|text|keyEvent|swipe|drag|touch)\b/i.test(commands) ||
+      /(?<![\w-])(?:Invoke-(?:Click|Tap)|Send-(?:Token|Message))\b/i.test(commands),
+    hasAssertionCommand:
+      /(?<![\w-])Query-Node\b/i.test(commands) ||
+      /\bdevice-ui-(?:layout|material)-assert\.py\b/i.test(commands) ||
+      /\bAssert-[A-Za-z][\w-]*\b/i.test(commands),
+    referencedStates: [...new Set(stateArguments(sourceWithoutComments))],
+  };
 }
 
 export function validateMockFeatureManifest(
@@ -137,12 +254,36 @@ export function validateMockFeatureManifest(
       }
     }
 
-    if (feature?.requiresInteraction === true &&
-        !drivers.some((driver) => driver !== staticDriver &&
-          typeof driverSources[driver] === 'string' &&
-          states.some((state) => driverMentionsState(driverSources[driver], state)))) {
-      failures.push(`${featureName}: interactive feature has no interaction driver`);
-      invalidFeatures.add(featureName);
+    if (feature?.requiresInteraction === true) {
+      const interactionDrivers = drivers.filter((driver) =>
+        driver !== staticDriver && typeof driverSources[driver] === 'string');
+      if (!interactionDrivers.length) {
+        failures.push(
+          `${featureName}: interactive feature has no interaction driver (non-static driver required)`,
+        );
+        invalidFeatures.add(featureName);
+      }
+      for (const driver of interactionDrivers) {
+        const analysis = analyzeInteractionDriver(driverSources[driver]);
+        if (!analysis.hasInteractionCommand) {
+          failures.push(
+            `${featureName}: interaction driver ${driver} has no interaction command`,
+          );
+          invalidFeatures.add(featureName);
+        }
+        if (!analysis.hasAssertionCommand) {
+          failures.push(
+            `${featureName}: interaction driver ${driver} has no assertion command`,
+          );
+          invalidFeatures.add(featureName);
+        }
+        if (!analysis.referencedStates.some((state) => states.includes(state))) {
+          failures.push(
+            `${featureName}: interaction driver ${driver} does not reference a feature state`,
+          );
+          invalidFeatures.add(featureName);
+        }
+      }
     }
 
     for (const e2eId of arrays.e2eIds) {
@@ -325,9 +466,9 @@ function printResult(result) {
     ? result.states.covered * 100 / result.states.total : 0;
   const featurePercent = result.features.total
     ? result.features.covered * 100 / result.features.total : 0;
-  console.log(`Mock screens: ${result.screens.covered}/${result.screens.total} (${screenPercent.toFixed(0)}%)`);
-  console.log(`Mock states: ${result.states.covered}/${result.states.total} (${statePercent.toFixed(0)}%)`);
-  console.log(`Registered frontend features: ${result.features.covered}/${result.features.total} (${featurePercent.toFixed(0)}%)`);
+  console.log(`Mock mapping coverage - screens: ${result.screens.covered}/${result.screens.total} (${screenPercent.toFixed(0)}%)`);
+  console.log(`Mock mapping coverage - states: ${result.states.covered}/${result.states.total} (${statePercent.toFixed(0)}%)`);
+  console.log(`Mock mapping coverage - registered features: ${result.features.covered}/${result.features.total} (${featurePercent.toFixed(0)}%)`);
   console.log(`Static capture pairs: ${result.suitePairs}`);
   console.log(`Interaction drivers: ${result.interactionDrivers.join(', ')}`);
   if (!result.ok) {
@@ -335,7 +476,7 @@ function printResult(result) {
     process.exitCode = 1;
     return;
   }
-  console.log('Mock E2E mapping coverage: 100%');
+  console.log('Mock feature mapping coverage: 100% (registration only; execution requires evidence validation)');
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

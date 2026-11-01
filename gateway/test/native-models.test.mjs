@@ -503,11 +503,17 @@ test('native session reducer restores streams, deduplicates replay and replaces 
   assert.throws(()=>model.apply({type:'delta',attemptId:'attempt',revision:1,index:2,text:'DUPLICATE',reasoning:''}));
   assert.equal(model.streamText,'hello');
   assert.throws(()=>model.apply({type:'delta',attemptId:'attempt',revision:2,index:4,text:'gap'}));
-  model.apply({type:'event',seq:2,replaceStart:1,replaceEnd:1,message:{id:'event-2',seq:2,text:'new'}});
-  model.apply({type:'event',seq:2,replaceStart:-1,replaceEnd:-1,message:{id:'event-2',seq:2,text:'duplicate'}});
+  const replay = JSON.stringify({seq:2,text:'new'});
+  model.apply({type:'event',seq:2,replaceStart:1,replaceEnd:1,message:{id:'event-2',seq:2,text:'new'},
+    journal:[{seq:2,raw:replay}]});
+  model.apply({type:'event',seq:2,replaceStart:-1,replaceEnd:-1,message:{id:'event-2',seq:2,text:'new'},
+    journal:[{seq:2,raw:replay}]});
+  assert.throws(()=>model.apply({type:'event',seq:2,replaceStart:-1,replaceEnd:-1,
+    message:{id:'event-2',seq:2,text:'conflict'},
+    journal:[{seq:2,raw:JSON.stringify({seq:2,text:'conflict'})}]}),/Conflicting durable event/);
   assert.equal(model.messages.length,1);assert.equal(model.messages[0].text,'new');
   model.apply({type:'state',running:true,waiting:true});assert.equal(model.waiting,true);
-  model.apply({type:'end',attemptId:'attempt',revision:2,index:3});assert.equal(model.streamText,'');
+  model.apply({type:'end',attemptId:'attempt',revision:2,index:3,outcomeKind:'abandoned'});assert.equal(model.streamText,'');
   model.prepend({messages:[{seq:0,id:'event-0',text:'older'},{seq:2,id:'event-2',text:'new'}],hasMore:false});
   assert.equal(model.messages.length,2);
 });
@@ -1134,6 +1140,19 @@ test('committed settlement survives cache restoration until the durable event ar
   assert.equal(restored.settlementPending(),false);
   assert.equal(restored.streamText,'');
   assert.equal(restored.messages.at(-1).text,'durable answer');
+
+  const committedFirst = new NativeSessionModel();
+  committedFirst.apply({type:'snapshot',cursor:0,messages:[],attemptId:'attempt',nextIndex:1,
+    revision:2,text:'partial'});
+  committedFirst.apply({type:'event',seq:1,replaceStart:-1,replaceEnd:-1,
+    message:{id:'event-1',seq:1,role:'assistant',eventType:'assistant/message',
+      text:'durable answer'},journal:[{seq:1,raw:'{"seq":1}'}]});
+  assert.equal(committedFirst.streamText,'partial');
+  committedFirst.apply({type:'end',attemptId:'attempt',revision:3,index:1,
+    outcomeKind:'committed',committedEventType:'assistant/message',committedSeq:1});
+  assert.equal(committedFirst.settlementPending(),false);
+  assert.equal(committedFirst.streamText,'');
+  assert.equal(committedFirst.messages.at(-1).text,'durable answer');
 });
 
 test('file windows derive exact EOF when HarmonyOS omits the custom header', () => {
@@ -1665,8 +1684,12 @@ test('turn change card and bottom live control keep compact ownership and motion
   assert.match(view, /nativeTurnFilePresentation/);
   assert.match(view, /Text\(this\.fileDirectory\(file\)\)/);
   assert.match(view, /Text\(this\.fileName\(file\)\)/);
-  assert.match(view, /Text\(this\.fileDirectory\(file\)\)[\s\S]{0,180}\.flexShrink\(3\)/);
-  assert.match(view, /Text\(this\.fileName\(file\)\)[\s\S]{0,100}\.flexShrink\(1\)/);
+  const filename = view.indexOf('Text(this.fileName(file))');
+  const directory = view.indexOf('Text(this.fileDirectory(file))');
+  const metrics = view.indexOf("Text('+' + formattedCount(file.added))");
+  assert.ok(filename >= 0 && directory > filename && metrics > directory,
+    'the filename is the primary row and fixed metrics follow the secondary directory');
+  assert.match(view, /\.layoutWeight\(1\)\.constraintSize\(\{ minWidth: 0 \}\)/);
   assert.doesNotMatch(view, /layoutWeight\(this\.fileDirectory\(file\) \? 2 : 1\)/);
   assert.match(view, /\.width\('100%'\)\.clip\(true\)\.borderRadius\(NativeDesign\.radiusGroup\)/);
   assert.match(view, /\.backgroundColor\(NativeDesign\.raised\(this\.dark\)\)/);
@@ -1710,7 +1733,8 @@ test('turn change card and bottom live control keep compact ownership and motion
     /NativeDesign\.blurScrimTop\(false\)[\s\S]{0,180}NativeDesign\.blurScrimBottom\(false\)/);
   assert.match(dock,
     /NativeDesign\.blurScrimTop\(true\)[\s\S]{0,180}NativeDesign\.blurScrimBottom\(true\)/);
-  assert.doesNotMatch(dock, /\.backgroundColor\(/);
+  assert.match(dock, /else if \(this\.elevated\)[\s\S]{0,260}\.backgroundColor\(NativeDesign\.subtleSurface\(this\.dark\)\)/);
+  assert.doesNotMatch(dock, /\.backgroundColor\((?:Color\.)?(?:Black|'#000000')\)/);
   assert.match(dock, /margin\(\{ left: -this\.horizontalBleed, right: -this\.horizontalBleed \}\)/);
   assert.match(dock, /nativeSafeBottom/);
   assert.match(dock, /top: 8, bottom: Math\.ceil\(this\.safeBottom \* 1\.2\) \+ 8/);
@@ -1852,7 +1876,7 @@ test('todo_write projects structured status rows and the newest replacement plan
     import.meta.url),'utf8');
   assert.match(taskDock,/constraintSize\(\{ maxHeight: 180 \}\)/);
   assert.match(taskDock,/NativeMotion\.disclosure\(this\.getUIContext\(\)/);
-  assert.match(taskDock,/\.height\(NativeDesign\.hitTarget\)/);
+  assert.match(taskDock,/\.height\(NativeDesign\.compactHitTarget\)/);
   assert.match(taskDock,/\.backgroundColor\(NativeDesign\.raised\(this\.dark\)\)/);
   const showcase=readFileSync(new URL('../../harmony/entry/src/main/ets/services/StoreShowcaseClient.ets',
     import.meta.url),'utf8');
@@ -2468,7 +2492,8 @@ test('streamed tool argument fragments settle once and never become assistant pl
   assert.equal(model.streamTools.length,1);
   assert.equal(model.streamTools[0].text,'{"cmd":"echo ok"}');
   assert.equal(model.streamText,'');
-  model.apply({type:'end',attemptId:'a',revision:4,index:3}); assert.equal(model.streamTools.length,0);
+  model.apply({type:'end',attemptId:'a',revision:4,index:3,outcomeKind:'abandoned'});
+  assert.equal(model.streamTools.length,0);
 });
 
 test('native transport shares only gateway cookies, disables redirects and never retries prompts', async () => {
@@ -2489,7 +2514,8 @@ test('native transport shares only gateway cookies, disables redirects and never
     webSocket:{createWebSocket:()=>{made++;return socket;}} };
   const {NativeHarnessClient}=load('NativeHarnessClient',{
     '@kit.NetworkKit':network,'@kit.ArkWeb':{webview:{WebCookieManager:{fetchCookie:()=>cookie,configCookie:async(...args)=>configured.push(args),saveCookieAsync:async()=>{}}}},
-    '@kit.ArkTS':{util:{generateRandomUUID:()=> 'request-id',TextDecoder:{create:()=>({decodeToString: buffer => new TextDecoder().decode(buffer)})}}},'@kit.BasicServicesKit':{},'./NativeSessionModel':{}
+    '@kit.ArkTS':{util:{generateRandomUUID:()=> 'request-id',TextDecoder:{create:()=>({decodeToString: buffer => new TextDecoder().decode(buffer)})},TextEncoder:{create:()=>({encodeInto:value=>new TextEncoder().encode(value)})}}},
+    '@kit.BasicServicesKit':{},'@kit.CryptoArchitectureKit':{cryptoFramework:{createMd:()=>({update:async()=>{},digest:async()=>({data:new Uint8Array(32)})})}},'./NativeSessionModel':{}
   });
   const client=new NativeHarnessClient('https://dsh.example.com');
   await client.request('/pocket/api/state');
@@ -2527,8 +2553,8 @@ test('native transport shares only gateway cookies, disables redirects and never
   streamBody='{}';
   const {NativeAttachmentDraft}=load('NativeHarnessClient',{
     '@kit.NetworkKit':network,'@kit.ArkWeb':{webview:{WebCookieManager:{fetchCookie:()=>cookie,configCookie:async()=>{},saveCookieAsync:async()=>{}}}},
-    '@kit.ArkTS':{util:{generateRandomUUID:()=> 'request-id',TextDecoder:{create:()=>({decodeToString: buffer => new TextDecoder().decode(buffer)})}}},
-    '@kit.BasicServicesKit':{},'./NativeSessionModel':{}
+    '@kit.ArkTS':{util:{generateRandomUUID:()=> 'request-id',TextDecoder:{create:()=>({decodeToString: buffer => new TextDecoder().decode(buffer)})},TextEncoder:{create:()=>({encodeInto:value=>new TextEncoder().encode(value)})}}},
+    '@kit.BasicServicesKit':{},'@kit.CryptoArchitectureKit':{cryptoFramework:{createMd:()=>({update:async()=>{},digest:async()=>({data:new Uint8Array(32)})})}},'./NativeSessionModel':{}
   });
   const ready=new NativeAttachmentDraft();ready.status='ready';ready.receiptId='receipt-one';
   const uploading=new NativeAttachmentDraft();uploading.status='uploading';
@@ -2568,8 +2594,10 @@ test('composer source contract uses intrinsic model width, natural dock height a
   assert.match(source,/this\.attaching = false;[\s\S]{0,180}added\.forEach/);
   assert.match(source,/NativeBottomConversationDock\(\{/);
   assert.doesNotMatch(source,/translate\(\{ y: -\(this\.composerHeight \+ 8\) \}\)/);
-  assert.match(source,/Column\(\{ space: 8 \}\) \{[\s\S]{0,1400}NativeQueueDock/);
-  assert.match(source,/NativeQueueDock[\s\S]{0,600}NativeTurnChangePill/);
+  const liveChange = source.indexOf('NativeTurnChangePill({');
+  const queue = source.indexOf('NativeQueueDock({');
+  assert.ok(liveChange >= 0 && queue > liveChange,
+    'the current turn state must remain above queued input');
   assert.match(source,/if \(this\.attachments\.length\)[\s\S]{0,260}NativeAttachmentDraft/);
   assert.doesNotMatch(source,/if \(this\.attachments\.length\) \{\s*Scroll\(\)/);
   assert.match(source,/nativeStreamHealthRepairReason/);

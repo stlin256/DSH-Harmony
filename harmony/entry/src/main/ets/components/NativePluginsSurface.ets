@@ -64,6 +64,9 @@ export struct NativePluginsSurface {
 
   aboutToAppear(): void {
     this.mounted = true;
+    // ArkUI injects component parameters after field initialization. Rebind the
+    // adapter so this surface never falls back to the empty-URL default client.
+    this.admin = new NativeAdminClient(this.client);
     this.refresh();
   }
 
@@ -370,7 +373,7 @@ export struct NativePluginsSurface {
         .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.primaryText())
       if (this.refreshing) LoadingProgress().width(18).height(18).color(this.accent())
       if (actionLabel) {
-        Button(actionLabel, { type: ButtonType.Normal }).height(NativeDesign.hitTarget)
+        Button(actionLabel, { type: ButtonType.Normal }).height(NativeDesign.compactHitTarget)
           .padding({ left: 12, right: 12 }).fontSize(12).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.fieldSurface()).fontColor(this.primaryText()).onClick(action)
       }
@@ -492,14 +495,15 @@ export struct NativePluginsSurface {
         DSHIcon({ glyph: 'warning-outline', glyphSize: 16, color: this.danger() })
         Text(this.actionError || this.error).fontSize(11).layoutWeight(1).maxLines(4)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.danger())
-        Button('重试', { type: ButtonType.Normal }).height(NativeDesign.hitTarget)
+        Button('重试', { type: ButtonType.Normal }).height(NativeDesign.compactControl)
           .fontSize(11).backgroundColor(Color.Transparent).fontColor(this.accent())
           .onClick((): void => {
             if (this.page === 'root') this.refresh();
             else if (this.page === 'install') this.inspectInstall();
             else this.refresh(true);
           })
-      }.width('100%').padding({ left: 10, right: 4, top: 8, bottom: 8 })
+      }.width('100%').constraintSize({ minHeight: NativeDesign.compactHitTarget })
+        .padding({ left: 10, right: 4, top: 3, bottom: 3 })
         .borderRadius(NativeDesign.radiusRow).backgroundColor(NativeDesign.dangerSurface(this.dark))
         .transition(NativeMotion.rowTransition())
     }

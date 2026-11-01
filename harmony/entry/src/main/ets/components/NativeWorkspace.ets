@@ -1712,6 +1712,7 @@ export struct NativeWorkspace {
     this.connectionNotified = false;
     this.animatePane(() => { this.selected = id; this.setDrawerState(false); });
     this.refreshSelectedProjection();
+    this.loadSelectedProjections();
     this.followTail = true;
     this.interactionTimes = NativeMetadataCache.rememberInteraction(
       this.context, this.client.cacheKey(), id);
@@ -2845,7 +2846,7 @@ export struct NativeWorkspace {
           .onClick((): void => { this.toggleMore(); })
         if (this.moreOpen) {
           Column({ space: 1 }) {
-            Button({ type: ButtonType.Normal }) {
+            Button({ type: ButtonType.Capsule }) {
               Row({ space: 10 }) {
                 DSHIcon({ glyph: 'folder-outline', glyphSize: 16, color: this.secondaryText() })
                 Text('文件浏览').fontSize(13).layoutWeight(1).fontColor(this.primaryText())
@@ -2957,8 +2958,8 @@ export struct NativeWorkspace {
 
   @Builder
   private subagentEditableComposer() {
-    Column({ space: 8 }) {
-      TextArea({ text: this.draft, placeholder: '发送消息…' }).height(44)
+    Column({ space: 4 }) {
+      TextArea({ text: this.draft, placeholder: '发送消息…' }).height(NativeDesign.compactHitTarget)
         .enabled(!this.sending && this.currentSubagentInputEnabled())
         .placeholderColor(this.tertiaryText())
         .fontSize(14).borderRadius(0).padding({ left: 7, right: 7, top: 3, bottom: 3 })
@@ -2970,7 +2971,7 @@ export struct NativeWorkspace {
             Text(this.modelCaption).fontSize(11).maxLines(1).constraintSize({ maxWidth: 160 })
               .textOverflow({ overflow: TextOverflow.Ellipsis })
           }.constraintSize({ maxWidth: 168 })
-        }.height(NativeDesign.hitTarget).padding({ left: 4, right: 4 })
+        }.height(NativeDesign.compactControl).padding({ left: 4, right: 4 })
           .backgroundColor(Color.Transparent)
           .fontColor(this.secondaryText()).accessibilityText('模型与推理')
           .onClick(() => { this.utilityOpen = false; this.modelPickerOpen = true; })
@@ -2983,15 +2984,15 @@ export struct NativeWorkspace {
           Button({ type: ButtonType.Normal }) {
             if (this.attaching) { LoadingProgress().width(14).height(14).color(this.primaryText()) }
             else { DSHIcon({ glyph: 'image-outline', color: this.primaryText() }) }
-          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
-            .borderRadius(NativeDesign.hitTarget / 2)
+          }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+            .borderRadius(NativeDesign.compactHitTarget / 2)
             .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
             .accessibilityText(this.attaching ? '读取中' : '添加图片')
             .enabled(!this.attaching && !this.sending).onClick(() => { this.attachImages(); })
           Button({ type: ButtonType.Normal }) {
             DSHIcon({ glyph: 'file-outline', color: this.secondaryText() })
-          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
-            .borderRadius(NativeDesign.hitTarget / 2)
+          }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+            .borderRadius(NativeDesign.compactHitTarget / 2)
             .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
             .accessibilityText('添加文件')
             .enabled(!this.attaching && !this.sending).onClick(() => { this.attachFiles(); })
@@ -3003,7 +3004,7 @@ export struct NativeWorkspace {
                 color: this.secondaryText(), glyphSize: 14 })
               Text(this.steer ? '接管' : '排队').fontSize(11).fontColor(this.secondaryText())
             }
-          }.height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
+          }.height(NativeDesign.compactControl).borderRadius(NativeDesign.radiusControl)
             .backgroundColor(Color.Transparent)
             .accessibilityText(this.steer ? '发送模式：接管' : '发送模式：排队，点击切换')
             .onClick(() => { this.steer = !this.steer; })
@@ -3011,8 +3012,8 @@ export struct NativeWorkspace {
         if (this.running && !this.sending && !this.draft.trim() && !this.attachments.length) {
           Button({ type: ButtonType.Normal }) {
             DSHIcon({ glyph: 'stop-fill', color: NativeDesign.textInverse(this.dark) })
-          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
-            .borderRadius(NativeDesign.hitTarget / 2)
+          }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+            .borderRadius(NativeDesign.compactHitTarget / 2)
             .backgroundColor(NativeDesign.accentStrong(this.dark)).accessibilityText('停止任务')
             .onClick(() => {
               this.client.cancel(this.selected,
@@ -3027,8 +3028,8 @@ export struct NativeWorkspace {
             } else {
               DSHIcon({ glyph: 'send-arrow', color: NativeDesign.textInverse(this.dark) })
             }
-          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
-            .borderRadius(NativeDesign.hitTarget / 2)
+          }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+            .borderRadius(NativeDesign.compactHitTarget / 2)
             .backgroundColor(NativeDesign.accentStrong(this.dark))
             .enabled(this.connectionPhase === 'live' && !this.sending && !this.uncertain &&
               this.attachmentsReady() && (this.draft.trim().length > 0 || this.attachments.length > 0))
@@ -3039,7 +3040,7 @@ export struct NativeWorkspace {
             .onClick(() => { this.followTail = true; this.send(); })
         }
       }.width('100%')
-    }.padding(8).width('100%').borderRadius(16)
+    }.padding(6).width('100%').borderRadius(16)
       .border({ width: 0.5, color: this.semanticBorderColor() })
       .backgroundColor(this.raisedSurface())
       .onAreaChange((_old: Area, area: Area): void => {
@@ -3090,7 +3091,7 @@ export struct NativeWorkspace {
         ((this.subagentCatalog?.length || 0) > 0)) {
         Row({ space: 6 }) {
           if (nativePlanTargetActive(this.planProjection)) {
-            Button({ type: ButtonType.Normal }) {
+            Button({ type: ButtonType.Capsule }) {
               Row({ space: 5 }) {
                 DSHIcon({ glyph: 'plan-outline', glyphSize: 14, color: this.accentColor() })
                 Text('计划').fontSize(11).fontColor(this.accentColor())
@@ -3102,6 +3103,7 @@ export struct NativeWorkspace {
             .borderRadius(14)
             .backgroundColor(this.selectionSurface())
             .border({ width: 0.5, color: this.semanticBorderColor() })
+            .clip(true)
             .enabled(!this.planLeaving)
             .accessibilityText('计划模式已开启，点击关闭')
             .onClick((): void => { this.exitPlanMode(); })
@@ -3112,7 +3114,7 @@ export struct NativeWorkspace {
           }
           Blank()
           if ((this.subagentCatalog?.length || 0) > 0) {
-            Button({ type: ButtonType.Normal }) {
+            Button({ type: ButtonType.Capsule }) {
               Row({ space: 5 }) {
                 if (this.runningSubagentCount() > 0) {
                   Text('').width(6).height(6).borderRadius(3)
@@ -3130,6 +3132,7 @@ export struct NativeWorkspace {
             .borderRadius(14)
             .backgroundColor(this.fieldSurface())
             .border({ width: 0.5, color: this.semanticBorderColor() })
+            .clip(true)
             .accessibilityText((this.subagentCatalog?.length || 0).toString() +
               ' 个子智能体' + (this.runningSubagentCount() > 0 ? '，正在运行' : ''))
             .onClick((): void => { this.openLineage(); })
@@ -3173,20 +3176,22 @@ export struct NativeWorkspace {
                   maxChildExpandedHeight: Math.max(120, this.transcriptViewportHeight * 0.36) })
               } else if (message.role === 'turn-footer') {
                 if (this.turnChangeFor(message.turnKey).fileCount > 0) {
-                  NativeTurnChangesCard({
-                    summary: this.turnChangeFor(message.turnKey),
-                    workspaceRoot: this.workspaceRootFor(this.selected),
-                    maxExpandedHeight: Math.max(180, this.transcriptViewportHeight * 0.45),
-                    copied: this.footerCopiedId === message.footerCopyMessageId,
-                    canCopy: !!message.footerCopyText,
-                    onOpenFile: (path: string): void => { this.openTurnChangeFile(path); },
-                    onExpandedChange: (expanded: boolean): void => {
-                      if (expanded) this.followTerminalCardExpansion(message);
-                    },
-                    onCopy: (): void => {
-                      this.copyFooter(message.footerCopyText, message.footerCopyMessageId);
-                    }
-                  })
+                  Row() {
+                    NativeTurnChangesCard({
+                      summary: this.turnChangeFor(message.turnKey),
+                      workspaceRoot: this.workspaceRootFor(this.selected),
+                      maxExpandedHeight: Math.max(180, this.transcriptViewportHeight * 0.45),
+                      copied: this.footerCopiedId === message.footerCopyMessageId,
+                      canCopy: !!message.footerCopyText,
+                      onOpenFile: (path: string): void => { this.openTurnChangeFile(path); },
+                      onExpandedChange: (expanded: boolean): void => {
+                        if (expanded) this.followTerminalCardExpansion(message);
+                      },
+                      onCopy: (): void => {
+                        this.copyFooter(message.footerCopyText, message.footerCopyMessageId);
+                      }
+                    })
+                  }.width('100%').padding({ left: 12, right: 12 })
                 } else {
                   Row({ space: 8 }) {
                     Text(message.label + (message.text ? ' · ' + message.text : '')).fontSize(11).layoutWeight(1)
@@ -3197,7 +3202,7 @@ export struct NativeWorkspace {
                         DSHIcon({ glyph: this.footerCopiedId === message.footerCopyMessageId ?
                           'check-outline' : 'copy-outline', glyphSize: 13,
                           color: this.tertiaryText() })
-                      }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+                      }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
                         .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
                         .accessibilityText(this.footerCopiedId === message.footerCopyMessageId ?
                           '答复已复制' : '复制最终答复')
@@ -3205,7 +3210,7 @@ export struct NativeWorkspace {
                           this.copyFooter(message.footerCopyText, message.footerCopyMessageId);
                         })
                     }
-                  }.width('100%').constraintSize({ minHeight: NativeDesign.hitTarget })
+                  }.width('100%').constraintSize({ minHeight: NativeDesign.compactControl })
                 }
               } else if (message.role === 'background-notice') {
                 NativeBackgroundNoticeView({ message: message })
@@ -3349,15 +3354,6 @@ export struct NativeWorkspace {
               .border({ width: 0.5, color: this.semanticBorderColor() })
               .transition(NativeMotion.disclosureTransition())
           }
-          if (this.queueItems().length) {
-            NativeQueueDock({
-              client: this.client,
-              sessionId: this.selected,
-              items: this.queueItems(),
-              running: this.running,
-              onChanged: (): void => {}
-            }).transition(NativeMotion.disclosureTransition())
-          }
           if (this.liveTurnChangesVisible) {
             Row() {
               NativeTurnChangePill({
@@ -3367,6 +3363,15 @@ export struct NativeWorkspace {
             }.width('100%').height(30).justifyContent(FlexAlign.Center)
               .hitTestBehavior(HitTestMode.None)
               .transition(NativeMotion.disclosureTransition())
+          }
+          if (this.queueItems().length) {
+            NativeQueueDock({
+              client: this.client,
+              sessionId: this.selected,
+              items: this.queueItems(),
+              running: this.running,
+              onChanged: (): void => {}
+            }).transition(NativeMotion.disclosureTransition())
           }
           if (this.attachments.length) {
             Row() {
@@ -3413,10 +3418,10 @@ export struct NativeWorkspace {
                         }
                         Button({ type: ButtonType.Circle }) {
                           DSHIcon({ glyph: 'close-outline', glyphSize: 10, color: this.tertiaryText() })
-                        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+                        }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
                           .backgroundColor(Color.Transparent)
                           .accessibilityText('移除附件').onClick(() => { this.removeAttachment(item.id); })
-                      }.height(NativeDesign.standardRow).padding({ left: 7, right: 3 })
+                      }.height(NativeDesign.compactHitTarget).padding({ left: 7, right: 2 })
                         .borderRadius(NativeDesign.radiusControl)
                         .backgroundColor(this.fieldSurface())
                         .transition(NativeMotion.disclosureTransition())

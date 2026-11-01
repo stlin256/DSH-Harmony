@@ -1,5 +1,5 @@
 param(
-  [string]$DevEcoHome = 'C:\Users\yjzlx\AppData\Local\Programs\Huawei\DevEcoStudio-26.0.0',
+  [string]$DevEcoHome = '',
   [string]$Device = '',
   [string]$OutputDir = '',
   [switch]$SkipBuild,
@@ -8,6 +8,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'resolve-deveco-home.ps1')
+$DevEcoHome = Resolve-DevEcoHome -ExplicitHome $DevEcoHome
 $hdc = Join-Path $DevEcoHome 'sdk\default\openharmony\toolchains\hdc.exe'
 if (-not (Test-Path -LiteralPath $hdc)) {
   throw "HDC not found: $hdc"
@@ -112,6 +114,31 @@ function Query-Node {
   return (($raw -join '') | ConvertFrom-Json)
 }
 
+function Wait-Query-Node {
+  param(
+    [string]$Name,
+    [string]$Text,
+    [ValidateSet('text', 'clickable', 'checkable')]
+    [string]$Target = 'text',
+    [int]$ExpectCount = 1,
+    [int]$TimeoutMilliseconds = 6000
+  )
+  $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMilliseconds)
+  $lastError = ''
+  $attempt = 0
+  do {
+    $attempt++
+    try {
+      $layout = Dump-Layout "$Name-$attempt"
+      return (Query-Node $layout $Text $Target $ExpectCount)
+    } catch {
+      $lastError = $_.Exception.Message
+      Start-Sleep -Milliseconds 250
+    }
+  } while ([DateTime]::UtcNow -lt $deadline)
+  throw "Layout wait failed for '$Text' after $TimeoutMilliseconds ms: $lastError"
+}
+
 function Invoke-Click {
   param([object]$Node)
   if ($null -eq $Node.x -or $null -eq $Node.y) {
@@ -125,21 +152,17 @@ function Invoke-Click {
 }
 
 Launch-Fixture -Screen 'conversation' -State 'plan-subagent' -Theme 'dark'
-$planLayout = Dump-Layout 'plan-visible'
-$plan = Query-Node $planLayout '计划' 'clickable'
-$null = Query-Node $planLayout '4 个子智能体' 'clickable'
+$plan = Wait-Query-Node 'plan-visible' '计划' 'clickable'
+$null = Wait-Query-Node 'plan-subagents' '4 个子智能体' 'clickable'
 Capture-Screen 'plan-visible'
 Invoke-Click $plan
-$planRemoved = Dump-Layout 'plan-removed'
-$null = Query-Node $planRemoved '计划' 'text' 0
+$null = Wait-Query-Node 'plan-removed' '计划' 'text' 0
 
 Launch-Fixture -Screen 'conversation' -State 'plan-off-error' -Theme 'dark'
-$planErrorLayout = Dump-Layout 'plan-error-before'
-$planError = Query-Node $planErrorLayout '计划' 'clickable'
+$planError = Wait-Query-Node 'plan-error-before' '计划' 'clickable'
 Invoke-Click $planError
-$planErrorAfter = Dump-Layout 'plan-error-after'
-$null = Query-Node $planErrorAfter '计划' 'text' 1
-$null = Query-Node $planErrorAfter '退出计划模式失败' 'text' 1
+$null = Wait-Query-Node 'plan-error-retained' '计划' 'text' 1
+$null = Wait-Query-Node 'plan-error-after' '退出计划模式失败' 'text' 1
 Capture-Screen 'plan-error-after'
 
 Launch-Fixture -Screen 'lineage' -State 'plan-subagent' -Theme 'dark'
@@ -152,8 +175,7 @@ $null = Query-Node $lineageLayout '不可打开' 'text' 1
 Capture-Screen 'lineage-open'
 & $hdc -t $Device shell 'uitest uiInput keyEvent Back' | Out-Null
 Start-Sleep -Milliseconds 650
-$lineageClosed = Dump-Layout 'lineage-closed'
-$null = Query-Node $lineageClosed '计划' 'text' 1
+$null = Wait-Query-Node 'lineage-closed' '计划' 'text' 1
 
 Launch-Fixture -Screen 'subagent' -State 'subagent-continuable' -Theme 'dark'
 $continuableLayout = Dump-Layout 'continuable'

@@ -1,5 +1,5 @@
 param(
-  [string]$DevEcoHome = 'C:\Users\yjzlx\AppData\Local\Programs\Huawei\DevEcoStudio-26.0.0',
+  [string]$DevEcoHome = '',
   [string]$Device = '',
   [string]$OutputDir = '',
   [switch]$SkipBuild,
@@ -8,6 +8,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'resolve-deveco-home.ps1')
+$DevEcoHome = Resolve-DevEcoHome -ExplicitHome $DevEcoHome
 $hdc = Join-Path $DevEcoHome 'sdk\default\openharmony\toolchains\hdc.exe'
 if (-not (Test-Path -LiteralPath $hdc)) {
   throw "HDC not found: $hdc"
