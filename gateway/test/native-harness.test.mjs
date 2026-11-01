@@ -143,6 +143,61 @@ async function setup(t, options = {}) {
         projections: { values: { title: 'Native session' } }
       }] };
     } else if (value.method === 'session/create') result = {sessionId:value.payload.args.request.sessionId};
+    else if (value.method === 'pluginManager/listBundles') result = [{
+      name: 'dsh.example', official: false, availability: 'profile', enabled: true,
+      installed: true, removable: true, updatable: true, optional: false,
+      version: '1.2.3', description: 'Example bundle', rows: []
+    }];
+    else if (value.method === 'pluginManager/listPlugins') result = [{
+      entryId: 'entry', moduleName: 'dsh.example/main', enabled: true,
+      fiberPhase: 'active'
+    }];
+    else if (['pluginManager/setBundleEnabled', 'pluginManager/setPluginEnabled',
+      'pluginManager/installBundle', 'pluginManager/removeBundle'].includes(value.method)) {
+      result = { changed: true, application: 'applied', stage: value.method.endsWith('removeBundle') ? 'remove' : 'enable',
+        target: value.payload.args.name || value.payload.args.spec || value.payload.args.id };
+    } else if (value.method === 'pluginManager/inspect') {
+      result = { status: 'accepted', kind: 'registry', name: 'dsh.example',
+        version: '1.2.3', bundle: true, registry: null };
+    } else if (value.method === 'pluginManager/listVersions') {
+      result = { status: 'listed', installed: '1.2.3', registry: null, omitted: 0, versions: [] };
+    } else if (value.method === 'pluginManager/updateBundle') {
+      result = { from: '1.2.3', to: '1.3.0', step: 'install',
+        result: { changed: true, application: 'applied', stage: 'install', target: 'dsh.example@1.3.0' } };
+    } else if (value.method === 'schedule/catalog') result = [{
+      id: 'schedule-one', kind: 'every', title: 'Periodic check', prompt: 'Run the check',
+      everySeconds: 900, scheduledAt: '2026-11-02T00:00:00.000Z', status: 'active',
+      target: { kind: 'new_once', create: {} }, updatedAt: '2026-11-01T00:00:00.000Z'
+    }];
+    else if (value.method === 'schedule/view') result = {
+      id: 'schedule-one', kind: 'every', title: 'Periodic check', prompt: 'Run the check',
+      everySeconds: 900, scheduledAt: '2026-11-02T00:00:00.000Z', status: 'active',
+      target: { kind: 'new_once', create: {} }, updatedAt: '2026-11-01T00:00:00.000Z'
+    };
+    else if (value.method === 'schedule/history') result = {
+      id: 'schedule-one', records: [], earlierRecordsUnavailable: false, earlierRecordsPruned: false
+    };
+    else if (value.method === 'schedule/create') result = {
+      id: 'schedule-created', kind: value.payload.args.request.timing.kind,
+      title: value.payload.args.request.title, prompt: value.payload.args.request.prompt,
+      ...(value.payload.args.request.timing.kind === 'every'
+        ? { everySeconds: value.payload.args.request.timing.every_seconds } : {}),
+      scheduledAt: '2026-11-02T00:00:00.000Z', status: 'active',
+      target: value.payload.args.request.target || { kind: 'new_once', create: {} },
+      updatedAt: '2026-11-01T00:00:00.000Z'
+    };
+    else if (value.method === 'schedule/edit') result = options.scheduleConflict
+      ? { id: 'schedule-one', code: 'schedule_conflict' }
+      : value.payload.args.request.action === 'delete'
+        ? { id: 'schedule-one', deleted: true }
+        : { id: 'schedule-one', kind: 'every', title: 'Edited', prompt: 'Run the check',
+          everySeconds: 900, scheduledAt: '2026-11-02T00:00:00.000Z', status: 'paused',
+          target: { kind: 'new_once', create: {} }, updatedAt: '2026-11-01T00:01:00.000Z' };
+    else if (value.method === 'schedule/run') result = {
+      id: 'schedule-one', kind: 'every', title: 'Periodic check', prompt: 'Run the check',
+      everySeconds: 900, scheduledAt: '2026-11-02T00:00:00.000Z', status: 'active',
+      target: { kind: 'new_once', create: {} }, updatedAt: '2026-11-01T00:00:00.000Z'
+    };
     else if (value.method === 'settings/describe') result = {writable:true,namespaces:[
       {ns:'ui-chat',value:{transcriptView:'standard'},revision:4}, {ns:'private-provider',value:{credential:'must-not-forward'},revision:1}
     ]};
@@ -458,6 +513,53 @@ test('native mode and subagent operations use projection, address and command co
     mode: 'continuable'
   });
   ws.close();
+});
+
+test('native admin operations use fixed plugin and schedule Remotes', async t => {
+  const { call, calls } = await setup(t);
+  const operation = body => call('/pocket/api/native/operation', body);
+  const inventory = await operation({ operation: 'pluginsList' });
+  assert.equal(inventory.status, 200);
+  assert.equal(JSON.parse(inventory.text).bundles[0].name, 'dsh.example');
+  assert.equal((await operation({ operation: 'pluginSetEnabled', name: 'dsh.example', enabled: false })).status, 200);
+  assert.equal((await operation({ operation: 'pluginInspect', spec: 'dsh.example@1.2.3' })).status, 200);
+  assert.equal((await operation({ operation: 'pluginInstall', spec: 'dsh.example@1.2.3' })).status, 200);
+  assert.equal((await operation({ operation: 'pluginVersions', name: 'dsh.example' })).status, 200);
+  assert.equal((await operation({ operation: 'pluginUpdate', name: 'dsh.example', version: '1.3.0' })).status, 200);
+  assert.equal((await operation({ operation: 'pluginRemove', name: 'dsh.example' })).status, 200);
+
+  const schedules = await operation({ operation: 'automationList' });
+  assert.equal(schedules.status, 200);
+  assert.equal(JSON.parse(schedules.text).items[0].id, 'schedule-one');
+  assert.equal((await operation({ operation: 'automationView', id: 'schedule-one' })).status, 200);
+  assert.equal((await operation({ operation: 'automationHistory', id: 'schedule-one', limit: 20 })).status, 200);
+  assert.equal((await operation({ operation: 'automationCreate', request: {
+    title: 'Task', prompt: 'Prompt', timing: { kind: 'every', every_seconds: 900 }
+  } })).status, 200);
+  assert.equal((await operation({ operation: 'automationEdit', request: {
+    id: 'schedule-one', action: 'update', patch: { active: false }, expectedUpdatedAt: '2026-11-01T00:00:00.000Z'
+  } })).status, 200);
+  assert.equal((await operation({ operation: 'automationRun', id: 'schedule-one' })).status, 200);
+  assert.equal((await operation({ operation: 'automationDelete', id: 'schedule-one',
+    expectedUpdatedAt: '2026-11-01T00:00:00.000Z' })).status, 200);
+
+  const pluginBundle = calls.find(row => row.value.method === 'pluginManager/setBundleEnabled');
+  assert.deepEqual(pluginBundle.value.payload.args, { name: 'dsh.example', enabled: false });
+  const created = calls.find(row => row.value.method === 'schedule/create');
+  assert.deepEqual(created.value.payload.args.request.timing, { kind: 'every', every_seconds: 900 });
+  assert.equal((await operation({ operation: 'pluginSetEnabled', name: 'dsh.example', enabled: 'yes' })).status, 400);
+  assert.equal((await operation({ operation: 'automationEdit', request: {
+    id: 'schedule-one', action: 'update', patch: {}, expectedUpdatedAt: null
+  } })).status, 400);
+});
+
+test('native automation edits expose revision conflicts', async t => {
+  const { call } = await setup(t, { scheduleConflict: true });
+  const response = await call('/pocket/api/native/operation', { operation: 'automationEdit', request: {
+    id: 'schedule-one', action: 'update', patch: { title: 'Changed' }, expectedUpdatedAt: 'stale'
+  } });
+  assert.equal(response.status, 409);
+  assert.equal(JSON.parse(response.text).code, 'schedule_conflict');
 });
 
 test('header utilities export complete Host content and profile writes use named revision arguments', async t => {

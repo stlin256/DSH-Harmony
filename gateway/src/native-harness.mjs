@@ -15,6 +15,20 @@ import {
   queueFromInbox,
   sessionIdValid
 } from './native-protocol.mjs';
+import {
+  automationCreateRequest,
+  automationEditRequest,
+  automationHistoryRequest,
+  automationTaskId,
+  normalizeAutomationCatalog,
+  normalizeAutomationHistory,
+  normalizeAutomationTask,
+  normalizePluginChange,
+  normalizePluginInspection,
+  normalizePluginInventory,
+  normalizePluginVersions,
+  pluginSpec
+} from './native-admin-protocol.mjs';
 
 export function nativeHeartbeatPolicy(profile = 'foreground') {
   return profile === 'background' ?
@@ -104,10 +118,10 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
   const connections = new Map();
   const target = new URL(upstream);
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16384, perMessageDeflate: false });
-  async function rpcArgs(endpoint, args, signal) {
+  async function rpcArgs(endpoint, args, signal, timeoutMs = 20000) {
     const rpcId = randomUUID();
     const response = await fetch(new URL('/api/' + endpoint, target), {
-      method: 'POST', redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
+      method: 'POST', redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
       headers: { 'Content-Type': 'application/json', Origin: target.origin, Cookie: await credential() },
       body: JSON.stringify({ type: 'client-request', rpcId, method: endpoint, payload: { args } })
     });
@@ -116,6 +130,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
     if (envelope.type !== 'server-response' || envelope.rpcId !== rpcId || envelope.result?.ok !== true) {
       // Preserve only stable decision codes; do not relay arbitrary error messages.
       const error = new Error('Harness rejected this operation');
+      const stableCode = envelope.result?.error?.code;
       if (['workspace/session-active', 'workspace/name-conflict', 'workspace/invalid-path', 'settings/conflict', 'settings/rejected',
         'directory-picker/unavailable', 'directory-picker/unreadable', 'directory-picker/exists', 'directory-picker/create-failed',
         'workspace-file/not-found', 'workspace-file/not-directory', 'workspace-file/not-regular-file',
@@ -124,10 +139,20 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         'session/writer-held', 'session/migration-required',
         'subagent/attachment-invalid', 'subagent/delivery-unavailable',
         'subagent/invalid-time-zone', 'subagent/not-resumable',
-        'subagent/parent-unavailable', 'subagent/unauthorized'].includes(envelope.result?.error?.code)) error.code = envelope.result.error.code;
+        'subagent/parent-unavailable', 'subagent/unauthorized'].includes(stableCode) ||
+        (typeof stableCode === 'string' && /^(?:plugin-manager|schedule)\/[A-Za-z0-9-]+$/.test(stableCode))) {
+        error.code = stableCode;
+      }
       throw error;
     }
     return envelope.result.value;
+  }
+  async function directRpc(endpoint, args, signal, timeoutMs = 20000) {
+    if (typeof endpoint !== 'string' || !/^[A-Za-z][A-Za-z0-9]*\/[A-Za-z][A-Za-z0-9]*$/.test(endpoint) ||
+        !args || typeof args !== 'object' || Array.isArray(args)) {
+      throw Error('Invalid native admin request');
+    }
+    return rpcArgs(endpoint, args, signal, timeoutMs);
   }
   async function rpc(method, request, signal) {
     const unwrapped = method.startsWith('settings/') || method.startsWith('directoryPicker/') ||
@@ -507,9 +532,155 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
     }));
     app.post('/pocket/api/native/operation', guarded(async (req, res, signal) => {
       const { operation, sessionId } = req.body || {};
-      if (!['modelCatalog', 'workspaceCreate', 'workspaceRename', 'workspaceDelete', 'workspaceOrder', 'sessionInsertBefore', 'settingsDescribe', 'settingsSet', 'directoryList', 'directoryCreate'].includes(operation) && !sessionIdValid(sessionId)) return res.sendStatus(400);
+      const sessionOptionalOperations = [
+        'modelCatalog', 'workspaceCreate', 'workspaceRename', 'workspaceDelete',
+        'workspaceOrder', 'sessionInsertBefore', 'settingsDescribe', 'settingsSet',
+        'directoryList', 'directoryCreate', 'pluginsList', 'pluginSetEnabled',
+        'pluginSetRowEnabled', 'pluginInspect', 'pluginInstall', 'pluginRemove',
+        'pluginVersions', 'pluginUpdate', 'automationList', 'automationView',
+        'automationHistory', 'automationCreate', 'automationEdit', 'automationRun',
+        'automationDelete'
+      ];
+      if (!sessionOptionalOperations.includes(operation) && !sessionIdValid(sessionId)) return res.sendStatus(400);
       let request;
       switch (operation) {
+        case 'pluginsList': {
+          const [bundles, plugins] = await Promise.all([
+            directRpc('pluginManager/listBundles', {}, signal),
+            directRpc('pluginManager/listPlugins', {}, signal)
+          ]);
+          res.json(normalizePluginInventory(bundles, plugins)); return;
+        }
+        case 'pluginSetEnabled': {
+          const name = pluginSpec(req.body.name);
+          if (!name || typeof req.body.enabled !== 'boolean') return res.sendStatus(400);
+          const value = normalizePluginChange(await directRpc('pluginManager/setBundleEnabled',
+            { name, enabled: req.body.enabled }, signal, 45000));
+          if (!value) throw Error('Invalid plugin change response');
+          res.json(value); return;
+        }
+        case 'pluginSetRowEnabled': {
+          const entryId = pluginSpec(req.body.entryId);
+          if (!entryId || typeof req.body.enabled !== 'boolean') return res.sendStatus(400);
+          const value = normalizePluginChange(await directRpc('pluginManager/setPluginEnabled',
+            { id: entryId, enabled: req.body.enabled }, signal, 45000));
+          if (!value) throw Error('Invalid plugin change response');
+          res.json(value); return;
+        }
+        case 'pluginInspect': {
+          const spec = pluginSpec(req.body.spec);
+          if (!spec) return res.sendStatus(400);
+          const value = normalizePluginInspection(await directRpc('pluginManager/inspect',
+            { spec }, signal, 30000));
+          if (!value) throw Error('Invalid plugin inspection response');
+          res.json(value); return;
+        }
+        case 'pluginInstall': {
+          const spec = pluginSpec(req.body.spec);
+          if (!spec || (req.body.approvedBuilds !== undefined &&
+              (!Array.isArray(req.body.approvedBuilds) || req.body.approvedBuilds.length > 100 ||
+                req.body.approvedBuilds.some(name => !pluginSpec(name))))) return res.sendStatus(400);
+          const options = {
+            enabled: req.body.enabled !== false,
+            ...(req.body.saveExact === true ? { saveExact: true } : {}),
+            ...(req.body.approvedBuilds === undefined ? {} : {
+              approvedBuilds: req.body.approvedBuilds.map(name => pluginSpec(name))
+            })
+          };
+          const value = normalizePluginChange(await directRpc('pluginManager/installBundle',
+            { spec, options }, signal, 120000));
+          if (!value) throw Error('Invalid plugin change response');
+          res.json(value); return;
+        }
+        case 'pluginRemove': {
+          const name = pluginSpec(req.body.name);
+          if (!name) return res.sendStatus(400);
+          const value = normalizePluginChange(await directRpc('pluginManager/removeBundle',
+            { name }, signal, 120000));
+          if (!value) throw Error('Invalid plugin change response');
+          res.json(value); return;
+        }
+        case 'pluginVersions': {
+          const name = pluginSpec(req.body.name);
+          if (!name) return res.sendStatus(400);
+          const value = normalizePluginVersions(await directRpc('pluginManager/listVersions',
+            { name, options: {} }, signal, 45000));
+          if (!value) throw Error('Invalid plugin version response');
+          res.json(value); return;
+        }
+        case 'pluginUpdate': {
+          const name = pluginSpec(req.body.name);
+          const version = pluginSpec(req.body.version);
+          if (!name || !version) return res.sendStatus(400);
+          const raw = await directRpc('pluginManager/updateBundle',
+            { name, version, options: {} }, signal, 120000);
+          const value = normalizePluginChange(raw?.result);
+          if (!value) throw Error('Invalid plugin change response');
+          res.json(value); return;
+        }
+        case 'automationList': {
+          const value = normalizeAutomationCatalog(await directRpc('schedule/catalog', {}, signal, 30000));
+          res.json(value); return;
+        }
+        case 'automationView': {
+          const id = automationTaskId(req.body.id);
+          if (!id) return res.sendStatus(400);
+          const value = normalizeAutomationTask(await directRpc('schedule/view', { request: { id } }, signal, 30000));
+          if (!value) return res.status(404).json({ error: '任务不存在', code: 'schedule_not_found' });
+          res.json(value); return;
+        }
+        case 'automationHistory': {
+          const request = automationHistoryRequest(req.body);
+          if (!request) return res.sendStatus(400);
+          const value = normalizeAutomationHistory(await directRpc('schedule/history', { request }, signal, 30000));
+          if (!value) throw Error('Invalid schedule history response');
+          res.json(value); return;
+        }
+        case 'automationCreate': {
+          const request = automationCreateRequest(req.body.request);
+          if (!request) return res.sendStatus(400);
+          const value = normalizeAutomationTask(await directRpc('schedule/create', { request }, signal, 45000));
+          if (!value) throw Error('Invalid schedule response');
+          res.json(value); return;
+        }
+        case 'automationEdit': {
+          const request = automationEditRequest(req.body.request);
+          if (!request) return res.sendStatus(400);
+          const raw = await directRpc('schedule/edit', { request }, signal, 45000);
+          if (raw?.code === 'schedule_conflict' || raw?.code === 'schedule_not_found') {
+            res.status(409).json({ error: raw.code === 'schedule_conflict' ? '任务已被更新' : '任务不存在', code: raw.code });
+            return;
+          }
+          if (raw?.deleted === true) { res.json({ deleted: true, id: raw.id }); return; }
+          const value = normalizeAutomationTask(raw);
+          if (!value) throw Error('Invalid schedule response');
+          res.json(value); return;
+        }
+        case 'automationRun': {
+          const id = automationTaskId(req.body.id);
+          if (!id) return res.sendStatus(400);
+          const raw = await directRpc('schedule/run', { request: { id } }, signal, 45000);
+          if (raw?.code) {
+            res.status(raw.code === 'schedule_execution_pending' ? 409 : 404)
+              .json({ error: raw.code === 'schedule_execution_pending' ? '任务正在执行' : '任务不存在', code: raw.code });
+            return;
+          }
+          const value = normalizeAutomationTask(raw);
+          if (!value) throw Error('Invalid schedule response');
+          res.json(value); return;
+        }
+        case 'automationDelete': {
+          const request = automationEditRequest({ id: req.body.id, action: 'delete',
+            expectedUpdatedAt: req.body.expectedUpdatedAt });
+          if (!request) return res.sendStatus(400);
+          const raw = await directRpc('schedule/edit', { request }, signal, 45000);
+          if (raw?.code) {
+            res.status(409).json({ error: raw.code === 'schedule_conflict' ? '任务已被更新' : '任务不存在', code: raw.code });
+            return;
+          }
+          if (raw?.deleted !== true) throw Error('Invalid schedule delete response');
+          res.json({ deleted: true, id: raw.id }); return;
+        }
         case 'capabilities': {
           const headers = { Cookie: await credential(), Origin: target.origin };
           const check = async (path, type) => {
