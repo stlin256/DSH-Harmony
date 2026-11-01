@@ -17,10 +17,11 @@ The live control hides when the turn completes or stops.
   three files are visible while collapsed; a row such as `再显示 22 个文件`
   expands the list.
 - File rows show the workspace-relative directory and prioritize the filename.
-  A long directory compresses first while the `+added/-removed` metrics remain
-  fixed and legible.
-- The completed card stays slightly inset from the transcript's right edge so
-  it does not crowd or overlap the scrollbar.
+  Filename and metrics measure before the directory; the directory uses only
+  the width actually left after useful content, and may truncate only when the
+  row truly runs out of space. Short filenames must not reserve a blank weighted
+  column.
+- The completed card uses the same effective width as the composer.
 - A file row opens that Host workspace file in the existing read-only native
   file preview.
 - A file opened directly from a conversation file link or the completed-turn
@@ -62,8 +63,10 @@ The live control hides when the turn completes or stops.
   a floating overlay.
 - The default composer state has no full-width backdrop or fixed dark strip.
   Only when a live-change pill or attachment makes the Dock gain extra content
-  may API 26 show a full-width edge-to-edge blur that fades in from the
-  transparent top edge instead of painting an opaque theme color.
+  may API 26 show a full-width edge-to-edge material whose blur and theme scrim
+  increase from a transparent top edge to a translucent frosted bottom edge.
+  The bottom must retain visible background variation instead of resolving to
+  a solid theme-color strip.
 
 ## Data and plugin
 

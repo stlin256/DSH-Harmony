@@ -122,13 +122,15 @@ For turns without file changes, keep the existing compact footer row.
 The card:
 
 - uses one rounded themed surface with a 0.5vp outline;
-- stays at 96% of the available transcript width to clear the scrollbar;
+- uses the same effective content width as the composer;
 - puts an edit glyph, `已编辑 N 个文件`, aggregate numbers and the final-answer
   copy action in one header row;
 - shows at most three file rows while collapsed;
 - renders each file as a secondary workspace-relative directory followed by a
-  higher-priority filename, then fixed diff metrics; the directory receives the
-  smaller layout weight so it truncates first;
+  higher-priority filename, then fixed diff metrics. The directory, filename
+  and metrics use intrinsic flex sizing with no reserved weighted blank column:
+  metrics do not shrink, the filename shrinks only after its useful width is
+  constrained, and the directory receives the larger shrink factor;
 - renders a `再显示 N 个文件`/`收起文件` control for larger sets;
 - caps expanded contents to `min(260vp, 45% transcript viewport height)` in an
   internal vertical scroll;
@@ -169,12 +171,14 @@ The conversation's bottom area is one natural-height reusable layout stack:
 4. composer;
 5. safe-area bottom inset.
 
-When and only when the live pill or attachment strip is present, API 26 may
-insert a full-width backdrop using `backgroundBlurStyle(BlurStyle.Thin)` plus
-`linearGradientBlur`, with blur increasing toward the bottom. The backdrop has
-no solid theme `backgroundColor`; its top edge remains transparent. API 23 and
-reduced-transparency mode skip the backdrop. The live pill, attachment chips and
-composer continue to own their local surfaces.
+When and only when the live pill, queue or attachment strip is present, API 26
+may insert a full-width `BlurStyle.COMPONENT_ULTRA_THIN` material plus
+`linearGradientBlur`, with blur increasing toward the bottom. A second
+translucent theme scrim moves from fully transparent at the top to a bounded
+alpha at the bottom. It must not use an opaque theme `backgroundColor`; visible
+background variation remains at the bottom. API 23 and reduced-transparency
+mode skip the backdrop. The live pill, attachment chips and composer continue
+to own their local surfaces.
 
 The return-to-bottom control remains an independent overlay immediately above
 the bottom stack. It does not add layout height and does not overlap the live

@@ -106,3 +106,19 @@ spacer. The dock surface extends to the full window width while its content
 keeps the existing 12vp reading inset. API 26 material is a progressive
 enhancement; API 23 uses the theme surface.
 
+## Bottom material and row-measure refinement
+
+ArkUI's `BlurStyle.Thin` is a window-oriented material and its built-in mask can
+read as a solid strip when the Dock has nontrivial height. The component
+materials provide the same hierarchy with less mask weight. The Dock therefore
+uses `COMPONENT_ULTRA_THIN`, gradient foreground blur and a separate transparent
+to bounded-alpha theme scrim. The scrim creates the visible vertical falloff
+without replacing the backdrop with an opaque color.
+
+For changed-file rows, assigning layout weights to both directory and filename
+reserves columns by proportion rather than by useful content. A short filename
+can therefore leave a large blank column while the directory truncates early.
+The row instead measures the filename and fixed metrics first and lets the
+directory shrink against actual overflow. This preserves the workspace-relative
+path and filename priority without introducing a blank spacer.
+
