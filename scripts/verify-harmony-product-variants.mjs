@@ -12,6 +12,18 @@ const storeCapabilities = readFileSync(
   join(root, 'harmony/entry/src/store/ProductCapabilities.ets'),
   'utf8',
 );
+const mockCapabilities = readFileSync(
+  join(root, 'harmony/entry/src/mock/ProductCapabilities.ets'),
+  'utf8',
+);
+const entryBuildProfile = readFileSync(
+  join(root, 'harmony/entry/build-profile.json5'),
+  'utf8',
+);
+const exampleBuildProfile = readFileSync(
+  join(root, 'harmony/build-profile.example.json5'),
+  'utf8',
+);
 const appConfig = readFileSync(join(root, 'harmony/AppScope/app.json5'), 'utf8');
 const layeredImage = JSON.parse(
   readFileSync(
@@ -38,6 +50,20 @@ if (!/supportsPasskey:\s*boolean\s*=\s*true/.test(personalCapabilities)) {
 }
 if (!/supportsPasskey:\s*boolean\s*=\s*false/.test(storeCapabilities)) {
   failures.push('store product must not advertise Passkey support');
+}
+if (!/supportsMockFixtures:\s*boolean\s*=\s*false/.test(personalCapabilities) ||
+    !/supportsMockFixtures:\s*boolean\s*=\s*false/.test(storeCapabilities)) {
+  failures.push('default and store products must not auto-select Mock fixtures');
+}
+if (!/supportsMockFixtures:\s*boolean\s*=\s*true/.test(mockCapabilities)) {
+  failures.push('mock product must auto-select Mock fixtures');
+}
+if (!entryBuildProfile.includes('"name": "mock"') ||
+    !entryBuildProfile.includes('./src/mock')) {
+  failures.push('entry build profile must declare the mock target and source root');
+}
+if (!exampleBuildProfile.includes('"name": "mock"')) {
+  failures.push('example build profile must declare the mock product and target');
 }
 if (!appConfig.includes('"icon": "$media:app_layered_image"')) {
   failures.push('app config must reference the layered launcher icon');

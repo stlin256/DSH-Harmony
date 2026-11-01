@@ -3,6 +3,7 @@
   "buildOption": {},
   "targets": [
     { "name": "default", "source": { "sourceRoots": ["./src/personal"] } },
-    { "name": "store", "source": { "sourceRoots": ["./src/store"] } }
+    { "name": "store", "source": { "sourceRoots": ["./src/store"] } },
+    { "name": "mock", "source": { "sourceRoots": ["./src/mock"] } }
   ]
 }

@@ -5,6 +5,7 @@ import { WindowAppearance } from '../services/WindowAppearance';
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeUiFixture } from '../services/NativeUiFixture';
 import { accessibility } from '@kit.AccessibilityKit';
+import { ProductCapabilities } from 'entry/ProductCapabilities';
 
 export default class EntryAbility extends UIAbility {
   private readonly motionChanged = (enabled: boolean): void => {
@@ -70,7 +71,8 @@ export default class EntryAbility extends UIAbility {
 
   private route(want: Want): void {
     const storeShowcase = want.parameters?.storeShowcase;
-    if (storeShowcase === true || storeShowcase === 'true') {
+    if (ProductCapabilities.supportsMockFixtures ||
+      storeShowcase === true || storeShowcase === 'true') {
       AppStorage.setOrCreate<boolean>('storeShowcase', true);
     }
     const showcaseScreen = want.parameters?.showcaseScreen;

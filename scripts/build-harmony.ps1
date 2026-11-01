@@ -1,16 +1,26 @@
 param(
   [string]$DevEcoHome = $env:DEVECO_STUDIO_HOME,
-  [ValidateSet('default','store')][string]$Product = 'default',
+  [ValidateSet('default','store','mock')][string]$Product = 'default',
   [ValidateSet('debug','release')][string]$BuildMode = 'debug',
   [switch]$AssembleApp
 )
 $ErrorActionPreference = 'Stop'
 if (-not $DevEcoHome) { throw 'Set DEVECO_STUDIO_HOME or pass -DevEcoHome.' }
 $ide = (Resolve-Path -LiteralPath $DevEcoHome).Path
-$project = (Resolve-Path (Join-Path $PSScriptRoot '../harmony')).Path
+$repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$project = (Resolve-Path (Join-Path $repo 'harmony')).Path
 $profile = Join-Path $project 'build-profile.json5'
 $manifest = Join-Path $project 'entry/src/main/module.json5'
 $storeManifest = Join-Path $project 'variants/store/module.json5'
+$verifyNode = Join-Path $ide 'tools/node/node.exe'
+$verifyCoverage = Join-Path $repo 'scripts/verify-mock-coverage.mjs'
+if (-not (Test-Path -LiteralPath $verifyNode)) {
+  throw "Node.js not found in DevEco Studio: $verifyNode"
+}
+& $verifyNode $verifyCoverage
+if ($LASTEXITCODE -ne 0) {
+  throw 'Mock frontend coverage verification failed.'
+}
 if (-not (Test-Path -LiteralPath $profile)) {
   Copy-Item -LiteralPath (Join-Path $project 'build-profile.example.json5') -Destination $profile
 }

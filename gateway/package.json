@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node --env-file-if-exists=.env src/main.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "test:mock-coverage": "node ../scripts/verify-mock-coverage.mjs"
   },
   "dependencies": {
     "@simplewebauthn/browser": "13.3.0",
