@@ -4,6 +4,96 @@ export function normalizeProjectionTitle(value) {
   if (typeof value !== 'string') return '';
   return value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
 }
+
+function boundedString(value, maxLength) {
+  return typeof value === 'string' ? value.slice(0, maxLength) : '';
+}
+
+function normalizedImageReference(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const { attachmentId, mediaType, bytes, width, height, name } = value;
+  if (typeof attachmentId !== 'string' || !attachmentId || attachmentId.length > 4096 ||
+      !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(mediaType) ||
+      ![bytes, width, height].every(number => Number.isSafeInteger(number) && number > 0) ||
+      (name !== undefined && (typeof name !== 'string' || name.length > 512))) return null;
+  return {
+    attachmentId,
+    mediaType,
+    bytes,
+    width,
+    height,
+    ...(name === undefined ? {} : { name })
+  };
+}
+
+function normalizedFileReference(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const { attachmentId, name, bytes } = value;
+  if (typeof attachmentId !== 'string' || !attachmentId || attachmentId.length > 4096 ||
+      typeof name !== 'string' || !name || name.length > 512 ||
+      !Number.isSafeInteger(bytes) || bytes < 0) return null;
+  return { attachmentId, name, bytes };
+}
+
+/**
+ * Turn authoritative SessionState.queue rows into a bounded native display
+ * contract. Only user queue rows are mutable by this client.
+ */
+export function normalizeQueuedState(value) {
+  if (!Array.isArray(value)) return [];
+  const result = [];
+  let textBudget = 64 * 1024;
+  for (const item of value) {
+    if (result.length >= 50 || !item || typeof item !== 'object' || Array.isArray(item)) continue;
+    if (typeof item.id !== 'string' || !item.id || item.id.length > 160 || item.placement !== 'queued' ||
+        (item.rpcId !== undefined &&
+          (typeof item.rpcId !== 'string' || !/^[A-Za-z0-9_-]{1,160}$/.test(item.rpcId))) ||
+        (!Array.isArray(item.content) && !Array.isArray(item.blocks))) continue;
+    const blocks = [];
+    const content = Array.isArray(item.content) ? item.content : item.blocks;
+    for (const block of content.slice(0, 40)) {
+      if (!block || typeof block !== 'object' || Array.isArray(block)) continue;
+      const kind = block.type || block.kind;
+      if (kind === 'text' && typeof block.text === 'string' && textBudget > 0) {
+        const text = block.text.slice(0, Math.min(textBudget, 64 * 1024));
+        if (!text) continue;
+        blocks.push({ kind: 'text', text });
+        textBudget -= text.length;
+      } else if (kind === 'image') {
+        const image = normalizedImageReference(block.attachment || block.image);
+        if (image) blocks.push({ kind: 'image', image });
+      } else if (kind === 'file') {
+        const file = normalizedFileReference(block.attachment || block.file);
+        if (file) blocks.push({ kind: 'file', file });
+      }
+    }
+    if (!blocks.length) continue;
+    result.push({
+      id: item.id,
+      placement: 'queued',
+      ...(item.rpcId === undefined ? {} : { rpcId: item.rpcId }),
+      blocks
+    });
+  }
+  return result;
+}
+
+/** Convert the modern control projection's next-turn inbox into queue rows. */
+export function queueFromInbox(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Array.isArray(value['next-turn'])) return [];
+  return normalizeQueuedState(value['next-turn'].filter(message => {
+    if (!message || typeof message !== 'object' || Array.isArray(message)) return false;
+    const source = message.source;
+    return source?.kind === 'user' &&
+      (source.rpcId === undefined || typeof source.rpcId === 'string');
+  }).map(message => ({
+    id: message.id,
+    placement: 'queued',
+    ...(message.source.rpcId === undefined ? {} : { rpcId: message.source.rpcId }),
+    content: message.content
+  })));
+}
+
 export function textBlocks(content) {
   if (typeof content === 'string') return { text: fullText(content), reasoning: '' };
   const blocks = Array.isArray(content) ? content : [];

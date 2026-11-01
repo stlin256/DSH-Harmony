@@ -5,7 +5,9 @@ import { pipeline } from 'node:stream/promises';
 import {
   normalizeFollow,
   normalizeProjectionTitle,
+  normalizeQueuedState,
   normalizedHistory,
+  queueFromInbox,
   sessionIdValid
 } from './native-protocol.mjs';
 
@@ -523,7 +525,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       const upstream = new WebSocket(url, { headers: { Cookie: cookie, Origin: target.origin },
         handshakeTimeout: 10000, maxPayload: 0, followRedirects: false });
       const connectionId = randomUUID();
-      const connection = { owner: ownerOf(req), clientId: '', pending: new Map(), send: value => send(value), cancelWait: eventId => {
+      const connection = { owner: ownerOf(req), clientId: '', running: false, waiting: false, queue: [],
+        pending: new Map(), send: value => send(value), cancelWait: eventId => {
         if (upstream.readyState === WebSocket.OPEN) upstream.send(JSON.stringify({ type: 'cancel', streamId: 'wait:' + eventId }));
       } };
       connections.set(connectionId, connection);
@@ -585,6 +588,17 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           .catch(() => { client.close(1011, 'Delivery interrupted'); })
           .then(() => undefined);
       };
+      const publishState = patch => {
+        if (patch.running !== undefined) connection.running = patch.running === true;
+        if (patch.waiting !== undefined) connection.waiting = patch.waiting === true;
+        if (patch.queueKnown === true) connection.queue = normalizeQueuedState(patch.queue);
+        send({
+          type: 'state',
+          running: connection.running,
+          waiting: connection.waiting,
+          ...(patch.queueKnown === true ? { queueKnown: true, queue: connection.queue } : {})
+        });
+      };
       const opening = setTimeout(() => { send({ type: 'error', code: 'snapshot-timeout', retryable: true }).finally(() => client.close(1011)); }, timing.openingMs);
       opening.unref();
       client.once('close', () => clearTimeout(opening));
@@ -606,7 +620,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         upstream.send(JSON.stringify({ type: 'open', streamId: 'control', endpoint: 'session/control', payload: { args: {} } }));
         rpc('list', {}).then(value => {
           const row = value?.items?.find(item => item.sessionId === id);
-          if (row) send({ type: 'state', running: row.running === true, waiting: false });
+          if (row) publishState({ running: row.running === true });
         }).catch(() => {});
       };
       const questions = (value, seq) => {
@@ -657,19 +671,31 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
               if (baseline) {
                 questions(baseline.values?.userQuestions, baseline.asOfSeq ?? -1);
                 sessionTitle(baseline.values?.title);
+                if (baseline.values?.inbox !== undefined) {
+                  publishState({ queueKnown: true, queue: queueFromInbox(baseline.values.inbox) });
+                }
               }
             } else if (value?.type === 'projection' && value.sessionId === id) {
               if (value.key === 'userQuestions') questions(value.value, value.seq);
               else if (value.key === 'title') sessionTitle(value.value);
+              else if (value.key === 'inbox') {
+                publishState({ queueKnown: true, queue: queueFromInbox(value.value) });
+              }
             }
           } else if (frame.streamId === 'projections') {
             if (frame.value?.type === 'ready') rpc('projections', { sessionId: id }).then(value => {
               questions(value?.values?.userQuestions, value?.asOfSeq ?? -1);
               sessionTitle(value?.values?.title);
+              if (value?.values?.inbox !== undefined) {
+                publishState({ queueKnown: true, queue: queueFromInbox(value.values.inbox) });
+              }
             }).catch(() => {});
             else if (frame.value?.type === 'projection') {
               if (frame.value.key === 'userQuestions') questions(frame.value.value, frame.value.seq);
               else if (frame.value.key === 'title') sessionTitle(frame.value.value);
+              else if (frame.value.key === 'inbox') {
+                publishState({ queueKnown: true, queue: queueFromInbox(frame.value.value) });
+              }
             }
           } else if (frame.streamId?.startsWith('wait:')) {
             const eventId = frame.streamId.slice(5), pending = connection.pending.get(eventId);
@@ -687,7 +713,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
             const value = frame.value;
             if (value.type === 'ready') connection.clientId = value.clientId;
             else if (value.type === 'emit' && value.event === 'api-session/status' && value.args?.[0] === id) {
-              send({ type: 'state', running: value.args[1] === true, waiting: false });
+              publishState({ running: value.args[1] === true });
             }
             else if (value.type === 'cancel') {
               endInteraction(value.eventId);
@@ -703,8 +729,12 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
                 } else send({ type: 'interaction', connectionId, eventId: value.eventId, interaction: value.event, request: value.request });
               }
             }
-          } else if (frame.streamId === 'state') send({ type: 'state', running: frame.value?.running === true,
-            waiting: Array.isArray(frame.value?.pendingInput) && frame.value.pendingInput.length > 0 });
+          } else if (frame.streamId === 'state') publishState({
+            running: frame.value?.running === true,
+            waiting: Array.isArray(frame.value?.pendingInput) && frame.value.pendingInput.length > 0,
+            queueKnown: true,
+            queue: frame.value?.queue
+          });
           else if (frame.streamId === 'history') {
             if (frame.value?.type === 'snapshot') clearTimeout(opening);
             const value = normalizeFollow(frame.value);

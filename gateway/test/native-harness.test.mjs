@@ -155,7 +155,11 @@ async function setup(t, options = {}) {
           assert.deepEqual(frame.payload, { args: {} });
           ws.send(JSON.stringify({ type: 'item', streamId: frame.streamId, value: { type: 'baseline', value: {
             projections: { session: { asOfSeq: 0, values: {
-              userQuestions: { active: [] }, title: 'Initial control title'
+              userQuestions: { active: [] }, title: 'Initial control title',
+              inbox: { 'next-turn': [{
+                id: 'control-queued', source: { kind: 'user', rpcId: 'control-request' },
+                content: [{ type: 'text', text: 'queued from control' }]
+              }], 'next-step': [] }
             } } }
           } } })); return;
         }
@@ -165,7 +169,16 @@ async function setup(t, options = {}) {
             records:[{type:'event',event:{seq:0,type:'user/message',data:{content:[{type:'text',text:options.text || 'hello'}]}}}],
             assistantStream:{activeAttempt:{attemptId:'attempt',nextIndex:2,stream:[{type:'text-chunks',texts:['he','l']}]}}}}));
           ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{type:'assistant-stream',frame:{type:'chunk',attemptId:'attempt',index:2,chunk:{type:'text-delta',text:'lo'}}}}));
-        } else if(frame.endpoint==='session/observeState') ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{running:true,pendingInput:['approval']}}));
+        } else if(frame.endpoint==='session/observeState') ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{
+          running:true,pendingInput:['approval'],queue:[{
+            id:'state-queued',placement:'queued',rpcId:'state-request',content:[
+              {type:'text',text:'queued from state'},
+              {type:'file',attachment:{attachmentId:'file-id',name:'notes.txt',bytes:12}}
+            ]
+          },{
+            id:'state-context',placement:'context',content:[{type:'text',text:'hidden'}]
+          }]
+        }}));
       });
     });
   });
@@ -208,7 +221,9 @@ test('modern Harness control stream replaces removed per-session observers witho
     const timer = setTimeout(() => reject(Error('control fallback timeout')), 2000);
     ws.on('message', raw => {
       frames.push(JSON.parse(raw));
-      if (frames.some(x => x.type === 'questions') && frames.some(x => x.type === 'state') && frames.some(x => x.type === 'snapshot')) {
+      if (frames.some(x => x.type === 'questions') &&
+          frames.some(x => x.type === 'state' && x.queueKnown === true && x.queue.length) &&
+          frames.some(x => x.type === 'snapshot')) {
         clearTimeout(timer); resolve();
       }
     });
@@ -217,7 +232,25 @@ test('modern Harness control stream replaces removed per-session observers witho
   assert.equal(openings.filter(x => x.endpoint === 'session/control').length, 1);
   assert.equal(frames.some(x => x.type === 'error'), false);
   assert.equal(frames.find(x => x.type === 'title')?.title, 'Initial control title');
+  const state = frames.find(x => x.type === 'state' && x.queueKnown === true && x.queue.length);
+  assert.deepEqual(state?.queue, [{
+    id: 'control-queued', placement: 'queued', rpcId: 'control-request',
+    blocks: [{ kind: 'text', text: 'queued from control' }]
+  }]);
   ws.close();
+});
+
+test('native live forwards bounded authoritative queue rows from state observation', async t => {
+  const { frames, until } = await live(t);
+  await until(() => frames.some(frame => frame.type === 'state' && frame.queueKnown === true && frame.queue.length));
+  const state = frames.find(frame => frame.type === 'state' && frame.queueKnown === true && frame.queue.length);
+  assert.deepEqual(state.queue, [{
+    id: 'state-queued', placement: 'queued', rpcId: 'state-request',
+    blocks: [
+      { kind: 'text', text: 'queued from state' },
+      { kind: 'file', file: { attachmentId: 'file-id', name: 'notes.txt', bytes: 12 } }
+    ]
+  }]);
 });
 
 test('native live forwards modern title projections and ignores malformed values', async t => {
