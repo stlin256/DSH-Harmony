@@ -111,7 +111,7 @@ instead of a full prose bubble. The original text remains in the message model.
 
 Extend `NativeMediaDocument` with cost estimate/currency.
 
-Read `dsh-go/media` with the following rules:
+Read supported generated-media metadata with the following rules:
 
 - missing `v` => 1; non-integer or `<1` => invalid; larger positive versions
   remain readable;

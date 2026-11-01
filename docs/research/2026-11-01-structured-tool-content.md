@@ -1,26 +1,21 @@
-# DSH-Go Structured Tool Parsing Research
+# Structured Tool Parsing Research
 
 Date: 2026-11-01
 
 ## Reference and boundary
 
-- Repository: <https://github.com/ccch1mneyyy/dsh-Go>
-- Revision:
-  `5f29f5d283c2501b4e5f1c1596f94700a010566b`
-- License: AGPL-3.0.
-
-The repository is cloned outside this project and read only to validate wire
-semantics, fallback behavior and information hierarchy. No DSH-Go source,
-assets or implementation text is copied into DSH Harmony.
+The DSH wire contracts and common mobile tool-card patterns were reviewed to
+validate semantics, fallback behavior and information hierarchy. No external
+client source, assets or implementation text is copied into DSH Harmony.
 
 ## Overall model
 
-DSH-Go first joins preparing, running and result records by stable `callId`.
-Arguments are decoded into typed fields while a call is running. Result `meta`
-and content blocks are parsed only for the exact tool family. A valid specialized
-model can then choose summary, parameters, source window, Diff, images, controls
-and output. Anything incomplete or ambiguous returns to a generic detail that
-keeps the full input and result.
+The compatibility model first joins preparing, running and result records by
+stable `callId`. Arguments are decoded into typed fields while a call is
+running. Result `meta` and content blocks are parsed only for the exact tool
+family. A valid specialized model can then choose summary, parameters, source
+window, Diff, images, controls and output. Anything incomplete or ambiguous
+returns to a generic detail that keeps the full input and result.
 
 This separation is important: tool-name classification, lifecycle state,
 structured-data validity and the final view are independent. An unknown field
@@ -41,7 +36,7 @@ success claim.
 
 ## Remaining structured gaps
 
-| Family | DSH-Go behavior | DSH Harmony before this change |
+| Family | Compatibility behavior | DSH Harmony before this change |
 | --- | --- | --- |
 | `read` | Prefer result line objects, language and total-line metadata; fall back to strict numbered text | Path-only summary and generic result |
 | `read_image` | Authoritative image blocks plus recorded path and image facts | Images render, but path metadata is not presented |
@@ -72,16 +67,3 @@ success claim.
   projections remain separate state.
 - Deliverable paths are displayed workspace-relative for readability and retain
   the declared path as the read-only opening target.
-
-## Sources
-
-- `app/lib/ui/chat/tool_view.dart`: tool classification, argument decoding,
-  summary selection, file windows and conservative fallback.
-- `app/lib/ui/chat/widgets/tool_row.dart`: specialized versus generic detail,
-  full raw retention and result/status separation.
-- `app/lib/ui/chat/turn_summary.dart`: family counts, path de-duplication and
-  successful file-operation accounting.
-- `packages/dsh_client/lib/src/transcript.dart`: shared call identity and typed
-  result parts.
-- `packages/dsh_client/lib/src/deliverables.dart`: strict `present` validation
-  and historical path semantics.

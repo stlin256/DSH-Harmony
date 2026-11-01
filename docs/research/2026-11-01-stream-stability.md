@@ -1,19 +1,11 @@
-# Stream Stability Research: DSH-Go Reference
+# Mobile Stream Stability Research
 
 Date: 2026-11-01
 
-## Reference
+## Observed mobile behavior
 
-- Repository: <https://github.com/ccch1mneyyy/dsh-Go>
-- Revision:
-  `08d76f52f347823dca34161b7f1dd4138b5925d4`
-- License: AGPL-3.0. This project uses the reference to validate behavior and
-  does not copy its source.
-
-## What DSH-Go does
-
-`packages/dsh_client/lib/src/session_api.dart` implements a generation-aware
-`session/follow` loop:
+An independent mobile implementation uses a generation-aware `session/follow`
+loop:
 
 - the first item in every generation must be a snapshot;
 - durable gaps are detected and repaired with `session/page`;
@@ -23,23 +15,24 @@ Date: 2026-11-01
 - normal Host stream completion reopens after a short delay;
 - reconnect attempts use bounded backoff.
 
-Its default follow request uses `assistantStream: true`, `maxMessages: 500` and
+The observed default follow request uses `assistantStream: true`,
+`maxMessages: 500` and
 `turnWindow: { minMessages: 50, minTurns: 2 }`. The larger cap gives the turn
 window room to choose complete turns instead of cutting at the default message
 cap.
 
-`app/lib/state/chat_state.dart` coalesces model-to-UI publication at 32 ms. It
-keeps `syncing`, `resyncing` and `streamLost` separate, preserves the existing
+The observed client coalesces model-to-UI publication at 32 ms. It keeps
+`syncing`, `resyncing` and `streamLost` separate, preserves the existing
 transcript while a replacement snapshot is pending, and exposes an explicit
 bounded resync.
 
-The carrier uses a 15-second client ping. The Host also has its own link
-health. `run_pulse.dart` uses a 1.2-second quiet threshold only to stop the
-fast-output animation; that threshold does not declare the stream lost.
+The observed carrier uses a 15-second client ping and the Host has its own link
+health. A 1.2-second quiet threshold stops the fast-output animation; it does
+not declare the stream lost.
 
-The reference has no special rule that force-resyncs a healthy socket solely
-because assistant text has stopped advancing. A conservative Harmony-specific
-progress watchdog is therefore an extension, not an equivalence claim.
+The observed behavior does not force-resync a healthy socket solely because
+assistant text has stopped advancing. A conservative Harmony-specific progress
+watchdog is therefore an extension, not an equivalence claim.
 
 ## Current DSH Harmony gaps
 
@@ -71,13 +64,4 @@ a retired local generation. Those correct pieces should be preserved.
   and waiting state to avoid repairing a legitimate tool or approval pause.
 - Align visual coalescing with the proven 32 ms reference cadence.
 - Keep a bounded repair path and retain the last good partial presentation.
-
-## Sources
-
-- `packages/dsh_client/lib/src/session_api.dart:836-1165`
-- `app/lib/state/chat_state.dart:628-703`
-- `app/lib/state/chat_state.dart:985-1035`
-- `app/lib/state/run_pulse.dart:43-81`
-- `packages/dsh_client/lib/src/carrier.dart:190-203`
-- `packages/dsh_client/lib/src/mux.dart:55-85`
 

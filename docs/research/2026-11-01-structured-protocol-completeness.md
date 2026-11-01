@@ -4,17 +4,10 @@ Date: 2026-11-01
 
 ## Reference boundary
 
-Behavioral reference:
-
-- DSH-Go revision
-  `5f29f5d283c2501b4e5f1c1596f94700a010566b`, AGPL-3.0.
-- DeepSeek Harness packages `@deepseek-ai/dsh-jobs`,
-  `@deepseek-ai/dsh-session` and `@deepseek-ai/dsh-tool-jobs` at
-  `0.2.1-rc.4`, MIT.
-
-DSH-Go was read only to validate information hierarchy, fallback rules and
-presentation budgets. No DSH-Go source, comment, asset or prose is copied into
-DSH Harmony.
+The review covers DeepSeek Harness packages `@deepseek-ai/dsh-jobs`,
+`@deepseek-ai/dsh-session` and `@deepseek-ai/dsh-tool-jobs` at
+`0.2.1-rc.4`, plus common mobile information-hierarchy and fallback patterns.
+No external client source, comment, asset or prose is copied into DSH Harmony.
 
 ## Current-gap audit
 
@@ -24,8 +17,8 @@ DSH Harmony.
 | slash commands | Durable run/done pair, command id identity, success/error and output | Each event became a generic tool row; late run could regress a finished row |
 | jobs | Log-only registration and settlement share `jobId`; settlement includes terminal status/cause/detail | Both events were dropped |
 | background inbox | `tool-jobs` is an independent read-only notice | Non-user source was filtered out |
-| plugin card | Successful result `meta["dsh-go/view"]`, strict bounded read-only renderer | Metadata was ignored |
-| generated media | Result `meta["dsh-go/media"]` v1 uses workspace files | Metadata was ignored |
+| plugin card | Successful result structured-view metadata, strict bounded read-only renderer | Metadata was ignored |
+| generated media | Result generated-media metadata v1 uses workspace files | Metadata was ignored |
 | delivered files | `deliverables/presented` is an authoritative event per successful `present` call | Only inferred tool arguments were used |
 
 ## Exact contracts
@@ -81,7 +74,8 @@ context, and not a human prompt.
 
 ### Plugin view v1
 
-The tool result carries `data.meta["dsh-go/view"]`. For persisted tool cards:
+The tool result carries bounded structured-view metadata. For persisted tool
+cards:
 
 - maximum JSON: 8 KiB;
 - maximum nodes: 40;

@@ -304,17 +304,17 @@ or real transcript content in source, tests, docs, logs or commits.
 - Streaming scroll and Dock spring device E2E:
   [2026-11-01-stream-scroll-dock-spring-e2e.md](docs/testing/2026-11-01-stream-scroll-dock-spring-e2e.md)
 - Stream stability requirement:
-  [2026-11-01-stream-stability-dsh-go-reference.md](docs/requirements/2026-11-01-stream-stability-dsh-go-reference.md)
-- DSH-Go stream stability research:
-  [2026-11-01-stream-stability-dsh-go-reference.md](docs/research/2026-11-01-stream-stability-dsh-go-reference.md)
+  [2026-11-01-stream-stability.md](docs/requirements/2026-11-01-stream-stability.md)
+- Mobile stream stability research:
+  [2026-11-01-stream-stability.md](docs/research/2026-11-01-stream-stability.md)
 - Stream stability implementation spec:
-  [2026-11-01-stream-stability-dsh-go-reference.md](docs/specs/2026-11-01-stream-stability-dsh-go-reference.md)
+  [2026-11-01-stream-stability.md](docs/specs/2026-11-01-stream-stability.md)
 - Stream stability device E2E:
-  [2026-11-01-stream-stability-dsh-go-reference-e2e.md](docs/testing/2026-11-01-stream-stability-dsh-go-reference-e2e.md)
+  [2026-11-01-stream-stability-e2e.md](docs/testing/2026-11-01-stream-stability-e2e.md)
 - Structured tool-content requirement:
   [2026-11-01-structured-tool-content.md](docs/requirements/2026-11-01-structured-tool-content.md)
 - Structured tool-content research:
-  [2026-11-01-structured-tool-content-dsh-go.md](docs/research/2026-11-01-structured-tool-content-dsh-go.md)
+  [2026-11-01-structured-tool-content.md](docs/research/2026-11-01-structured-tool-content.md)
 - Structured tool-content implementation spec:
   [2026-11-01-structured-tool-content.md](docs/specs/2026-11-01-structured-tool-content.md)
 - Structured tool-content E2E:
@@ -322,7 +322,7 @@ or real transcript content in source, tests, docs, logs or commits.
 - Structured protocol completeness requirement:
   [2026-11-01-structured-protocol-completeness.md](docs/requirements/2026-11-01-structured-protocol-completeness.md)
 - Structured protocol completeness research:
-  [2026-11-01-structured-protocol-completeness-dsh-go.md](docs/research/2026-11-01-structured-protocol-completeness-dsh-go.md)
+  [2026-11-01-structured-protocol-completeness.md](docs/research/2026-11-01-structured-protocol-completeness.md)
 - Structured protocol completeness implementation spec:
   [2026-11-01-structured-protocol-completeness.md](docs/specs/2026-11-01-structured-protocol-completeness.md)
 - Structured protocol completeness E2E:

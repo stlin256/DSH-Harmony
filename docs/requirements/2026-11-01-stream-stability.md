@@ -40,6 +40,6 @@ not expose protocol details.
 
 - Automatically resending a prompt whose acceptance is uncertain.
 - Treating every quiet period as a network failure.
-- Copying DSH-Go source or assets. The reference is used to validate protocol
-  and recovery design.
+- Copying another client's source or assets. Compatibility research is limited
+  to protocol and recovery design.
 

@@ -33,13 +33,13 @@ losing the complete generic fallback.
   `{kind: "tool-jobs", form: "notice"}` SHALL remain visible as a quiet,
   read-only background-task notice. Repeated JSON in a human-authored source
   SHALL not impersonate that source.
-- A successful tool result with bounded `meta["dsh-go/view"]` SHALL render a
-  read-only plugin card. The parser SHALL enforce an 8 KiB JSON budget, 40
+- A successful tool result with bounded structured-view metadata SHALL render
+  a read-only plugin card. The parser SHALL enforce an 8 KiB JSON budget, 40
   nodes and depth 6. `confirm` and `actions` SHALL not become interactive in a
   historical tool card. `options` SHALL be shown as read-only selected values.
   Unknown types, attributes, icons, colors and future components SHALL degrade
   without breaking the surrounding row or claiming success.
-- A tool result with valid `meta["dsh-go/media"]` v1 SHALL expose generated
+- A tool result with valid generated-media metadata v1 SHALL expose generated
   image/video metadata: stable request id, job id, status, request facts,
   prompt, items, failure and provenance when present. A completed image with no
   items is invalid. Failed media remains failed. Files open through the
@@ -62,10 +62,9 @@ losing the complete generic fallback.
 
 ## Compatibility and privacy
 
-- Target the current DSH 0.2.1 event shapes and the frozen DSH-Go plugin
-  contracts used by current Hosts.
-- Do not copy DSH-Go source, assets, copy or implementation text. Use it only
-  as an independently verified behavioral reference.
+- Target the current DSH 0.2.1 event shapes and the supported structured
+  compatibility contracts used by current Hosts.
+- Do not copy another client's source, assets, copy or implementation text.
 - Do not add private hosts, credentials, signatures, real transcripts or
   private screenshots to source, fixtures, docs or commits.
 

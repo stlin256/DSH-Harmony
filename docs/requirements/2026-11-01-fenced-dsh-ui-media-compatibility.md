@@ -6,10 +6,10 @@ Status: accepted for implementation.
 
 ## User-visible problem
 
-The native client now understands the tool-level `dsh-go/view` and
-`dsh-go/media` metadata contracts. A complete structured pass must also cover
-DSH assistant replies that contain a fenced `dsh-ui` view. Today those replies
-fall back to a JSON code block.
+The native client now understands supported tool-level structured-view and
+generated-media metadata. A complete structured pass must also cover DSH
+assistant replies that contain a fenced `dsh-ui` view. Today those replies fall
+back to a JSON code block.
 
 Two compatibility gaps also remain in the tool-level pass:
 
@@ -21,7 +21,7 @@ Two compatibility gaps also remain in the tool-level pass:
 ## Required behavior
 
 - A fenced `dsh-ui` assistant block SHALL render as compact native DSH UI.
-- The fence parser SHALL use the DSH-Go assistant-card budget: 16 KiB, 40
+- The fence parser SHALL use the established assistant-card budget: 16 KiB, 40
   components, depth 6 and at most 16 direct children per container.
 - JSON arrays SHALL be accepted as a vertical stack. Comments and trailing
   commas MAY be repaired once before declaring the block invalid.
@@ -38,8 +38,9 @@ Two compatibility gaps also remain in the tool-level pass:
   transmitted.
 - A `[dsh-ui reply]` user message SHALL render as a compact reply chip while
   retaining its complete text for copy and reconnect.
-- Tool-level `dsh-go/view` SHALL render only from a successful result with a
-  known root component. Failed or still-running records keep the raw fallback.
+- Tool-level structured-view metadata SHALL render only from a successful
+  result with a known root component. Failed or still-running records keep the
+  raw fallback.
 - Media metadata SHALL accept a missing `v` as v1 and accept later positive
   versions. Invalid optional facts SHALL be ignored without discarding valid
   items.
@@ -54,9 +55,9 @@ Two compatibility gaps also remain in the tool-level pass:
 
 ## Compatibility and privacy
 
-- Target the current DSH and DSH-Go structured contracts used by the pinned
-  references in the research document.
-- Do not copy DSH-Go source, assets, prose or implementation text.
+- Target the current DSH protocol and the supported structured compatibility
+  formats documented in the research document.
+- Do not copy another client's source, assets, prose or implementation text.
 - Do not add private hosts, credentials, real transcripts, workspace paths or
   notification content to source, tests or documentation.
 - Gateway wire shapes remain unchanged.

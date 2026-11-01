@@ -4,19 +4,13 @@ Date: 2026-11-01
 
 ## Reference boundary
 
-Behavioral reference:
-
-- DSH-Go revision
-  `5f29f5d283c2501b4e5f1c1596f94700a010566b`, AGPL-3.0.
-- DeepSeek Harness `@deepseek-ai/dsh-tool-present` and the current DSH event
-  contracts used by the existing gateway.
-
-DSH-Go was inspected to validate behavior and limits. No source, asset or prose
-is copied into DSH Harmony.
+The review covers DeepSeek Harness `@deepseek-ai/dsh-tool-present`, the current
+DSH event contracts used by the gateway, and common mobile rendering patterns.
+No source, asset or prose is copied into DSH Harmony.
 
 ## Structured-content coverage after this change
 
-The native transcript projection now covers these DSH-Go structured surfaces:
+The native transcript projection now covers these structured surfaces:
 
 - slash-command lifecycle (`command/run`, `command/done`);
 - job lifecycle (`job/registered`, `job/settled`) and read-only `tool-jobs`
@@ -25,10 +19,10 @@ The native transcript projection now covers these DSH-Go structured surfaces:
   `present` call;
 - `str_replace_editor` subcommands and insert diffs;
 - model-authored `dsh-ui` v1 fences with bounded interaction;
-- tool-card `dsh-go/view` v1 and generated-media `dsh-go/media` v1.
+- bounded tool-card structured views and generated-media metadata.
 
-The following structured surfaces in the pinned DSH-Go reference remain
-deliberately outside this transcript/read-only pass:
+The following structured surfaces remain deliberately outside this
+transcript/read-only pass:
 
 - the separate `genui` dialect that overloads the `dsh-ui` fence with a
   different, much larger vocabulary;
@@ -46,8 +40,8 @@ and interaction boundary has its own spec.
 
 ### Assistant `dsh-ui` fences
 
-DSH-Go treats a Markdown code fence with language `dsh-ui` as model-authored
-native UI:
+The compatibility behavior treats a Markdown code fence with language
+`dsh-ui` as model-authored native UI:
 
 - assistant-card hard limit: 16 KiB;
 - 40 rendered nodes;
@@ -68,16 +62,16 @@ native UI:
 DSH Harmony currently has no parser or renderer for this fence. The generic
 code block is safe but loses semantics and interaction.
 
-### Tool `dsh-go/view`
+### Tool structured view
 
-DSH-Go reads this metadata only from successful tool results and requires a
-known root component. DSH Harmony already renders the v1 component catalog and
-the 8 KiB tool-card budget, but its first pass could accept a running record or
-an unknown root if such metadata were present.
+The structured-view contract is read only from successful tool results and
+requires a known root component. DSH Harmony already renders the v1 component
+catalog and the 8 KiB tool-card budget, but its first pass could accept a
+running record or an unknown root if such metadata were present.
 
 ### Generated media
 
-DSH-Go's v1 media reader is deliberately tolerant:
+The v1 media reader is deliberately tolerant:
 
 - absent `v` defaults to 1 and later positive versions remain readable;
 - missing kind may be inferred from the first item's video MIME;
@@ -109,4 +103,4 @@ That is safe but loses otherwise valid historical cards.
 - Executing arbitrary plugin actions.
 - Loading HTTP images into persisted tool cards.
 - Inline playback for generated video.
-- Copying DSH-Go's larger plugin panel or future v2 style catalog.
+- Copying a larger external plugin panel or future v2 style catalog.

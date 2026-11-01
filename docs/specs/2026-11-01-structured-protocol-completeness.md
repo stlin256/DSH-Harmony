@@ -127,7 +127,7 @@ metric group; non-metric children flatten with bounded indentation.
 
 ## 6. Media parser and renderer
 
-- Parse only `meta["dsh-go/media"]`.
+- Parse only supported generated-media metadata.
 - Require `v=1`, valid kind, valid status/default done, and bounded string
   fields.
 - Validate item paths and optional positive dimensions, non-negative byte
