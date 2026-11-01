@@ -14,8 +14,11 @@ dock-send-idle
 dock-queue-pending
 dock-queue-authoritative
 dock-queue-many
+dock-send-error
 dock-material-quiet
 dock-material-elevated
+interaction-approval
+interaction-question
 ```
 
 The initial content is bounded and deterministic:
@@ -58,7 +61,14 @@ authoritative and carries the same `rpcId` as the local echo.
 4. schedules stream and settle frames only for an idle/steer prompt.
 
 Paused or replaced live sessions cancel pending fixture timers. The production
-client remains unchanged.
+`NativeWorkspace.send()` generates and passes the request id before awaiting
+`NativeHarnessClient.prompt()`. For queue mode it inserts the pending echo before
+the request starts. A non-uncertain failure removes that echo; an uncertain
+transport result keeps it so reconnect reconciliation can resolve it.
+
+`interaction-approval` and `interaction-question` publish deterministic
+interaction frames after the baseline snapshot. They contain no real tool or
+account data and use the same request model as the production client.
 
 ## 3. Dock material
 
@@ -94,6 +104,15 @@ Expand the screenshot suite with:
 Generate a contact sheet that places quiet and elevated captures side by side
 with the reduced-transparency fallback for each theme. Preserve raw screenshots,
 ArkUI layout dumps, manifest metadata and assertion logs.
+
+Run `device-ui-material-assert.py` against the elevated light and dark captures.
+It derives the Dock bounds from the nearest full-width bottom ancestor of the
+composer, samples an unobstructed left margin, and fails on:
+
+- a hard luminance jump between the page and Dock top;
+- an abrupt luminance step inside the material;
+- a dark material whose top-to-bottom luminance range is too small to show the
+  intended scrim falloff.
 
 ## 5. Device interaction checks
 
@@ -135,8 +154,9 @@ The workspace-level error line remains available on non-conversation surfaces.
 - Model tests cover idle prompt frames, queue reconciliation, attachment order,
   duplicate-proof acknowledgement, malformed input rejection and in-conversation
   failure ownership.
-- Source contracts cover fixture reachability, material ordering and removal of
-  foreground gradient blur from the empty layer.
+- Source contracts cover optimistic echo timing, interaction fixture
+  reachability, material ordering and removal of foreground gradient blur from
+  the empty layer.
 - Run all gateway tests.
 - Build personal and store Release products.
 - Run the screenshot and send scripts only when a device is ready. Store device

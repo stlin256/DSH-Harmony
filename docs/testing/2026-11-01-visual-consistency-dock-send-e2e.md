@@ -11,13 +11,14 @@ until screenshots and post-send layout dumps exist.
 | ID | Surface | Expected | Status |
 | --- | --- | --- | --- |
 | V01 | Conversation | Reference compact hierarchy remains stable | Automated baseline |
-| V02 | Drawer/session list | Placeholder glyphs are the only known icon drift | Audited |
-| V03 | Settings/about | Base and raised-token drift is documented | Audited |
+| V02 | Drawer/session list | Mobile current-session selection, no popup mask and 44vp icon targets | Backlog |
+| V03 | Settings/about | Shared base, title, row, radius and raised-surface tokens | Backlog |
 | V04 | Workspace picker | Requires rebuild with shared rows/actions | Backlog |
 | V05 | Session tools | Requires rebuild with shared compact controls | Backlog |
-| V06 | File browser/preview | Grouping and theme remain aligned | Automated baseline |
-| V07 | Loading/empty/error rows | Need a shared compact status recipe | Backlog |
-| V08 | Compatibility shell | Retained fallback still has a separate visual language | Backlog |
+| V06 | File browser/preview | Grouping and theme remain aligned; header controls need one recipe | Automated baseline |
+| V07 | Queue/interaction cards | 44vp controls and shared card surface | Backlog |
+| V08 | Loading/empty/error rows | Need a shared compact status recipe | Backlog |
+| V09 | Compatibility shell | Retained fallback still has a separate visual language | Backlog |
 
 ## Mock and screenshot checks
 
@@ -33,6 +34,9 @@ until screenshots and post-send layout dumps exist.
 | M08 | Light/dark paired captures | Geometry matches; theme changes surfaces, text and glyphs together | Pending device |
 | M09 | Reduced transparency | Actual material is removed and controls remain readable | Pending device |
 | M10 | Prompt failure | Error is visible and no false queue or successful bubble remains | Pending device |
+| M11 | Approval fixture | Approval card renders in light and dark without raw JSON | Pending device |
+| M12 | Question fixture | Native question card and controls render in light and dark | Pending device |
+| M13 | Dock pixel check | No hard top edge, no abrupt internal step and visible dark-theme falloff | Pending device |
 
 ## Build and automated verification
 

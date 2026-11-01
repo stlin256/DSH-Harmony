@@ -35,11 +35,15 @@ Date: 2026-11-01
 - Fixture launches remain unreachable without `storeShowcase=true`.
 - `showcaseState` adds:
   `dock-send-idle`, `dock-queue-pending`, `dock-queue-authoritative`,
-  `dock-queue-many`, `dock-material-quiet` and `dock-material-elevated`.
+  `dock-queue-many`, `dock-material-quiet`, `dock-material-elevated`,
+  `dock-send-error`, `interaction-approval` and `interaction-question`.
 - Sending from an idle fixture inserts a user message, updates the title,
   streams a short deterministic answer and settles the turn.
 - Sending from a running queue fixture shows one local `发送中…` echo, then
   reconciles it with an authoritative row carrying the same `rpcId`.
+- A normal client generates the request id before awaiting the Host response so
+  the local queue echo is visible during network latency. A definitive failure
+  removes that echo; an uncertain transport result preserves it for recovery.
 - Repeated acknowledgement frames never duplicate a visible queued message.
 - A failed prompt exposes an error and leaves no successful local echo.
 - Fixture content contains no private origin, account, credential or transcript.
@@ -55,6 +59,9 @@ Date: 2026-11-01
   visible background variation in its upper region.
 - Light and dark captures use the same content and viewport so differences are
   attributable to theme rather than unrelated scrolling.
+- Automated image checks fail a hard material edge at the Dock top, an abrupt
+  luminance step inside the Dock, or a dark-theme strip whose luminance barely
+  changes from top to bottom.
 
 ## Non-goals
 
