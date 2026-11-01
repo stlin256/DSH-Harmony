@@ -593,7 +593,8 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   }
 
   async prompt(_id: string, _text: string, _mode: string = 'queue',
-    _attachments: NativeAttachmentDraft[] = []): Promise<void> {
+    _attachments: NativeAttachmentDraft[] = []): Promise<string> {
+    return 'showcase-request';
   }
 
   async cancel(_id: string): Promise<void> {

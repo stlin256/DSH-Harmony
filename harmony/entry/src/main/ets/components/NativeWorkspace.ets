@@ -5,8 +5,9 @@ import { pasteboard } from '@kit.BasicServicesKit';
 import { NativeHarnessClient, NativeHttpError, NativeAttachmentDraft } from '../services/NativeHarnessClient';
 import { NativeFrame, NativeJournalEntry, NativeMessage, NativeSession, NativeSessionModel, NativePendingQuestion,
   NativeWorkspaceItem, NativeWorkspaceSnapshot, NativeWorkspaceRow, NativeImagePreviewRequest,
-  NativeFileViewRequest, nativeWorkspaceRows, nativeToolsParent, nativeWorkspaceDragOrder,
-  nativeBackToBottomAvailable, nativeBackToBottomHasNewContent } from '../services/NativeSessionModel';
+  NativeFileViewRequest, NativeQueueBlock, NativeQueueFile, NativeQueueItem, nativeWorkspaceRows,
+  nativeToolsParent, nativeWorkspaceDragOrder, nativeBackToBottomAvailable,
+  nativeBackToBottomHasNewContent, nativeProcessStructureChange } from '../services/NativeSessionModel';
 import { NativeListSource } from '../services/NativeListSource';
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeTextContent } from './NativeTextContent';
@@ -56,6 +57,7 @@ import {
   NativeTurnChangesCard
 } from './NativeTurnChangesView';
 import { NativeBottomConversationDock } from './NativeBottomConversationDock';
+import { NativeQueueDock } from './NativeQueueDock';
 
 class NativeExportCapabilities { copyMarkdown: boolean = false; downloadLog: boolean = false; }
 class NativeWorkspaceOrderRequest {
@@ -163,6 +165,9 @@ export struct NativeWorkspace {
   @State private connectionPhase: string = 'idle';
   @State private running: boolean = false;
   @State private waiting: boolean = false;
+  @State private queue: NativeQueueItem[] = [];
+  @State private pendingQueue: NativeQueueItem[] = [];
+  @State private processEntranceIds: string[] = [];
   @State private uncertain: boolean = false;
   private connectionNotified: boolean = false;
   @State private error: string = '';
@@ -231,6 +236,10 @@ export struct NativeWorkspace {
   private cacheTimer: number = -1;
   private backToBottomTimer: number = -1;
   private returnToBottomTimer: number = -1;
+  private processEntranceTimer: number = -1;
+  private processTailTimer: number = -1;
+  private suppressProcessEntrance: boolean = false;
+  private processEntranceBaselinePending: boolean = false;
   private returningToBottom: boolean = false;
   private workspaceOrderGeneration: number = 0;
   private workspaceOrderBusy: boolean = false;
@@ -396,6 +405,8 @@ export struct NativeWorkspace {
     clearTimeout(this.backgroundTimer); clearTimeout(this.preloadTimer);
     clearTimeout(this.cacheTimer); clearTimeout(this.backToBottomTimer);
     clearTimeout(this.returnToBottomTimer);
+    clearTimeout(this.processEntranceTimer);
+    clearTimeout(this.processTailTimer);
     clearTimeout(this.drawerSettleTimer);
     clearTimeout(this.destinationTimer);
     this.persistCache();
@@ -1243,7 +1254,10 @@ export struct NativeWorkspace {
         .catch((): void => {});
     }
     this.client.drafts.set(this.selected, this.draft);
-    this.continued = []; this.interactions = []; this.toolsOpen = false; this.modelPickerOpen = false; this.client.selectedId = id;
+    this.continued = []; this.interactions = []; this.queue = []; this.pendingQueue = [];
+    this.processEntranceIds = []; this.toolsOpen = false; this.modelPickerOpen = false; this.client.selectedId = id;
+    this.suppressProcessEntrance = true;
+    this.processEntranceBaselinePending = false;
     const session = this.sessions.find((item: NativeSession) => item.id === id);
     this.title = session ? session.title.trim() || '未命名会话' : '会话';
     this.draft = this.client.drafts.get(id) || '';
@@ -1259,6 +1273,7 @@ export struct NativeWorkspace {
     this.navigationChanged();
     this.model = this.client.models.get(id) || new NativeSessionModel();
     this.client.models.set(id, this.model);
+    this.queue = (this.model.queue || []).slice();
     const capabilities = this.utilityCapabilities.get(id);
     this.utilityKnown = capabilities !== undefined;
     this.exportCapabilities = capabilities || new NativeExportCapabilities();
@@ -1274,6 +1289,8 @@ export struct NativeWorkspace {
     this.rememberTurnChangeReferences(Array.from(this.model.journal.values()));
     this.liveTurnChanges = new NativeTurnChangeSummary();
     this.liveTurnChangesVisible = false;
+    this.visibleRows = [];
+    this.source.set([], (row: NativeMessage): string => row.id);
     this.renderTranscript();
     this.running = false; this.waiting = false; this.retries = 0;
     this.connectionPhase = 'syncing'; this.userHasScrolled = false;
@@ -1295,6 +1312,7 @@ export struct NativeWorkspace {
       if (!this.mounted || selection !== this.selectionGeneration || this.selected !== id) return;
       if (cached !== null && cached.messages.length) {
         this.model.restore(cached);
+        this.queue = (this.model.queue || []).slice();
         this.rememberTurnChangeReferences(Array.from(this.model.journal.values()));
         this.followTail = true;
         this.paint();
@@ -1349,6 +1367,8 @@ export struct NativeWorkspace {
       }
       const wasActive = this.running || this.waiting;
       this.model.apply(frame);
+      if (frame.type === 'state' && frame.queueKnown === true) this.syncAuthoritativeQueue();
+      if (frame.type === 'snapshot') this.processEntranceBaselinePending = true;
       if (frame.type === 'delta') {
         this.streamTextPatchDirty = frame.text.length > 0 &&
           !frame.reasoning && !(frame.toolUpdates || []).length;
@@ -1428,9 +1448,61 @@ export struct NativeWorkspace {
       this.title || 'DSH Harmony';
     this.onLocalNotification(id, title, 'connection').catch(() => {});
   }
+  private queueItems(): NativeQueueItem[] {
+    const admitted: Set<string> = new Set<string>();
+    this.queue.forEach((item: NativeQueueItem): void => {
+      if (item.rpcId) admitted.add(item.rpcId);
+    });
+    return this.queue.concat(this.pendingQueue.filter((item: NativeQueueItem): boolean =>
+      !item.rpcId || !admitted.has(item.rpcId)));
+  }
+  private syncAuthoritativeQueue(): void {
+    this.queue = this.model.queue || [];
+    const admitted: Set<string> = new Set<string>();
+    this.queue.forEach((item: NativeQueueItem): void => {
+      if (item.rpcId) admitted.add(item.rpcId);
+    });
+    this.pendingQueue = this.pendingQueue.filter((item: NativeQueueItem): boolean =>
+      !item.rpcId || !admitted.has(item.rpcId));
+  }
+  private queuedEcho(requestId: string, text: string, attachments: NativeAttachmentDraft[]): NativeQueueItem {
+    const item = new NativeQueueItem();
+    item.id = 'pending:' + requestId;
+    item.rpcId = requestId;
+    item.pending = true;
+    attachments.forEach((attachment: NativeAttachmentDraft): void => {
+      const block = new NativeQueueBlock();
+      block.kind = 'file';
+      const file = new NativeQueueFile();
+      file.attachmentId = attachment.receiptId || attachment.id;
+      file.name = attachment.name || '附件';
+      file.bytes = attachment.bytes;
+      block.file = file;
+      item.blocks.push(block);
+    });
+    if (text.trim()) {
+      const block = new NativeQueueBlock();
+      block.kind = 'text';
+      block.text = text;
+      item.blocks.push(block);
+    }
+    return item;
+  }
+  private scheduleProcessTailSettle(): void {
+    clearTimeout(this.processTailTimer);
+    this.processTailTimer = setTimeout((): void => {
+      this.processTailTimer = -1;
+      if (!this.mounted || !this.followTail || this.returningToBottom) return;
+      try {
+        if (NativeMotion.enabled()) this.scroller.scrollEdge(Edge.Bottom, { velocity: 2800 });
+        else this.scroller.scrollEdge(Edge.Bottom);
+      } catch (_) {}
+    }, NativeMotion.enabled() ? 160 : 0);
+  }
   private paint(): void {
     if (!this.mounted) return;
     this.running = this.model.running; this.waiting = this.model.waiting; this.hasMore = this.model.hasMore;
+    this.syncAuthoritativeQueue();
     this.renderTranscript();
     if (this.followTail && !this.returningToBottom) {
       setTimeout(() => {
@@ -1533,6 +1605,23 @@ export struct NativeWorkspace {
       rows = this.projectTranscriptRows();
       visible = nativePresentTranscript(rows, this.client.hostSettings.chat(),
         this.model.turnDisclosure, this.model.collapseThrough);
+    }
+    const processStructure = nativeProcessStructureChange(this.visibleRows, visible);
+    if (!this.suppressProcessEntrance && processStructure.changed()) {
+      const appeared = processStructure.addedGroupIds.concat(processStructure.growingGroupIds);
+      this.processEntranceIds = Array.from(new Set<string>(this.processEntranceIds.concat(appeared)));
+      clearTimeout(this.processEntranceTimer);
+      this.processEntranceTimer = setTimeout((): void => {
+        this.processEntranceTimer = -1;
+        if (this.mounted) this.processEntranceIds = [];
+      }, NativeMotion.enabled() ? 620 : 0);
+      if (this.followTail) this.scheduleProcessTailSettle();
+    } else if (this.suppressProcessEntrance &&
+      (visible.length > 0 || this.processEntranceBaselinePending)) {
+      // Seed cache/history directly into the list. Entrance motion belongs only
+      // to structure added after this first complete projection.
+      this.suppressProcessEntrance = false;
+      this.processEntranceBaselinePending = false;
     }
     const tailOnlyTextUpdate = patched !== null ||
       (this.textProjectionCacheHit &&
@@ -1637,12 +1726,21 @@ export struct NativeWorkspace {
   private async send(): Promise<void> {
     if (this.sending || (!this.draft.trim() && !this.attachments.length) || !this.selected ||
         this.uncertain || !this.attachmentsReady()) return;
-    const id = this.selected; const text = this.draft;
+    const id = this.selected; const text = this.draft; const attachmentSnapshot = this.attachments.slice();
+    const mode = this.steer ? 'steer' : 'queue';
+    const expectQueuedEcho = this.running && mode === 'queue';
     if (!this.running && this.client.hostSettings.chat().collapseTiming === 'next-input') { this.model.collapseThrough = this.model.lastSeq(); this.renderTranscript(); }
     this.sending = true; this.error = '';
     this.client.drafts.set(id, text);
     try {
-      await this.client.prompt(id, text, this.steer ? 'steer' : 'queue', this.attachments);
+      const requestId = await this.client.prompt(id, text, mode, attachmentSnapshot);
+      if (this.selected === id && expectQueuedEcho &&
+          !this.model.queue.some((item: NativeQueueItem): boolean => item.rpcId === requestId) &&
+          !this.pendingQueue.some((item: NativeQueueItem): boolean => item.rpcId === requestId)) {
+        this.pendingQueue = this.pendingQueue.concat([
+          this.queuedEcho(requestId, text, attachmentSnapshot)
+        ]);
+      }
       this.interactionTimes = NativeMetadataCache.rememberInteraction(
         this.context, this.client.cacheKey(), id);
       this.sessionsChanged();
@@ -2272,6 +2370,7 @@ export struct NativeWorkspace {
               if (message.role === 'process') {
                 NativeProcessView({ client: this.client, sessionId: this.selected, message,
                   disclosures: this.model.disclosures,
+                  newlyAppeared: this.processEntranceIds.includes(message.id),
                   maxExpandedHeight: Math.max(180, this.transcriptViewportHeight * 0.6),
                   maxChildExpandedHeight: Math.max(120, this.transcriptViewportHeight * 0.36) })
               } else if (message.role === 'turn-footer') {
@@ -2409,9 +2508,18 @@ export struct NativeWorkspace {
       NativeBottomConversationDock({
         horizontalBleed: 12,
         contentInset: 0,
-        elevated: this.liveTurnChangesVisible || this.attachments.length > 0
+        elevated: this.liveTurnChangesVisible || this.attachments.length > 0 || this.queueItems().length > 0
       }) {
         Column({ space: 8 }) {
+          if (this.queueItems().length) {
+            NativeQueueDock({
+              client: this.client,
+              sessionId: this.selected,
+              items: this.queueItems(),
+              running: this.running,
+              onChanged: (): void => {}
+            }).transition(NativeMotion.rowTransition())
+          }
           if (this.liveTurnChangesVisible) {
             Row() {
               NativeTurnChangePill({

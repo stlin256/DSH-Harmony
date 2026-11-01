@@ -7,6 +7,32 @@ export class NativeImageAttachment {
   attachmentId: string = ''; mediaType: string = ''; bytes: number = 0;
   width: number = 0; height: number = 0; name: string = '';
 }
+export class NativeQueueFile {
+  attachmentId: string = '';
+  name: string = '';
+  bytes: number = 0;
+}
+export class NativeQueueBlock {
+  kind: string = '';
+  text: string = '';
+  image: NativeImageAttachment | null = null;
+  file: NativeQueueFile | null = null;
+}
+export class NativeQueueItem {
+  id: string = '';
+  placement: string = 'queued';
+  rpcId: string = '';
+  blocks: NativeQueueBlock[] = [];
+  pending: boolean = false;
+}
+export function nativeQueueText(item: NativeQueueItem): string {
+  return item.blocks.filter((block: NativeQueueBlock): boolean => block.kind === 'text')
+    .map((block: NativeQueueBlock): string => block.text).join('');
+}
+export function nativeQueueEditable(item: NativeQueueItem): boolean {
+  return !item.pending && item.blocks.length > 0 &&
+    item.blocks.every((block: NativeQueueBlock): boolean => block.kind === 'text');
+}
 export class NativeImagePreviewRequest {
   sessionId: string = '';
   attachment: NativeImageAttachment = new NativeImageAttachment();
@@ -244,6 +270,8 @@ export class NativeFrame {
   journal: NativeJournalEntry[] = [];
   toolUpdates: NativeToolUpdate[] = [];
   questions: NativePendingQuestion[] = [];
+  queue: NativeQueueItem[] = [];
+  queueKnown: boolean = false;
   callId: string = '';
   remainingMs: number = -1;
   connectionId: string = '';
@@ -296,6 +324,7 @@ export class NativeSessionCacheRecord {
   hasMore: boolean = false;
   running: boolean = false;
   waiting: boolean = false;
+  queue: NativeQueueItem[] = [];
   streamText: string = '';
   streamReasoning: string = '';
   attemptId: string = '';
@@ -323,6 +352,7 @@ export class NativeSessionModel {
   hasMore: boolean = false;
   running: boolean = false;
   waiting: boolean = false;
+  queue: NativeQueueItem[] = [];
   streamText: string = '';
   streamReasoning: string = '';
   private attemptId: string = '';
@@ -369,6 +399,7 @@ export class NativeSessionModel {
     value.hasMore = this.hasMore;
     value.running = this.running;
     value.waiting = this.waiting;
+    value.queue = this.queue;
     value.streamText = this.streamText;
     value.streamReasoning = this.streamReasoning;
     value.attemptId = this.attemptId;
@@ -412,6 +443,7 @@ export class NativeSessionModel {
     this.hasMore = value.hasMore === true;
     this.running = value.running === true;
     this.waiting = value.waiting === true;
+    this.queue = Array.isArray(value.queue) ? value.queue : [];
     this.streamText = typeof value.streamText === 'string' ? value.streamText : '';
     this.streamReasoning = typeof value.streamReasoning === 'string' ? value.streamReasoning : '';
     this.attemptId = typeof value.attemptId === 'string' ? value.attemptId : '';
@@ -478,6 +510,7 @@ export class NativeSessionModel {
     } else if (frame.type === 'state') {
       this.running = frame.running;
       this.waiting = frame.waiting;
+      if (frame.queueKnown === true) this.queue = frame.queue || [];
     } else if (frame.type === 'event') {
       this.cursor = frame.seq;
       if (frame.replaceStart >= 0 && frame.replaceEnd >= frame.replaceStart) {
@@ -543,4 +576,38 @@ export class NativeSessionModel {
     this.historyBefore = page.beforeSeq;
   }
 
+}
+
+export class NativeProcessStructureChange {
+  addedGroupIds: string[] = [];
+  growingGroupIds: string[] = [];
+  changed(): boolean { return this.addedGroupIds.length > 0 || this.growingGroupIds.length > 0; }
+}
+
+/**
+ * Compare direct process identities, not streamed token text. This prevents
+ * deltas from replaying entrance motion while still detecting a new operation
+ * row in the current running group.
+ */
+export function nativeProcessStructureChange(previous: NativeMessage[],
+  next: NativeMessage[]): NativeProcessStructureChange {
+  const prior: Map<string, string> = new Map<string, string>();
+  previous.forEach((row: NativeMessage): void => {
+    if (row.role === 'process') {
+      prior.set(row.id, row.children.map((child: NativeMessage): string =>
+        child.renderKey || child.id).join('|'));
+    }
+  });
+  const change = new NativeProcessStructureChange();
+  next.forEach((row: NativeMessage): void => {
+    if (row.role !== 'process') return;
+    const signature = row.children.map((child: NativeMessage): string =>
+      child.renderKey || child.id).join('|');
+    if (!prior.has(row.id)) {
+      change.addedGroupIds.push(row.id);
+    } else if (prior.get(row.id) !== signature) {
+      change.growingGroupIds.push(row.id);
+    }
+  });
+  return change;
 }

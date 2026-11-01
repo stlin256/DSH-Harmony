@@ -88,6 +88,14 @@ export class NativeMotion {
       .animation(NativeMotion.disclosureParam());
   }
 
+  /** One-shot entrance for a genuinely new structural process row. */
+  static processEntranceTransition(): TransitionEffect {
+    if (!NativeMotion.enabled()) return TransitionEffect.IDENTITY;
+    return TransitionEffect.OPACITY
+      .combine(TransitionEffect.translate({ y: 5 }))
+      .animation(NativeMotion.disclosureParam());
+  }
+
   /**
    * Workspace children unfold down from the header. Their exit retracts toward
    * the same anchor before the list closes the space.

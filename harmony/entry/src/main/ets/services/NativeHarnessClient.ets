@@ -443,8 +443,9 @@ export class NativeHarnessClient {
     } finally { task.destroy(); }
   }
 
-  async prompt(id: string, text: string, mode: string = 'queue', attachments: NativeAttachmentDraft[] = []): Promise<void> {
+  async prompt(id: string, text: string, mode: string = 'queue', attachments: NativeAttachmentDraft[] = []): Promise<string> {
     this.uncertain.add(id);
+    const requestId = util.generateRandomUUID();
     const ready = attachments.filter((item: NativeAttachmentDraft): boolean =>
       item.status === 'ready' && !!item.receiptId).map((item: NativeAttachmentDraft): NativePromptAttachment => {
       const prompt = new NativePromptAttachment();
@@ -453,12 +454,13 @@ export class NativeHarnessClient {
     });
     try {
       await this.request('/pocket/api/native/prompt', http.RequestMethod.POST,
-        JSON.stringify({ sessionId: id, requestId: util.generateRandomUUID(), text: text, mode: mode, attachments: ready }));
+        JSON.stringify({ sessionId: id, requestId: requestId, text: text, mode: mode, attachments: ready }));
     } catch (error) {
       if (error instanceof NativeHttpError && error.status >= 400 && error.status < 500) this.uncertain.delete(id);
       throw new Error(error instanceof Error ? error.message : String(error));
     }
     this.uncertain.delete(id);
+    return requestId;
   }
   async answer(body: string): Promise<void> {
     await this.request('/pocket/api/native/answer', http.RequestMethod.POST, body);

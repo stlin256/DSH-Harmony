@@ -12,6 +12,7 @@ export struct NativeProcessView {
   sessionId: string = '';
   disclosures: Map<string, boolean> = new Map<string, boolean>();
   @Prop @Watch('changed') message: NativeMessage = new NativeMessage();
+  @Prop newlyAppeared: boolean = false;
   @Prop maxExpandedHeight: number = 240;
   @Prop maxChildExpandedHeight: number = 160;
   @StorageLink('nativeDark') private dark: boolean = false;
@@ -100,5 +101,6 @@ export struct NativeProcessView {
         .backgroundColor(Color.Transparent).onClick((): void => { this.toggle(); })
       if (this.expanded) { this.members() }
     }.width('100%').alignItems(HorizontalAlign.Start)
+      .transition(this.newlyAppeared ? NativeMotion.processEntranceTransition() : TransitionEffect.IDENTITY)
   }
 }

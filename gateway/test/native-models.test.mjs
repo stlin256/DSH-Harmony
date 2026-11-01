@@ -5,7 +5,12 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import ts from 'typescript';
-import { normalizedHistory, normalizeFollow } from '../src/native-protocol.mjs';
+import {
+  normalizedHistory,
+  normalizeFollow,
+  normalizeQueuedState,
+  queueFromInbox
+} from '../src/native-protocol.mjs';
 
 const services = new URL('../../harmony/entry/src/main/ets/services/', import.meta.url);
 function load(name, kits, globals = {}) {
@@ -404,6 +409,106 @@ test('native session reducer restores streams, deduplicates replay and replaces 
   model.apply({type:'end',attemptId:'attempt'});assert.equal(model.streamText,'');
   model.prepend({messages:[{seq:0,id:'event-0',text:'older'},{seq:2,id:'event-2',text:'new'}],hasMore:false});
   assert.equal(model.messages.length,2);
+});
+
+test('queue wire preserves ordered user content, rejects malformed rows and restores from cache', () => {
+  const image = { attachmentId: 'image-a', mediaType: 'image/png', bytes: 8, width: 2, height: 4, name: 'a.png' };
+  const file = { attachmentId: 'file-a', name: 'notes.txt', bytes: 12 };
+  const queue = normalizeQueuedState([
+    { id: 'queued-a', placement: 'queued', rpcId: 'request-a', content: [
+      { type: 'file', attachment: file },
+      { type: 'text', text: 'inspect this' },
+      { type: 'image', attachment: image }
+    ] },
+    { id: 'context-a', placement: 'context', rpcId: 'request-b', content: [{ type: 'text', text: 'hidden' }] },
+    { id: 'queued-no-request', placement: 'queued', content: [{ type: 'text', text: 'without rpc id' }] },
+    { id: 'bad-a', placement: 'queued', rpcId: 'request-c', content: [
+      { type: 'image', attachment: { ...image, mediaType: 'text/html' } }
+    ] }
+  ]);
+  assert.deepEqual(queue, [
+    {
+      id: 'queued-a', placement: 'queued', rpcId: 'request-a', blocks: [
+        { kind: 'file', file },
+        { kind: 'text', text: 'inspect this' },
+        { kind: 'image', image }
+      ]
+    },
+    {
+      id: 'queued-no-request', placement: 'queued',
+      blocks: [{ kind: 'text', text: 'without rpc id' }]
+    }
+  ]);
+  assert.deepEqual(queueFromInbox({ 'next-turn': [
+    { id: 'queued-b', source: { kind: 'user', rpcId: 'request-b' }, content: [{ type: 'text', text: 'next' }] },
+    { id: 'queued-no-request', source: { kind: 'user' }, content: [{ type: 'text', text: 'without rpc id' }] },
+    { id: 'runtime-b', source: { kind: 'runtime', rpcId: 'request-c' }, content: [{ type: 'text', text: 'hidden' }] }
+  ], 'next-step': [] }), [
+    { id: 'queued-b', placement: 'queued', rpcId: 'request-b', blocks: [{ kind: 'text', text: 'next' }] },
+    { id: 'queued-no-request', placement: 'queued', blocks: [{ kind: 'text', text: 'without rpc id' }] }
+  ]);
+
+  const { NativeSessionModel } = load('NativeSessionModel', {});
+  const model = new NativeSessionModel();
+  model.apply({ type: 'state', running: true, waiting: false, queueKnown: true, queue });
+  model.apply({ type: 'state', running: false, waiting: true });
+  assert.deepEqual(model.queue, queue, 'status-only state must retain the authoritative queue');
+  const restored = new NativeSessionModel();
+  restored.restore(model.capture());
+  assert.deepEqual(restored.queue, queue);
+  restored.apply({ type: 'state', running: false, waiting: false, queueKnown: true, queue: [] });
+  assert.deepEqual(restored.queue, []);
+});
+
+test('process structure detection ignores streaming values and identifies new direct operations', () => {
+  const { nativeProcessStructureChange } = load('NativeSessionModel', {});
+  const child = (id, text) => ({ id, renderKey: id, role: 'tool', text });
+  const previous = [{ id: 'process:one', role: 'process', children: [child('call:a', 'same')] }];
+  assert.equal(nativeProcessStructureChange(previous, [
+    { id: 'process:one', role: 'process', children: [child('call:a', 'changed output')] }
+  ]).changed(), false);
+  const growing = nativeProcessStructureChange(previous, [
+    { id: 'process:one', role: 'process', children: [child('call:a', 'same'), child('call:b', 'new')] }
+  ]);
+  assert.deepEqual(Array.from(growing.growingGroupIds), ['process:one']);
+  const added = nativeProcessStructureChange(previous, previous.concat([
+    { id: 'process:two', role: 'process', children: [child('call:c', 'new group')] }
+  ]));
+  assert.deepEqual(Array.from(added.addedGroupIds), ['process:two']);
+});
+
+test('structured interaction copy formats complete JSON without changing ordinary prose', () => {
+  const { nativeStructuredText } = load('NativeInteractionFormat', {});
+  assert.equal(nativeStructuredText('Choose an action'), 'Choose an action');
+  assert.equal(nativeStructuredText('{"project":"DSH","items":["one","two"],"enabled":true}'),
+    'project: DSH\nitems: one · two\nenabled: true');
+  assert.equal(nativeStructuredText('{"question":{"title":"Scope","detail":"Read only"}}'),
+    'question:\n  title: Scope\n  detail: Read only');
+  assert.equal(nativeStructuredText('{not valid json'), '{not valid json');
+});
+
+test('queue dock and compact interactions are wired into the native shell', () => {
+  const interaction = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeInteraction.ets', import.meta.url), 'utf8');
+  const queue = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeQueueDock.ets', import.meta.url), 'utf8');
+  const workspace = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
+  const process = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeProcessView.ets', import.meta.url), 'utf8');
+  assert.doesNotMatch(interaction, /交给其他客户端处理|交给其他程序处理/);
+  assert.match(interaction, /currentQuestion\(\)/);
+  assert.match(interaction, /nativeStructuredText/);
+  assert.match(interaction, /'跳过'/);
+  assert.match(queue, /nativeQueueEditable\(item\)/);
+  assert.match(queue, /发送中…/);
+  assert.match(queue, /kind === 'edit'/);
+  assert.match(workspace, /NativeQueueDock\(\{/);
+  assert.match(workspace, /scheduleProcessTailSettle\(\)/);
+  assert.match(workspace, /nativeProcessStructureChange/);
+  assert.match(workspace, /suppressProcessEntrance/);
+  assert.match(workspace, /processEntranceBaselinePending/);
+  assert.match(process, /NativeMotion\.processEntranceTransition\(\)/);
 });
 
 test('latest DSH stream keeps dense revisions, durable gaps and committed settlement', () => {
@@ -1818,7 +1923,8 @@ test('composer source contract uses intrinsic model width, natural dock height a
   assert.match(source,/this\.attaching = false;[\s\S]{0,180}added\.forEach/);
   assert.match(source,/NativeBottomConversationDock\(\{/);
   assert.doesNotMatch(source,/translate\(\{ y: -\(this\.composerHeight \+ 8\) \}\)/);
-  assert.match(source,/Column\(\{ space: 8 \}\) \{[\s\S]{0,180}NativeTurnChangePill/);
+  assert.match(source,/Column\(\{ space: 8 \}\) \{[\s\S]{0,600}NativeQueueDock/);
+  assert.match(source,/NativeQueueDock[\s\S]{0,600}NativeTurnChangePill/);
   assert.match(source,/if \(this\.attachments\.length\)[\s\S]{0,260}NativeAttachmentDraft/);
   assert.doesNotMatch(source,/if \(this\.attachments\.length\) \{\s*Scroll\(\)/);
   assert.match(source,/const deadline = this\.active \? 15000 : 45000/);
