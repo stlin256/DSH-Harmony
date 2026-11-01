@@ -7,7 +7,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 import { openStore } from '../src/store.mjs';
 import { createApp } from '../src/app.mjs';
 import { normalizeFollow, normalizeProjectionTitle, normalizedHistory, richBlocks, normalizeRecord } from '../src/native-protocol.mjs';
-import { changedFilesSummary, nativeHeartbeatPolicy } from '../src/native-harness.mjs';
+import { changedFilesSummary, nativeHeartbeatPayload, nativeHeartbeatPolicy } from '../src/native-harness.mjs';
 
 const origin = 'https://dsh.example.com';
 
@@ -15,6 +15,39 @@ test('native heartbeat policy keeps foreground and background deadlines bounded'
   assert.deepEqual(nativeHeartbeatPolicy(), { intervalMs: 5000, deadlineMs: 20000, openingMs: 30000 });
   assert.deepEqual(nativeHeartbeatPolicy('foreground'), { intervalMs: 5000, deadlineMs: 20000, openingMs: 30000 });
   assert.deepEqual(nativeHeartbeatPolicy('background'), { intervalMs: 15000, deadlineMs: 45000, openingMs: 45000 });
+});
+
+test('native heartbeat carries generation-bound progress and authoritative run state', () => {
+  assert.deepEqual(nativeHeartbeatPayload('generation-a', {
+    cursor: 17, attemptId: 'attempt', nextIndex: 4, revision: 9
+  }, true, true, false), {
+    type: 'heartbeat',
+    generation: 'generation-a',
+    cursor: 17,
+    attemptId: 'attempt',
+    nextIndex: 4,
+    revision: 9,
+    stateKnown: true,
+    running: true,
+    waiting: false
+  });
+  assert.equal(nativeHeartbeatPayload('generation-a', {
+    cursor: -1, attemptId: '', nextIndex: 0, revision: 0
+  }, false, true, true).stateKnown, false);
+});
+
+test('native live closes a generation when assistant revision data is incomplete', async t => {
+  const { connect } = await setup(t, { malformedAssistantFrame: true });
+  const ws = connect();
+  const closed = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(Error('malformed stream was not closed')), 2000);
+    ws.once('close', code => {
+      clearTimeout(timer);
+      resolve(code);
+    });
+  });
+  await once(ws, 'open');
+  assert.equal(await closed, 1011);
 });
 
 async function setup(t, options = {}) {
@@ -167,8 +200,12 @@ async function setup(t, options = {}) {
         if(frame.endpoint==='session/follow') {
           ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{type:'snapshot',cursor:0,hasMore:false,
             records:[{type:'event',event:{seq:0,type:'user/message',data:{content:[{type:'text',text:options.text || 'hello'}]}}}],
-            assistantStream:{activeAttempt:{attemptId:'attempt',nextIndex:2,stream:[{type:'text-chunks',texts:['he','l']}]}}}}));
-          ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{type:'assistant-stream',frame:{type:'chunk',attemptId:'attempt',index:2,chunk:{type:'text-delta',text:'lo'}}}}));
+            assistantStream:{revision:0,activeAttempt:{attemptId:'attempt',nextIndex:2,stream:[{type:'text-chunks',texts:['he','l']}]}}}}));
+          ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{type:'assistant-stream',frame:{
+            type:'chunk',
+            ...(options.malformedAssistantFrame ? {} : { revision:1 }),
+            attemptId:'attempt',index:2,chunk:{type:'text-delta',text:'lo'}
+          }}}));
         } else if(frame.endpoint==='session/observeState') ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{
           running:true,pendingInput:['approval'],queue:[{
             id:'state-queued',placement:'queued',rpcId:'state-request',content:[
@@ -541,8 +578,11 @@ test('normalization respects history replacements and produces native code block
   ]);
   assert.equal(history.messages.length,1);assert.equal(history.messages[0].text,'new');
   assert.equal(richBlocks('text\n```js\nconst x=1;\n```')[1].kind,'code');
-  assert.deepEqual(normalizeFollow({type:'assistant-stream',frame:{type:'chunk',attemptId:'a',index:1,chunk:{type:'reasoning-delta',text:'thinking'}}}),
-    {type:'delta',attemptId:'a',index:1,text:'',reasoning:'thinking'});
+  assert.deepEqual(normalizeFollow({type:'assistant-stream',frame:{type:'chunk',revision:1,attemptId:'a',index:1,chunk:{type:'reasoning-delta',text:'thinking'}}}),
+    {type:'delta',attemptId:'a',revision:1,index:1,text:'',reasoning:'thinking'});
+  assert.equal(normalizeFollow({type:'assistant-stream',frame:{
+    type:'chunk',attemptId:'a',index:1,chunk:{type:'text-delta',text:'missing revision'}
+  }}),null);
 });
 
 test('Chat filters injected source kinds at the durable source field while retaining actual human text', () => {

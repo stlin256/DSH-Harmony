@@ -17,6 +17,20 @@ export function nativeHeartbeatPolicy(profile = 'foreground') {
     { intervalMs: 5000, deadlineMs: 20000, openingMs: 30000 };
 }
 
+export function nativeHeartbeatPayload(generation, active, stateKnown, running, waiting) {
+  return {
+    type: 'heartbeat',
+    generation,
+    cursor: active.cursor,
+    attemptId: active.attemptId,
+    nextIndex: active.nextIndex,
+    revision: active.revision,
+    stateKnown: stateKnown === true,
+    running: running === true,
+    waiting: waiting === true
+  };
+}
+
 function nonNegativeInteger(value) {
   return Number.isSafeInteger(value) && value >= 0;
 }
@@ -525,7 +539,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       const upstream = new WebSocket(url, { headers: { Cookie: cookie, Origin: target.origin },
         handshakeTimeout: 10000, maxPayload: 0, followRedirects: false });
       const connectionId = randomUUID();
-      const connection = { owner: ownerOf(req), clientId: '', running: false, waiting: false, queue: [],
+      const connection = { owner: ownerOf(req), clientId: '', running: false, waiting: false,
+        runningKnown: false, waitingKnown: false, queue: [],
         pending: new Map(), send: value => send(value), cancelWait: eventId => {
         if (upstream.readyState === WebSocket.OPEN) upstream.send(JSON.stringify({ type: 'cancel', streamId: 'wait:' + eventId }));
       } };
@@ -546,8 +561,9 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           }
           upstreamAlive = false; upstream.ping();
         }
-        if (upstream.readyState === WebSocket.OPEN) send({ type: 'heartbeat', generation: connectionId,
-          cursor: active.cursor, attemptId: active.attemptId, nextIndex: active.nextIndex, revision: active.revision });
+        if (upstream.readyState === WebSocket.OPEN) send(nativeHeartbeatPayload(
+          connectionId, active, connection.runningKnown && connection.waitingKnown,
+          connection.running, connection.waiting));
       }, timing.intervalMs);
       heartbeat.unref();
       const sendHighWater = 256 * 1024;
@@ -589,8 +605,14 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           .then(() => undefined);
       };
       const publishState = patch => {
-        if (patch.running !== undefined) connection.running = patch.running === true;
-        if (patch.waiting !== undefined) connection.waiting = patch.waiting === true;
+        if (patch.running !== undefined) {
+          connection.running = patch.running === true;
+          connection.runningKnown = true;
+        }
+        if (patch.waiting !== undefined) {
+          connection.waiting = patch.waiting === true;
+          connection.waitingKnown = true;
+        }
         if (patch.queueKnown === true) connection.queue = normalizeQueuedState(patch.queue);
         send({
           type: 'state',
@@ -754,6 +776,12 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
                 active.revision = value.revision || active.revision;
               }
               send(value);
+            } else if (frame.value?.type === 'assistant-stream') {
+              // A malformed assistant revision cannot be repaired in-place:
+              // dropping it would leave the socket healthy while the visible
+              // answer stays frozen. Close this generation so the client
+              // reopens from an authoritative snapshot and retains its partial.
+              throw new Error('Invalid assistant stream frame');
             }
           }
         } catch (error) {

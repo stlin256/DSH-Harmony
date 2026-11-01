@@ -223,22 +223,25 @@ export function normalizeFollow(frame) {
   }
   if (frame?.type === 'assistant-stream') {
     const item = frame.frame;
-    if (item?.type === 'start') return { type: 'start', attemptId: item.attemptId, nextIndex: 0,
-      ...(Number.isSafeInteger(item.revision) ? { revision: item.revision } : {}),
+    if (!item || typeof item.attemptId !== 'string' || !item.attemptId ||
+        !Number.isSafeInteger(item.revision) || item.revision < 0) return null;
+    if (item.type === 'start') return { type: 'start', attemptId: item.attemptId, nextIndex: 0,
+      revision: item.revision,
       ...(Number.isSafeInteger(item.startedAfterSeq) ? { startedAfterSeq: item.startedAfterSeq } : {}),
       ...(Number.isSafeInteger(item.turn) ? { turn: item.turn } : {}),
       ...(Number.isSafeInteger(item.step) ? { step: item.step } : {}) };
-    if (item?.type === 'chunk') return { type: 'delta', attemptId: item.attemptId,
-      ...(Number.isSafeInteger(item.revision) ? { revision: item.revision } : {}), index: item.index,
+    if (item.type === 'chunk' && Number.isSafeInteger(item.index) && item.index >= 0) {
+      return { type: 'delta', attemptId: item.attemptId, revision: item.revision, index: item.index,
       text: item.chunk?.type === 'text-delta' ? fullText(item.chunk.text) : '',
       reasoning: item.chunk?.type === 'reasoning-delta' ? fullText(item.chunk.text) : '',
       ...(toolUpdate(item.chunk) ? { toolUpdates: [toolUpdate(item.chunk)] } : {}) };
-    if (item?.type === 'end') return { type: 'end', attemptId: item.attemptId,
-      ...(Number.isSafeInteger(item.revision) ? { revision: item.revision } : {}),
-      ...(Number.isSafeInteger(item.index) ? { index: item.index } : {}),
+    }
+    if (item.type === 'end' && Number.isSafeInteger(item.index) && item.index >= 0) {
+      return { type: 'end', attemptId: item.attemptId, revision: item.revision, index: item.index,
       outcomeKind: item.outcome?.kind || '',
       committedEventType: item.outcome?.eventType || '',
       committedSeq: Number.isSafeInteger(item.outcome?.seq) ? item.outcome.seq : -1 };
+    }
   }
   return null;
 }

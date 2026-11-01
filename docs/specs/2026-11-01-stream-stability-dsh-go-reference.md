@@ -19,6 +19,9 @@ revision equal to `streamRevision + 1`.
 - `end` requires the active `attemptId`, exact terminal index and next revision.
 - The normalizer omits malformed assistant frames so the transport can treat
   them as protocol errors rather than feeding incomplete state to the reducer.
+- The Gateway closes the current follow generation when an assistant frame is
+  malformed. The App retains the visible partial and repairs from a new
+  snapshot instead of leaving a healthy socket with a frozen transcript.
 
 Snapshot application remains atomic. It replaces active partial text,
 reasoning, tools, attempt identity, revision and next index in one reducer

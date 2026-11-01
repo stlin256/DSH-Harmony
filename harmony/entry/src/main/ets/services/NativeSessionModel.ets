@@ -267,6 +267,7 @@ export class NativeReplacement { start: number = -1; end: number = -1; }
 export class NativePendingQuestion { callId: string = ''; state: string = ''; questions: NativeQuestion[] = []; }
 export class NativeFrame {
   code: string = ''; retryable: boolean = true;
+  generation: string = '';
   journal: NativeJournalEntry[] = [];
   toolUpdates: NativeToolUpdate[] = [];
   questions: NativePendingQuestion[] = [];
@@ -303,6 +304,7 @@ export class NativeFrame {
   replaceEnd: number = -1;
   running: boolean = false;
   waiting: boolean = false;
+  stateKnown: boolean = false;
 }
 export class NativeJournalEntry { seq: number = 0; raw: string = ''; }
 export class NativeCacheFlag {
@@ -529,30 +531,34 @@ export class NativeSessionModel {
         this.streamText = ''; this.streamReasoning = ''; this.streamTools = [];
       }
     } else if (frame.type === 'start') {
+      if (!frame.attemptId || !Number.isSafeInteger(frame.revision) ||
+          frame.revision !== this.streamRevision + 1) {
+        throw new Error('Stream gap');
+      }
       this.attemptId = frame.attemptId;
-      this.streamRevision = frame.revision || 0;
+      this.streamRevision = frame.revision;
       this.nextIndex = 0;
       this.settlementAttemptId = ''; this.settlementSeq = -1; this.settlementEventType = '';
       this.streamText = ''; this.streamReasoning = '';
       this.streamTools = [];
     } else if (frame.type === 'delta') {
       if (frame.attemptId !== this.attemptId) throw new Error('Stream attempt changed');
-      if (frame.revision > 0 && this.streamRevision > 0 && frame.revision !== this.streamRevision + 1) {
+      if (!Number.isSafeInteger(frame.revision) || frame.revision !== this.streamRevision + 1 ||
+          !Number.isSafeInteger(frame.index) || frame.index !== this.nextIndex) {
         throw new Error('Stream gap');
       }
-      if (frame.index < this.nextIndex) return;
-      if (frame.index !== this.nextIndex) throw new Error('Stream gap');
-      if (frame.revision > 0) this.streamRevision = frame.revision;
+      this.streamRevision = frame.revision;
       this.nextIndex++;
       this.streamText = this.streamText + (frame.text || '');
       this.streamReasoning = this.streamReasoning + (frame.reasoning || '');
       this.updateTools(frame.toolUpdates);
     } else if (frame.type === 'end') {
       if (frame.attemptId !== this.attemptId) throw new Error('Stream attempt changed');
-      if (Number.isSafeInteger(frame.index) && frame.index !== this.nextIndex) throw new Error('Stream gap');
-      if (frame.revision > 0 && this.streamRevision > 0 && frame.revision !== this.streamRevision + 1) {
+      if (!Number.isSafeInteger(frame.revision) || frame.revision !== this.streamRevision + 1 ||
+          !Number.isSafeInteger(frame.index) || frame.index !== this.nextIndex) {
         throw new Error('Stream gap');
       }
+      this.streamRevision = frame.revision;
       this.attemptId = '';
       if (frame.outcomeKind === 'committed' && Number.isSafeInteger(frame.committedSeq) &&
           frame.committedSeq >= 0 && frame.committedSeq > this.cursor) {
@@ -576,6 +582,27 @@ export class NativeSessionModel {
     this.historyBefore = page.beforeSeq;
   }
 
+}
+
+export function nativeAssistantProgressKey(attemptId: string, revision: number,
+  nextIndex: number, cursor: number): string {
+  if (!attemptId) return '';
+  return attemptId + '\n' + revision + '\n' + nextIndex + '\n' + cursor;
+}
+
+export function nativeStreamHealthRepairReason(now: number, linkActivityAt: number,
+  assistantProgressAt: number, deliveryMismatchAt: number, opened: boolean,
+  backgrounded: boolean, stateKnown: boolean, running: boolean, waiting: boolean,
+  attemptId: string): string {
+  const linkDeadline = opened ? (backgrounded ? 45000 : 15000) : (backgrounded ? 45000 : 20000);
+  if (linkActivityAt > 0 && now - linkActivityAt >= linkDeadline) return 'link_timeout';
+  if (!opened || !stateKnown || !running || waiting) return '';
+  if (deliveryMismatchAt > 0 && now - deliveryMismatchAt >= 2500) return 'delivery_mismatch';
+  const progressDeadline = backgrounded ? 38000 : 12000;
+  if (attemptId && assistantProgressAt > 0 && now - assistantProgressAt >= progressDeadline) {
+    return 'assistant_progress_timeout';
+  }
+  return '';
 }
 
 export class NativeProcessStructureChange {

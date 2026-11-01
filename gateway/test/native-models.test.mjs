@@ -299,6 +299,7 @@ test('interactive showcase inserts idle sends and reconciles queued echoes by rp
   });
 
   const idle = new interaction.NativeShowcaseInteraction([seed], false, 1);
+  const idleSnapshot = idle.snapshot();
   const idlePlan = idle.prompt('request-idle', 'dock_send_probe', [file], 'queue');
   assert.equal(idlePlan.accepted, true);
   assert.equal(idlePlan.queued, false);
@@ -306,7 +307,7 @@ test('interactive showcase inserts idle sends and reconciles queued echoes by rp
   assert.equal(idlePlan.streamFrames[1].text,
     '已收到这条测试消息。Dock、发送与流式状态均已正常更新。');
   const idleModel = new model.NativeSessionModel();
-  idleModel.apply(idle.snapshot());
+  idleModel.apply(idleSnapshot);
   idlePlan.admissionFrames.forEach(frame => idleModel.apply(frame));
   idlePlan.streamFrames.forEach(frame => idleModel.apply(frame));
   idlePlan.settleFrames.forEach(frame => idleModel.apply(frame));
@@ -315,6 +316,14 @@ test('interactive showcase inserts idle sends and reconciles queued echoes by rp
   assert.equal(idleModel.messages.filter(row => row.role === 'assistant' &&
     row.text.includes('Dock、发送与流式状态')).length, 1);
   assert.equal(idleModel.running, false);
+  const nextPlan = idle.prompt('request-idle-2', 'second stream', [file], 'queue');
+  assert.equal(nextPlan.streamFrames.map(frame => frame.revision).join(','), '4,5');
+  assert.equal(nextPlan.settleFrames[0].revision, 6);
+  nextPlan.admissionFrames.forEach(frame => idleModel.apply(frame));
+  nextPlan.streamFrames.forEach(frame => idleModel.apply(frame));
+  nextPlan.settleFrames.forEach(frame => idleModel.apply(frame));
+  assert.equal(idleModel.messages.filter(row => row.role === 'user' &&
+    row.text === 'second stream').length, 1);
 
   const running = new interaction.NativeShowcaseInteraction([seed], true, 1);
   const first = running.prompt('request-queue', 'queue_probe', [file], 'queue');
@@ -389,16 +398,19 @@ test('About reads the installed bundle version instead of a source constant', ()
     }
   } } };
   const { BuildInfo } = load('BuildInfo', kits);
+  const pluginVersion = JSON.parse(readFileSync(new URL(
+    '../../plugins/dsh-harmony/package.json', import.meta.url), 'utf8')).version;
   assert.equal(BuildInfo.version, '9.8.7');
-  assert.equal(BuildInfo.pluginReleaseTag, 'plugin-v0.3.6');
-  assert.match(BuildInfo.pluginArtifact,
-    /releases\/download\/plugin-v0\.3\.6\/dsh-harmony-plugin-0\.3\.6\.tgz$/);
+  assert.equal(BuildInfo.pluginReleaseTag, 'plugin-v' + pluginVersion);
+  assert.equal(BuildInfo.pluginArtifact,
+    'https://github.com/stlin256/DSH-Harmony/releases/download/plugin-v' + pluginVersion +
+    '/dsh-harmony-plugin-' + pluginVersion + '.tgz');
   assert.match(BuildInfo.pluginInstallPrompt, /@dsh-harmony\/plugin/);
   assert.match(BuildInfo.pluginInstallPrompt, /PLUGIN-INSTALL\.md/);
-  assert.match(BuildInfo.pluginInstallPrompt, /plugin-v0\.3\.6/);
+  assert.ok(BuildInfo.pluginInstallPrompt.includes('plugin-v' + pluginVersion));
   const guide = readFileSync(new URL('../../docs/PLUGIN-INSTALL.md', import.meta.url), 'utf8');
-  assert.match(guide, /plugin-v0\.3\.6/);
-  assert.match(guide, /dsh-harmony-plugin-0\.3\.6\.tgz/);
+  assert.ok(guide.includes('plugin-v' + pluginVersion));
+  assert.ok(guide.includes('dsh-harmony-plugin-' + pluginVersion + '.tgz'));
 });
 
 test('launch flow separates restoration, onboarding, guided setup and workspace', () => {
@@ -476,15 +488,15 @@ test('native session reducer restores streams, deduplicates replay and replaces 
   const {NativeSessionModel}=load('NativeSessionModel',{});
   const model=new NativeSessionModel();
   model.apply({type:'snapshot',cursor:1,messages:[{id:'event-1',seq:1,text:'old'}],hasMore:false,attemptId:'attempt',nextIndex:2,text:'hel',reasoning:''});
-  model.apply({type:'delta',attemptId:'attempt',index:2,text:'lo',reasoning:''});
-  model.apply({type:'delta',attemptId:'attempt',index:2,text:'DUPLICATE',reasoning:''});
+  model.apply({type:'delta',attemptId:'attempt',revision:1,index:2,text:'lo',reasoning:''});
+  assert.throws(()=>model.apply({type:'delta',attemptId:'attempt',revision:1,index:2,text:'DUPLICATE',reasoning:''}));
   assert.equal(model.streamText,'hello');
-  assert.throws(()=>model.apply({type:'delta',attemptId:'attempt',index:4,text:'gap'}));
+  assert.throws(()=>model.apply({type:'delta',attemptId:'attempt',revision:2,index:4,text:'gap'}));
   model.apply({type:'event',seq:2,replaceStart:1,replaceEnd:1,message:{id:'event-2',seq:2,text:'new'}});
   model.apply({type:'event',seq:2,replaceStart:-1,replaceEnd:-1,message:{id:'event-2',seq:2,text:'duplicate'}});
   assert.equal(model.messages.length,1);assert.equal(model.messages[0].text,'new');
   model.apply({type:'state',running:true,waiting:true});assert.equal(model.waiting,true);
-  model.apply({type:'end',attemptId:'attempt'});assert.equal(model.streamText,'');
+  model.apply({type:'end',attemptId:'attempt',revision:2,index:3});assert.equal(model.streamText,'');
   model.prepend({messages:[{seq:0,id:'event-0',text:'older'},{seq:2,id:'event-2',text:'new'}],hasMore:false});
   assert.equal(model.messages.length,2);
 });
@@ -624,6 +636,61 @@ test('latest DSH stream keeps dense revisions, durable gaps and committed settle
   gap.apply({type:'start',attemptId:'a',revision:1,nextIndex:0});
   assert.throws(()=>gap.apply({type:'delta',attemptId:'a',revision:3,index:0,text:'gap'}),
     /Stream gap/);
+});
+
+test('assistant revisions remain dense from a zero snapshot baseline through a new attempt', () => {
+  const { NativeSessionModel } = load('NativeSessionModel', {});
+  const model = new NativeSessionModel();
+  model.apply({ type: 'snapshot', cursor: 4, messages: [], revision: 0 });
+  assert.throws(() => model.apply({ type: 'start', attemptId: 'first' }));
+  model.apply({ type: 'start', attemptId: 'first', revision: 1 });
+  assert.throws(() => model.apply({ type: 'delta', attemptId: 'first', revision: 1, index: 0, text: 'duplicate' }));
+  assert.throws(() => model.apply({ type: 'delta', attemptId: 'first', revision: 3, index: 0, text: 'gap' }));
+  model.apply({ type: 'delta', attemptId: 'first', revision: 2, index: 0, text: 'A' });
+  model.apply({ type: 'end', attemptId: 'first', revision: 3, index: 1, outcomeKind: 'abandoned' });
+  assert.equal(model.streamText, '');
+  model.apply({ type: 'start', attemptId: 'second', revision: 4 });
+  model.apply({ type: 'delta', attemptId: 'second', revision: 5, index: 0, reasoning: 'plan' });
+  model.apply({ type: 'end', attemptId: 'second', revision: 6, index: 1, outcomeKind: 'abandoned' });
+  assert.equal(model.activityRevision(), 6);
+});
+
+test('stream health separates link, delivery and assistant progress while ignoring waits', () => {
+  const {
+    nativeAssistantProgressKey,
+    nativeStreamHealthRepairReason
+  } = load('NativeSessionModel', {});
+  assert.equal(nativeAssistantProgressKey('', 4, 2, 8), '');
+  assert.equal(nativeAssistantProgressKey('attempt', 4, 2, 8), 'attempt\n4\n2\n8');
+  assert.equal(nativeStreamHealthRepairReason(20001, 1, 15000, 0,
+    false, false, false, false, false, ''), 'link_timeout');
+  assert.equal(nativeStreamHealthRepairReason(15000, 14999, 5000, 14000,
+    true, false, true, true, false, ''), '');
+  assert.equal(nativeStreamHealthRepairReason(16000, 15999, 1000, 13000,
+    true, false, true, true, false, ''), 'delivery_mismatch');
+  assert.equal(nativeStreamHealthRepairReason(17000, 16999, 5000, 0,
+    true, false, true, true, false, 'attempt'), 'assistant_progress_timeout');
+  assert.equal(nativeStreamHealthRepairReason(50000, 49999, 5000, 0,
+    true, false, true, true, false, ''), '');
+  assert.equal(nativeStreamHealthRepairReason(50000, 49999, 5000, 0,
+    true, false, true, true, true, 'attempt'), '');
+  assert.equal(nativeStreamHealthRepairReason(43000, 42999, 5000, 0,
+    true, true, true, true, false, 'attempt'), 'assistant_progress_timeout');
+});
+
+test('heartbeat generations are bound to one follow and repair starts remain single-flight', () => {
+  const workspace = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
+  const accept = workspace.slice(workspace.indexOf('private acceptHeartbeat('),
+    workspace.indexOf('private trackAppliedProgress('));
+  assert.ok(accept.indexOf('this.followConnectionGeneration !== frame.generation') <
+    accept.indexOf('this.touchFollow(id)'));
+  assert.match(workspace,
+    /if \(!this\.liveAllowed\(id\) \|\| this\.reconnectInFlight\) return;[\s\S]{0,80}this\.reconnectInFlight = true/);
+  assert.match(workspace,
+    /private touchFollow\(id: string\): void \{[\s\S]{0,180}this\.followActivityAt = Date\.now\(\);[\s\S]{0,120}this\.scheduleFollowHealth\(id\)/);
+  assert.match(workspace,
+    /if \(frame\.type === 'heartbeat'\) \{[\s\S]{0,120}this\.acceptHeartbeat\(id, frame\);[\s\S]{0,40}return/);
 });
 
 test('committed settlement survives cache restoration until the durable event arrives', () => {
@@ -1825,7 +1892,7 @@ test('live process and terminal file-card motion contracts stay bounded', () => 
     '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url),'utf8');
   assert.match(workspace,/terminalCardNearBottom\(message: NativeMessage\)/);
   assert.match(workspace,/scrollEdge\(Edge\.Bottom, \{ velocity: 5200 \}\)/);
-  assert.match(workspace,/frame\.type === 'delta' \? \(this\.scrollMotionActive \? 64 : 16\) : 0/);
+  assert.match(workspace,/frame\.type === 'delta' \? \(this\.scrollMotionActive \? 64 : 32\) : 0/);
   assert.match(workspace,/nativeWithLiveText\(this\.transcriptBaseRows, this\.model\.streamText\)/);
   assert.match(workspace,/private streamTextPatchDirty: boolean = false/);
   assert.match(workspace,/if \(frame\.type === 'delta'\) \{[\s\S]{0,120}frame\.text\.length > 0/);
@@ -1847,7 +1914,7 @@ test('streaming scroll yields to direct manipulation and dock expansion shares o
     '../../harmony/entry/src/main/ets/components/NativeQueueDock.ets',import.meta.url),'utf8');
 
   assert.match(workspace,
-    /frame\.type === 'delta' \? \(this\.scrollMotionActive \? 64 : 16\) : 0/);
+    /frame\.type === 'delta' \? \(this\.scrollMotionActive \? 64 : 32\) : 0/);
   assert.match(workspace,
     /private scheduleTailScroll\(velocity: number = 0\): void \{[\s\S]{0,520}this\.tailScrollGuardUntil = Date\.now\(\) \+ 180;[\s\S]{0,260}this\.scroller\.scrollEdge/);
   assert.match(workspace,
@@ -1935,15 +2002,16 @@ test('streamed tool argument fragments settle once and never become assistant pl
   const {NativeSessionModel}=load('NativeSessionModel',{});
   const model=new NativeSessionModel();
   model.apply({type:'snapshot',cursor:0,messages:[],attemptId:'a',nextIndex:0});
-  for (const [index,chunk] of [
+  for (const [offset,chunk] of [
     {type:'tool-call-delta',id:'call',name:'exec_command',argumentsDelta:'{"cmd":'},
     {type:'tool-call-delta',id:'call',argumentsDelta:'"echo ok"}'},
     {type:'block-end',block:{type:'tool-call',id:'call',name:'exec_command',arguments:'{"cmd":"echo ok"}'}}
-  ].entries()) model.apply(normalizeFollow({type:'assistant-stream',frame:{type:'chunk',attemptId:'a',index,chunk}}));
+  ].entries()) model.apply(normalizeFollow({type:'assistant-stream',frame:{type:'chunk',attemptId:'a',
+    revision:offset + 1,index:offset,chunk}}));
   assert.equal(model.streamTools.length,1);
   assert.equal(model.streamTools[0].text,'{"cmd":"echo ok"}');
   assert.equal(model.streamText,'');
-  model.apply({type:'end',attemptId:'a'}); assert.equal(model.streamTools.length,0);
+  model.apply({type:'end',attemptId:'a',revision:4,index:3}); assert.equal(model.streamTools.length,0);
 });
 
 test('native transport shares only gateway cookies, disables redirects and never retries prompts', async () => {
@@ -2030,6 +2098,7 @@ test('native transport shares only gateway cookies, disables redirects and never
 
 test('composer source contract uses intrinsic model width, natural dock height and native image/file actions', () => {
   const source=readFileSync(new URL('../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url),'utf8');
+  const modelSource=readFileSync(new URL('../../harmony/entry/src/main/ets/services/NativeSessionModel.ets', import.meta.url),'utf8');
   const clientSource=readFileSync(new URL('../../harmony/entry/src/main/ets/services/NativeHarnessClient.ets', import.meta.url),'utf8');
   assert.match(source,/enableArrow:\s*false/);
   assert.doesNotMatch(source,/Text\(this\.modelCaption\)[^\n]*layoutWeight\(1\)/);
@@ -2046,8 +2115,9 @@ test('composer source contract uses intrinsic model width, natural dock height a
   assert.match(source,/NativeQueueDock[\s\S]{0,600}NativeTurnChangePill/);
   assert.match(source,/if \(this\.attachments\.length\)[\s\S]{0,260}NativeAttachmentDraft/);
   assert.doesNotMatch(source,/if \(this\.attachments\.length\) \{\s*Scroll\(\)/);
-  assert.match(source,/const deadline = this\.active \? 15000 : 45000/);
-  assert.match(source,/background \? 45000 : 20000/);
+  assert.match(source,/nativeStreamHealthRepairReason/);
+  assert.match(source,/backgrounded,[\s\S]{0,120}this\.followStateKnown/);
+  assert.match(modelSource,/opened \? \(backgrounded \? 45000 : 15000\) : \(backgrounded \? 45000 : 20000\)/);
   assert.match(clientSource,/profile=background/);
 });
 
@@ -2204,8 +2274,8 @@ test('native history grows past former limits and retains older pages on reconne
   assert.equal(model.messages.length,2001);
   assert.equal(model.hasMore,false);
   assert.equal(model.historyBefore,0);
-  model.apply({type:'start',attemptId:'a'});
-  model.apply({type:'delta',attemptId:'a',index:0,text:'😀'.repeat(100000),reasoning:'思考'.repeat(100000)});
+  model.apply({type:'start',attemptId:'a',revision:1});
+  model.apply({type:'delta',attemptId:'a',revision:2,index:0,text:'😀'.repeat(100000),reasoning:'思考'.repeat(100000)});
   assert.equal(model.streamText.length,200000);
   assert.equal(model.streamReasoning.length,200000);
 });

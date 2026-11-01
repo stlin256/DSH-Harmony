@@ -101,6 +101,7 @@ export class NativeShowcaseInteraction {
   running: boolean = false;
   waiting: boolean = false;
   cursor: number = 0;
+  private streamRevision: number = 0;
   private turn: number = 1;
 
   constructor(messages: NativeMessage[], running: boolean = false, cursor: number = 0,
@@ -125,6 +126,7 @@ export class NativeShowcaseInteraction {
     frame.hasMore = false;
     frame.running = this.running;
     frame.waiting = this.waiting;
+    frame.revision = this.streamRevision;
     frame.queueKnown = true;
     frame.queue = this.queue.slice();
     return frame;
@@ -187,13 +189,13 @@ export class NativeShowcaseInteraction {
     const startFrame = new NativeFrame();
     startFrame.type = 'start';
     startFrame.attemptId = 'showcase-attempt-' + requestId;
-    startFrame.revision = 0;
+    startFrame.revision = ++this.streamRevision;
     startFrame.nextIndex = 0;
 
     const deltaFrame = new NativeFrame();
     deltaFrame.type = 'delta';
     deltaFrame.attemptId = startFrame.attemptId;
-    deltaFrame.revision = 1;
+    deltaFrame.revision = ++this.streamRevision;
     deltaFrame.index = 0;
     deltaFrame.text = assistant.text;
 
@@ -210,7 +212,7 @@ export class NativeShowcaseInteraction {
     const streamEndFrame = new NativeFrame();
     streamEndFrame.type = 'end';
     streamEndFrame.attemptId = startFrame.attemptId;
-    streamEndFrame.revision = 2;
+    streamEndFrame.revision = ++this.streamRevision;
     streamEndFrame.index = 1;
     streamEndFrame.outcomeKind = 'committed';
     streamEndFrame.committedSeq = assistantSeq;

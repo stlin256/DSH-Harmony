@@ -7,7 +7,8 @@ import { NativeFrame, NativeJournalEntry, NativeMessage, NativeSession, NativeSe
   NativeWorkspaceItem, NativeWorkspaceSnapshot, NativeWorkspaceRow, NativeImagePreviewRequest,
   NativeFileViewRequest, NativeQueueBlock, NativeQueueFile, NativeQueueItem, nativeWorkspaceRows,
   nativeToolsParent, nativeWorkspaceDragOrder, nativeBackToBottomAvailable,
-  nativeBackToBottomHasNewContent, nativeProcessStructureChange } from '../services/NativeSessionModel';
+  nativeBackToBottomHasNewContent, nativeProcessStructureChange,
+  nativeAssistantProgressKey, nativeStreamHealthRepairReason } from '../services/NativeSessionModel';
 import { NativeListSource } from '../services/NativeListSource';
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeTextContent } from './NativeTextContent';
@@ -218,6 +219,17 @@ export struct NativeWorkspace {
   private followWatchdogTimer: number = -1;
   private settlementTimer: number = -1;
   private followActivityAt: number = 0;
+  private assistantProgressAt: number = 0;
+  private followProgressKey: string = '';
+  private deliveryMismatchKey: string = '';
+  private deliveryMismatchAt: number = 0;
+  private followConnectionGeneration: string = '';
+  private followOpened: boolean = false;
+  private followStateKnown: boolean = false;
+  private followRunning: boolean = false;
+  private followWaiting: boolean = false;
+  private followAttemptId: string = '';
+  private reconnectInFlight: boolean = false;
   private retries: number = 0;
   private widgetTimer: number = -1;
   private widgetEventTimer: number = -1;
@@ -554,6 +566,7 @@ export struct NativeWorkspace {
     this.error = error.message || '连接失败，请刷新后重试';
   }
   private activityChanged(): void {
+    this.reconnectInFlight = false;
     clearTimeout(this.reconnectTimer); clearTimeout(this.widgetTimer);
     clearTimeout(this.followWatchdogTimer); clearTimeout(this.settlementTimer);
     clearTimeout(this.widgetEventTimer);
@@ -587,12 +600,79 @@ export struct NativeWorkspace {
   private touchFollow(id: string): void {
     if (!this.liveAllowed(id)) return;
     this.followActivityAt = Date.now();
-    clearTimeout(this.followWatchdogTimer);
-    const deadline = this.active ? 15000 : 45000;
+    if (this.followWatchdogTimer < 0) this.scheduleFollowHealth(id);
+  }
+  private scheduleFollowHealth(id: string): void {
+    if (this.followWatchdogTimer >= 0 || !this.liveAllowed(id)) return;
+    const delay = this.active ? 2500 : 5000;
     this.followWatchdogTimer = setTimeout((): void => {
+      this.followWatchdogTimer = -1;
       if (!this.liveAllowed(id)) return;
-      if (Date.now() - this.followActivityAt >= deadline) this.reconnect(id);
-    }, deadline);
+      const backgrounded = !this.active;
+      const reason = nativeStreamHealthRepairReason(Date.now(), this.followActivityAt,
+        this.assistantProgressAt, this.deliveryMismatchAt, this.followOpened, backgrounded,
+        this.followStateKnown, this.followRunning, this.followWaiting, this.followAttemptId);
+      if (reason) {
+        console.error('DSH Harmony stream repair: ' + reason);
+        this.reconnect(id);
+        return;
+      }
+      this.scheduleFollowHealth(id);
+    }, delay);
+  }
+  private acceptHeartbeat(id: string, frame: NativeFrame): void {
+    if (frame.generation) {
+      if (!this.followConnectionGeneration) this.followConnectionGeneration = frame.generation;
+      else if (this.followConnectionGeneration !== frame.generation) return;
+    }
+    this.touchFollow(id);
+    if (frame.stateKnown) {
+      this.followStateKnown = true;
+      this.followRunning = frame.running === true;
+      this.followWaiting = frame.waiting === true;
+    }
+    if (!this.followOpened || !frame.stateKnown) return;
+    const now = Date.now();
+    this.followAttemptId = frame.attemptId || '';
+    const gatewayKey = nativeAssistantProgressKey(this.followAttemptId, frame.revision,
+      frame.nextIndex, frame.cursor);
+    const reducerKey = nativeAssistantProgressKey(this.model.activityAttemptId(),
+      this.model.activityRevision(), this.model.activityNextIndex(), this.model.activityCursor());
+    if (gatewayKey && gatewayKey !== this.followProgressKey) {
+      this.followProgressKey = gatewayKey;
+      this.assistantProgressAt = now;
+    } else if (!gatewayKey) {
+      this.assistantProgressAt = now;
+    }
+    if (this.followRunning && !this.followWaiting && gatewayKey !== reducerKey) {
+      if (this.deliveryMismatchAt <= 0) this.deliveryMismatchAt = now;
+      this.deliveryMismatchKey = gatewayKey;
+    } else {
+      this.deliveryMismatchKey = '';
+      this.deliveryMismatchAt = 0;
+    }
+  }
+  private trackAppliedProgress(id: string, frame: NativeFrame): void {
+    this.touchFollow(id);
+    if (frame.type === 'state') {
+      this.followStateKnown = true;
+      this.followRunning = frame.running === true;
+      this.followWaiting = frame.waiting === true;
+    }
+    if (!this.followOpened) return;
+    const now = Date.now();
+    const attemptId = this.model.activityAttemptId();
+    const reducerKey = nativeAssistantProgressKey(attemptId, this.model.activityRevision(),
+      this.model.activityNextIndex(), this.model.activityCursor());
+    if (attemptId) this.assistantProgressAt = now;
+    if (!attemptId) {
+      this.followAttemptId = '';
+      this.assistantProgressAt = now;
+    }
+    if (reducerKey && (reducerKey === this.followProgressKey || this.deliveryMismatchAt > 0)) {
+      this.deliveryMismatchKey = '';
+      this.deliveryMismatchAt = 0;
+    }
   }
   private armSettlementWatchdog(id: string): void {
     clearTimeout(this.settlementTimer);
@@ -1329,21 +1409,31 @@ export struct NativeWorkspace {
   }
   private follow(background: boolean = false): void {
     if (!this.liveAllowed() || !this.selected) return;
+    this.reconnectInFlight = false;
     clearTimeout(this.reconnectTimer);
-    clearTimeout(this.followWatchdogTimer); clearTimeout(this.settlementTimer);
+    clearTimeout(this.followWatchdogTimer); this.followWatchdogTimer = -1;
+    clearTimeout(this.settlementTimer); this.settlementTimer = -1;
     const id = this.selected;
-    const openingDeadline = background ? 45000 : 20000;
     this.followActivityAt = Date.now();
-    this.followWatchdogTimer = setTimeout((): void => {
-      if (this.liveAllowed(id) && Date.now() - this.followActivityAt >= openingDeadline) {
-        this.reconnect(id);
-      }
-    }, openingDeadline);
+    this.assistantProgressAt = 0;
+    this.followProgressKey = '';
+    this.deliveryMismatchKey = '';
+    this.deliveryMismatchAt = 0;
+    this.followConnectionGeneration = '';
+    this.followOpened = false;
+    this.followStateKnown = false;
+    this.followRunning = false;
+    this.followWaiting = false;
+    this.followAttemptId = '';
+    this.scheduleFollowHealth(id);
     this.connectionPhase = 'syncing';
     this.client.follow(id, (frame: NativeFrame): void => {
       if (!this.mounted || this.selected !== id) return;
+      if (frame.type === 'heartbeat') {
+        this.acceptHeartbeat(id, frame);
+        return;
+      }
       this.touchFollow(id);
-      if (frame.type === 'heartbeat') return;
       if (frame.type === 'questions') {
         this.continued = frame.questions.map((question: NativePendingQuestion) => {
           const value = new NativeFrame(); value.eventId = 'continued-' + question.callId;
@@ -1372,8 +1462,15 @@ export struct NativeWorkspace {
       }
       const wasActive = this.running || this.waiting;
       this.model.apply(frame);
+      if (frame.type === 'snapshot') {
+        this.followOpened = true;
+        this.assistantProgressAt = Date.now();
+        this.processEntranceBaselinePending = true;
+      }
+      if (['snapshot', 'event', 'start', 'delta', 'end', 'state'].includes(frame.type)) {
+        this.trackAppliedProgress(id, frame);
+      }
       if (frame.type === 'state' && frame.queueKnown === true) this.syncAuthoritativeQueue();
-      if (frame.type === 'snapshot') this.processEntranceBaselinePending = true;
       if (frame.type === 'delta') {
         this.streamTextPatchDirty = frame.text.length > 0 &&
           !frame.reasoning && !(frame.toolUpdates || []).length;
@@ -1411,7 +1508,7 @@ export struct NativeWorkspace {
         this.paintTimer = setTimeout(() => {
           this.paintTimer = -1;
           this.paint();
-        }, frame.type === 'delta' ? (this.scrollMotionActive ? 64 : 16) : 0);
+        }, frame.type === 'delta' ? (this.scrollMotionActive ? 64 : 32) : 0);
       }
     }, (reason: string): void => {
       console.error('DSH Harmony live socket ended: ' + reason);
@@ -1419,19 +1516,20 @@ export struct NativeWorkspace {
     }, background).catch((): void => { this.scheduleReconnect(id); });
   }
   private async reconnect(id: string): Promise<void> {
-    if (!this.liveAllowed(id)) return;
+    if (!this.liveAllowed(id) || this.reconnectInFlight) return;
+    this.reconnectInFlight = true;
     this.notifyConnectionFailure(id);
     this.connectionPhase = 'syncing';
     try {
       const state = await this.client.state();
-      if (!this.liveAllowed(id)) return;
-      if (!state.authenticated) { this.onLogin(); return; }
+      if (!this.liveAllowed(id)) { this.reconnectInFlight = false; return; }
+      if (!state.authenticated) { this.reconnectInFlight = false; this.onLogin(); return; }
     } catch (_) {}
-    if (!this.liveAllowed(id)) return;
+    if (!this.liveAllowed(id)) { this.reconnectInFlight = false; return; }
     this.scheduleReconnect(id);
   }
   private scheduleReconnect(id: string): void {
-    if (!this.liveAllowed(id) || (id && this.selected !== id)) return;
+    if (!this.liveAllowed(id) || (id && this.selected !== id)) { this.reconnectInFlight = false; return; }
     this.pauseHistoryDrain();
     clearTimeout(this.reconnectTimer);
     clearTimeout(this.followWatchdogTimer); clearTimeout(this.settlementTimer);
