@@ -278,6 +278,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-11-01-stream-stability-dsh-go-reference.md](docs/specs/2026-11-01-stream-stability-dsh-go-reference.md)
 - Stream stability device E2E:
   [2026-11-01-stream-stability-dsh-go-reference-e2e.md](docs/testing/2026-11-01-stream-stability-dsh-go-reference-e2e.md)
+- Structured tool-content requirement:
+  [2026-11-01-structured-tool-content.md](docs/requirements/2026-11-01-structured-tool-content.md)
+- Structured tool-content research:
+  [2026-11-01-structured-tool-content-dsh-go.md](docs/research/2026-11-01-structured-tool-content-dsh-go.md)
+- Structured tool-content implementation spec:
+  [2026-11-01-structured-tool-content.md](docs/specs/2026-11-01-structured-tool-content.md)
+- Structured tool-content E2E:
+  [2026-11-01-structured-tool-content-e2e.md](docs/testing/2026-11-01-structured-tool-content-e2e.md)
 
 ## Upstream Tracking
 
