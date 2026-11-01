@@ -5,6 +5,104 @@ export function normalizeProjectionTitle(value) {
   return value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
 }
 
+const subagentModes = new Set(['one-shot', 'continuable', 'external', 'unknown']);
+const traversableSubagentModes = new Set(['one-shot', 'continuable', 'unknown']);
+
+function normalizeProjectionLabel(value) {
+  return normalizeProjectionTitle(value);
+}
+
+function nonNegativeSafeInteger(value) {
+  return Number.isSafeInteger(value) && value >= 0;
+}
+
+/** Normalize the complete Plan projection wire value. */
+export function normalizePlanProjection(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      typeof value.active !== 'boolean' || typeof value.pending !== 'boolean') return null;
+  return { active: value.active, pending: value.pending };
+}
+
+/** Resolve the host-defined target of a Plan projection. */
+export function planTargetActive(value) {
+  const plan = normalizePlanProjection(value);
+  return plan === null ? false : plan.pending ? !plan.active : plan.active;
+}
+
+/** Normalize a direct-child catalogue without inventing members. */
+export function normalizeSubagentCatalog(value) {
+  if (!Array.isArray(value)) return null;
+  const seen = new Set();
+  const rows = [];
+  for (const entry of value.slice(0, 100)) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry) ||
+        !sessionIdValid(entry.id) || !nonNegativeSafeInteger(entry.createdAt) ||
+        !subagentModes.has(entry.mode)) continue;
+    if (seen.has(entry.id)) continue;
+    const label = normalizeProjectionLabel(entry.label);
+    if (entry.mode === 'continuable' && !label) continue;
+    seen.add(entry.id);
+    rows.push({
+      id: entry.id,
+      createdAt: entry.createdAt,
+      mode: entry.mode,
+      ...(label ? { label } : {})
+    });
+  }
+  return rows;
+}
+
+/** Normalize a child-owned identity. Explicit null remains an authoritative reset. */
+export function normalizeSubagentIdentity(value) {
+  if (value === null) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      !['one-shot', 'continuable'].includes(value.mode) ||
+      !nonNegativeSafeInteger(value.seq)) return null;
+  const label = normalizeProjectionLabel(value.label);
+  if (value.mode === 'continuable' && !label) return null;
+  return {
+    mode: value.mode,
+    ...(label ? { label } : {}),
+    seq: value.seq
+  };
+}
+
+/** Normalize durable active-turn timing. */
+export function normalizeSubagentTiming(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      !nonNegativeSafeInteger(value.settledMs)) return null;
+  let active;
+  if (value.active !== undefined) {
+    if (!value.active || typeof value.active !== 'object' || Array.isArray(value.active) ||
+        !nonNegativeSafeInteger(value.active.since) ||
+        !nonNegativeSafeInteger(value.active.through) ||
+        value.active.through < value.active.since) return null;
+    active = { since: value.active.since, through: value.active.through };
+  }
+  if (value.lastTurnCompleted !== undefined && typeof value.lastTurnCompleted !== 'boolean') return null;
+  return {
+    settledMs: value.settledMs,
+    ...(active ? { active } : {}),
+    ...(value.lastTurnCompleted === undefined ? {} : { lastTurnCompleted: value.lastTurnCompleted })
+  };
+}
+
+/** Normalize a traversable parent/child address. External is intentionally excluded. */
+export function normalizeSubagentAddress(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      value.kind !== 'subagent' ||
+      !sessionIdValid(value.parentSessionId) ||
+      !sessionIdValid(value.childSessionId) ||
+      value.parentSessionId === value.childSessionId ||
+      !traversableSubagentModes.has(value.mode)) return null;
+  return {
+    kind: 'subagent',
+    parentSessionId: value.parentSessionId,
+    childSessionId: value.childSessionId,
+    mode: value.mode
+  };
+}
+
 function boundedString(value, maxLength) {
   return typeof value === 'string' ? value.slice(0, maxLength) : '';
 }

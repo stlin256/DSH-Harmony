@@ -4,8 +4,13 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {
   normalizeFollow,
+  normalizePlanProjection,
   normalizeProjectionTitle,
   normalizeQueuedState,
+  normalizeSubagentAddress,
+  normalizeSubagentCatalog,
+  normalizeSubagentIdentity,
+  normalizeSubagentTiming,
   normalizedHistory,
   queueFromInbox,
   sessionIdValid
@@ -66,19 +71,45 @@ export function changedFilesSummary(value) {
   return { turn, files: rows, total, added, deleted };
 }
 
+/** Allowlist session projection values consumed by the native mode and lineage UI. */
+export function normalizedProjectionSnapshot(value) {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const raw = source.values && typeof source.values === 'object' && !Array.isArray(source.values)
+    ? source.values : {};
+  const values = {};
+  const plan = normalizePlanProjection(raw.plan);
+  if (plan) values.plan = plan;
+  const catalog = normalizeSubagentCatalog(raw.subagentCatalog);
+  if (catalog) values.subagentCatalog = catalog;
+  if (Object.prototype.hasOwnProperty.call(raw, 'subagent')) {
+    values.subagentKnown = true;
+    if (raw.subagent === null) values.subagent = null;
+    else {
+      const identity = normalizeSubagentIdentity(raw.subagent);
+      if (identity) values.subagent = identity;
+      else delete values.subagentKnown;
+    }
+  }
+  const timing = normalizeSubagentTiming(raw.subagentTiming);
+  if (timing) values.subagentTiming = timing;
+  return {
+    kind: typeof source.kind === 'string' ? source.kind : 'sequenced',
+    asOfSeq: Number.isSafeInteger(source.asOfSeq) && source.asOfSeq >= 0 ? source.asOfSeq : -1,
+    values
+  };
+}
+
 export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ownerOf }) {
   const credential = () => typeof upstreamCookie === 'function' ? upstreamCookie() : upstreamCookie;
   const connections = new Map();
   const target = new URL(upstream);
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16384, perMessageDeflate: false });
-  async function rpc(method, request, signal) {
+  async function rpcArgs(endpoint, args, signal) {
     const rpcId = randomUUID();
-    const direct = method.startsWith('settings/') || method.startsWith('directoryPicker/') || method.startsWith('workspaceFiles/');
-    const endpoint = direct || method === '$events/result' || method.startsWith('workspace/') ? method : method === 'answerQuestion' ? 'userQuestions/answer' : 'session/' + method;
     const response = await fetch(new URL('/api/' + endpoint, target), {
       method: 'POST', redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
       headers: { 'Content-Type': 'application/json', Origin: target.origin, Cookie: await credential() },
-      body: JSON.stringify({ type: 'client-request', rpcId, method: endpoint, payload: { args: direct || method === '$events/result' ? request : method === 'answerQuestion' ? { agent: request.sessionId, callId: request.callId, answer: request.answer } : method === 'list' ? { _request: request } : method === 'modelCatalog' ? {} : { request } } })
+      body: JSON.stringify({ type: 'client-request', rpcId, method: endpoint, payload: { args } })
     });
     if (!response.ok) throw Error('Harness native API unavailable');
     const envelope = await response.json();
@@ -90,10 +121,26 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         'workspace-file/not-found', 'workspace-file/not-directory', 'workspace-file/not-regular-file',
         'workspace-file/not-text', 'workspace-file/outside-workspace', 'workspace-file/too-large',
         'gateway/bad-request', 'gateway/lookup-not-found',
-        'session/writer-held', 'session/migration-required'].includes(envelope.result?.error?.code)) error.code = envelope.result.error.code;
+        'session/writer-held', 'session/migration-required',
+        'subagent/attachment-invalid', 'subagent/delivery-unavailable',
+        'subagent/invalid-time-zone', 'subagent/not-resumable',
+        'subagent/parent-unavailable', 'subagent/unauthorized'].includes(envelope.result?.error?.code)) error.code = envelope.result.error.code;
       throw error;
     }
     return envelope.result.value;
+  }
+  async function rpc(method, request, signal) {
+    const unwrapped = method.startsWith('settings/') || method.startsWith('directoryPicker/') ||
+      method.startsWith('workspaceFiles/') || method === '$events/result';
+    const endpoint = unwrapped || method.startsWith('workspace/') ? method
+      : method === 'answerQuestion' ? 'userQuestions/answer'
+        : 'session/' + method;
+    const args = unwrapped ? request
+      : method === 'answerQuestion' ? { agent: request.sessionId, callId: request.callId, answer: request.answer }
+        : method === 'list' ? { _request: request }
+          : method === 'modelCatalog' ? {}
+            : { request };
+    return rpcArgs(endpoint, args, signal);
   }
   async function rpcWithBytes(method, request, signal) {
     const rpcId = randomUUID();
@@ -193,16 +240,22 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
     app.get('/pocket/api/native/sessions', guarded(async (_req, res, signal) => {
       const value = await rpc('list', {}, signal);
       const rows = Array.isArray(value?.items) ? value.items : [];
-      res.json({ protocol: 2, truncated: false, items: rows.filter(row => sessionIdValid(row.sessionId)).map(row => ({
-        id: row.sessionId, title: typeof row.projections?.values?.title === 'string' ? row.projections.values.title : '新会话',
-        titleKnown: typeof row.projections?.values?.title === 'string',
-        ...(typeof row.blank === 'boolean' ? { blank: row.blank } : {}),
-        ...(typeof row.cwd === 'string' ? { cwd: row.cwd } : {}),
-        ...(typeof row.origin === 'string' ? { origin: row.origin } : {}),
-        ...(typeof row.parentSessionId === 'string' ? { parentSessionId: row.parentSessionId } : {}),
-        ...(typeof row.projections?.values?.agentPreset === 'string' ? { agentPreset: row.projections.values.agentPreset } : {}),
-        running: row.running === true, updatedAt: Number.isFinite(row.updatedAt) ? row.updatedAt : 0
-      })) });
+      res.json({ protocol: 2, truncated: false, items: rows.filter(row => sessionIdValid(row.sessionId)).map(row => {
+        const projections = normalizedProjectionSnapshot(row.projections);
+        return {
+          id: row.sessionId, title: typeof row.projections?.values?.title === 'string' ? normalizeProjectionTitle(row.projections.values.title) : '新会话',
+          titleKnown: typeof row.projections?.values?.title === 'string',
+          ...(typeof row.blank === 'boolean' ? { blank: row.blank } : {}),
+          ...(typeof row.cwd === 'string' ? { cwd: row.cwd } : {}),
+          ...(typeof row.origin === 'string' ? { origin: row.origin } : {}),
+          ...(typeof row.parentSessionId === 'string' ? { parentSessionId: row.parentSessionId } : {}),
+          ...(typeof row.projections?.values?.agentPreset === 'string' ? { agentPreset: row.projections.values.agentPreset } : {}),
+          ...(Object.keys(projections.values).length ? { projections: projections.values } : {}),
+          ...(typeof row.agentAvailable === 'boolean' ? { agentAvailable: row.agentAvailable } : {}),
+          running: row.running === true,
+          updatedAt: Number.isFinite(row.updatedAt) ? row.updatedAt : 0
+        };
+      }) });
     }));
     app.get('/pocket/api/native/workspaces', guarded(async (_req, res, signal) => {
       try { res.json({ available: true, ...await workspaceBaseline(signal) }); }
@@ -262,7 +315,15 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
     }));
     app.post('/pocket/api/native/page', guarded(async (req, res, signal) => {
       if (!sessionIdValid(req.body?.sessionId) || !Number.isSafeInteger(req.body.beforeSeq) || req.body.beforeSeq < 0) return res.sendStatus(400);
-      const value = await rpc('page', { address: { kind: 'session', sessionId: req.body.sessionId }, beforeSeq: req.body.beforeSeq, ...(Number.isSafeInteger(req.body.throughSeq) ? { throughSeq: req.body.throughSeq } : {}), maxMessages: 60 }, signal);
+      const subagent = req.body.parentSessionId === undefined ? null : normalizeSubagentAddress({
+        kind: 'subagent',
+        parentSessionId: req.body.parentSessionId,
+        childSessionId: req.body.sessionId,
+        mode: req.body.parentMode
+      });
+      if (req.body.parentSessionId !== undefined && !subagent) return res.sendStatus(400);
+      const address = subagent || { kind: 'session', sessionId: req.body.sessionId };
+      const value = await rpc('page', { address, beforeSeq: req.body.beforeSeq, ...(Number.isSafeInteger(req.body.throughSeq) ? { throughSeq: req.body.throughSeq } : {}), maxMessages: 60 }, signal);
       const history = normalizedHistory(value.records);
       res.json({ ...history, hasMore: value.hasMore || history.trimmed, cursor: value.cursor, beforeSeq: value.records?.[0]?.event?.seq ?? req.body.beforeSeq, throughSeq: value.cursor });
     }));
@@ -389,7 +450,27 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       const content = [...files.map(file => ({ type: 'file', receiptId: file.receiptId })),
         ...(text.trim() ? [{ type: 'text', text }] : []), ...(req.body.images || []).map(image => ({ type: 'image',
         mediaType: image.mediaType, data: image.data, ...(image.name ? { name: image.name } : {}) }))];
-      await rpc('prompt', { sessionId, requestId, mode: req.body.mode || 'queue', content }, signal);
+      if (req.body.parentSessionId !== undefined) {
+        const address = normalizeSubagentAddress({
+          kind: 'subagent',
+          parentSessionId: req.body.parentSessionId,
+          childSessionId: sessionId,
+          mode: req.body.parentMode
+        });
+        if (!address || files.length) return res.sendStatus(400);
+        await rpcArgs('subagents/prompt', {
+          request: {
+            requestId,
+            parentSessionId: address.parentSessionId,
+            childSessionId: address.childSessionId,
+            mode: 'continuable',
+            delivery: req.body.mode || 'queue',
+            content: content.filter(part => part.type === 'text' || part.type === 'image')
+          }
+        }, signal);
+      } else {
+        await rpc('prompt', { sessionId, requestId, mode: req.body.mode || 'queue', content }, signal);
+      }
       res.json({ accepted: true });
     }));
     app.post('/pocket/api/native/answer', guarded(async (req, res, signal) => {
@@ -500,7 +581,14 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
               ![ref.bytes,ref.width,ref.height].every(value => Number.isSafeInteger(value) && value > 0)) return res.sendStatus(400);
           request = { sessionId, attachment: ref }; break;
         }
-        case 'state': case 'projections': request = { sessionId }; break;
+        case 'state': request = { sessionId }; break;
+        case 'projections': {
+          const value = await rpc('projections', { sessionId }, signal);
+          res.json(normalizedProjectionSnapshot(value)); return;
+        }
+        case 'planOff':
+          await rpcArgs('commands/execute', [sessionId, '/plan off', []], signal);
+          res.json({ accepted: true }); return;
         case 'rename':
           if (typeof req.body.title !== 'string' || !req.body.title.trim()) return res.sendStatus(400);
           request = { sessionId, title: req.body.title }; break;
@@ -524,14 +612,39 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
     }));
     app.post('/pocket/api/native/cancel', guarded(async (req, res, signal) => {
       if (!sessionIdValid(req.body?.sessionId)) return res.sendStatus(400);
-      await rpc('cancel', { sessionId: req.body.sessionId }, signal); res.json({ accepted: true });
+      if (req.body.parentSessionId !== undefined) {
+        const address = normalizeSubagentAddress({
+          kind: 'subagent',
+          parentSessionId: req.body.parentSessionId,
+          childSessionId: req.body.sessionId,
+          mode: req.body.parentMode
+        });
+        if (!address) return res.sendStatus(400);
+        await rpcArgs('subagents/interruptByParent',
+          [address.childSessionId, address.parentSessionId, 'continuable'], signal);
+      } else {
+        await rpc('cancel', { sessionId: req.body.sessionId }, signal);
+      }
+      res.json({ accepted: true });
     }));
   }
   async function upgrade(req, socket, head) {
     const query = new URL(req.url, publicOrigin).searchParams;
     const id = query.get('sessionId');
     const profile = query.get('profile') || 'foreground';
-    if (!sessionIdValid(id) || !['foreground', 'background'].includes(profile)) { socket.destroy(); return; }
+    const parentSessionId = query.get('parentSessionId');
+    const parentMode = query.get('parentMode');
+    const address = parentSessionId === null
+      ? { kind: 'session', sessionId: id }
+      : normalizeSubagentAddress({
+        kind: 'subagent',
+        parentSessionId,
+        childSessionId: id,
+        mode: parentMode
+      });
+    if (!sessionIdValid(id) || !address || !['foreground', 'background'].includes(profile)) {
+      socket.destroy(); return;
+    }
     const timing = nativeHeartbeatPolicy(profile);
     const cookie = await credential();
     wss.handleUpgrade(req, socket, head, client => {
@@ -541,7 +654,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       const connectionId = randomUUID();
       const connection = { owner: ownerOf(req), clientId: '', running: false, waiting: false,
         runningKnown: false, waitingKnown: false, queue: [],
-        pending: new Map(), send: value => send(value), cancelWait: eventId => {
+        pending: new Map(), projectionSeq: new Map(), send: value => send(value), cancelWait: eventId => {
         if (upstream.readyState === WebSocket.OPEN) upstream.send(JSON.stringify({ type: 'cancel', streamId: 'wait:' + eventId }));
       } };
       connections.set(connectionId, connection);
@@ -627,7 +740,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       upstream.once('open', () => {
         upstream.send(JSON.stringify({ type: 'open', streamId: 'interactions', endpoint: '$events', payload: { args: {} } }));
         for (const [streamId, method, request] of [
-          ['history', 'follow', { address: { kind: 'session', sessionId: id }, activate: true, assistantStream: true, maxMessages: 24 }],
+          ['history', 'follow', { address, activate: true, assistantStream: true, maxMessages: 24 }],
           ['state', 'observeState', { sessionId: id }],
           ['projections', 'observeProjections', { sessionId: id }]
         ]) upstream.send(JSON.stringify({ type: 'open', streamId, endpoint: 'session/' + method, payload: { args: { request } } }));
@@ -653,6 +766,34 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       const sessionTitle = value => {
         const title = normalizeProjectionTitle(value);
         if (title) send({ type: 'title', title });
+      };
+      const publishProjection = (key, value, seq) => {
+        const projectionSeq = Number.isSafeInteger(seq) && seq >= 0 ? seq : -1;
+        const previous = connection.projectionSeq.get(key);
+        if (projectionSeq >= 0 && previous !== undefined && projectionSeq <= previous) return;
+        if (projectionSeq >= 0) connection.projectionSeq.set(key, projectionSeq);
+        if (key === 'plan') {
+          const plan = normalizePlanProjection(value);
+          if (plan) send({ type: 'plan', plan, projectionSeq });
+        } else if (key === 'subagentCatalog') {
+          const catalog = normalizeSubagentCatalog(value);
+          if (catalog) send({ type: 'subagent-catalog', catalog, projectionSeq });
+        } else if (key === 'subagent') {
+          const identity = value === null ? null : normalizeSubagentIdentity(value);
+          if (value === null || identity) send({ type: 'subagent-identity', identity, projectionSeq });
+        } else if (key === 'subagentTiming') {
+          const timing = normalizeSubagentTiming(value);
+          if (timing) send({ type: 'subagent-timing', timing, projectionSeq });
+        }
+      };
+      const publishProjectionValues = (values, seq) => {
+        if (!values || typeof values !== 'object' || Array.isArray(values)) return;
+        publishProjection('plan', values.plan, seq);
+        publishProjection('subagentCatalog', values.subagentCatalog, seq);
+        if (Object.prototype.hasOwnProperty.call(values, 'subagent')) {
+          publishProjection('subagent', values.subagent, seq);
+        }
+        publishProjection('subagentTiming', values.subagentTiming, seq);
       };
       const endInteraction = eventId => {
         clearTimeout(connection.pending.get(eventId)?.timer);
@@ -693,6 +834,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
               if (baseline) {
                 questions(baseline.values?.userQuestions, baseline.asOfSeq ?? -1);
                 sessionTitle(baseline.values?.title);
+                publishProjectionValues(baseline.values, baseline.asOfSeq ?? -1);
                 if (baseline.values?.inbox !== undefined) {
                   publishState({ queueKnown: true, queue: queueFromInbox(baseline.values.inbox) });
                 }
@@ -703,11 +845,13 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
               else if (value.key === 'inbox') {
                 publishState({ queueKnown: true, queue: queueFromInbox(value.value) });
               }
+              publishProjection(value.key, value.value, value.seq);
             }
           } else if (frame.streamId === 'projections') {
             if (frame.value?.type === 'ready') rpc('projections', { sessionId: id }).then(value => {
               questions(value?.values?.userQuestions, value?.asOfSeq ?? -1);
               sessionTitle(value?.values?.title);
+              publishProjectionValues(value?.values, value?.asOfSeq ?? -1);
               if (value?.values?.inbox !== undefined) {
                 publishState({ queueKnown: true, queue: queueFromInbox(value.values.inbox) });
               }
@@ -718,6 +862,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
               else if (frame.value.key === 'inbox') {
                 publishState({ queueKnown: true, queue: queueFromInbox(frame.value.value) });
               }
+              publishProjection(frame.value.key, frame.value.value, frame.value.seq);
             }
           } else if (frame.streamId?.startsWith('wait:')) {
             const eventId = frame.streamId.slice(5), pending = connection.pending.get(eventId);

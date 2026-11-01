@@ -136,13 +136,31 @@ async function setup(t, options = {}) {
       return;
     } else if (value.method === 'session/list') {
       assert.deepEqual(value.payload.args, { _request: {} }, 'source _request parameter must keep its exact wire name');
-      result = { items: [{ sessionId:'session', blank:false, running:true, updatedAt:42, projections:{values:{title:'Native session'}} }] };
+      result = { items: [{
+        sessionId: 'session', blank: false,
+        ...(options.omitAgentAvailable ? {} : { agentAvailable: true }),
+        running: true, updatedAt: 42,
+        projections: { values: { title: 'Native session' } }
+      }] };
     } else if (value.method === 'session/create') result = {sessionId:value.payload.args.request.sessionId};
     else if (value.method === 'settings/describe') result = {writable:true,namespaces:[
       {ns:'ui-chat',value:{transcriptView:'standard'},revision:4}, {ns:'private-provider',value:{credential:'must-not-forward'},revision:1}
     ]};
     else if (value.method === 'settings/mutate') result = {ns:value.payload.args.ns,value:{[value.payload.args.ops[0].path[0]]:value.payload.args.ops[0].value},revision:5};
     else if (value.method === 'session/page') result = { records:[{type:'event',event:{seq:0,type:'user/message',data:{content:[{type:'text',text:'older'}]}}}], cursor:3,hasMore:false };
+    else if (value.method === 'session/projections') result = {
+      kind: 'sequenced', asOfSeq: 12, values: {
+        title: 'Native session',
+        plan: { active: false, pending: true },
+        subagentCatalog: [{
+          id: 'child-a', createdAt: 50, mode: 'continuable', label: 'Reviewer'
+        }],
+        subagent: { mode: 'continuable', label: 'Reviewer', seq: 7 },
+        subagentTiming: {
+          settledMs: 1200, active: { since: 20, through: 30 }, lastTurnCompleted: false
+        }
+      }
+    };
     else result = {accepted:true};
     res.setHeader('Content-Type','application/json');
     res.end(JSON.stringify({type:'server-response',rpcId:value.rpcId,result:{ok:true,value:result}}));
@@ -189,6 +207,14 @@ async function setup(t, options = {}) {
           ws.send(JSON.stringify({ type: 'item', streamId: frame.streamId, value: { type: 'baseline', value: {
             projections: { session: { asOfSeq: 0, values: {
               userQuestions: { active: [] }, title: 'Initial control title',
+              plan: { active: false, pending: true },
+              subagentCatalog: [{
+                id: 'child-a', createdAt: 50, mode: 'continuable', label: 'Reviewer'
+              }],
+              subagent: { mode: 'continuable', label: 'Reviewer', seq: 7 },
+              subagentTiming: {
+                settledMs: 1200, active: { since: 20, through: 30 }, lastTurnCompleted: false
+              },
               inbox: { 'next-turn': [{
                 id: 'control-queued', source: { kind: 'user', rpcId: 'control-request' },
                 content: [{ type: 'text', text: 'queued from control' }]
@@ -196,7 +222,9 @@ async function setup(t, options = {}) {
             } } }
           } } })); return;
         }
-        assert.equal(frame.payload.args.request.sessionId || frame.payload.args.request.address.sessionId,'session');
+        assert.equal(frame.payload.args.request.sessionId ||
+          frame.payload.args.request.address.sessionId ||
+          frame.payload.args.request.address.childSessionId, 'session');
         if(frame.endpoint==='session/follow') {
           ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{type:'snapshot',cursor:0,hasMore:false,
             records:[{type:'event',event:{seq:0,type:'user/message',data:{content:[{type:'text',text:options.text || 'hello'}]}}}],
@@ -244,7 +272,7 @@ async function setup(t, options = {}) {
       });
     });req.on('error',reject);req.end(bytes);
   });
-  const connect=(headers={})=>new WebSocket(`ws://127.0.0.1:${server.address().port}/pocket/native/live?sessionId=session`,{headers:{Host:'dsh.example.com',Origin:origin,Cookie:cookie,...headers}});
+  const connect=(headers={},query='')=>new WebSocket(`ws://127.0.0.1:${server.address().port}/pocket/native/live?sessionId=session${query}`,{headers:{Host:'dsh.example.com',Origin:origin,Cookie:cookie,...headers}});
   return {call,upload,calls,uploads,connect,openings,db,
     emit: value => { for (const ws of upstreamWS.clients) ws.send(JSON.stringify({type:'item',streamId:'interactions',value})); },
     emitProjection: (streamId, value) => { for (const ws of upstreamWS.clients) ws.send(JSON.stringify({type:'item',streamId,value})); }};
@@ -269,6 +297,13 @@ test('modern Harness control stream replaces removed per-session observers witho
   assert.equal(openings.filter(x => x.endpoint === 'session/control').length, 1);
   assert.equal(frames.some(x => x.type === 'error'), false);
   assert.equal(frames.find(x => x.type === 'title')?.title, 'Initial control title');
+  assert.deepEqual(frames.find(x => x.type === 'plan')?.plan, { active: false, pending: true });
+  assert.equal(frames.find(x => x.type === 'subagent-catalog')?.catalog[0]?.id, 'child-a');
+  assert.deepEqual(frames.find(x => x.type === 'subagent-identity')?.identity,
+    { mode: 'continuable', label: 'Reviewer', seq: 7 });
+  assert.deepEqual(frames.find(x => x.type === 'subagent-timing')?.timing, {
+    settledMs: 1200, active: { since: 20, through: 30 }, lastTurnCompleted: false
+  });
   const state = frames.find(x => x.type === 'state' && x.queueKnown === true && x.queue.length);
   assert.deepEqual(state?.queue, [{
     id: 'control-queued', placement: 'queued', rpcId: 'control-request', sourceKind: 'user',
@@ -295,9 +330,134 @@ test('native live forwards modern title projections and ignores malformed values
   await until(() => frames.some(frame => frame.type === 'title' && frame.title === 'Initial live title'));
   emitProjection('projections', {type:'projection',key:'title',value:'Updated live title',seq:2});
   await until(() => frames.some(frame => frame.type === 'title' && frame.title === 'Updated live title'));
+  const beforeInvalid = frames.filter(frame => frame.type === 'title').length;
   emitProjection('projections', {type:'projection',key:'title',value:'   ',seq:3});
   await new Promise(resolve => setTimeout(resolve, 20));
-  assert.equal(frames.filter(frame => frame.type === 'title').length, 2);
+  assert.equal(frames.filter(frame => frame.type === 'title').length, beforeInvalid);
+});
+
+test('native live forwards typed mode projections and rejects stale per-key values', async t => {
+  const {frames,until,emitProjection} = await live(t);
+  await until(() => frames.some(frame => frame.type === 'subagent-identity' &&
+    frame.identity?.seq === 7));
+  emitProjection('projections', {
+    type: 'projection', key: 'plan', value: { active: false, pending: true }, seq: 13
+  });
+  emitProjection('projections', {
+    type: 'projection', key: 'plan', value: { active: true, pending: false }, seq: 12
+  });
+  emitProjection('projections', {
+    type: 'projection', key: 'subagentCatalog',
+    value: [{ id: 'child-a', createdAt: 50, mode: 'continuable', label: 'Reviewer' }],
+    seq: 13
+  });
+  emitProjection('projections', {
+    type: 'projection', key: 'subagent', value: null, seq: 13
+  });
+  emitProjection('projections', {
+    type: 'projection', key: 'subagentTiming',
+    value: { settledMs: 100, lastTurnCompleted: true }, seq: 13
+  });
+  await until(() => frames.some(frame => frame.type === 'plan' && frame.projectionSeq === 13) &&
+    frames.some(frame => frame.type === 'subagent-catalog' && frame.projectionSeq === 13) &&
+    frames.some(frame => frame.type === 'subagent-identity' && frame.projectionSeq === 13) &&
+    frames.some(frame => frame.type === 'subagent-timing' && frame.projectionSeq === 13));
+  assert.deepEqual(frames.find(frame => frame.type === 'plan')?.plan,
+    { active: false, pending: true });
+  assert.equal(frames.find(frame => frame.type === 'subagent-catalog')?.catalog.length, 1);
+  assert.deepEqual(frames.filter(frame => frame.type === 'subagent-identity')
+    .map(frame => ({ identity: frame.identity, seq: frame.projectionSeq })), [
+    { identity: { mode: 'continuable', label: 'Reviewer', seq: 7 }, seq: 12 },
+    { identity: null, seq: 13 }
+  ]);
+  assert.deepEqual(frames.filter(frame => frame.type === 'subagent-timing').at(-1)?.timing,
+    { settledMs: 100, lastTurnCompleted: true });
+});
+
+test('native mode and subagent operations use projection, address and command contracts', async t => {
+  const {call,calls,connect,openings} = await setup(t);
+  const snapshot = await call('/pocket/api/native/operation', {
+    operation: 'projections', sessionId: 'session'
+  });
+  assert.equal(snapshot.status, 200);
+  assert.deepEqual(JSON.parse(snapshot.text), {
+    kind: 'sequenced',
+    asOfSeq: 12,
+    values: {
+      plan: { active: false, pending: true },
+      subagentCatalog: [{
+        id: 'child-a', createdAt: 50, mode: 'continuable', label: 'Reviewer'
+      }],
+      subagentKnown: true,
+      subagent: { mode: 'continuable', label: 'Reviewer', seq: 7 },
+      subagentTiming: {
+        settledMs: 1200, active: { since: 20, through: 30 }, lastTurnCompleted: false
+      }
+    }
+  });
+  assert.equal(calls.at(-1).value.method, 'session/projections');
+
+  assert.equal((await call('/pocket/api/native/operation', {
+    operation: 'planOff', sessionId: 'session'
+  })).status, 200);
+  assert.equal(calls.at(-1).value.method, 'commands/execute');
+  assert.deepEqual(calls.at(-1).value.payload.args, ['session', '/plan off', []]);
+
+  const child = {
+    sessionId: 'child-a', parentSessionId: 'session', parentMode: 'continuable'
+  };
+  const page = await call('/pocket/api/native/page', {
+    ...child, beforeSeq: 3
+  });
+  assert.equal(page.status, 200);
+  assert.deepEqual(calls.at(-1).value.payload.args.request.address, {
+    kind: 'subagent',
+    parentSessionId: 'session',
+    childSessionId: 'child-a',
+    mode: 'continuable'
+  });
+
+  const childPrompt = await call('/pocket/api/native/prompt', {
+    ...child, requestId: 'child-request', text: 'continue', mode: 'queue'
+  });
+  assert.equal(childPrompt.status, 200,
+    childPrompt.text + ' ' + JSON.stringify(calls.at(-1)));
+  assert.equal(calls.at(-1).value.method, 'subagents/prompt');
+  assert.deepEqual(calls.at(-1).value.payload.args.request, {
+    requestId: 'child-request',
+    parentSessionId: 'session',
+    childSessionId: 'child-a',
+    mode: 'continuable',
+    delivery: 'queue',
+    content: [{ type: 'text', text: 'continue' }]
+  });
+
+  assert.equal((await call('/pocket/api/native/cancel', child)).status, 200);
+  assert.equal(calls.at(-1).value.method, 'subagents/interruptByParent');
+  assert.deepEqual(calls.at(-1).value.payload.args,
+    ['child-a', 'session', 'continuable']);
+
+  assert.equal((await call('/pocket/api/native/prompt', {
+    ...child, parentMode: 'external', requestId: 'invalid-child', text: 'continue'
+  })).status, 400);
+  assert.equal((await call('/pocket/api/native/prompt', {
+    ...child, requestId: 'file-child', text: 'continue',
+    attachments: [{ type: 'file', receiptId: 'receipt-1' }]
+  })).status, 400);
+
+  const ws = connect({}, '&parentSessionId=parent&parentMode=continuable');
+  await once(ws, 'open');
+  for (let index = 0; index < 200 && !openings.some(row => row.endpoint === 'session/follow'); index++) {
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+  const follow = openings.find(row => row.endpoint === 'session/follow');
+  assert.deepEqual(follow?.payload.args.request.address, {
+    kind: 'subagent',
+    parentSessionId: 'parent',
+    childSessionId: 'session',
+    mode: 'continuable'
+  });
+  ws.close();
 });
 
 test('header utilities export complete Host content and profile writes use named revision arguments', async t => {
@@ -480,7 +640,7 @@ test('native adapter uses official RPC envelopes and keeps upstream credentials 
   assert.equal((await call('/pocket/api/native/sessions',undefined,false)).status,401);
   const sessions=await call('/pocket/api/native/sessions');
   assert.equal(sessions.status,200);
-  assert.deepEqual(JSON.parse(sessions.text),{protocol:2,truncated:false,items:[{id:'session',title:'Native session',titleKnown:true,blank:false,running:true,updatedAt:42}]});
+  assert.deepEqual(JSON.parse(sessions.text),{protocol:2,truncated:false,items:[{id:'session',title:'Native session',titleKnown:true,blank:false,agentAvailable:true,running:true,updatedAt:42}]});
   assert.equal((await call('/pocket/api/native/create',{requestId:'new-session'})).status,200);
   assert.equal((await call('/pocket/api/native/prompt',{sessionId:'session',requestId:'request',text:'test prompt'})).status,200);
   assert.equal(calls.at(-1).value.method,'session/prompt');
@@ -494,6 +654,13 @@ test('native adapter uses official RPC envelopes and keeps upstream credentials 
     assert.equal(call.headers.cookie,'harness=server-only');
     assert.doesNotMatch(JSON.stringify(call.value),/pocket=/);
   }
+});
+
+test('native session list keeps unknown parent availability unknown', async t => {
+  const { call } = await setup(t, { omitAgentAvailable: true });
+  const sessions = await call('/pocket/api/native/sessions');
+  assert.equal(sessions.status, 200);
+  assert.equal(Object.hasOwn(JSON.parse(sessions.text).items[0], 'agentAvailable'), false);
 });
 
 test('Workspace baseline, named Session creation and archive/pin commands use the public controller contracts',async t=>{

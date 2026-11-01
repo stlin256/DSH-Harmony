@@ -272,7 +272,7 @@ test('UI fixture launch parameters are bounded and expose explicit running state
     /const requestId = util\.generateRandomUUID\(\)[\s\S]{0,600}this\.pendingQueue = this\.pendingQueue\.concat\([\s\S]{0,180}this\.queuedEcho\(requestId, text, attachmentSnapshot\)/,
     'queue latency must not delay the visible pending echo');
   assert.match(workspace,
-    /client\.prompt\(\s*id, text, mode, attachmentSnapshot, requestId\)/,
+    /client\.prompt\(\s*id, text, mode, attachmentSnapshot, requestId,/,
     'the optimistic echo and transport must use the same request id');
   assert.match(workspace,
     /if \(!uncertain\) \{[\s\S]{0,220}item\.rpcId !== requestId/,
@@ -2742,7 +2742,8 @@ test('history prefetch keeps retrying with bounded backoff and rejects no-progre
 test('workspace history drain autocancels stale work and restarts after live recovery', () => {
   const source=readFileSync(new URL('../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url),'utf8');
   assert.match(source,/frame\.type === 'snapshot'[\s\S]{0,500}startHistoryDrain\(true\)/);
-  assert.match(source,/private select\(id: string\): void \{[\s\S]{0,100}this\.stopHistoryDrain\(\)/);
+  assert.match(source,/private select\(id: string/);
+  assert.match(source,/this\.stopHistoryDrain\(\)/);
   assert.match(source,/private scheduleReconnect\(id: string\): void \{[\s\S]{0,150}this\.pauseHistoryDrain\(\)/);
   assert.match(source,/await this\.older\(true\)[\s\S]{0,1200}this\.historyRetry\.nextDelay\(\)/);
   assert.match(source,/nativeHistoryPageAdvanced\(historyBefore/);

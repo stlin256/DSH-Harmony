@@ -29,5 +29,5 @@ test('structured cards and background notices are wired as read-only native surf
   assert.match(dshUi, /nativeDshUiDocument\(this\.source\)/);
   assert.match(dshUi, /NativePluginCard\(\{[\s\S]{0,120}interactive: true/);
   assert.match(workspace, /sendDshUiReply\(text: string\)/);
-  assert.match(workspace, /this\.client\.prompt\(id, text, 'queue', \[\], requestId\)/);
+  assert.match(workspace, /this\.client\.prompt\(id, text, 'queue', \[\], requestId,/);
 });
