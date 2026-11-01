@@ -86,7 +86,7 @@ DSH Harmony 将 DeepSeek Harness 的工作空间、会话、工具调用和实�
 把下面这一句发给 DSH，支持 `plugin_manager` 的 Agent 会完成插件安装并核对版本：
 
 ```text
-请按 https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md 安装并启用 DSH Harmony 插件，使用与 App 匹配的 plugin-v0.3.6 Release 中的 dsh-harmony-plugin-0.3.6.tgz，安装后确认 @dsh-harmony/plugin 正常运行并报告版本。
+请按 https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md 安装并启用 DSH Harmony 插件，使用与 App 匹配的 plugin-v0.3.7 Release 中的 dsh-harmony-plugin-0.3.7.tgz，安装后确认 @dsh-harmony/plugin 正常运行并报告版本。
 ```
 
 也可以打开 DSH 的 **插件 → Add plugin**，粘贴同一版本化 tarball 地址。随后打开 DSH Harmony，填写服务地址并选择原生登录或 Passkey。

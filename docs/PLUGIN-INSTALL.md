@@ -10,7 +10,7 @@ DSH Harmony App 需要 `@dsh-harmony/plugin` 向 DSH 增加原生登录、会话
 
 把下面整句发送给 DSH：
 
-> 请按 https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md 的说明，为当前 DSH web profile 安装并启用 DSH Harmony 插件；使用与 App 匹配的 `plugin-v0.3.6` Release 中的 `dsh-harmony-plugin-0.3.6.tgz`，安装后确认 `@dsh-harmony/plugin` 正常运行并报告版本。
+> 请按 https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md 的说明，为当前 DSH web profile 安装并启用 DSH Harmony 插件；使用与 App 匹配的 `plugin-v0.3.7` Release 中的 `dsh-harmony-plugin-0.3.7.tgz`，安装后确认 `@dsh-harmony/plugin` 正常运行并报告版本。
 
 这句话也显示在 App 首次引导中，可直接复制。
 
@@ -21,7 +21,7 @@ DSH Harmony App 需要 `@dsh-harmony/plugin` 向 DSH 增加原生登录、会话
 3. 粘贴与当前 App 匹配的版本化安装地址：
 
    ```text
-   https://github.com/stlin256/DSH-Harmony/releases/download/plugin-v0.3.6/dsh-harmony-plugin-0.3.6.tgz
+   https://github.com/stlin256/DSH-Harmony/releases/download/plugin-v0.3.7/dsh-harmony-plugin-0.3.7.tgz
    ```
 
 4. 确认来源，安装并启用 **DSH Harmony**。
@@ -61,7 +61,7 @@ DSH Harmony needs `@dsh-harmony/plugin` to add native login, sessions, live upda
 
 Send this sentence to DSH:
 
-> Follow https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md to install and enable DSH Harmony for the current DSH web profile. Use `dsh-harmony-plugin-0.3.6.tgz` from the matching `plugin-v0.3.6` release, then verify that `@dsh-harmony/plugin` is running and report its version.
+> Follow https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md to install and enable DSH Harmony for the current DSH web profile. Use `dsh-harmony-plugin-0.3.7.tgz` from the matching `plugin-v0.3.7` release, then verify that `@dsh-harmony/plugin` is running and report its version.
 
 The same prompt is available through the app's first-run guide.
 
@@ -72,7 +72,7 @@ The same prompt is available through the app's first-run guide.
 3. Paste the versioned artifact URL:
 
    ```text
-   https://github.com/stlin256/DSH-Harmony/releases/download/plugin-v0.3.6/dsh-harmony-plugin-0.3.6.tgz
+   https://github.com/stlin256/DSH-Harmony/releases/download/plugin-v0.3.7/dsh-harmony-plugin-0.3.7.tgz
    ```
 
 4. Verify the source, install and enable **DSH Harmony**.

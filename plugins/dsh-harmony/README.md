@@ -6,11 +6,11 @@
 
 ## 安装
 
-首选从 [DSH Harmony Releases](https://github.com/stlin256/DSH-Harmony/releases) 下载与 App 对应的 `dsh-harmony-plugin-0.3.6.tgz`。在 Harness 打开 **插件 → Add plugin**，粘贴 Release 中该文件的直接下载地址，确认安装并启用 `@dsh-harmony/plugin`，然后重启或重连 Harness。也可以把 App 引导页的安装提示词直接发送给 DSH。
+首选从 [DSH Harmony Releases](https://github.com/stlin256/DSH-Harmony/releases) 下载与 App 对应的 `dsh-harmony-plugin-0.3.7.tgz`。在 Harness 打开 **插件 → Add plugin**，粘贴 Release 中该文件的直接下载地址，确认安装并启用 `@dsh-harmony/plugin`，然后重启或重连 Harness。也可以把 App 引导页的安装提示词直接发送给 DSH。
 
 不要直接把当前 monorepo 的 `plugins/dsh-harmony/` 子目录当作 Git 安装源：仓库内的轻量源码通过相对路径复用 gateway，只有发布打包步骤会生成包含全部生产依赖的可安装产物。
 
-开发时从仓库根目录运行 `node scripts/package-plugin.mjs`，生成 `.artifacts/dsh-harmony-plugin-0.3.6.tgz`。脚本会打包全部生产依赖，并在仓库外的临时目录验证 Host 入口、浏览器入口、bundle patch、本地化元数据和内嵌资源。
+开发时从仓库根目录运行 `node scripts/package-plugin.mjs`，生成 `.artifacts/dsh-harmony-plugin-0.3.7.tgz`。脚本会打包全部生产依赖，并在仓库外的临时目录验证 Host 入口、浏览器入口、bundle patch、本地化元数据和内嵌资源。
 
 发布包声明以下 bundle patch：
 

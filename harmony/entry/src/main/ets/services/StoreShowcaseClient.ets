@@ -509,7 +509,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     const value = new GatewayState();
     value.mode = 'host';
     value.authenticated = true;
-    value.pluginVersion = '0.3.6';
+    value.pluginVersion = '0.3.7';
     return value;
   }
 
