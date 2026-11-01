@@ -67,6 +67,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-11-01-device-visual-state-acceptance.md](docs/specs/2026-11-01-device-visual-state-acceptance.md)
 - Physical-device visual acceptance and pending verification ledger:
   [2026-11-01-device-visual-state-acceptance-e2e.md](docs/testing/2026-11-01-device-visual-state-acceptance-e2e.md)
+- Cross-surface control visual alignment requirement:
+  [2026-11-02-control-visual-alignment.md](docs/requirements/2026-11-02-control-visual-alignment.md)
+- Cross-surface control visual alignment research:
+  [2026-11-02-control-visual-alignment.md](docs/research/2026-11-02-control-visual-alignment.md)
+- Cross-surface control visual alignment implementation spec:
+  [2026-11-02-control-visual-alignment.md](docs/specs/2026-11-02-control-visual-alignment.md)
+- Cross-surface control visual alignment device E2E:
+  [2026-11-02-control-visual-alignment-e2e.md](docs/testing/2026-11-02-control-visual-alignment-e2e.md)
 - Authoritative design system and motion baseline:
   [2026-11-01-dsh-harmony-design-system.md](docs/design/2026-11-01-dsh-harmony-design-system.md)
 - Design-system unification requirement:

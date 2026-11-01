@@ -5,6 +5,13 @@
 所有新增原生界面先使用其中的语义颜色、排版、密度、组件和 Quiet Precision
 动效规则；本文保留模块适配记录。
 
+跨页面原生控件的最终对齐基线见
+[控件视觉统一要求](requirements/2026-11-02-control-visual-alignment.md)、
+[实现规范](specs/2026-11-02-control-visual-alignment.md) 与
+[设备验收表](testing/2026-11-02-control-visual-alignment-e2e.md)。同一角色的
+按钮、字段、行、chip、标题、图标和状态必须共用 `NativeDesign.ets` 中的语义
+token；页面和组内容使用统一 16vp 边线。
+
 本文件的视觉基线由
 [DSH Harmony 视觉与动效设计](design/2026-10-31-dsh-harmony-visual-motion.md)
 补充。新的控件、页面和结构变化应先使用该文档的 Quiet Precision 语义；本文保留具体

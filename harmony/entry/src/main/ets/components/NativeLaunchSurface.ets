@@ -125,20 +125,20 @@ export struct NativeLaunchSurface {
 
   @Builder
   private iconButton(glyph: string, label: string, action: () => void) {
-    NativeIconButton({ glyph, label, glyphSize: 18, tone: 'primary', onPressed: action })
+    NativeIconButton({ glyph, label, glyphSize: NativeDesign.glyphControlEmphasis, tone: 'primary', onPressed: action })
   }
 
   @Builder
   private primaryButton(label: string, loading: boolean, action: () => void) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 8 }) {
-        if (loading) LoadingProgress().width(17).height(17)
+        if (loading) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
           .color(NativeDesign.textInverse(this.dark))
-        Text(loading ? '正在连接' : label).fontSize(15).fontWeight(FontWeight.Medium)
+        Text(loading ? '正在连接' : label).fontSize(NativeDesign.fontCompactTitle).fontWeight(FontWeight.Medium)
           .fontColor(NativeDesign.textInverse(this.dark))
       }
     }
-    .width('100%').height(48).borderRadius(NativeDesign.radiusRow)
+    .width('100%').height(NativeDesign.primaryActionHeight).borderRadius(NativeDesign.radiusRow)
     .backgroundColor(NativeDesign.textPrimary(this.dark))
     .enabled(!loading)
     .onClick(action)
@@ -147,9 +147,9 @@ export struct NativeLaunchSurface {
   @Builder
   private secondaryButton(label: string, action: () => void) {
     Button({ type: ButtonType.Normal }) {
-      Text(label).fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.foreground())
+      Text(label).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).fontColor(this.foreground())
     }
-      .width('100%').height(48).borderRadius(NativeDesign.radiusRow)
+      .width('100%').height(NativeDesign.primaryActionHeight).borderRadius(NativeDesign.radiusRow)
       .backgroundColor(this.raised())
       .onClick(action)
   }
@@ -157,13 +157,13 @@ export struct NativeLaunchSurface {
   @Builder
   private welcome() {
     Column({ space: 12 }) {
-      Text('DSH Harmony').fontSize(30).fontWeight(FontWeight.Bold).fontColor(this.foreground())
-      Text('把 DeepSeek Harness 带到你的手机上').fontSize(14).fontColor(this.secondary())
+      Text('DSH Harmony').fontSize(NativeDesign.fontBrand).fontWeight(FontWeight.Bold).fontColor(this.foreground())
+      Text('把 DeepSeek Harness 带到你的手机上').fontSize(NativeDesign.fontBody).fontColor(this.secondary())
       Blank()
       if (this.phase === NativeLaunchPhase.booting) {
         Row({ space: 8 }) {
-          LoadingProgress().width(15).height(15).color(this.primary())
-          Text('正在准备') .fontSize(12).fontColor(this.secondary())
+          LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.primary())
+          Text('正在准备') .fontSize(NativeDesign.fontSection).fontColor(this.secondary())
         }.opacity(0.85)
       } else {
         this.primaryButton('开始引导', false, this.onOpenGuide)
@@ -188,13 +188,13 @@ export struct NativeLaunchSurface {
       Stack({ alignContent: Alignment.Center }) {
         Column().width(40).height(40).borderRadius(20)
           .backgroundColor(NativeDesign.selection(this.dark))
-        DSHIcon({ glyph, glyphSize: 19, color: this.primary() })
+        DSHIcon({ glyph, glyphSize: NativeDesign.glyphControlEmphasis, color: this.primary() })
       }.width(40).height(40)
       Column({ space: 2 }) {
-        Text(title).fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.foreground())
-        Text(detail).fontSize(12).lineHeight(18).fontColor(this.secondary())
+        Text(title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).fontColor(this.foreground())
+        Text(detail).fontSize(NativeDesign.fontSection).lineHeight(18).fontColor(this.secondary())
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-      Text(index).fontSize(10).fontWeight(FontWeight.Medium).fontColor(this.secondary())
+      Text(index).fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium).fontColor(this.secondary())
     }
     .width('100%').padding({ top: 10, bottom: 10 })
     .transition(NativeMotion.navigationTransition())
@@ -206,8 +206,8 @@ export struct NativeLaunchSurface {
       Row({ space: 10 }) {
         this.iconButton('chevron-left-outline', '返回欢迎页', this.onCloseGuide)
         Column({ space: 1 }) {
-          Text('连接 DSH').fontSize(21).fontWeight(FontWeight.Bold).fontColor(this.foreground())
-          Text('三步完成准备').fontSize(12).fontColor(this.secondary())
+          Text('连接 DSH').fontSize(NativeDesign.fontPageTitle).fontWeight(FontWeight.Bold).fontColor(this.foreground())
+          Text('三步完成准备').fontSize(NativeDesign.fontSection).fontColor(this.secondary())
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       }.width('100%')
       Scroll() {
@@ -226,30 +226,31 @@ export struct NativeLaunchSurface {
               Stack({ alignContent: Alignment.Center }) {
                 Column().width(36).height(36).borderRadius(18)
                   .backgroundColor(NativeDesign.accentSurface(this.dark))
-                DSHIcon({ glyph: 'copy-outline', glyphSize: 17, color: this.primary() })
+                DSHIcon({ glyph: 'copy-outline', glyphSize: NativeDesign.glyphControl, color: this.primary() })
               }
               Column({ space: 3 }) {
-                Text('复制安装提示词').fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.foreground())
-                Text('发送给 DSH 即可继续').fontSize(11).fontColor(this.secondary())
+                Text('复制安装提示词').fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).fontColor(this.foreground())
+                Text('发送给 DSH 即可继续').fontSize(NativeDesign.fontCaption).fontColor(this.secondary())
               }.layoutWeight(1).alignItems(HorizontalAlign.Start)
               DSHIcon({ glyph: this.copied === 'prompt' ? 'check-outline' : 'copy-outline',
-                glyphSize: 16, color: this.copied === 'prompt' ? this.primary() : this.secondary() })
+                glyphSize: NativeDesign.glyphControl, color: this.copied === 'prompt' ? this.primary() : this.secondary() })
             }.width('100%')
           }
-          .width('100%').constraintSize({ minHeight: 62 }).padding({ left: 12, right: 12 })
+          .width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
+          .padding({ left: NativeDesign.rowInset, right: NativeDesign.rowInset })
           .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.surface()).border({ width: 1, color: this.subtleStroke() })
           .accessibilityText('复制 DSH Harmony 插件安装提示词')
           .onClick((): void => { this.copy(BuildInfo.pluginInstallPrompt, 'prompt'); })
           Row({ space: 8 }) {
             Button({ type: ButtonType.Normal }) {
               Row({ space: 7 }) {
-                DSHIcon({ glyph: 'branch-outline', glyphSize: 15, color: this.secondary() })
-                Text('打开仓库').fontSize(12).fontColor(this.foreground())
+                DSHIcon({ glyph: 'branch-outline', glyphSize: NativeDesign.glyphControl, color: this.secondary() })
+                Text('打开仓库').fontSize(NativeDesign.fontSection).fontColor(this.foreground())
               }
             }.layoutWeight(1).height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusRow).backgroundColor(this.raised())
               .onClick((): void => { this.open(BuildInfo.repository); })
             Button({ type: ButtonType.Normal }) {
-              Text('详细安装说明').fontSize(12).fontColor(this.foreground())
+              Text('详细安装说明').fontSize(NativeDesign.fontSection).fontColor(this.foreground())
             }.layoutWeight(1).height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusRow).backgroundColor(this.raised())
               .onClick(this.onOpenInstall)
           }.width('100%')
@@ -258,7 +259,7 @@ export struct NativeLaunchSurface {
         .align(Alignment.Top)
       this.primaryButton('继续登录', false, this.onDirect)
       if (this.status) {
-        Text(this.status).fontSize(11).fontColor(this.secondary()).margin({ top: 6 })
+        Text(this.status).fontSize(NativeDesign.fontCaption).fontColor(this.secondary()).margin({ top: 6 })
       }
     }
     .width('100%').height('100%')
@@ -274,13 +275,13 @@ export struct NativeLaunchSurface {
       Stack({ alignContent: Alignment.Center }) {
         Column().width(38).height(38).borderRadius(19)
           .backgroundColor(NativeDesign.accentSurface(this.dark))
-        DSHIcon({ glyph, glyphSize: 18, color: this.primary() })
+        DSHIcon({ glyph, glyphSize: NativeDesign.glyphControlEmphasis, color: this.primary() })
       }.width(38).height(38)
       Column({ space: 3 }) {
-        Text(title).fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.foreground())
-        Text(detail).fontSize(11).lineHeight(17).fontColor(this.secondary())
+        Text(title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).fontColor(this.foreground())
+        Text(detail).fontSize(NativeDesign.fontCaption).lineHeight(17).fontColor(this.secondary())
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-      Text(badge).fontSize(10).fontWeight(FontWeight.Medium)
+      Text(badge).fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium)
         .fontColor(this.primary()).padding({ left: 8, right: 8, top: 4, bottom: 4 })
         .borderRadius(NativeDesign.radiusCompact)
         .backgroundColor(NativeDesign.accentSurface(this.dark))
@@ -295,18 +296,19 @@ export struct NativeLaunchSurface {
         Stack({ alignContent: Alignment.Center }) {
           Column().width(38).height(38).borderRadius(19)
             .backgroundColor(NativeDesign.accentSurface(this.dark))
-          DSHIcon({ glyph, glyphSize: 18, color: this.primary() })
+          DSHIcon({ glyph, glyphSize: NativeDesign.glyphControlEmphasis, color: this.primary() })
         }.width(38).height(38)
         Column({ space: 3 }) {
-          Text(title).fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.foreground())
-          Text(detail).fontSize(11).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text(title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).fontColor(this.foreground())
+          Text(detail).fontSize(NativeDesign.fontCaption).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(this.secondary())
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         DSHIcon({ glyph: this.copied === key ? 'check-outline' : 'copy-outline',
-          glyphSize: 16, color: this.copied === key ? this.primary() : this.secondary() })
+          glyphSize: NativeDesign.glyphControl, color: this.copied === key ? this.primary() : this.secondary() })
       }.width('100%')
     }
-    .width('100%').constraintSize({ minHeight: 62 }).padding({ left: 13, right: 13 })
+    .width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
+    .padding({ left: 13, right: 13 })
     .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.surface()).border({ width: 1, color: this.subtleStroke() })
     .accessibilityText(title)
     .onClick((): void => { this.copy(value, key); })
@@ -316,8 +318,8 @@ export struct NativeLaunchSurface {
   private detailSectionTitle(title: string, caption: string) {
     Row() {
       Column({ space: 2 }) {
-        Text(title).fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.foreground())
-        Text(caption).fontSize(11).fontColor(this.secondary())
+        Text(title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).fontColor(this.foreground())
+        Text(caption).fontSize(NativeDesign.fontCaption).fontColor(this.secondary())
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
     }.width('100%').padding({ top: 4, bottom: 2 })
   }
@@ -328,12 +330,12 @@ export struct NativeLaunchSurface {
       Row({ space: 10 }) {
         this.iconButton('chevron-left-outline', '返回连接引导', this.onCloseInstall)
         Column({ space: 1 }) {
-          Text('详细安装说明').fontSize(21).fontWeight(FontWeight.Bold).fontColor(this.foreground())
-          Text('两种安装方式 · 一次版本核对').fontSize(12).fontColor(this.secondary())
+          Text('详细安装说明').fontSize(NativeDesign.fontPageTitle).fontWeight(FontWeight.Bold).fontColor(this.foreground())
+          Text('两种安装方式 · 一次版本核对').fontSize(NativeDesign.fontSection).fontColor(this.secondary())
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        Text(BuildInfo.pluginArtifactVersion).fontSize(10).fontWeight(FontWeight.Medium)
+        Text(BuildInfo.pluginArtifactVersion).fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium)
           .fontColor(this.secondary()).padding({ left: 9, right: 9, top: 5, bottom: 5 })
-          .borderRadius(9).backgroundColor(this.raised())
+          .borderRadius(NativeDesign.radiusBadge).backgroundColor(this.raised())
       }.width('100%')
       Scroll() {
         Column({ space: 12 }) {
@@ -351,7 +353,7 @@ export struct NativeLaunchSurface {
           Column({ space: 8 }) {
             this.detailSectionTitle('手动安装', '适合直接操作 DSH 插件管理器的用户')
             Text('打开 插件 → Add plugin，粘贴安装地址并启用。')
-              .fontSize(11).lineHeight(17).fontColor(this.secondary()).width('100%')
+              .fontSize(NativeDesign.fontCaption).lineHeight(17).fontColor(this.secondary()).width('100%')
             this.detailCopyAction('复制插件安装地址', BuildInfo.pluginArtifactVersion,
               'download-outline', 'detail-artifact', BuildInfo.pluginArtifact)
           }.width('100%').alignItems(HorizontalAlign.Start)
@@ -367,14 +369,15 @@ export struct NativeLaunchSurface {
           }.width('100%').alignItems(HorizontalAlign.Start)
           Column({ space: 8 }) {
             Row({ space: 8 }) {
-              DSHIcon({ glyph: 'question-outline', glyphSize: 14, color: this.secondary() })
-              Text('常见问题').fontSize(12).fontWeight(FontWeight.Medium).fontColor(this.foreground())
+              DSHIcon({ glyph: 'question-outline', glyphSize: NativeDesign.glyphCompact, color: this.secondary() })
+              Text('常见问题').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium).fontColor(this.foreground())
             }.width('100%')
             Text('请安装 Release 中的 .tgz，不要把 plugins/dsh-harmony 源码目录直接作为 Git 插件。升级 App 时使用对应的插件版本。')
-              .fontSize(11).lineHeight(17).fontColor(this.secondary()).width('100%')
-          }.width('100%').padding(13).borderRadius(14).backgroundColor(this.raised())
+              .fontSize(NativeDesign.fontCaption).lineHeight(17).fontColor(this.secondary()).width('100%')
+          }.width('100%').padding(13).borderRadius(NativeDesign.radiusGroup)
+          .backgroundColor(this.raised())
           if (this.status) {
-            Text(this.status).fontSize(11).fontColor(this.secondary())
+            Text(this.status).fontSize(NativeDesign.fontCaption).fontColor(this.secondary())
           }
         }.width('100%').padding({ top: 18, bottom: 16 })
       }.layoutWeight(1).width('100%').scrollBar(BarState.Off)
@@ -390,7 +393,7 @@ export struct NativeLaunchSurface {
 
   @Builder
   private formLabel(value: string) {
-    Text(value).fontSize(11).fontWeight(FontWeight.Medium)
+    Text(value).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
       .fontColor(this.secondary()).padding({ left: 2 })
   }
 
@@ -399,15 +402,16 @@ export struct NativeLaunchSurface {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 10 }) {
         Column({ space: 2 }) {
-          Text(label).fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.foreground())
-          if (detail) Text(detail).fontSize(10).fontColor(this.secondary())
+          Text(label).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).fontColor(this.foreground())
+          if (detail) Text(detail).fontSize(NativeDesign.fontMicro).fontColor(this.secondary())
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         if (this.mode === value) {
-          DSHIcon({ glyph: 'check-outline', glyphSize: 15, color: this.primary() })
+          DSHIcon({ glyph: 'check-outline', glyphSize: NativeDesign.glyphControl, color: this.primary() })
         }
       }.width('100%').padding({ left: 13, right: 13 })
     }
-    .width('100%').constraintSize({ minHeight: NativeDesign.standardRow + 2 }).borderRadius(NativeDesign.radiusRow)
+    .width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
+    .borderRadius(NativeDesign.radiusRow)
     .backgroundColor(this.mode === value ?
       NativeDesign.accentSurface(this.dark) : this.raised())
     .border({ width: 1, color: this.mode === value ? this.primary() : this.subtleStroke() })
@@ -420,8 +424,8 @@ export struct NativeLaunchSurface {
       Row({ space: 8 }) {
         this.iconButton('chevron-left-outline', '返回欢迎页', this.onEditAddress)
         Column({ space: 2 }) {
-          Text('连接工作空间').fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.foreground())
-          Text('登录你的 DeepSeek Harness').fontSize(12).fontColor(this.secondary())
+          Text('连接工作空间').fontSize(NativeDesign.fontPageTitle).fontWeight(FontWeight.Bold).fontColor(this.foreground())
+          Text('登录你的 DeepSeek Harness').fontSize(NativeDesign.fontSection).fontColor(this.secondary())
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       }.width('100%')
       Column({ space: 7 }) {
@@ -451,9 +455,9 @@ export struct NativeLaunchSurface {
       if (this.errorText) {
         Row({ space: 10 }) {
           Column({ space: 3 }) {
-            Text('登录失败').fontSize(12).fontWeight(FontWeight.Medium)
+            Text('登录失败').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
               .fontColor(NativeDesign.danger(this.dark))
-            Text(this.errorText).fontSize(11).lineHeight(17).maxLines(3)
+            Text(this.errorText).fontSize(NativeDesign.fontCaption).lineHeight(17).maxLines(3)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textSecondary(this.dark))
           }.layoutWeight(1).alignItems(HorizontalAlign.Start)
@@ -478,7 +482,7 @@ export struct NativeLaunchSurface {
     Column({ space: 22 }) {
       Image($r('app.media.app_icon'))
         .width(64).height(64).objectFit(ImageFit.Contain).opacity(0.38)
-      LoadingProgress().width(24).height(24).color(this.primary())
+      LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage).color(this.primary())
     }
     .width('100%').height('100%').justifyContent(FlexAlign.Center)
     .padding({ bottom: this.safeBottom })
@@ -491,18 +495,18 @@ export struct NativeLaunchSurface {
       Row({ space: 8 }) {
         this.iconButton('chevron-left-outline', '返回登录', this.onEditAddress)
         Column({ space: 2 }) {
-          Text('连接失败').fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.foreground())
-          Text(this.address).fontSize(11).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text('连接失败').fontSize(NativeDesign.fontPageTitle).fontWeight(FontWeight.Bold).fontColor(this.foreground())
+          Text(this.address).fontSize(NativeDesign.fontCaption).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(this.secondary())
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       }.width('100%')
-      Text(this.errorText).fontSize(13).lineHeight(20).fontColor(this.secondary())
+      Text(this.errorText).fontSize(NativeDesign.fontCompact).lineHeight(20).fontColor(this.secondary())
         .width('100%').padding(NativeDesign.spaceM).borderRadius(NativeDesign.radiusRow).backgroundColor(this.raised())
       Row({ space: 8 }) {
         this.iconButton(this.copied === 'error' ? 'check-outline' : 'copy-outline', '复制错误',
           (): void => { this.copy(this.errorText, 'error'); })
         Text(this.copied === 'error' ? '错误已复制' : '复制错误')
-          .fontSize(12).fontColor(this.secondary()).layoutWeight(1)
+          .fontSize(NativeDesign.fontSection).fontColor(this.secondary()).layoutWeight(1)
       }.width('100%')
       this.primaryButton('重试', this.busy, this.onRetry)
       this.secondaryButton('修改地址', this.onEditAddress)

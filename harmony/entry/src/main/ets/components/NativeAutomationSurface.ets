@@ -423,14 +423,14 @@ export struct NativeAutomationSurface {
     Row({ space: 4 }) {
       NativeIconButton({
         glyph: 'chevron-left-outline', label: '返回', tone: 'primary',
-        glyphSize: 17, onPressed: (): void => { this.back(); }
+        glyphSize: NativeDesign.glyphControl, onPressed: (): void => { this.back(); }
       })
       Text(title).fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium).layoutWeight(1)
         .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.primaryText())
-      if (this.refreshing) LoadingProgress().width(18).height(18).color(this.accent())
+      if (this.refreshing) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.accent())
       if (actionLabel) {
         Button(actionLabel, { type: ButtonType.Normal }).height(NativeDesign.compactHitTarget)
-          .padding({ left: 12, right: 12 }).fontSize(12).borderRadius(NativeDesign.radiusControl)
+          .padding({ left: 12, right: 12 }).fontSize(NativeDesign.fontSection).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.fieldSurface()).fontColor(this.primaryText()).onClick(action)
       }
     }.width('100%').height(NativeDesign.headerHeight)
@@ -439,7 +439,7 @@ export struct NativeAutomationSurface {
   @Builder
   private searchField() {
     Row({ space: 8 }) {
-      DSHIcon({ glyph: 'search-outline', glyphSize: 16, color: this.tertiaryText() })
+      DSHIcon({ glyph: 'search-outline', glyphSize: NativeDesign.glyphControl, color: this.tertiaryText() })
       TextInput({ text: this.query, placeholder: '搜索任务' })
         .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontCompact)
         .backgroundColor(Color.Transparent).fontColor(this.primaryText())
@@ -447,7 +447,7 @@ export struct NativeAutomationSurface {
         .onChange((value: string): void => { this.query = value; })
       if (this.query) {
         Button({ type: ButtonType.Circle }) {
-          DSHIcon({ glyph: 'close-outline', glyphSize: 12, color: this.tertiaryText() })
+          DSHIcon({ glyph: 'close-outline', glyphSize: NativeDesign.glyphInline, color: this.tertiaryText() })
         }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
           .backgroundColor(Color.Transparent).accessibilityText('清除搜索')
           .onClick((): void => { this.query = ''; })
@@ -459,8 +459,8 @@ export struct NativeAutomationSurface {
 
   @Builder
   private filterButton(label: string, value: string) {
-    Button(label, { type: ButtonType.Normal }).layoutWeight(1).height(34).fontSize(11)
-      .borderRadius(NativeDesign.radiusControl)
+    Button(label, { type: ButtonType.Normal }).layoutWeight(1).height(NativeDesign.compactHitTarget)
+      .fontSize(NativeDesign.fontCaption).borderRadius(NativeDesign.radiusControl)
       .backgroundColor(this.filter === value ? this.raisedSurface() : Color.Transparent)
       .fontColor(this.filter === value ? this.primaryText() : this.secondaryText())
       .onClick((): void => {
@@ -475,7 +475,7 @@ export struct NativeAutomationSurface {
       this.filterButton('已暂停', 'paused')
       this.filterButton('已结束', 'ended')
       this.filterButton('全部', 'all')
-    }.width('100%').height(40).padding(3).borderRadius(NativeDesign.radiusRow)
+    }.width('100%').height(NativeDesign.compactRow).padding(3).borderRadius(NativeDesign.radiusRow)
       .backgroundColor(this.fieldSurface())
   }
 
@@ -483,11 +483,11 @@ export struct NativeAutomationSurface {
   private errorNotice() {
     if (this.actionError || this.error) {
       Row({ space: 8 }) {
-        DSHIcon({ glyph: 'warning-outline', glyphSize: 16, color: this.danger() })
-        Text(this.actionError || this.error).fontSize(11).layoutWeight(1).maxLines(4)
+        DSHIcon({ glyph: 'warning-outline', glyphSize: NativeDesign.glyphControl, color: this.danger() })
+        Text(this.actionError || this.error).fontSize(NativeDesign.fontCaption).layoutWeight(1).maxLines(4)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.danger())
         Button(this.conflict ? '刷新' : '重试', { type: ButtonType.Normal }).height(NativeDesign.compactControl)
-          .fontSize(11).backgroundColor(Color.Transparent).fontColor(this.accent())
+          .fontSize(NativeDesign.fontCaption).backgroundColor(Color.Transparent).fontColor(this.accent())
           .onClick((): void => {
             if (this.conflict) this.reloadConflict();
             else if (this.page === 'root') this.refresh();
@@ -509,32 +509,34 @@ export struct NativeAutomationSurface {
           DSHIcon({
             glyph: task.status === 'active' ? 'plan-outline' :
               task.status === 'paused' ? 'archive-outline' : 'clock-outline',
-            glyphSize: 17,
+            glyphSize: NativeDesign.glyphControl,
             color: this.statusColor(task.status)
           })
-        }.width(36).height(36).borderRadius(10).backgroundColor(this.statusSurface(task.status))
+        }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+          .borderRadius(NativeDesign.radiusControl).backgroundColor(this.statusSurface(task.status))
         Column({ space: 3 }) {
           Row({ space: 6 }) {
-            Text(task.title).fontSize(14).fontWeight(FontWeight.Medium).layoutWeight(1)
+            Text(task.title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).layoutWeight(1)
               .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.primaryText())
             if (task.status !== 'active') {
-              Text(nativeAutomationStatus(task.status)).fontSize(9)
+              Text(nativeAutomationStatus(task.status)).fontSize(NativeDesign.fontMicro)
                 .fontColor(this.statusColor(task.status)).padding({ left: 5, right: 5, top: 2, bottom: 2 })
-                .borderRadius(5).backgroundColor(this.statusSurface(task.status))
+                .borderRadius(NativeDesign.radiusBadge).backgroundColor(this.statusSurface(task.status))
             }
           }.width('100%')
-          Text(nativeAutomationRule(task)).fontSize(11).maxLines(1)
+          Text(nativeAutomationRule(task)).fontSize(NativeDesign.fontCaption).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.secondaryText())
           Text(task.status === 'active' ?
             '下次 ' + nativeAutomationTimestamp(task.scheduledAt) +
               (task.executionActive ? ' · 执行中' : '') :
-            nativeAutomationTarget(task)).fontSize(10).maxLines(1)
+            nativeAutomationTarget(task)).fontSize(NativeDesign.fontMicro).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
             .fontColor(this.tertiaryText())
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 13, color: this.tertiaryText() })
+        DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphCompact, color: this.tertiaryText() })
           .rotate({ angle: 180 })
-      }.width('100%').constraintSize({ minHeight: 60 }).padding({ left: 10, right: 10, top: 7, bottom: 7 })
+      }.width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
+        .padding({ left: NativeDesign.rowInset, right: NativeDesign.rowInset, top: 7, bottom: 7 })
     }.width('100%').borderRadius(NativeDesign.radiusRow).backgroundColor(Color.Transparent)
       .onClick((): void => { this.openDetail(task); })
       .transition(NativeMotion.rowTransition())
@@ -543,9 +545,9 @@ export struct NativeAutomationSurface {
   @Builder
   private emptyState() {
     Column({ space: 12 }) {
-      DSHIcon({ glyph: 'plan-outline', glyphSize: 34, color: this.tertiaryText() })
+      DSHIcon({ glyph: 'plan-outline', glyphSize: NativeDesign.glyphEmpty, color: this.tertiaryText() })
       Text(this.query ? '没有匹配的任务' : '还没有自动化任务')
-        .fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
+        .fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
       if (!this.query) {
         Button('创建任务', { type: ButtonType.Normal }).height(NativeDesign.hitTarget)
           .padding({ left: 16, right: 16 }).borderRadius(NativeDesign.radiusControl)
@@ -561,13 +563,13 @@ export struct NativeAutomationSurface {
       Row({ space: 4 }) {
         NativeIconButton({
           glyph: 'chevron-left-outline', label: '返回', tone: 'primary',
-          glyphSize: 17, onPressed: (): void => { this.onClose(); }
+          glyphSize: NativeDesign.glyphControl, onPressed: (): void => { this.onClose(); }
         })
         Text('自动化任务').fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium)
           .layoutWeight(1).fontColor(this.primaryText())
-        if (this.refreshing) LoadingProgress().width(18).height(18).color(this.accent())
+        if (this.refreshing) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.accent())
         NativeIconButton({
-          glyph: 'plus-outline', label: '创建任务', tone: 'primary', glyphSize: 17,
+          glyph: 'plus-outline', label: '创建任务', tone: 'primary', glyphSize: NativeDesign.glyphControl,
           onPressed: (): void => { this.openCreate(); }
         })
       }.width('100%').height(NativeDesign.headerHeight)
@@ -576,8 +578,8 @@ export struct NativeAutomationSurface {
       this.errorNotice()
       if (this.loading && !this.catalog.items.length) {
         Column({ space: 10 }) {
-          LoadingProgress().width(26).height(26).color(this.accent())
-          Text('正在读取任务').fontSize(12).fontColor(this.secondaryText())
+          LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage).color(this.accent())
+          Text('正在读取任务').fontSize(NativeDesign.fontSection).fontColor(this.secondaryText())
         }.width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
       } else if (this.filteredItems().length === 0) {
         this.emptyState()
@@ -588,7 +590,8 @@ export struct NativeAutomationSurface {
           }, (task: NativeAutomationTask) => task.id + ':' + task.status + ':' + task.updatedAt)
         }.layoutWeight(1).width('100%').scrollBar(BarState.Auto).cachedCount(12)
       }
-    }.padding({ left: 12, right: 12, top: this.safeTop + 4, bottom: this.safeBottom + 8 })
+    }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset,
+      top: this.safeTop + 4, bottom: this.safeBottom + 8 })
       .width('100%').height('100%').backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition(this.navigationDirection))
   }
@@ -596,12 +599,13 @@ export struct NativeAutomationSurface {
   @Builder
   private detailRow(title: string, value: string, icon: string = '') {
     Row({ space: 10 }) {
-      if (icon) DSHIcon({ glyph: icon, glyphSize: 14, color: this.tertiaryText() })
-      Text(title).fontSize(11).fontColor(this.secondaryText()).width(72)
-      Text(value || '—').fontSize(12).layoutWeight(1).maxLines(2)
+      if (icon) DSHIcon({ glyph: icon, glyphSize: NativeDesign.glyphCompact, color: this.tertiaryText() })
+      Text(title).fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText()).width(72)
+      Text(value || '—').fontSize(NativeDesign.fontSection).layoutWeight(1).maxLines(2)
         .textOverflow({ overflow: TextOverflow.Ellipsis }).textAlign(TextAlign.End)
         .fontColor(this.primaryText())
-    }.width('100%').constraintSize({ minHeight: 38 }).padding({ left: 10, right: 10, top: 5, bottom: 5 })
+    }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
+      .padding({ left: NativeDesign.rowInset, right: NativeDesign.rowInset, top: 5, bottom: 5 })
   }
 
   @Builder
@@ -616,25 +620,26 @@ export struct NativeAutomationSurface {
             Stack() {
               DSHIcon({
                 glyph: this.selected.status === 'active' ? 'plan-outline' : 'archive-outline',
-                glyphSize: 23, color: this.statusColor(this.selected.status)
+                glyphSize: NativeDesign.glyphHero, color: this.statusColor(this.selected.status)
               })
-            }.width(48).height(48).borderRadius(14).backgroundColor(this.statusSurface(this.selected.status))
+            }.width(NativeDesign.standardRow).height(NativeDesign.standardRow)
+              .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.statusSurface(this.selected.status))
             Column({ space: 3 }) {
-              Text(this.selected.title).fontSize(18).fontWeight(FontWeight.Medium).maxLines(2)
+              Text(this.selected.title).fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium).maxLines(2)
                 .fontColor(this.primaryText())
               Text(nativeAutomationStatus(this.selected.status) + ' · ' +
-                nativeAutomationKind(this.selected.kind)).fontSize(11).fontColor(this.secondaryText())
+                nativeAutomationKind(this.selected.kind)).fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
             }.layoutWeight(1).alignItems(HorizontalAlign.Start)
           }.width('100%').padding({ top: 4, bottom: 4 })
           Row({ space: 8 }) {
             Button(this.actionBusy === 'active' ? '处理中…' :
               this.selected.status === 'active' ? '暂停' : '启用', { type: ButtonType.Normal })
-              .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(12)
+              .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
               .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
               .fontColor(this.primaryText()).enabled(!this.actionBusy && this.selected.status !== 'ended')
               .onClick((): void => { this.toggleActive(); })
             Button(this.actionBusy === 'run' ? '正在运行…' : '立即运行', { type: ButtonType.Normal })
-              .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(12)
+              .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
               .borderRadius(NativeDesign.radiusControl).backgroundColor(this.accent())
               .fontColor(NativeDesign.textInverse(this.dark))
               .enabled(!this.actionBusy && !this.selected.executionActive &&
@@ -657,46 +662,47 @@ export struct NativeAutomationSurface {
             }
           }.width('100%').borderRadius(NativeDesign.radiusGroup)
             .border({ width: 0.5, color: this.lineColor() })
-          Text('任务指令').fontSize(11).fontWeight(FontWeight.Medium).fontColor(this.secondaryText())
+          Text('任务指令').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium).fontColor(this.secondaryText())
             .width('100%').padding({ left: 4 })
-          Text(this.selected.prompt).fontSize(13).lineHeight(20).width('100%')
+          Text(this.selected.prompt).fontSize(NativeDesign.fontCompact).lineHeight(20).width('100%')
             .fontColor(this.primaryText()).padding(12).borderRadius(NativeDesign.radiusRow)
             .backgroundColor(this.fieldSurface())
           Button({ type: ButtonType.Normal }) {
             Row({ space: 10 }) {
-              DSHIcon({ glyph: 'archive-outline', glyphSize: 17, color: this.secondaryText() })
+              DSHIcon({ glyph: 'archive-outline', glyphSize: NativeDesign.glyphControl, color: this.secondaryText() })
               Column({ space: 2 }) {
-                Text('投递记录').fontSize(13).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
+                Text('投递记录').fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
                 Text(this.selected.lastDeliveryAt ?
                   '上次 ' + nativeAutomationTimestamp(this.selected.lastDeliveryAt) : '暂无投递记录')
-                  .fontSize(10).fontColor(this.tertiaryText())
+                  .fontSize(NativeDesign.fontMicro).fontColor(this.tertiaryText())
               }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-              DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 13, color: this.tertiaryText() })
+              DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphCompact, color: this.tertiaryText() })
                 .rotate({ angle: 180 })
             }.width('100%').padding({ left: 12, right: 12 })
-          }.width('100%').height(58).borderRadius(NativeDesign.radiusRow)
+          }.width('100%').height(NativeDesign.doubleLineRow).borderRadius(NativeDesign.radiusRow)
             .backgroundColor(this.fieldSurface()).onClick((): void => { this.openHistory(); })
           Button('删除任务', { type: ButtonType.Normal }).width('100%')
-            .height(NativeDesign.hitTarget).fontSize(12).borderRadius(NativeDesign.radiusControl)
+            .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection).borderRadius(NativeDesign.radiusControl)
             .backgroundColor(NativeDesign.dangerSurface(this.dark)).fontColor(this.danger())
             .enabled(!this.actionBusy).onClick((): void => { this.confirmDelete(); })
         }.width('100%').padding({ bottom: 16 }).alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.Top).scrollBar(BarState.Auto)
-    }.padding({ left: 12, right: 12, top: this.safeTop + 4, bottom: this.safeBottom + 8 })
+    }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset,
+      top: this.safeTop + 4, bottom: this.safeBottom + 8 })
       .width('100%').height('100%').backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition(this.navigationDirection))
   }
 
   @Builder
   private fieldLabel(value: string) {
-    Text(value).fontSize(11).fontWeight(FontWeight.Medium).width('100%')
+    Text(value).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium).width('100%')
       .fontColor(this.secondaryText()).padding({ left: 4 })
   }
 
   @Builder
   private choiceChip(label: string, value: string, current: string, action: (value: string) => void) {
     Button(label, { type: ButtonType.Normal }).height(NativeDesign.compactChip).padding({ left: 9, right: 9 })
-      .fontSize(11).borderRadius(NativeDesign.radiusControl)
+      .fontSize(NativeDesign.fontCaption).borderRadius(NativeDesign.radiusControl)
       .backgroundColor(current === value ? NativeDesign.accentSurface(this.dark) : this.fieldSurface())
       .fontColor(current === value ? this.accent() : this.secondaryText())
       .margin({ right: 6, bottom: 6 })
@@ -708,13 +714,13 @@ export struct NativeAutomationSurface {
   private timingFields() {
     if (this.formKind === 'after' || this.formKind === 'every') {
       TextInput({ text: this.formInterval, placeholder: '间隔分钟' })
-        .width('100%').height(NativeDesign.standardRow).fontSize(13).type(InputType.Number)
+        .width('100%').height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact).type(InputType.Number)
         .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
         .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
         .onChange((value: string): void => { this.formInterval = value; })
     } else if (this.formKind === 'daily' || this.formKind === 'weekly') {
       TextInput({ text: this.formTime, placeholder: '09:00' })
-        .width('100%').height(NativeDesign.standardRow).fontSize(13)
+        .width('100%').height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
         .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
         .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
         .onChange((value: string): void => { this.formTime = value; })
@@ -722,7 +728,8 @@ export struct NativeAutomationSurface {
         Row({ space: 4 }) {
           ForEach([1, 2, 3, 4, 5, 6, 7], (day: number) => {
             Button(['一', '二', '三', '四', '五', '六', '日'][day - 1], { type: ButtonType.Normal })
-              .layoutWeight(1).height(34).fontSize(11).borderRadius(8)
+              .layoutWeight(1).height(NativeDesign.compactHitTarget)
+              .fontSize(NativeDesign.fontCaption).borderRadius(NativeDesign.radiusCompact)
               .backgroundColor(this.formWeekdays.includes(day) ?
                 NativeDesign.accentSurface(this.dark) : this.fieldSurface())
               .fontColor(this.formWeekdays.includes(day) ? this.accent() : this.secondaryText())
@@ -732,32 +739,32 @@ export struct NativeAutomationSurface {
       }
     } else if (this.formKind === 'cron') {
       TextInput({ text: this.formExpression, placeholder: '0 9 * * *' })
-        .width('100%').height(NativeDesign.standardRow).fontSize(13)
+        .width('100%').height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
         .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
         .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
         .onChange((value: string): void => { this.formExpression = value; })
     } else if (this.formKind === 'at') {
       Row({ space: 8 }) {
         TextInput({ text: this.formAtDate, placeholder: 'YYYY-MM-DD' })
-          .layoutWeight(1).height(NativeDesign.standardRow).fontSize(13)
+          .layoutWeight(1).height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
           .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
           .onChange((value: string): void => { this.formAtDate = value; })
         TextInput({ text: this.formAtTime, placeholder: '09:00' })
-          .width(92).height(NativeDesign.standardRow).fontSize(13)
+          .width(92).height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
           .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
           .onChange((value: string): void => { this.formAtTime = value; })
       }.width('100%')
     } else if (this.formKind === 'rrule') {
-      TextArea({ text: this.formRRule, placeholder: 'RRULE' }).width('100%').height(88).fontSize(12)
+      TextArea({ text: this.formRRule, placeholder: 'RRULE' }).width('100%').height(88).fontSize(NativeDesign.fontSection)
         .padding(10).borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
         .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
         .onChange((value: string): void => { this.formRRule = value; })
     }
     if (this.formKind !== 'rrule') {
       TextInput({ text: this.formTimeZone, placeholder: 'Asia/Shanghai' })
-        .width('100%').height(NativeDesign.standardRow).fontSize(13)
+        .width('100%').height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
         .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
         .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
         .onChange((value: string): void => { this.formTimeZone = value; })
@@ -774,13 +781,13 @@ export struct NativeAutomationSurface {
         Column({ space: 8 }) {
           this.fieldLabel('名称')
           TextInput({ text: this.formTitle, placeholder: '任务名称' })
-            .width('100%').height(NativeDesign.standardRow).fontSize(13)
+            .width('100%').height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
             .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
             .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
             .onChange((value: string): void => { this.formTitle = value; })
           this.fieldLabel('指令')
           TextArea({ text: this.formPrompt, placeholder: '发送给智能体的任务指令' })
-            .width('100%').height(120).fontSize(13).padding(10)
+            .width('100%').height(120).fontSize(NativeDesign.fontCompact).padding(10)
             .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
             .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
             .onChange((value: string): void => { this.formPrompt = value; })
@@ -800,7 +807,7 @@ export struct NativeAutomationSurface {
               (value: string): void => { this.formKind = value; })
             this.choiceChip('RRULE', 'rrule', this.formKind,
               (value: string): void => { this.formKind = value; })
-          }.width('100%').constraintSize({ minHeight: 40 })
+          }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
           this.timingFields()
           this.fieldLabel('目标')
           Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
@@ -810,33 +817,34 @@ export struct NativeAutomationSurface {
               (value: string): void => { this.formTargetKind = value; })
             this.choiceChip('已有会话', 'session', this.formTargetKind,
               (value: string): void => { this.formTargetKind = value; })
-          }.width('100%').constraintSize({ minHeight: 40 })
+          }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
           if (this.formTargetKind === 'session') {
             TextInput({ text: this.formSessionId, placeholder: '会话 ID' })
-              .width('100%').height(NativeDesign.standardRow).fontSize(13)
+              .width('100%').height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
               .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
               .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
               .onChange((value: string): void => { this.formSessionId = value; })
           } else {
             TextInput({ text: this.formCwd, placeholder: '工作目录 · 默认' })
-              .width('100%').height(NativeDesign.standardRow).fontSize(13)
+              .width('100%').height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
               .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
               .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
               .onChange((value: string): void => { this.formCwd = value; })
             TextInput({ text: this.formPreset, placeholder: '智能体预设 · 默认' })
-              .width('100%').height(NativeDesign.standardRow).fontSize(13)
+              .width('100%').height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
               .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
               .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
               .onChange((value: string): void => { this.formPreset = value; })
           }
           Button(this.saving ? '保存中…' : '保存任务', { type: ButtonType.Normal }).width('100%')
-            .height(NativeDesign.hitTarget).fontSize(13).borderRadius(NativeDesign.radiusControl)
+            .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontCompact).borderRadius(NativeDesign.radiusControl)
             .backgroundColor(this.accent()).fontColor(NativeDesign.textInverse(this.dark))
             .enabled(!this.saving && this.formValid() && !this.conflict)
             .onClick((): void => { this.save(); })
         }.width('100%').padding({ bottom: 20 }).alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.Top).scrollBar(BarState.Auto)
-    }.padding({ left: 12, right: 12, top: this.safeTop + 4, bottom: this.safeBottom + 8 })
+    }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset,
+      top: this.safeTop + 4, bottom: this.safeBottom + 8 })
       .width('100%').height('100%').backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition(this.navigationDirection))
   }
@@ -845,16 +853,16 @@ export struct NativeAutomationSurface {
   private historyRecord(recordIndex: number) {
     Column({ space: 4 }) {
       Row() {
-        Text('投递 ' + (recordIndex + 1).toString()).fontSize(12).fontWeight(FontWeight.Medium)
+        Text('投递 ' + (recordIndex + 1).toString()).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
           .fontColor(this.primaryText())
         Blank()
         Text(nativeAutomationTimestamp(this.history.records[recordIndex].deliveredAt))
-          .fontSize(10).fontColor(this.tertiaryText())
+          .fontSize(NativeDesign.fontMicro).fontColor(this.tertiaryText())
       }.width('100%')
-      Text(this.history.records[recordIndex].prompt || '已投递任务指令').fontSize(11).maxLines(3)
+      Text(this.history.records[recordIndex].prompt || '已投递任务指令').fontSize(NativeDesign.fontCaption).maxLines(3)
         .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%').fontColor(this.secondaryText())
       if (this.history.records[recordIndex].targetSessionId) {
-        Text(this.history.records[recordIndex].targetSessionId).fontSize(9).maxLines(1)
+        Text(this.history.records[recordIndex].targetSessionId).fontSize(NativeDesign.fontMicro).maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%').fontColor(this.tertiaryText())
       }
     }.width('100%').padding(10).borderRadius(NativeDesign.radiusRow)
@@ -868,14 +876,14 @@ export struct NativeAutomationSurface {
       this.errorNotice()
       if (this.historyLoading && !this.history.records.length) {
         Column({ space: 10 }) {
-          LoadingProgress().width(24).height(24).color(this.accent())
-          Text('正在读取记录').fontSize(12).fontColor(this.secondaryText())
+          LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage).color(this.accent())
+          Text('正在读取记录').fontSize(NativeDesign.fontSection).fontColor(this.secondaryText())
         }.width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
       } else if (!this.history.records.length) {
         Column({ space: 10 }) {
-          DSHIcon({ glyph: 'archive-outline', glyphSize: 30, color: this.tertiaryText() })
+          DSHIcon({ glyph: 'archive-outline', glyphSize: NativeDesign.glyphHero, color: this.tertiaryText() })
           Text(this.history.code ? '此任务的记录不可用' : '暂无投递记录')
-            .fontSize(13).fontColor(this.secondaryText())
+            .fontSize(NativeDesign.fontCompact).fontColor(this.secondaryText())
         }.width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
       } else {
         List({ space: 4 }) {
@@ -886,7 +894,7 @@ export struct NativeAutomationSurface {
           if (this.history.nextBefore) {
             ListItem() {
               Button(this.historyLoading ? '读取中…' : '加载更早记录', { type: ButtonType.Normal })
-                .width('100%').height(NativeDesign.hitTarget).fontSize(11)
+                .width('100%').height(NativeDesign.hitTarget).fontSize(NativeDesign.fontCaption)
                 .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
                 .fontColor(this.primaryText()).enabled(!this.historyLoading)
                 .onClick((): void => { this.loadHistory(true); })
@@ -894,7 +902,8 @@ export struct NativeAutomationSurface {
           }
         }.layoutWeight(1).width('100%').scrollBar(BarState.Auto)
       }
-    }.padding({ left: 12, right: 12, top: this.safeTop + 4, bottom: this.safeBottom + 8 })
+    }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset,
+      top: this.safeTop + 4, bottom: this.safeBottom + 8 })
       .width('100%').height('100%').backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition(this.navigationDirection))
   }

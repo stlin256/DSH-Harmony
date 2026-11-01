@@ -13,7 +13,7 @@ export struct NativeIconButton {
   @Prop active: boolean = false;
   @Prop controlEnabled: boolean = true;
   @Prop tone: string = 'secondary';
-  @Prop glyphSize: number = 16;
+  @Prop glyphSize: number = NativeDesign.glyphControl;
   onPressed: () => void = (): void => {};
   @StorageLink('nativeDark') private dark: boolean = false;
 

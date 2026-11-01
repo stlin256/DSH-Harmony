@@ -383,37 +383,37 @@ export struct NativeImageLightbox {
           .onTouch((event: TouchEvent): void => { this.handleTouch(event); })
       } else if (this.loading) {
         Column({ space: 10 }) {
-          LoadingProgress().width(28).height(28).color('#FFFFFF')
-          Text('正在加载图片…').fontSize(12).fontColor('#D7D9DE')
+          LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage).color('#FFFFFF')
+          Text('正在加载图片…').fontSize(NativeDesign.fontSection).fontColor('#D7D9DE')
         }
       } else {
         Column({ space: 12 }) {
-          Text(this.error || '图片不可用').fontSize(14).fontColor('#F2F3F5')
+          Text(this.error || '图片不可用').fontSize(NativeDesign.fontBody).fontColor('#F2F3F5')
           Button('重试', { type: ButtonType.Normal })
-            .height(NativeDesign.hitTarget).fontSize(13)
+            .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontCompact)
             .borderRadius(NativeDesign.radiusControl)
             .backgroundColor(NativeDesign.selection(true)).fontColor('#FFFFFF')
             .onClick((): void => { this.load(); })
         }
       }
       Row({ space: 8 }) {
-        Text(this.attachment.name || '图片').fontSize(14).fontWeight(FontWeight.Medium).layoutWeight(1)
+        Text(this.attachment.name || '图片').fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).layoutWeight(1)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor('#FFFFFF')
         if (this.saving) {
-          LoadingProgress().width(20).height(20).color('#FFFFFF')
+          LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage).color('#FFFFFF')
         } else {
           Button({ type: ButtonType.Circle }) {
-            DSHIcon({ glyph: 'download-outline', glyphSize: 16, color: '#FFFFFF' })
+            DSHIcon({ glyph: 'download-outline', glyphSize: NativeDesign.glyphControl, color: '#FFFFFF' })
           }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
             .backgroundColor(NativeDesign.selection(true)).accessibilityText('下载图片')
             .onClick((): void => { this.saveToGallery(); })
         }
         Button({ type: ButtonType.Circle }) {
-          DSHIcon({ glyph: 'close-outline', glyphSize: 17, color: '#FFFFFF' })
+          DSHIcon({ glyph: 'close-outline', glyphSize: NativeDesign.glyphControl, color: '#FFFFFF' })
         }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
           .backgroundColor(NativeDesign.selection(true)).accessibilityText('关闭图片预览')
           .onClick((): void => { this.onClose(); })
-      }.width('100%').height(58 + this.safeTop)
+      }.width('100%').height(NativeDesign.doubleLineRow + this.safeTop)
         .padding({ left: 8 + this.safeLeft, right: 8 + this.safeRight, top: 10 + this.safeTop })
         .position({ x: 0, y: 0 })
     }.width('100%').height('100%')

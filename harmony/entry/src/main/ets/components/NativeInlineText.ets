@@ -156,16 +156,16 @@ export struct NativeInlineText {
   private remoteImagePreview() {
     Column({ space: 8 }) {
       Row({ space: 4 }) {
-        Text(this.remoteTitle || '图片').fontSize(14).fontWeight(FontWeight.Medium).layoutWeight(1)
+        Text(this.remoteTitle || '图片').fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).layoutWeight(1)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           .fontColor(NativeDesign.textPrimary(this.dark))
         NativeIconButton({
-          glyph: 'close-outline', label: '关闭图片预览', tone: 'primary', glyphSize: 15,
+          glyph: 'close-outline', label: '关闭图片预览', tone: 'primary', glyphSize: NativeDesign.glyphControl,
           onPressed: (): void => { this.remotePreview = false; }
         })
       }.height(NativeDesign.headerHeight).width('100%')
       if (this.remoteError) {
-        Text(this.remoteError).fontSize(13).layoutWeight(1).textAlign(TextAlign.Center)
+        Text(this.remoteError).fontSize(NativeDesign.fontCompact).layoutWeight(1).textAlign(TextAlign.Center)
           .fontColor(NativeDesign.danger(this.dark))
       } else {
         Scroll() {

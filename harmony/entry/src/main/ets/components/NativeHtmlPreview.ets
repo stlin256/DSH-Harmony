@@ -244,7 +244,7 @@ export struct NativeHtmlPreview {
           })
       }
       if (this.error) {
-        Text(this.error).fontSize(13).fontColor(NativeDesign.danger(this.dark))
+        Text(this.error).fontSize(NativeDesign.fontCompact).fontColor(NativeDesign.danger(this.dark))
           .padding(NativeDesign.cardPadding)
           .borderRadius(NativeDesign.radiusGroup)
           .backgroundColor(NativeDesign.raised(this.dark))

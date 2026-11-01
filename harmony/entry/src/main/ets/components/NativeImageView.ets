@@ -67,7 +67,7 @@ export struct NativeImageView {
   build() {
     Column({ space: this.compact ? 0 : 8 }) {
       if (!this.compact) {
-        Text(this.attachment.name || '图片').fontSize(12)
+        Text(this.attachment.name || '图片').fontSize(NativeDesign.fontSection)
           .fontColor(NativeDesign.textSecondary(this.dark))
       }
       if (this.bitmap) {
@@ -91,7 +91,7 @@ export struct NativeImageView {
           } else {
             Text(this.compact ? '重试' : (this.error || '图片 · ' + this.attachment.width + ' × ' +
               this.attachment.height))
-              .fontSize(this.compact ? 10 : 12)
+              .fontSize(this.compact ? NativeDesign.fontMicro : NativeDesign.fontSection)
               .fontColor(NativeDesign.textSecondary(this.dark))
           }
         }.height(this.compact ? this.compactHeight() : 48).width(this.compact ? this.compactSize : '100%')

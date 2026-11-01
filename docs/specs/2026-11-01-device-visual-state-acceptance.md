@@ -100,8 +100,8 @@ contracts:
     arrows adjacent to the page count, with compact action buttons.
 12. Reduced-transparency mode remains visually distinct from elevated material
     while preserving full-width fallback geometry.
-13. The floating task-plan header uses the 36 vp compact semantic target without
-    shrinking its labels. The active Plan chip is a clipped capsule, and a
+13. The floating task-plan header uses the 32 vp dense-control semantic target
+    without shrinking its labels. The active Plan chip is a clipped capsule, and a
     selected session refreshes its Plan/subagent projection baseline even when
     the session-list record does not contain those values. The deterministic
     Mock session list carries the same projection values so the executable chip

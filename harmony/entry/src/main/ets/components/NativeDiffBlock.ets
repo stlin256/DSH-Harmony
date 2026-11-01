@@ -72,7 +72,7 @@ export struct NativeDiffBlock {
   @Builder
   private line(row: NativeDiffRow) {
     Text(this.lineText(row))
-      .fontSize(11).lineHeight('18fp').fontFamily('Noto Sans Mono, monospace')
+      .fontSize(NativeDesign.fontCaption).lineHeight('18fp').fontFamily('Noto Sans Mono, monospace')
       .fontColor(this.color(row.kind)).backgroundColor(this.rowBackground(row.kind))
       .wordBreak(WordBreak.BREAK_WORD)
       .padding({ left: 7, right: 7, top: 1, bottom: 1 })
@@ -80,11 +80,11 @@ export struct NativeDiffBlock {
   build() {
     Column({ space: 0 }) {
       Row({ space: 2 }) {
-        Text(this.document.path || '变更').fontSize(11).fontWeight(FontWeight.Medium).layoutWeight(1)
+        Text(this.document.path || '变更').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium).layoutWeight(1)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           .fontColor(NativeDesign.accent(this.dark))
         Button({ type: ButtonType.Normal }) {
-          Text('#').fontSize(13).fontWeight(FontWeight.Medium)
+          Text('#').fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
             .fontFamily('Noto Sans Mono, monospace')
             .fontColor(this.showLineNumbers ? NativeDesign.textPrimary(this.dark) :
               NativeDesign.textTertiary(this.dark))
@@ -95,14 +95,14 @@ export struct NativeDiffBlock {
           .accessibilityText(this.showLineNumbers ? '隐藏行号' : '显示行号')
           .onClick((): void => { this.toggleLineNumbers(); })
         Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: this.copied ? 'check-outline' : 'copy-outline', glyphSize: 13,
+          DSHIcon({ glyph: this.copied ? 'check-outline' : 'copy-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textTertiary(this.dark) })
         }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .accessibilityText(this.copied ? '已复制 Diff' : '复制 Diff').onClick(() => { this.copy(); })
         if (this.document.rows.length > 16) {
           Button({ type: ButtonType.Normal }) {
-            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
+            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline,
               color: NativeDesign.textTertiary(this.dark) })
               .rotate({ angle: this.expanded ? -90 : 180 })
           }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)

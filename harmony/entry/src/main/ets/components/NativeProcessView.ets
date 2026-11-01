@@ -83,12 +83,12 @@ export struct NativeProcessView {
     Column({ space: this.expanded ? 6 : 0 }) {
       Button({ type: ButtonType.Normal }) {
         Row({ space: 4 }) {
-          DSHIcon({ glyph: 'think-outline', color: NativeDesign.textTertiary(this.dark), glyphSize: 14 })
-          Text('工作过程').fontSize(12).fontWeight(FontWeight.Medium)
+          DSHIcon({ glyph: 'think-outline', color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphCompact })
+          Text('工作过程').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
             .fontColor(NativeDesign.textSecondary(this.dark))
           if (this.message.detail) {
-            Text('·').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
-            Text(this.message.detail).fontSize(12).layoutWeight(1).maxLines(1)
+            Text('·').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
+            Text(this.message.detail).fontSize(NativeDesign.fontSection).layoutWeight(1).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textTertiary(this.dark))
               .opacity(this.expanded ? 0 : 1)
@@ -97,11 +97,11 @@ export struct NativeProcessView {
             Blank().layoutWeight(1)
           }
           DSHIcon({ glyph: 'chevron-left-outline',
-            color: NativeDesign.textTertiary(this.dark), glyphSize: 12 })
+            color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphInline })
             .rotate({ angle: this.expanded ? -90 : 180 })
             .animation(NativeMotion.disclosureParam())
         }.width('100%')
-      }.height(30).width('100%').padding({ left: 2, right: 2 })
+      }.height(NativeDesign.compactControl).width('100%').padding({ left: 2, right: 2 })
         .responseRegion({ x: 0, y: -7, width: '100%', height: NativeDesign.hitTarget })
         .backgroundColor(Color.Transparent).onClick((): void => { this.toggle(); })
       if (this.expanded) { this.members() }

@@ -21,7 +21,7 @@ export struct NativeDocumentModeSwitch {
   @Builder
   private modeButton(mode: string, glyph: string, label: string) {
     Button({ type: ButtonType.Normal }) {
-      DSHIcon({ glyph: glyph, glyphSize: 14, color: this.iconColor(this.mode === mode) })
+      DSHIcon({ glyph: glyph, glyphSize: NativeDesign.glyphCompact, color: this.iconColor(this.mode === mode) })
     }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget).padding(0)
       .borderRadius(NativeDesign.radiusCompact).backgroundColor(Color.Transparent)
       .accessibilityText(label)

@@ -1381,12 +1381,13 @@ export struct NativeWorkspace {
   @Builder
   private workspaceDragBuilder() {
     Row({ space: 7 }) {
-      DSHIcon({ glyph: 'drag-handle-outline', glyphSize: 14,
+      DSHIcon({ glyph: 'drag-handle-outline', glyphSize: NativeDesign.glyphCompact,
         color: this.primaryText() })
       Text(this.workspaces.items.find((item: NativeWorkspaceItem): boolean =>
         item.workspaceId === this.dragWorkspaceId)?.title || '工作区')
-        .fontSize(13).maxLines(1).fontColor(this.primaryText())
-    }.padding({ left: 12, right: 12, top: 9, bottom: 9 }).borderRadius(10)
+        .fontSize(NativeDesign.fontCompact).maxLines(1).fontColor(this.primaryText())
+    }.padding({ left: NativeDesign.rowInset, right: NativeDesign.rowInset, top: 9, bottom: 9 })
+      .borderRadius(NativeDesign.radiusControl)
       .backgroundColor(this.selectionSurface())
       .border({ width: 0.5, color: this.semanticBorderColor() })
   }
@@ -1443,7 +1444,7 @@ export struct NativeWorkspace {
         })
       Column() { this.utilityMenu() }
         .width(208).margin({ top: this.safeTop + 40, right: 12 })
-        .borderRadius(16)
+        .borderRadius(NativeDesign.radiusGroup)
         .backgroundColor(this.raisedSurface())
         .clip(true)
         .shadow({ radius: 16, color: this.dark ? '#99000000' : '#2E000000', offsetY: 5 })
@@ -2668,20 +2669,20 @@ export struct NativeWorkspace {
   private sessionRow(row: NativeWorkspaceRow) {
     Row({ space: 8 }) {
       Column({ space: 2 }) {
-        Text(row.session.title.trim() || '未命名会话').fontSize(14).maxLines(2)
+        Text(row.session.title.trim() || '未命名会话').fontSize(NativeDesign.fontBody).maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
           .fontColor(this.primaryText())
         if (row.section === 'pinnedSession' && row.workspaceTitle) {
-          Text(row.workspaceTitle).fontSize(10).maxLines(1)
+          Text(row.workspaceTitle).fontSize(NativeDesign.fontMicro).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
             .fontColor(this.tertiaryText())
         }
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       if (row.session.running) {
-        Text('运行中').fontSize(10).fontColor(NativeDesign.accent(this.dark))
+        Text('运行中').fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.accent(this.dark))
       }
       if (row.pinned) {
-        DSHIcon({ glyph: 'pin-fill', glyphSize: 12, color: this.tertiaryText() })
+        DSHIcon({ glyph: 'pin-fill', glyphSize: NativeDesign.glyphInline, color: this.tertiaryText() })
       }
       if (row.session.blank !== true) {
         Button({ type: ButtonType.Normal }) {
@@ -2716,32 +2717,32 @@ export struct NativeWorkspace {
   private workspaceHeader(entry: NativeWorkspaceRow) {
     Row({ space: 6 }) {
       DSHIcon({ glyph: entry.section === 'pinnedHeader' ? 'pin-fill' : 'chevron-left-outline',
-        glyphSize: 12, color: this.tertiaryText() })
+        glyphSize: NativeDesign.glyphInline, color: this.tertiaryText() })
         .rotate({ angle: entry.section === 'pinnedHeader' ? 0 :
           this.collapsedGroups.includes(entry.workspaceId) ? 180 : -90 })
         .animation(NativeMotion.disclosureParam())
-      Text(entry.title).fontSize(12).fontWeight(FontWeight.Medium).layoutWeight(1)
+      Text(entry.title).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium).layoutWeight(1)
         .fontColor(this.secondaryText())
-      Text(String(entry.count)).fontSize(11).fontColor(this.tertiaryText())
+      Text(String(entry.count)).fontSize(NativeDesign.fontCaption).fontColor(this.tertiaryText())
       if (entry.section === 'pinnedHeader') {
-        DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
+        DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline,
           color: this.tertiaryText() })
           .rotate({ angle: this.collapsedGroups.includes(entry.workspaceId) ? 180 : -90 })
           .animation(NativeMotion.disclosureParam())
       }
       if (entry.section === 'workspaceHeader') {
-        DSHIcon({ glyph: 'drag-handle-outline', glyphSize: 13,
+        DSHIcon({ glyph: 'drag-handle-outline', glyphSize: NativeDesign.glyphCompact,
           color: this.dragWorkspaceId === entry.workspaceId ?
             this.accentColor() : this.tertiaryText() })
         Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'plus-outline', glyphSize: 13,
+          DSHIcon({ glyph: 'plus-outline', glyphSize: NativeDesign.glyphCompact,
             color: this.secondaryText() })
         }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .accessibilityText('在工作区新建会话')
           .onClick(() => { this.createQuickSession(entry.workspaceId); })
       }
-    }.width('100%').constraintSize({ minHeight: 44 }).padding({ left: 6, right: 6 })
+    }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow }).padding({ left: 6, right: 6 })
       .border({
         width: {
           top: this.dropWorkspaceId === entry.workspaceId && !this.dropWorkspaceAfter ? 2 : 0,
@@ -2783,13 +2784,13 @@ export struct NativeWorkspace {
   private sessionList(inMobileDrawer: boolean = false) {
     Column({ space: 6 }) {
       Row({ space: 4 }) {
-        Text('DSH Harmony').fontSize(21).fontWeight(FontWeight.Bold).layoutWeight(1)
+        Text('DSH Harmony').fontSize(NativeDesign.fontPageTitle).fontWeight(FontWeight.Bold).layoutWeight(1)
           .fontColor(this.primaryText())
         NativeIconButton({
           glyph: 'search-outline',
           label: this.searchOpen ? '关闭搜索' : '搜索工作区和会话',
           active: this.searchOpen,
-          glyphSize: 17,
+          glyphSize: NativeDesign.glyphControl,
           onPressed: (): void => {
             if (this.searchOpen) this.query = '';
             NativeMotion.animate(this.getUIContext(), 'micro', (): void => {
@@ -2798,14 +2799,14 @@ export struct NativeWorkspace {
           }
         })
         if (!this.wide) {
-          NativeIconButton({ glyph: 'close-outline', label: '关闭侧边栏', glyphSize: 16,
+          NativeIconButton({ glyph: 'close-outline', label: '关闭侧边栏', glyphSize: NativeDesign.glyphControl,
             onPressed: (): void => { this.closeDrawer(); } })
         }
       }.width('100%').height(NativeDesign.headerHeight)
       Button({ type: ButtonType.Normal }) {
         Row({ space: 9 }) {
-          DSHIcon({ glyph: 'new-chat-outline', glyphSize: 17, color: this.primaryText() })
-          Text('新会话').fontSize(14).fontWeight(FontWeight.Medium)
+          DSHIcon({ glyph: 'new-chat-outline', glyphSize: NativeDesign.glyphControl, color: this.primaryText() })
+          Text('新会话').fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium)
           Blank()
         }.width('100%').padding({ left: 10, right: 10 })
       }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusRow)
@@ -2815,9 +2816,9 @@ export struct NativeWorkspace {
       Column({ space: 1 }) {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 10 }) {
-            DSHIcon({ glyph: 'code-outline', glyphSize: 17, color: this.secondaryText() })
-            Text('插件').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
-            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12, color: this.tertiaryText() })
+            DSHIcon({ glyph: 'code-outline', glyphSize: NativeDesign.glyphControl, color: this.secondaryText() })
+            Text('插件').fontSize(NativeDesign.fontBody).layoutWeight(1).fontColor(this.primaryText())
+            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline, color: this.tertiaryText() })
               .rotate({ angle: 180 })
           }.width('100%').padding({ left: 10, right: 10 })
         }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
@@ -2825,9 +2826,9 @@ export struct NativeWorkspace {
           .onClick((): void => { this.openDrawerDestination('plugins'); })
         Button({ type: ButtonType.Normal }) {
           Row({ space: 10 }) {
-            DSHIcon({ glyph: 'plan-outline', glyphSize: 17, color: this.secondaryText() })
-            Text('自动化任务').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
-            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12, color: this.tertiaryText() })
+            DSHIcon({ glyph: 'plan-outline', glyphSize: NativeDesign.glyphControl, color: this.secondaryText() })
+            Text('自动化任务').fontSize(NativeDesign.fontBody).layoutWeight(1).fontColor(this.primaryText())
+            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline, color: this.tertiaryText() })
               .rotate({ angle: 180 })
           }.width('100%').padding({ left: 10, right: 10 })
         }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
@@ -2835,9 +2836,9 @@ export struct NativeWorkspace {
           .onClick((): void => { this.openDrawerDestination('automation'); })
         Button({ type: ButtonType.Normal }) {
           Row({ space: 10 }) {
-            DSHIcon({ glyph: 'ellipsis-outline', glyphSize: 17, color: this.secondaryText() })
-            Text('更多').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
-            DSHIcon({ glyph: 'chevron-down-outline', glyphSize: 12, color: this.tertiaryText() })
+            DSHIcon({ glyph: 'ellipsis-outline', glyphSize: NativeDesign.glyphControl, color: this.secondaryText() })
+            Text('更多').fontSize(NativeDesign.fontBody).layoutWeight(1).fontColor(this.primaryText())
+            DSHIcon({ glyph: 'chevron-down-outline', glyphSize: NativeDesign.glyphInline, color: this.tertiaryText() })
               .rotate({ angle: this.moreOpen ? 180 : 0 })
               .animation(NativeMotion.implicit('micro'))
           }.width('100%').padding({ left: 10, right: 10 })
@@ -2848,18 +2849,18 @@ export struct NativeWorkspace {
           Column({ space: 1 }) {
             Button({ type: ButtonType.Capsule }) {
               Row({ space: 10 }) {
-                DSHIcon({ glyph: 'folder-outline', glyphSize: 16, color: this.secondaryText() })
-                Text('文件浏览').fontSize(13).layoutWeight(1).fontColor(this.primaryText())
+                DSHIcon({ glyph: 'folder-outline', glyphSize: NativeDesign.glyphControl, color: this.secondaryText() })
+                Text('文件浏览').fontSize(NativeDesign.fontCompact).layoutWeight(1).fontColor(this.primaryText())
               }.width('100%').padding({ left: 30, right: 10 })
-            }.width('100%').height(40).borderRadius(NativeDesign.radiusControl)
+            }.width('100%').height(NativeDesign.compactRow).borderRadius(NativeDesign.radiusControl)
               .backgroundColor(Color.Transparent).enabled(!!this.moreFileSession())
               .onClick((): void => { this.openMoreFileBrowser(); })
             Button({ type: ButtonType.Normal }) {
               Row({ space: 10 }) {
-                DSHIcon({ glyph: 'settings-outline', glyphSize: 16, color: this.secondaryText() })
-                Text('应用设置').fontSize(13).layoutWeight(1).fontColor(this.primaryText())
+                DSHIcon({ glyph: 'settings-outline', glyphSize: NativeDesign.glyphControl, color: this.secondaryText() })
+                Text('应用设置').fontSize(NativeDesign.fontCompact).layoutWeight(1).fontColor(this.primaryText())
               }.width('100%').padding({ left: 30, right: 10 })
-            }.width('100%').height(40).borderRadius(NativeDesign.radiusControl)
+            }.width('100%').height(NativeDesign.compactRow).borderRadius(NativeDesign.radiusControl)
               .backgroundColor(Color.Transparent)
               .onClick((): void => { this.openMoreSettings(); })
           }.width('100%').transition(NativeMotion.disclosureTransition())
@@ -2875,13 +2876,13 @@ export struct NativeWorkspace {
           .transition(NativeMotion.rowTransition())
       }
       Row() {
-        Text('工作区').fontSize(12).fontWeight(FontWeight.Medium).fontColor(this.secondaryText())
+        Text('工作区').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium).fontColor(this.secondaryText())
         Blank()
         Button({ type: ButtonType.Normal }) {
           Row({ space: 5 }) {
-            DSHIcon({ glyph: 'browse-outline', glyphSize: 14, color: this.tertiaryText() })
+            DSHIcon({ glyph: 'browse-outline', glyphSize: NativeDesign.glyphCompact, color: this.tertiaryText() })
             Text(this.workspaces.items.find((item: NativeWorkspaceItem) => item.workspaceId === this.workspaceId)?.title || '全部')
-              .fontSize(11).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+              .fontSize(NativeDesign.fontCaption).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
               .constraintSize({ maxWidth: 110 })
               .textAlign(TextAlign.End)
               .fontColor(this.tertiaryText())
@@ -2909,30 +2910,31 @@ export struct NativeWorkspace {
       }.layoutWeight(1).width('100%').margin({ right: -8 }).cachedCount(8).scrollBar(BarState.Auto)
       if (this.workspaceError) {
         Row() {
-          Text(this.workspaceError).fontSize(12).layoutWeight(1).fontColor(this.dangerText())
-          Button('重试', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(12)
+          Text(this.workspaceError).fontSize(NativeDesign.fontSection).layoutWeight(1).fontColor(this.dangerText())
+          Button('重试', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
             .onClick(() => { this.refreshWorkspaces(); })
         }.width('100%')
       }
       if (this.connectionPhase === 'retrying' && !this.selected) {
-        Text('连接中断，正在尝试重连').fontSize(11).padding({ left: 10, right: 10, top: 6, bottom: 6 })
-          .width('100%').borderRadius(9).fontColor(this.secondaryText())
+        Text('连接中断，正在尝试重连').fontSize(NativeDesign.fontCaption).padding({ left: 10, right: 10, top: 6, bottom: 6 })
+          .width('100%').borderRadius(NativeDesign.radiusControl).fontColor(this.secondaryText())
           .backgroundColor(this.selectionSurface())
       }
-      if (this.loading) { Text('正在连接…').fontSize(13).fontColor(this.secondaryText()) }
-      if (!this.loading && !this.visibleSessionCount) { Text('新建会话，开始你的任务').fontSize(13).fontColor(this.secondaryText()) }
+      if (this.loading) { Text('正在连接…').fontSize(NativeDesign.fontCompact).fontColor(this.secondaryText()) }
+      if (!this.loading && !this.visibleSessionCount) { Text('新建会话，开始你的任务').fontSize(NativeDesign.fontCompact).fontColor(this.secondaryText()) }
       Divider().strokeWidth(0.5).color(this.dividerColor())
       Button({ type: ButtonType.Normal }) {
         Row({ space: 10 }) {
-          DSHIcon({ glyph: 'settings-outline', glyphSize: 17, color: this.secondaryText() })
-          Text('设置').fontSize(14).layoutWeight(1).fontColor(this.primaryText())
+          DSHIcon({ glyph: 'settings-outline', glyphSize: NativeDesign.glyphControl, color: this.secondaryText() })
+          Text('设置').fontSize(NativeDesign.fontBody).layoutWeight(1).fontColor(this.primaryText())
         }.width('100%').padding({ left: 10, right: 10 })
       }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusRow)
         .backgroundColor(Color.Transparent)
         .accessibilityText('应用设置').onClick(() => {
           this.onSettings();
         })
-    }.padding({ left: 12, right: 12, top: this.safeTop + (inMobileDrawer ? 6 : 8),
+    }.padding({ left: NativeDesign.drawerInset, right: NativeDesign.drawerInset,
+      top: this.safeTop + (inMobileDrawer ? 6 : 8),
       bottom: this.safeBottom + 8 }).height('100%').width('100%')
       .backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition())
@@ -2941,18 +2943,18 @@ export struct NativeWorkspace {
   @Builder
   private subagentReadOnlyComposer() {
     Row({ space: 8 }) {
-      DSHIcon({ glyph: 'branch-outline', glyphSize: 15, color: this.tertiaryText() })
+      DSHIcon({ glyph: 'branch-outline', glyphSize: NativeDesign.glyphControl, color: this.tertiaryText() })
       Column({ space: 2 }) {
         Text(this.currentSubagentReadOnlyTitle())
-          .fontSize(12).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
+          .fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
         Text(this.currentSubagentReadOnlyCaption())
-          .fontSize(10).fontColor(this.tertiaryText())
+          .fontSize(NativeDesign.fontMicro).fontColor(this.tertiaryText())
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
     }
     .width('100%')
     .constraintSize({ minHeight: NativeDesign.hitTarget })
-    .padding({ left: 10, right: 10 })
-    .borderRadius(14)
+    .padding({ left: NativeDesign.rowInset, right: NativeDesign.rowInset })
+    .borderRadius(NativeDesign.radiusGroup)
     .backgroundColor(this.fieldSurface())
   }
 
@@ -2962,13 +2964,13 @@ export struct NativeWorkspace {
       TextArea({ text: this.draft, placeholder: '发送消息…' }).height(NativeDesign.compactHitTarget)
         .enabled(!this.sending && this.currentSubagentInputEnabled())
         .placeholderColor(this.tertiaryText())
-        .fontSize(14).borderRadius(0).padding({ left: 7, right: 7, top: 3, bottom: 3 })
+        .fontSize(NativeDesign.fontBody).borderRadius(0).padding({ left: 7, right: 7, top: 3, bottom: 3 })
         .backgroundColor(Color.Transparent).fontColor(this.primaryText())
         .onChange((value: string) => { this.draft = value; this.client.drafts.set(this.selected, value); })
       Row({ space: 6 }) {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 4 }) {
-            Text(this.modelCaption).fontSize(11).maxLines(1).constraintSize({ maxWidth: 160 })
+            Text(this.modelCaption).fontSize(NativeDesign.fontCaption).maxLines(1).constraintSize({ maxWidth: 160 })
               .textOverflow({ overflow: TextOverflow.Ellipsis })
           }.constraintSize({ maxWidth: 168 })
         }.height(NativeDesign.compactControl).padding({ left: 4, right: 4 })
@@ -2982,7 +2984,7 @@ export struct NativeWorkspace {
         Blank()
         if (this.activeAddress.kind !== 'subagent') {
           Button({ type: ButtonType.Normal }) {
-            if (this.attaching) { LoadingProgress().width(14).height(14).color(this.primaryText()) }
+            if (this.attaching) { LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.primaryText()) }
             else { DSHIcon({ glyph: 'image-outline', color: this.primaryText() }) }
           }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
             .borderRadius(NativeDesign.compactHitTarget / 2)
@@ -3001,8 +3003,8 @@ export struct NativeWorkspace {
           Button({ type: ButtonType.Normal }) {
             Row({ space: 5 }) {
               DSHIcon({ glyph: this.steer ? 'paper-plane-outline' : 'queue-outline',
-                color: this.secondaryText(), glyphSize: 14 })
-              Text(this.steer ? '接管' : '排队').fontSize(11).fontColor(this.secondaryText())
+                color: this.secondaryText(), glyphSize: NativeDesign.glyphCompact })
+              Text(this.steer ? '接管' : '排队').fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
             }
           }.height(NativeDesign.compactControl).borderRadius(NativeDesign.radiusControl)
             .backgroundColor(Color.Transparent)
@@ -3023,7 +3025,7 @@ export struct NativeWorkspace {
         } else {
           Button({ type: ButtonType.Normal }) {
             if (this.sending) {
-              LoadingProgress().width(16).height(16)
+              LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
                 .color(NativeDesign.textInverse(this.dark))
             } else {
               DSHIcon({ glyph: 'send-arrow', color: NativeDesign.textInverse(this.dark) })
@@ -3040,7 +3042,7 @@ export struct NativeWorkspace {
             .onClick(() => { this.followTail = true; this.send(); })
         }
       }.width('100%')
-    }.padding(6).width('100%').borderRadius(16)
+    }.padding(6).width('100%').borderRadius(NativeDesign.radiusGroup)
       .border({ width: 0.5, color: this.semanticBorderColor() })
       .backgroundColor(this.raisedSurface())
       .onAreaChange((_old: Area, area: Area): void => {
@@ -3063,11 +3065,11 @@ export struct NativeWorkspace {
         }
         Column({ space: 1 }) {
           if (this.activeAddress.kind === 'subagent') {
-            Text(this.currentParentTitle()).fontSize(10).maxLines(1)
+            Text(this.currentParentTitle()).fontSize(NativeDesign.fontMicro).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
               .fontColor(this.tertiaryText())
           }
-          Text(this.title).fontSize(15).fontWeight(FontWeight.Medium)
+          Text(this.title).fontSize(NativeDesign.fontCompactTitle).fontWeight(FontWeight.Medium)
             .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
             .fontColor(this.primaryText())
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
@@ -3080,11 +3082,11 @@ export struct NativeWorkspace {
           })
         if ((this.connectionPhase === 'opening' || this.connectionPhase === 'syncing') &&
           !this.model.messages.length) {
-          LoadingProgress().width(14).height(14).color(this.accentColor())
+          LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.accentColor())
             .accessibilityText('正在加载会话')
         }
         NativeIconButton({ glyph: 'ellipsis-outline', label: '更多操作',
-          active: this.utilityOpen, glyphSize: 16,
+          active: this.utilityOpen, glyphSize: NativeDesign.glyphControl,
           onPressed: (): void => { this.openUtilities(); } })
       }.width('100%')
       if (nativePlanTargetActive(this.planProjection) || this.planError ||
@@ -3093,14 +3095,14 @@ export struct NativeWorkspace {
           if (nativePlanTargetActive(this.planProjection)) {
             Button({ type: ButtonType.Capsule }) {
               Row({ space: 5 }) {
-                DSHIcon({ glyph: 'plan-outline', glyphSize: 14, color: this.accentColor() })
-                Text('计划').fontSize(11).fontColor(this.accentColor())
-                if (this.planLeaving) LoadingProgress().width(11).height(11).color(this.accentColor())
+                DSHIcon({ glyph: 'plan-outline', glyphSize: NativeDesign.glyphCompact, color: this.accentColor() })
+                Text('计划').fontSize(NativeDesign.fontCaption).fontColor(this.accentColor())
+                if (this.planLeaving) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.accentColor())
               }
             }
-            .height(28)
+            .height(NativeDesign.compactChip)
             .padding({ left: 9, right: 9 })
-            .borderRadius(14)
+            .borderRadius(NativeDesign.radiusChip)
             .backgroundColor(this.selectionSurface())
             .border({ width: 0.5, color: this.semanticBorderColor() })
             .clip(true)
@@ -3109,7 +3111,7 @@ export struct NativeWorkspace {
             .onClick((): void => { this.exitPlanMode(); })
           }
           if (this.planError) {
-            Text(this.planError).fontSize(10).fontColor(this.dangerText())
+            Text(this.planError).fontSize(NativeDesign.fontMicro).fontColor(this.dangerText())
               .transition(NativeMotion.rowTransition())
           }
           Blank()
@@ -3120,16 +3122,16 @@ export struct NativeWorkspace {
                   Text('').width(6).height(6).borderRadius(3)
                     .backgroundColor(this.accentColor())
                 } else {
-                  DSHIcon({ glyph: 'branch-outline', glyphSize: 13, color: this.secondaryText() })
+                  DSHIcon({ glyph: 'branch-outline', glyphSize: NativeDesign.glyphCompact, color: this.secondaryText() })
                 }
                 Text((this.subagentCatalog?.length || 0).toString() + ' 个子智能体')
-                  .fontSize(11).fontColor(this.secondaryText())
-                DSHIcon({ glyph: 'chevron-down-outline', glyphSize: 12, color: this.tertiaryText() })
+                  .fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
+                DSHIcon({ glyph: 'chevron-down-outline', glyphSize: NativeDesign.glyphInline, color: this.tertiaryText() })
               }
             }
-            .height(28)
+            .height(NativeDesign.compactChip)
             .padding({ left: 9, right: 8 })
-            .borderRadius(14)
+            .borderRadius(NativeDesign.radiusChip)
             .backgroundColor(this.fieldSurface())
             .border({ width: 0.5, color: this.semanticBorderColor() })
             .clip(true)
@@ -3141,10 +3143,11 @@ export struct NativeWorkspace {
       }
       if (this.connectionPhase === 'retrying') {
         Row({ space: 8 }) {
-          Text('•').fontSize(14).fontColor(this.warningText())
-          Text('连接中断，正在尝试重连').fontSize(12).fontColor(this.secondaryText())
+          Text('•').fontSize(NativeDesign.fontBody).fontColor(this.warningText())
+          Text('连接中断，正在尝试重连').fontSize(NativeDesign.fontSection).fontColor(this.secondaryText())
           Blank()
-        }.padding({ left: 10, right: 10, top: 6, bottom: 6 }).width('100%').borderRadius(9)
+        }.padding({ left: 10, right: 10, top: 6, bottom: 6 }).width('100%')
+          .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.selectionSurface())
       }
       Stack({ alignContent: Alignment.TopStart }) {
@@ -3153,10 +3156,10 @@ export struct NativeWorkspace {
             ListItem() {
               Button({ type: ButtonType.Normal }) {
                 Row({ space: 4 }) {
-                  if (this.paging) LoadingProgress().width(12).height(12)
-                  else DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
+                  if (this.paging) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
+                  else DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline,
                     color: this.tertiaryText() }).rotate({ angle: 90 })
-                  Text(this.paging ? '读取中' : '更早').fontSize(11)
+                  Text(this.paging ? '读取中' : '更早').fontSize(NativeDesign.fontCaption)
                     .fontColor(this.tertiaryText())
                 }
               }.enabled(!this.paging).height(NativeDesign.hitTarget).padding({ left: 9, right: 9 })
@@ -3194,13 +3197,13 @@ export struct NativeWorkspace {
                   }.width('100%').padding({ left: 12, right: 12 })
                 } else {
                   Row({ space: 8 }) {
-                    Text(message.label + (message.text ? ' · ' + message.text : '')).fontSize(11).layoutWeight(1)
+                    Text(message.label + (message.text ? ' · ' + message.text : '')).fontSize(NativeDesign.fontCaption).layoutWeight(1)
                       .fontColor(message.footerOutcome === 'failed' ?
                         NativeDesign.danger(this.dark) : this.tertiaryText())
                     if (message.footerCopyText) {
                       Button({ type: ButtonType.Normal }) {
                         DSHIcon({ glyph: this.footerCopiedId === message.footerCopyMessageId ?
-                          'check-outline' : 'copy-outline', glyphSize: 13,
+                          'check-outline' : 'copy-outline', glyphSize: NativeDesign.glyphCompact,
                           color: this.tertiaryText() })
                       }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
                         .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
@@ -3281,7 +3284,7 @@ export struct NativeWorkspace {
           Stack({ alignContent: Alignment.Bottom }) {
             Button({ type: ButtonType.Circle }) {
               Stack({ alignContent: Alignment.Center }) {
-                DSHIcon({ glyph: 'chevron-down-outline', glyphSize: 17,
+                DSHIcon({ glyph: 'chevron-down-outline', glyphSize: NativeDesign.glyphControl,
                   color: this.primaryText() })
                 if (this.backToBottomNew) {
                   Text('').position({ x: 12, y: -12 }).width(6).height(6).borderRadius(6)
@@ -3320,13 +3323,13 @@ export struct NativeWorkspace {
       }, (frame: NativeFrame) => frame.eventId)
       if (this.waiting && !this.interactions.length && !this.continued.length) {
           Button('有待处理输入 · 打开完整交互', { type: ButtonType.Normal })
-            .height(NativeDesign.hitTarget).fontSize(12).borderRadius(NativeDesign.radiusControl)
+            .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
           .onClick(this.onCompatibility)
       }
       if (this.uncertain) {
         Button('发送结果未确认 · 已检查会话，允许再次发送', { type: ButtonType.Normal })
-          .height(NativeDesign.hitTarget).fontSize(11)
+          .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontCaption)
           .backgroundColor(Color.Transparent).fontColor(this.secondaryText())
           .onClick(() => { this.client.uncertain.delete(this.selected); this.uncertain = false; })
       }
@@ -3339,14 +3342,14 @@ export struct NativeWorkspace {
         Column({ space: 8 }) {
           if (this.error) {
             Row({ space: 8 }) {
-              Text('!').fontSize(11).fontWeight(FontWeight.Bold)
+              Text('!').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Bold)
                 .fontColor(this.dangerText())
                 .width(18).height(18).borderRadius(9).textAlign(TextAlign.Center)
                 .backgroundColor(NativeDesign.dangerSurface(this.dark))
-              Text(this.error).fontSize(11).lineHeight(16).maxLines(2)
+              Text(this.error).fontSize(NativeDesign.fontCaption).lineHeight(16).maxLines(2)
                 .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
                 .fontColor(this.dangerText())
-              NativeIconButton({ glyph: 'close-outline', label: '关闭错误', glyphSize: 12,
+              NativeIconButton({ glyph: 'close-outline', label: '关闭错误', glyphSize: NativeDesign.glyphInline,
                 onPressed: (): void => { this.error = ''; } })
             }.width('100%').padding({ left: 8, right: 2, top: 5, bottom: 5 })
               .borderRadius(12)
@@ -3360,7 +3363,7 @@ export struct NativeWorkspace {
                 summary: this.liveTurnChanges,
                 maxWidth: Math.min(360, Math.max(180, this.windowWidth - 64))
               })
-            }.width('100%').height(30).justifyContent(FlexAlign.Center)
+            }.width('100%').height(NativeDesign.compactControl).justifyContent(FlexAlign.Center)
               .hitTestBehavior(HitTestMode.None)
               .transition(NativeMotion.disclosureTransition())
           }
@@ -3383,16 +3386,16 @@ export struct NativeWorkspace {
                         Image(item.uri).width(46).height(46).borderRadius(11).objectFit(ImageFit.Cover)
                         if (item.status === 'uploading') {
                           Stack({ alignContent: Alignment.Center }) {
-                            LoadingProgress().width(16).height(16).color('#FFFFFF')
+                            LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color('#FFFFFF')
                           }.width(46).height(46).borderRadius(11).backgroundColor('#66000000')
                         } else if (item.status === 'error') {
-                          Text('!').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+                          Text('!').fontSize(NativeDesign.fontCompactTitle).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
                             .width(22).height(22).borderRadius(11).textAlign(TextAlign.Center)
                             .backgroundColor('#C34B4B')
                         }
                         Button({ type: ButtonType.Circle }) {
                           Stack({ alignContent: Alignment.Center }) {
-                            DSHIcon({ glyph: 'close-outline', glyphSize: 9, color: '#FFFFFF' })
+                            DSHIcon({ glyph: 'close-outline', glyphSize: NativeDesign.glyphMicro, color: '#FFFFFF' })
                           }.width(20).height(20).borderRadius(10).backgroundColor('#99000000')
                         }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
                           .backgroundColor(Color.Transparent).align(Alignment.TopEnd)
@@ -3405,19 +3408,19 @@ export struct NativeWorkspace {
                         .transition(NativeMotion.disclosureTransition())
                     } else {
                       Row({ space: 6 }) {
-                        DSHIcon({ glyph: 'file-outline', glyphSize: 16, color: this.secondaryText() })
-                        Text(item.name).fontSize(11).maxLines(1).constraintSize({ maxWidth: 120 })
+                        DSHIcon({ glyph: 'file-outline', glyphSize: NativeDesign.glyphControl, color: this.secondaryText() })
+                        Text(item.name).fontSize(NativeDesign.fontCaption).maxLines(1).constraintSize({ maxWidth: 120 })
                           .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.primaryText())
-                        if (item.status === 'uploading') LoadingProgress().width(12).height(12)
+                        if (item.status === 'uploading') LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
                         else if (item.status === 'error') {
                           Button(item.retryable ? '重试' : '失败', { type: ButtonType.Normal })
-                            .height(NativeDesign.hitTarget).fontSize(10)
+                            .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontMicro)
                             .fontColor(item.retryable ?
                               NativeDesign.danger(this.dark) : NativeDesign.textTertiary(this.dark))
                             .enabled(item.retryable).onClick(() => { this.retryAttachment(item); })
                         }
                         Button({ type: ButtonType.Circle }) {
-                          DSHIcon({ glyph: 'close-outline', glyphSize: 10, color: this.tertiaryText() })
+                          DSHIcon({ glyph: 'close-outline', glyphSize: NativeDesign.glyphMicro, color: this.tertiaryText() })
                         }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
                           .backgroundColor(Color.Transparent)
                           .accessibilityText('移除附件').onClick(() => { this.removeAttachment(item.id); })
@@ -3439,7 +3442,7 @@ export struct NativeWorkspace {
           }
         }.width('100%')
       }
-    }.padding({ left: 12, right: 12, top: this.safeTop + 4,
+    }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset, top: this.safeTop + 4,
       bottom: 0 })
       .height('100%').layoutWeight(1)
       .transition(NativeMotion.navigationTransition())
@@ -3453,20 +3456,20 @@ export struct NativeWorkspace {
       } else {
         Stack({ alignContent: Alignment.TopStart }) {
           Column({ space: 14 }) {
-          Text(this.loading ? '正在恢复会话…' : '开始你的任务').fontSize(22).fontWeight(FontWeight.Medium)
+          Text(this.loading ? '正在恢复会话…' : '开始你的任务').fontSize(NativeDesign.fontEmptyTitle).fontWeight(FontWeight.Medium)
             .fontColor(this.primaryText())
             if (!this.loading) {
               Button({ type: ButtonType.Normal }) {
                 Row({ space: 8 }) {
-                  DSHIcon({ glyph: 'new-chat-outline', glyphSize: 17, color: this.baseSurface() })
-                  Text('新建会话').fontSize(14)
+                  DSHIcon({ glyph: 'new-chat-outline', glyphSize: NativeDesign.glyphControl, color: this.baseSurface() })
+                  Text('新建会话').fontSize(NativeDesign.fontBody)
                 }
               }.height(NativeDesign.standardRow).padding({ left: 16, right: 16 })
                 .borderRadius(NativeDesign.radiusRow)
                 .backgroundColor(this.primaryText())
                 .fontColor(this.baseSurface()).onClick(() => { this.openNewSession(); })
             } else {
-              LoadingProgress().width(22).height(22).color(this.primaryText())
+              LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage).color(this.primaryText())
             }
           }.width('100%').height('100%').justifyContent(FlexAlign.Center).padding(24)
           if (!this.wide) {
@@ -3479,20 +3482,20 @@ export struct NativeWorkspace {
       }
       if (this.archivedUndo) {
         Row() {
-          Text('已归档会话').fontSize(12).layoutWeight(1)
-          Button('撤销', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(12)
+          Text('已归档会话').fontSize(NativeDesign.fontSection).layoutWeight(1)
+          Button('撤销', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
             .backgroundColor(Color.Transparent)
             .onClick(() => {
               const id = this.archivedUndo; this.archivedUndo = '';
               this.client.operation(JSON.stringify({ operation: 'unarchive', sessionId: id }))
                 .then(() => { this.refreshSessionList(); }).catch((error: Error) => this.handleError(error));
             })
-          NativeIconButton({ glyph: 'close-outline', label: '关闭归档提示', glyphSize: 12,
+          NativeIconButton({ glyph: 'close-outline', label: '关闭归档提示', glyphSize: NativeDesign.glyphInline,
             onPressed: (): void => { this.archivedUndo = ''; } })
         }.padding({ left: 12, right: 8 }).width('100%').backgroundColor(this.fieldSurface())
       }
       if (this.error && !this.selected) {
-        Text(this.error).fontSize(12).padding(12).width('100%').fontColor(this.dangerText())
+        Text(this.error).fontSize(NativeDesign.fontSection).padding(12).width('100%').fontColor(this.dangerText())
       }
     }.width('100%').height('100%').backgroundColor(this.baseSurface())
   }
@@ -3661,11 +3664,11 @@ export struct NativeWorkspace {
       Row({ space: 6 }) {
         NativeIconButton({ glyph: 'chevron-left-outline', label: '关闭新建会话', tone: 'primary',
           onPressed: (): void => { this.newSessionOpen = false; } })
-        Text('新建会话').fontSize(18).fontWeight(FontWeight.Medium)
+        Text('新建会话').fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium)
       }.width('100%')
       Scroll() {
         Column({ space: 8 }) {
-          Text('工作区').fontSize(12).fontColor(this.tertiaryText())
+          Text('工作区').fontSize(NativeDesign.fontSection).fontColor(this.tertiaryText())
           Button('默认目录', { type: ButtonType.Normal }).width('100%').height(NativeDesign.hitTarget)
             .borderRadius(NativeDesign.radiusControl)
             .backgroundColor(!this.newWorkspaceId ? this.fieldSurface() : Color.Transparent)

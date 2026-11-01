@@ -33,17 +33,17 @@ export struct NativeTaskDock {
     Column({ space: 0 }) {
       Button({ type: ButtonType.Normal }) {
         Row({ space: 5 }) {
-          DSHIcon({ glyph: 'plan-outline', glyphSize: 14,
+          DSHIcon({ glyph: 'plan-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textSecondary(this.dark) })
           Text('任务计划').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
             .fontColor(NativeDesign.textPrimary(this.dark))
-          Text(nativePlanProgress(this.document)).fontSize(10).layoutWeight(1).maxLines(1)
+          Text(nativePlanProgress(this.document)).fontSize(NativeDesign.fontMicro).layoutWeight(1).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textTertiary(this.dark))
           DSHIcon({ glyph: this.expanded ? 'chevron-up-outline' : 'chevron-down-outline',
-            glyphSize: 11, color: NativeDesign.textTertiary(this.dark) })
+            glyphSize: NativeDesign.glyphInline, color: NativeDesign.textTertiary(this.dark) })
         }.width('100%').padding({ left: 10, right: 8 })
-      }.height(NativeDesign.compactHitTarget).width('100%').padding(0).borderRadius(0)
+      }.height(NativeDesign.compactControl).width('100%').padding(0).borderRadius(0)
         .backgroundColor(Color.Transparent)
         .accessibilityText((this.expanded ? '收起' : '展开') + '任务计划')
         .onClick((): void => { this.toggle(); })

@@ -89,14 +89,14 @@ export struct NativePluginCard {
   @Builder
   private metricCell(metric: NativePluginMetric) {
     Column({ space: 2 }) {
-      Text(metric.label).fontSize(10).maxLines(1)
+      Text(metric.label).fontSize(NativeDesign.fontMicro).maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .fontColor(NativeDesign.textTertiary(this.dark))
-      Text(metric.value).fontSize(20).fontWeight(FontWeight.Medium).maxLines(1)
+      Text(metric.value).fontSize(NativeDesign.fontPageTitle).fontWeight(FontWeight.Medium).maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .fontColor(this.toneColor(metric.tone))
       if (metric.caption) {
-        Text(metric.caption).fontSize(9).maxLines(1)
+        Text(metric.caption).fontSize(NativeDesign.fontMicro).maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .fontColor(NativeDesign.textTertiary(this.dark))
       }
@@ -122,17 +122,17 @@ export struct NativePluginCard {
   private progressBlock(block: NativePluginBlock) {
     Column({ space: 6 }) {
       Row({ space: 8 }) {
-        Text(block.label || '进度').layoutWeight(1).fontSize(11).fontWeight(FontWeight.Medium)
+        Text(block.label || '进度').layoutWeight(1).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           .fontColor(NativeDesign.textSecondary(this.dark))
-        Text(block.value).fontSize(10).fontColor(this.toneColor(block.tone))
+        Text(block.value).fontSize(NativeDesign.fontMicro).fontColor(this.toneColor(block.tone))
       }.width('100%')
       Progress({ value: block.progress, total: 100, type: ProgressType.Linear })
         .width('100%').height(4)
         .color(this.toneColor(block.tone))
         .backgroundColor(NativeDesign.field(this.dark))
       if (block.caption) {
-        Text(block.caption).fontSize(10).maxLines(2)
+        Text(block.caption).fontSize(NativeDesign.fontMicro).maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .fontColor(NativeDesign.textTertiary(this.dark))
       }
@@ -143,7 +143,7 @@ export struct NativePluginCard {
 
   @Builder
   private textBlock(block: NativePluginBlock) {
-    Text(block.text).fontSize(12).lineHeight(18).width('100%')
+    Text(block.text).fontSize(NativeDesign.fontSection).lineHeight(18).width('100%')
       .fontColor(block.tone === 'default' ? NativeDesign.textSecondary(this.dark) :
         this.toneColor(block.tone)).copyOption(CopyOptions.InApp)
   }
@@ -152,8 +152,8 @@ export struct NativePluginCard {
   private calloutBlock(block: NativePluginBlock) {
     Row({ space: 8 }) {
       DSHIcon({ glyph: block.tone === 'danger' || block.tone === 'warning' ?
-        'question-outline' : 'sparkle', glyphSize: 14, color: this.toneColor(block.tone) })
-      Text(block.text).layoutWeight(1).fontSize(11).lineHeight(17)
+        'question-outline' : 'sparkle', glyphSize: NativeDesign.glyphCompact, color: this.toneColor(block.tone) })
+      Text(block.text).layoutWeight(1).fontSize(NativeDesign.fontCaption).lineHeight(17)
         .fontColor(NativeDesign.textSecondary(this.dark)).copyOption(CopyOptions.InApp)
     }.width('100%').padding({ left: 10, right: 10, top: 8, bottom: 8 })
       .alignItems(VerticalAlign.Top).borderRadius(NativeDesign.radiusRow)
@@ -165,7 +165,7 @@ export struct NativePluginCard {
     Row({ space: 8 }) {
       if (block.kind === 'options') {
         Stack({ alignContent: Alignment.Center }) {
-          DSHIcon({ glyph: this.selected(item) ? 'check-outline' : 'question-outline', glyphSize: 10,
+          DSHIcon({ glyph: this.selected(item) ? 'check-outline' : 'question-outline', glyphSize: NativeDesign.glyphMicro,
             color: this.selected(item) ? NativeDesign.accent(this.dark) :
               NativeDesign.textTertiary(this.dark) })
         }.width(16).height(16).borderRadius(8)
@@ -173,21 +173,21 @@ export struct NativePluginCard {
             NativeDesign.field(this.dark))
       }
       Column({ space: 2 }) {
-        Text(item.title).fontSize(11).fontWeight(FontWeight.Medium).maxLines(1)
+        Text(item.title).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium).maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .fontColor(this.toneColor(item.tone))
         if (item.subtitle) {
-          Text(item.subtitle).fontSize(10).maxLines(2)
+          Text(item.subtitle).fontSize(NativeDesign.fontMicro).maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textTertiary(this.dark))
         }
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       if (item.trailing) {
-        Text(item.trailing).fontSize(9).maxLines(1)
+        Text(item.trailing).fontSize(NativeDesign.fontMicro).maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .fontColor(this.toneColor(item.tone))
       }
-    }.width('100%').constraintSize({ minHeight: 34 })
+    }.width('100%').constraintSize({ minHeight: NativeDesign.compactHitTarget })
       .padding({ left: 7, right: 7, top: 5, bottom: 5 })
       .alignItems(VerticalAlign.Top).borderRadius(NativeDesign.radiusCompact)
       .backgroundColor(block.kind === 'options' && this.selected(item) ?
@@ -209,12 +209,12 @@ export struct NativePluginCard {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 6 }) {
             if (this.sending) {
-              LoadingProgress().width(13).height(13).color(NativeDesign.accent(this.dark))
+              LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(NativeDesign.accent(this.dark))
             }
-            Text(this.sending ? '发送中' : '提交选择').fontSize(10).fontWeight(FontWeight.Medium)
+            Text(this.sending ? '发送中' : '提交选择').fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium)
               .fontColor(NativeDesign.accent(this.dark))
           }.justifyContent(FlexAlign.Center)
-        }.height(32).width('100%').borderRadius(NativeDesign.radiusCompact)
+        }.height(NativeDesign.compactControl).width('100%').borderRadius(NativeDesign.radiusCompact)
           .backgroundColor(NativeDesign.accentSurface(this.dark))
           .enabled(this.canInteract())
           .onClick((): void => {
@@ -228,18 +228,20 @@ export struct NativePluginCard {
   private confirmBlock(block: NativePluginBlock) {
     Column({ space: 7 }) {
       if (block.text) {
-        Text(block.text).width('100%').fontSize(11).lineHeight(17)
+        Text(block.text).width('100%').fontSize(NativeDesign.fontCaption).lineHeight(17)
           .fontColor(NativeDesign.textSecondary(this.dark))
       }
       Row({ space: 7 }) {
         Button(block.cancelLabel || '取消', { type: ButtonType.Normal })
-          .layoutWeight(1).height(34).fontSize(11).borderRadius(NativeDesign.radiusControl)
+          .layoutWeight(1).height(NativeDesign.compactHitTarget)
+          .fontSize(NativeDesign.fontCaption).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.field(this.dark))
           .fontColor(NativeDesign.textSecondary(this.dark))
           .enabled(this.canInteract())
           .onClick((): void => { this.confirm(block, false); })
         Button(block.confirmLabel || '确认', { type: ButtonType.Normal })
-          .layoutWeight(1).height(34).fontSize(11).borderRadius(NativeDesign.radiusControl)
+          .layoutWeight(1).height(NativeDesign.compactHitTarget)
+          .fontSize(NativeDesign.fontCaption).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.accent(this.dark))
           .fontColor(Color.White)
           .enabled(this.canInteract())
@@ -253,7 +255,8 @@ export struct NativePluginCard {
 
   @Builder
   private tableCell(text: string, header: boolean = false) {
-    Text(text).width(118).fontSize(header ? 10 : 11).lineHeight(16)
+    Text(text).width(118)
+      .fontSize(header ? NativeDesign.fontMicro : NativeDesign.fontCaption).lineHeight(16)
       .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
       .fontWeight(header ? FontWeight.Medium : FontWeight.Regular)
       .fontColor(header ? NativeDesign.textTertiary(this.dark) :
@@ -289,14 +292,14 @@ export struct NativePluginCard {
   @Builder
   private imageBlock(block: NativePluginBlock) {
     Row({ space: 8 }) {
-      DSHIcon({ glyph: 'image-outline', glyphSize: 16,
+      DSHIcon({ glyph: 'image-outline', glyphSize: NativeDesign.glyphControl,
         color: NativeDesign.textTertiary(this.dark) })
       Column({ space: 2 }) {
-        Text(block.label || block.text || '图像').fontSize(11).fontWeight(FontWeight.Medium)
+        Text(block.label || block.text || '图像').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           .fontColor(NativeDesign.textSecondary(this.dark))
         if (block.caption) {
-          Text(block.caption).fontSize(10).maxLines(2)
+          Text(block.caption).fontSize(NativeDesign.fontMicro).maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textTertiary(this.dark))
         }
@@ -328,9 +331,9 @@ export struct NativePluginCard {
       this.textBlock(block)
     } else {
       Row({ space: 7 }) {
-        DSHIcon({ glyph: 'question-outline', glyphSize: 13,
+        DSHIcon({ glyph: 'question-outline', glyphSize: NativeDesign.glyphCompact,
           color: NativeDesign.textTertiary(this.dark) })
-        Text(block.text || '此插件组件暂不支持').fontSize(10).layoutWeight(1)
+        Text(block.text || '此插件组件暂不支持').fontSize(NativeDesign.fontMicro).layoutWeight(1)
           .fontColor(NativeDesign.textTertiary(this.dark))
       }.width('100%').padding({ left: 7, right: 7, top: 6, bottom: 6 })
     }
@@ -340,16 +343,16 @@ export struct NativePluginCard {
     Column({ space: 7 }) {
       if (!this.document.valid) {
         Row({ space: 8 }) {
-          DSHIcon({ glyph: 'question-outline', glyphSize: 14,
+          DSHIcon({ glyph: 'question-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textTertiary(this.dark) })
-          Text('插件界面不可用').layoutWeight(1).fontSize(11)
+          Text('插件界面不可用').layoutWeight(1).fontSize(NativeDesign.fontCaption)
             .fontColor(NativeDesign.textTertiary(this.dark))
-        }.height(32).width('100%')
+        }.height(NativeDesign.compactControl).width('100%')
       } else {
         Row({ space: 7 }) {
-          DSHIcon({ glyph: 'sparkle', glyphSize: 14,
+          DSHIcon({ glyph: 'sparkle', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.accent(this.dark) })
-          Text(this.document.title || '插件卡片').layoutWeight(1).fontSize(11)
+          Text(this.document.title || '插件卡片').layoutWeight(1).fontSize(NativeDesign.fontCaption)
             .fontWeight(FontWeight.Medium).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textSecondary(this.dark))
@@ -359,13 +362,13 @@ export struct NativePluginCard {
         }, (block: NativePluginBlock, index: number) => block.kind + ':' + index.toString())
         if (this.interactive && this.answered) {
           Row({ space: 6 }) {
-            DSHIcon({ glyph: 'check-outline', glyphSize: 12,
+            DSHIcon({ glyph: 'check-outline', glyphSize: NativeDesign.glyphInline,
               color: NativeDesign.accent(this.dark) })
-            Text('已回复').fontSize(9).fontColor(NativeDesign.textTertiary(this.dark))
+            Text('已回复').fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.textTertiary(this.dark))
           }.width('100%')
         }
         if (this.document.truncated) {
-          Text('内容已截断').fontSize(9).fontColor(NativeDesign.textTertiary(this.dark))
+          Text('内容已截断').fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.textTertiary(this.dark))
         }
       }
     }.width('100%').alignItems(HorizontalAlign.Start)

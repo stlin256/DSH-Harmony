@@ -42,7 +42,7 @@ export struct NativeSubagentLineage {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 9 }) {
         Stack({ alignContent: Alignment.Center }) {
-          DSHIcon({ glyph: this.modeIcon(entry.mode), glyphSize: 15,
+          DSHIcon({ glyph: this.modeIcon(entry.mode), glyphSize: NativeDesign.glyphControl,
             color: entry.running ? NativeDesign.accent(this.dark) : this.secondary() })
           if (entry.running) {
             Stack()
@@ -53,12 +53,12 @@ export struct NativeSubagentLineage {
               .position({ x: 25, y: 2 })
           }
         }.width(30).height(30)
-          .borderRadius(9)
+          .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.currentId === entry.id ?
             NativeDesign.selection(this.dark) : NativeDesign.field(this.dark))
         Column({ space: 2 }) {
           Text(entry.label || entry.id)
-            .fontSize(13)
+            .fontSize(NativeDesign.fontCompact)
             .fontWeight(this.currentId === entry.id ? FontWeight.Medium : FontWeight.Regular)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -66,17 +66,17 @@ export struct NativeSubagentLineage {
             .fontColor(this.primary())
           Row({ space: 5 }) {
             Text(nativeSubagentModeLabel(entry.mode))
-              .fontSize(10)
+              .fontSize(NativeDesign.fontMicro)
               .fontColor(this.tertiary())
             if (entry.running) {
-              Text('运行中').fontSize(10).fontColor(NativeDesign.accent(this.dark))
+              Text('运行中').fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.accent(this.dark))
             }
           }
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         if (!nativeSubagentCanOpen(entry)) {
-          Text('不可打开').fontSize(10).fontColor(this.tertiary())
+          Text('不可打开').fontSize(NativeDesign.fontMicro).fontColor(this.tertiary())
         } else {
-          DSHIcon({ glyph: 'chevron-right-outline', glyphSize: 13, color: this.tertiary() })
+          DSHIcon({ glyph: 'chevron-right-outline', glyphSize: NativeDesign.glyphCompact, color: this.tertiary() })
         }
       }
       .width('100%')
@@ -101,12 +101,12 @@ export struct NativeSubagentLineage {
   build() {
     Column() {
       Row({ space: 8 }) {
-        DSHIcon({ glyph: 'branch-outline', glyphSize: 16, color: this.secondary() })
-        Text(this.title).fontSize(14).fontWeight(FontWeight.Medium).layoutWeight(1)
+        DSHIcon({ glyph: 'branch-outline', glyphSize: NativeDesign.glyphControl, color: this.secondary() })
+        Text(this.title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).layoutWeight(1)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           .fontColor(this.primary())
         Button({ type: ButtonType.Circle }) {
-          DSHIcon({ glyph: 'close-outline', glyphSize: 13, color: this.secondary() })
+          DSHIcon({ glyph: 'close-outline', glyphSize: NativeDesign.glyphCompact, color: this.secondary() })
         }
         .width(NativeDesign.hitTarget)
         .height(NativeDesign.hitTarget)
@@ -120,23 +120,24 @@ export struct NativeSubagentLineage {
       Divider().strokeWidth(0.5).color(NativeDesign.divider(this.dark))
       if (this.loading && !this.entries.length) {
         Row({ space: 8 }) {
-          LoadingProgress().width(14).height(14).color(NativeDesign.accent(this.dark))
-          Text('加载中').fontSize(12).fontColor(this.secondary())
+          LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(NativeDesign.accent(this.dark))
+          Text('加载中').fontSize(NativeDesign.fontSection).fontColor(this.secondary())
           Blank()
-        }.height(48).padding({ left: 12, right: 12 })
+        }.height(NativeDesign.standardRow).padding({ left: NativeDesign.rowInset, right: NativeDesign.rowInset })
       } else if (this.error && !this.entries.length) {
         Row({ space: 8 }) {
-          Text(this.error).fontSize(12).fontColor(NativeDesign.danger(this.dark)).layoutWeight(1)
+          Text(this.error).fontSize(NativeDesign.fontSection).fontColor(NativeDesign.danger(this.dark)).layoutWeight(1)
           Button('重试', { type: ButtonType.Normal })
             .height(NativeDesign.hitTarget)
-            .fontSize(12)
+            .fontSize(NativeDesign.fontSection)
             .backgroundColor(Color.Transparent)
             .fontColor(NativeDesign.accent(this.dark))
             .onClick((): void => { this.onRetry(); })
-        }.constraintSize({ minHeight: 48 }).padding({ left: 12, right: 8 })
+        }.constraintSize({ minHeight: NativeDesign.standardRow })
+          .padding({ left: NativeDesign.rowInset, right: 8 })
       } else if (!this.entries.length) {
-        Text('暂无子智能体').fontSize(12).fontColor(this.tertiary())
-          .height(48).padding({ left: 12 })
+        Text('暂无子智能体').fontSize(NativeDesign.fontSection).fontColor(this.tertiary())
+          .height(NativeDesign.standardRow).padding({ left: NativeDesign.rowInset })
       } else {
         List({ space: 1 }) {
           ForEach(this.entries, (entry: NativeSubagentEntry) => {
@@ -150,9 +151,9 @@ export struct NativeSubagentLineage {
       }
       if (this.error && this.entries.length) {
         Row({ space: 6 }) {
-          Text(this.error).fontSize(12).fontColor(NativeDesign.danger(this.dark)).layoutWeight(1)
+          Text(this.error).fontSize(NativeDesign.fontSection).fontColor(NativeDesign.danger(this.dark)).layoutWeight(1)
           Button('重试', { type: ButtonType.Normal }).height(NativeDesign.hitTarget)
-            .fontSize(12).backgroundColor(Color.Transparent)
+            .fontSize(NativeDesign.fontSection).backgroundColor(Color.Transparent)
             .fontColor(NativeDesign.accent(this.dark))
             .onClick((): void => { this.onRetry(); })
         }.padding({ left: 12, right: 8 })

@@ -30,7 +30,7 @@ Implementation spec:
 
 | ID | Surface | Required device check | Status |
 | --- | --- | --- | --- |
-| VSA-PENDING-01 | Task-plan floating banner | Dark-theme header is 36 vp tall, remains touchable, and expands/collapses without clipping the progress or chevron | Pending |
+| VSA-PENDING-01 | Task-plan floating banner | Dark-theme header is 32 vp tall, remains readable and touchable, and expands/collapses without clipping the progress or chevron | Pending |
 | VSA-PENDING-02 | Plan-mode header chip | The active chip renders as a filled capsule with no rectangular highlight, clipping, or detached surface while idle, pressed and leaving | Pending |
 | VSA-PENDING-03 | Turn changed-file cards | A deep Host path shows the filename first, workspace-relative directory second, fixed `+/-` metrics, and no horizontal overflow in dark and light themes | Pending |
 | VSA-PENDING-04 | Turn changed-file card expansion | More than three files expands and collapses without changing row identity; card width stays aligned to the composer and clear of the transcript scrollbar | Pending |
@@ -47,24 +47,27 @@ Implementation spec:
 
 ## Latest offline evidence
 
-Offline checks passed before the physical-device hold was lifted:
+Offline checks for the current 2026-11-02 working tree passed. Device execution
+remains prohibited:
 
-- PR QA profile: passed, including diff hygiene, protocol lock, Mock mapping,
-  product variant contracts, publication scan and the full Gateway suite.
+- PR QA run `20261101T170806Z-cc825f58`: passed, including diff hygiene,
+  protocol lock, Mock mapping, product variant contracts, publication scan and
+  the full Gateway suite.
+- Targeted source and model contracts: 102/102 passed.
 - Mock mapping: 10/10 screens, 34/34 states and 27/27 registered features.
 - Source contracts: task-plan header height, Plan capsule clipping, projection
   hydration, compact interaction controls, turn-file presentation and Dock
   hierarchy passed.
-- Release builds for `default`, `store` and `mock` compiled, packaged and
-  signed after the final Mock projection type check.
+- Release builds for `default`, `store` and `mock` compiled, packaged and signed
+  after the final control-alignment change.
 
 Current local build artifacts:
 
 | Product | HAP | Bytes | SHA-256 |
 | --- | --- | ---: | --- |
-| default | `harmony/entry/build/default/outputs/default/entry-default-signed.hap` | 2,077,532 | `e392035e63f0bccb1a36cda73554535aa2f4629745ccd19b2297803069643244` |
-| store | `harmony/entry/build/store/outputs/store/entry-store-signed.hap` | 2,077,601 | `f565461524123f799b40b41d7abcc1539ac4e7b08ab244b46df86cdef9b0b598` |
-| mock | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` | 2,077,824 | `6d254c25bfc10921fa93a3aca60cfa5211ad8a52e1f31db42fea92fe510ccfc0` |
+| default | `harmony/entry/build/default/outputs/default/entry-default-signed.hap` | 2,093,133 | `6dcf2bd4d3c7047ad18c9d4939bb2c7fd3bdb27a095e48503875aea92c6618d1` |
+| store | `harmony/entry/build/store/outputs/store/entry-store-signed.hap` | 2,093,222 | `c1d1d3f5901b14cabf8440baa2d8c475d0bb335903c998aa450228c3ef320dcc` |
+| mock | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` | 2,093,190 | `36b52cbd9ba1dffabe3eda11afa3966e086ec643bbe9abf81afc3758bff65926` |
 
 These hashes identify local build inputs only. They must be rebuilt after any
 further source change and never substituted for screenshots or interaction

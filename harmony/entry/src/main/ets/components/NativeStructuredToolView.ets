@@ -70,9 +70,9 @@ export struct NativeStructuredToolView {
   @Builder
   private fieldRow(field: NativeStructuredField) {
     Row({ space: 8 }) {
-      Text(field.label).width(52).fontSize(10).fontColor(NativeDesign.textTertiary(this.dark))
+      Text(field.label).width(52).fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.textTertiary(this.dark))
         .textAlign(TextAlign.End)
-      Text(field.value).layoutWeight(1).fontSize(11)
+      Text(field.value).layoutWeight(1).fontSize(NativeDesign.fontCaption)
         .fontFamily(field.code ? 'Noto Sans Mono, monospace' : 'HarmonyOS Sans')
         .fontColor(this.fieldColor(field)).copyOption(CopyOptions.InApp)
         .maxLines(field.code ? 2 : 3).textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -83,25 +83,25 @@ export struct NativeStructuredToolView {
   private targetRow() {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 7 }) {
-        DSHIcon({ glyph: 'file-outline', glyphSize: 13,
+        DSHIcon({ glyph: 'file-outline', glyphSize: NativeDesign.glyphCompact,
           color: NativeDesign.textTertiary(this.dark) })
-        Text(this.document.displayPath || this.document.path).layoutWeight(1).fontSize(11)
+        Text(this.document.displayPath || this.document.path).layoutWeight(1).fontSize(NativeDesign.fontCaption)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           .fontFamily('Noto Sans Mono, monospace').fontColor(NativeDesign.accent(this.dark))
-        DSHIcon({ glyph: 'chevron-right-outline', glyphSize: 11,
+        DSHIcon({ glyph: 'chevron-right-outline', glyphSize: NativeDesign.glyphInline,
           color: NativeDesign.textTertiary(this.dark) })
       }.width('100%')
-    }.height(30).width('100%').padding({ left: 4, right: 4 })
-      .borderRadius(7).backgroundColor(NativeDesign.field(this.dark))
+    }.height(NativeDesign.compactControl).width('100%').padding({ left: 4, right: 4 })
+      .borderRadius(NativeDesign.radiusCompact).backgroundColor(NativeDesign.field(this.dark))
       .onClick((): void => { this.onOpenFile(this.document.path); })
   }
 
   @Builder
   private searchMatch(line: NativeStructuredSearchLine) {
     Row({ space: 8 }) {
-      Text(line.number.toString()).width(38).fontSize(10).textAlign(TextAlign.End)
+      Text(line.number.toString()).width(38).fontSize(NativeDesign.fontMicro).textAlign(TextAlign.End)
         .fontFamily('Noto Sans Mono, monospace').fontColor(NativeDesign.textTertiary(this.dark))
-      Text(line.text).layoutWeight(1).fontSize(11).maxLines(3)
+      Text(line.text).layoutWeight(1).fontSize(NativeDesign.fontCaption).maxLines(3)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .fontFamily('Noto Sans Mono, monospace').copyOption(CopyOptions.InApp)
         .fontColor(NativeDesign.textSecondary(this.dark))
@@ -113,15 +113,15 @@ export struct NativeStructuredToolView {
     Column({ space: 4 }) {
       Button({ type: ButtonType.Normal }) {
         Row({ space: 7 }) {
-          DSHIcon({ glyph: 'file-outline', glyphSize: 13,
+          DSHIcon({ glyph: 'file-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textTertiary(this.dark) })
-          Text(file.display || file.path).layoutWeight(1).fontSize(11).maxLines(1)
+          Text(file.display || file.path).layoutWeight(1).fontSize(NativeDesign.fontCaption).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontFamily('Noto Sans Mono, monospace').fontColor(NativeDesign.accent(this.dark))
-          DSHIcon({ glyph: 'chevron-right-outline', glyphSize: 11,
+          DSHIcon({ glyph: 'chevron-right-outline', glyphSize: NativeDesign.glyphInline,
             color: NativeDesign.textTertiary(this.dark) })
         }.width('100%')
-      }.height(28).width('100%').padding({ left: 2, right: 2 })
+      }.height(NativeDesign.compactChip).width('100%').padding({ left: 2, right: 2 })
         .backgroundColor(Color.Transparent)
         .onClick((): void => { this.onOpenFile(file.path); })
       if (file.matches.length) {
@@ -131,7 +131,7 @@ export struct NativeStructuredToolView {
           }, (line: NativeStructuredSearchLine) => file.path + ':' + line.number)
         }.width('100%').padding({ left: 4, right: 4, bottom: 4 })
       }
-    }.width('100%').padding({ top: 2, bottom: 2 }).borderRadius(7)
+    }.width('100%').padding({ top: 2, bottom: 2 }).borderRadius(NativeDesign.radiusCompact)
       .backgroundColor(NativeDesign.field(this.dark))
   }
 
@@ -139,26 +139,26 @@ export struct NativeStructuredToolView {
   private sourceRow(source: NativeStructuredWebSource) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 8 }) {
-        DSHIcon({ glyph: 'globe-outline', glyphSize: 14,
+        DSHIcon({ glyph: 'globe-outline', glyphSize: NativeDesign.glyphCompact,
           color: NativeDesign.textTertiary(this.dark) })
         Column({ space: 2 }) {
-          Text(source.title || source.url).fontSize(11).fontWeight(FontWeight.Medium)
+          Text(source.title || source.url).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
             .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textPrimary(this.dark))
-          Text(source.url).fontSize(10).maxLines(1)
+          Text(source.url).fontSize(NativeDesign.fontMicro).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.accent(this.dark))
           if (source.snippet) {
-            Text(source.snippet).fontSize(10).maxLines(2)
+            Text(source.snippet).fontSize(NativeDesign.fontMicro).maxLines(2)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textTertiary(this.dark))
           }
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        DSHIcon({ glyph: 'external-link-outline', glyphSize: 12,
+        DSHIcon({ glyph: 'external-link-outline', glyphSize: NativeDesign.glyphInline,
           color: NativeDesign.textTertiary(this.dark) })
       }.width('100%').alignItems(VerticalAlign.Top)
     }.width('100%').constraintSize({ minHeight: 42 }).padding({ left: 8, right: 8, top: 6, bottom: 6 })
-      .borderRadius(7).backgroundColor(NativeDesign.field(this.dark))
+      .borderRadius(NativeDesign.radiusCompact).backgroundColor(NativeDesign.field(this.dark))
       .onClick((): void => { this.openUrl(source.url); })
   }
 
@@ -166,27 +166,27 @@ export struct NativeStructuredToolView {
   private presentedRow(file: NativeStructuredPresentedFile) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 8 }) {
-        DSHIcon({ glyph: 'file-outline', glyphSize: 14,
+        DSHIcon({ glyph: 'file-outline', glyphSize: NativeDesign.glyphCompact,
           color: NativeDesign.textTertiary(this.dark) })
         Column({ space: 2 }) {
-          Text(file.name || file.display).fontSize(11).fontWeight(FontWeight.Medium)
+          Text(file.name || file.display).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
             .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textPrimary(this.dark))
-          Text(file.display).fontSize(10).maxLines(1)
+          Text(file.display).fontSize(NativeDesign.fontMicro).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontFamily('Noto Sans Mono, monospace')
             .fontColor(NativeDesign.textTertiary(this.dark))
           if (file.description) {
-            Text(file.description).fontSize(10).maxLines(2)
+            Text(file.description).fontSize(NativeDesign.fontMicro).maxLines(2)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textSecondary(this.dark))
           }
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        DSHIcon({ glyph: 'chevron-right-outline', glyphSize: 11,
+        DSHIcon({ glyph: 'chevron-right-outline', glyphSize: NativeDesign.glyphInline,
           color: NativeDesign.textTertiary(this.dark) })
       }.width('100%').alignItems(VerticalAlign.Top)
     }.width('100%').constraintSize({ minHeight: 42 }).padding({ left: 8, right: 8, top: 6, bottom: 6 })
-      .borderRadius(7).backgroundColor(NativeDesign.field(this.dark))
+      .borderRadius(NativeDesign.radiusCompact).backgroundColor(NativeDesign.field(this.dark))
       .onClick((): void => { this.onOpenFile(file.path); })
   }
 

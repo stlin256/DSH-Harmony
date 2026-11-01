@@ -41,12 +41,12 @@ export struct NativeDshUiCard {
         Row({ space: 7 }) {
           DSHIcon({
             glyph: 'question-outline',
-            glyphSize: 13,
+            glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textTertiary(this.dark)
           })
-          Text('视图格式不可用').layoutWeight(1).fontSize(10)
+          Text('视图格式不可用').layoutWeight(1).fontSize(NativeDesign.fontMicro)
             .fontColor(NativeDesign.textTertiary(this.dark))
-        }.width('100%').height(30)
+        }.width('100%').height(NativeDesign.compactControl)
         NativeCodeBlock({
           code: this.source,
           language: 'json'

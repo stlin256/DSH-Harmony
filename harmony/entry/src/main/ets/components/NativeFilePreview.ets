@@ -683,37 +683,37 @@ export struct NativeFilePreview {
       Row({ space: 4 }) {
         Column({ space: 1 }) {
           Row({ space: 6 }) {
-            Text(this.title).fontSize(14).fontWeight(FontWeight.Medium).maxLines(1)
+            Text(this.title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
               .fontColor(NativeDesign.textPrimary(this.dark))
             if (this.loading || this.previewBusy || this.pdfOpening) {
-              LoadingProgress().width(12).height(12)
+              LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
                 .color(NativeDesign.accent(this.dark))
                 .accessibilityText('正在加载文件')
             }
           }.width('100%')
           if (this.lineLabel || this.bytesLabel) {
             Text([this.lineLabel, this.bytesLabel].filter((value: string) => !!value).join(' · '))
-              .fontSize(10).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+              .fontSize(NativeDesign.fontMicro).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textTertiary(this.dark))
           }
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         NativeIconButton({
-          glyph: 'copy-outline', label: '复制文件路径', glyphSize: 15,
+          glyph: 'copy-outline', label: '复制文件路径', glyphSize: NativeDesign.glyphControl,
           onPressed: (): void => { this.copy(); }
         })
         if (this.downloading) {
           Stack({ alignContent: Alignment.Center }) {
-            LoadingProgress().width(14).height(14).color(NativeDesign.accent(this.dark))
+            LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(NativeDesign.accent(this.dark))
           }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
         } else {
           NativeIconButton({
-            glyph: 'download-outline', label: '下载文件', glyphSize: 15,
+            glyph: 'download-outline', label: '下载文件', glyphSize: NativeDesign.glyphControl,
             onPressed: (): void => { this.download(); }
           })
         }
         NativeIconButton({
-          glyph: 'close-outline', label: '关闭预览', tone: 'primary', glyphSize: 15,
+          glyph: 'close-outline', label: '关闭预览', tone: 'primary', glyphSize: NativeDesign.glyphControl,
           onPressed: (): void => { this.onClose(); }
         })
       }.width('100%').height(NativeDesign.headerHeight)
@@ -722,7 +722,7 @@ export struct NativeFilePreview {
           NativeDocumentModeSwitch({ mode: this.mode,
             onMode: (value: string): void => { this.changeMode(value); } })
           Blank()
-        }.width('100%').height(32)
+        }.width('100%').height(NativeDesign.compactControl)
       }
     }.width('100%')
   }
@@ -781,12 +781,12 @@ export struct NativeFilePreview {
         .backgroundColor(NativeDesign.subtleSurface(this.dark))
         .onAppear((): void => { this.openEmbeddedPdf(); })
       if (this.pdfOpening) {
-        LoadingProgress().width(24).height(24).color(NativeDesign.accent(this.dark))
+        LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage).color(NativeDesign.accent(this.dark))
       } else if (this.error) {
         Column({ space: 10 }) {
-          Text(this.error).fontSize(12).fontColor(NativeDesign.danger(this.dark))
+          Text(this.error).fontSize(NativeDesign.fontSection).fontColor(NativeDesign.danger(this.dark))
           Button({ type: ButtonType.Normal }) {
-            Text('重试').fontSize(12).fontColor(NativeDesign.textPrimary(this.dark))
+            Text('重试').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textPrimary(this.dark))
               .padding({ left: 12, right: 12 })
           }.height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
             .backgroundColor(NativeDesign.selection(this.dark))
@@ -801,20 +801,20 @@ export struct NativeFilePreview {
   private body() {
     if (this.loading) {
       Column({ space: 10 }) {
-        LoadingProgress().width(24).height(24).color(NativeDesign.accent(this.dark))
-        Text('正在读取…').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
+        LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage).color(NativeDesign.accent(this.dark))
+        Text('正在读取…').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
       }.layoutWeight(1).justifyContent(FlexAlign.Center)
     } else if (this.documentKind === 'pdf' && this.pdfUri) {
       this.pdfBody()
     } else if (this.error && !this.imageMap && !this.textLoaded) {
       Column({ space: 12 }) {
-        Text(this.error).fontSize(13).textAlign(TextAlign.Center)
+        Text(this.error).fontSize(NativeDesign.fontCompact).textAlign(TextAlign.Center)
           .fontColor(NativeDesign.danger(this.dark))
         Button({ type: ButtonType.Normal }) {
           Row({ space: 5 }) {
-            DSHIcon({ glyph: 'browse-outline', glyphSize: 15,
+            DSHIcon({ glyph: 'browse-outline', glyphSize: NativeDesign.glyphControl,
               color: NativeDesign.textPrimary(this.dark) })
-            Text('重试').fontSize(12).fontColor(NativeDesign.textPrimary(this.dark))
+            Text('重试').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textPrimary(this.dark))
           }.padding({ left: 8, right: 10 })
         }.height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.selection(this.dark))
@@ -834,12 +834,12 @@ export struct NativeFilePreview {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 5 }) {
             if (this.loadingMore) {
-              LoadingProgress().width(14).height(14).color(NativeDesign.accent(this.dark))
+              LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(NativeDesign.accent(this.dark))
             } else {
-              DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
+              DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline,
                 color: NativeDesign.textTertiary(this.dark) }).rotate({ angle: -90 })
             }
-            Text('加载更多').fontSize(11).fontColor(NativeDesign.textTertiary(this.dark))
+            Text('加载更多').fontSize(NativeDesign.fontCaption).fontColor(NativeDesign.textTertiary(this.dark))
           }
         }.height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
           .padding({ left: 9, right: 11 })
@@ -848,7 +848,7 @@ export struct NativeFilePreview {
           .onClick((): void => { this.more(); })
       }
     }.padding({
-      left: 12 + this.safeLeft, right: 12 + this.safeRight,
+      left: NativeDesign.pageInset + this.safeLeft, right: NativeDesign.pageInset + this.safeRight,
       top: 8 + this.safeTop, bottom: 12 + Math.max(16, this.safeBottom)
     }).width('100%').height('100%').backgroundColor(NativeDesign.base(this.dark))
       .transition(NativeMotion.previewTransition())

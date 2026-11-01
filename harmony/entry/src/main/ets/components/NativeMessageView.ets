@@ -58,18 +58,18 @@ export struct NativeMessageView {
   build() {
     Column({ space: 6 }) {
       if (this.message.role !== 'user' && this.message.role !== 'assistant' && this.message.role !== 'tool' && this.message.role !== 'reasoning') {
-        Text(this.message.label).fontSize(12).fontWeight(FontWeight.Medium)
+        Text(this.message.label).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
           .fontColor(NativeDesign.textSecondary(this.dark))
       }
       if (this.message.reasoning) {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 6 }) {
             DSHIcon({ glyph: 'chevron-left-outline',
-              color: NativeDesign.textTertiary(this.dark), glyphSize: 12 })
+              color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphInline })
               .rotate({ angle: this.reasoningOpen ? -90 : 180 })
-            Text('思考过程').fontSize(12)
+            Text('思考过程').fontSize(NativeDesign.fontSection)
             if (!this.reasoningOpen && this.preview) {
-              Text(nativeReasoningPreview(this.message.reasoning, this.runningReasoning)).fontSize(12).maxLines(1)
+              Text(nativeReasoningPreview(this.message.reasoning, this.runningReasoning)).fontSize(NativeDesign.fontSection).maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
             }
           }.width('100%')
@@ -87,9 +87,9 @@ export struct NativeMessageView {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 6 }) {
             DSHIcon({ glyph: 'chevron-left-outline',
-              color: NativeDesign.textTertiary(this.dark), glyphSize: 12 })
+              color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphInline })
               .rotate({ angle: this.toolOpen ? -90 : 180 })
-            Text(this.message.label).fontSize(12).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+            Text(this.message.label).fontSize(NativeDesign.fontSection).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           }
         }.height(NativeDesign.hitTarget).fontSize(NativeDesign.fontBody)
           .borderRadius(NativeDesign.radiusCompact).backgroundColor(Color.Transparent)
@@ -98,13 +98,14 @@ export struct NativeMessageView {
       }
       if (this.dshUiReplyLabel()) {
         Row({ space: 6 }) {
-          DSHIcon({ glyph: 'check-outline', glyphSize: 13,
+          DSHIcon({ glyph: 'check-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.accent(this.dark) })
-          Text(this.dshUiReplyLabel()).fontSize(11).fontWeight(FontWeight.Medium)
+          Text(this.dshUiReplyLabel()).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
             .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.accent(this.dark))
-        }.constraintSize({ minHeight: 30 }).padding({ left: 10, right: 12, top: 6, bottom: 6 })
-          .borderRadius(15).backgroundColor(NativeDesign.accentSurface(this.dark))
+        }.constraintSize({ minHeight: NativeDesign.compactChip })
+          .padding({ left: 10, right: NativeDesign.rowInset, top: 6, bottom: 6 })
+          .borderRadius(NativeDesign.radiusChip).backgroundColor(NativeDesign.accentSurface(this.dark))
       } else if (this.message.role !== 'tool' || this.toolOpen) {
         if (!this.message.blocks.length && this.message.text) { NativeTextContent({ text: this.message.text, client: this.client, sessionId: this.sessionId }) }
         ForEach(this.message.blocks, (block: NativeTextBlock) => {
@@ -156,7 +157,7 @@ export struct NativeMessageView {
           .onClick(this.onCompatibility)
       }
       if (!this.message.text && !this.message.reasoning && !this.message.images?.length) {
-        Text('此消息暂不支持原生显示。').fontSize(13)
+        Text('此消息暂不支持原生显示。').fontSize(NativeDesign.fontCompact)
           .fontColor(NativeDesign.textSecondary(this.dark))
       }
     }.alignItems(HorizontalAlign.Start)

@@ -82,31 +82,32 @@ export struct NativeMediaCard {
       Row({ space: 8 }) {
         Stack({ alignContent: Alignment.Center }) {
           DSHIcon({ glyph: this.document.kind === 'video' ? 'file-outline' : 'image-outline',
-            glyphSize: 15, color: NativeDesign.textTertiary(this.dark) })
+            glyphSize: NativeDesign.glyphControl, color: NativeDesign.textTertiary(this.dark) })
           if (this.document.kind === 'video') {
-            Text('▶').fontSize(7).fontColor(NativeDesign.accent(this.dark))
+            Text('▶').fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.accent(this.dark))
               .position({ x: 9, y: 11 })
           }
-        }.width(28).height(28).borderRadius(8)
+        }.width(NativeDesign.compactChip).height(NativeDesign.compactChip)
+          .borderRadius(NativeDesign.radiusCompact)
           .backgroundColor(NativeDesign.field(this.dark))
         Column({ space: 2 }) {
-          Text(item.name || item.display).fontSize(11).fontWeight(FontWeight.Medium)
+          Text(item.name || item.display).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
             .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textPrimary(this.dark))
-          Text(item.display).fontSize(9).maxLines(1)
+          Text(item.display).fontSize(NativeDesign.fontMicro).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontFamily('Noto Sans Mono, monospace')
             .fontColor(NativeDesign.textTertiary(this.dark))
           if (this.itemFacts(item)) {
-            Text(this.itemFacts(item)).fontSize(9).maxLines(1)
+            Text(this.itemFacts(item)).fontSize(NativeDesign.fontMicro).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textTertiary(this.dark))
           }
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        DSHIcon({ glyph: 'chevron-right-outline', glyphSize: 11,
+        DSHIcon({ glyph: 'chevron-right-outline', glyphSize: NativeDesign.glyphInline,
           color: NativeDesign.textTertiary(this.dark) })
       }.width('100%').alignItems(VerticalAlign.Center)
-    }.width('100%').constraintSize({ minHeight: 48 })
+    }.width('100%').constraintSize({ minHeight: NativeDesign.standardRow })
       .padding({ left: 7, right: 7, top: 5, bottom: 5 })
       .borderRadius(NativeDesign.radiusRow)
       .backgroundColor(NativeDesign.overlay(this.dark))
@@ -118,37 +119,37 @@ export struct NativeMediaCard {
     Column({ space: 8 }) {
       if (!this.document.valid) {
         Row({ space: 8 }) {
-          DSHIcon({ glyph: 'question-outline', glyphSize: 14,
+          DSHIcon({ glyph: 'question-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textTertiary(this.dark) })
-          Text('媒体信息不可用').layoutWeight(1).fontSize(11)
+          Text('媒体信息不可用').layoutWeight(1).fontSize(NativeDesign.fontCaption)
             .fontColor(NativeDesign.textTertiary(this.dark))
-        }.height(32).width('100%')
+        }.height(NativeDesign.compactControl).width('100%')
       } else {
         Row({ space: 8 }) {
           DSHIcon({ glyph: this.document.kind === 'video' ? 'file-outline' : 'image-outline',
-            glyphSize: 16, color: NativeDesign.accent(this.dark) })
+            glyphSize: NativeDesign.glyphControl, color: NativeDesign.accent(this.dark) })
           Text(this.document.kind === 'video' ? 'AI 生成视频' : 'AI 生成图片')
-            .layoutWeight(1).fontSize(12).fontWeight(FontWeight.Medium)
+            .layoutWeight(1).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
             .fontColor(NativeDesign.textPrimary(this.dark))
           if (this.document.status === 'running') {
-            LoadingProgress().width(13).height(13).color(this.statusColor())
+            LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.statusColor())
           }
-          Text(this.statusLabel()).fontSize(10).fontColor(this.statusColor())
+          Text(this.statusLabel()).fontSize(NativeDesign.fontMicro).fontColor(this.statusColor())
         }.width('100%')
         if (this.requestLine()) {
-          Text(this.requestLine()).fontSize(9).maxLines(2)
+          Text(this.requestLine()).fontSize(NativeDesign.fontMicro).maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textTertiary(this.dark))
         }
         if (this.document.prompt) {
-          Text(this.document.prompt).fontSize(11).lineHeight(17).maxLines(4)
+          Text(this.document.prompt).fontSize(NativeDesign.fontCaption).lineHeight(17).maxLines(4)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textSecondary(this.dark))
             .copyOption(CopyOptions.InApp)
         }
         if (this.document.revisedPrompt &&
           this.document.revisedPrompt !== this.document.prompt) {
-          Text(this.document.revisedPrompt).fontSize(10).lineHeight(16).maxLines(3)
+          Text(this.document.revisedPrompt).fontSize(NativeDesign.fontMicro).lineHeight(16).maxLines(3)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textTertiary(this.dark))
             .copyOption(CopyOptions.InApp)
@@ -162,18 +163,18 @@ export struct NativeMediaCard {
           }.width('100%')
         } else if (this.document.status === 'running') {
           Row({ space: 7 }) {
-            LoadingProgress().width(13).height(13)
+            LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
               .color(NativeDesign.accent(this.dark))
             Text(this.document.kind === 'video' ? '视频正在生成' : '图片正在生成')
-              .fontSize(10).fontColor(NativeDesign.textTertiary(this.dark))
-          }.height(30)
+              .fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.textTertiary(this.dark))
+          }.height(NativeDesign.compactControl)
         }
         if (this.document.status === 'failed') {
           Row({ space: 7 }) {
-            DSHIcon({ glyph: 'close-outline', glyphSize: 13,
+            DSHIcon({ glyph: 'close-outline', glyphSize: NativeDesign.glyphCompact,
               color: NativeDesign.danger(this.dark) })
             Text(this.document.errorText || this.document.errorCode || '生成失败')
-              .layoutWeight(1).fontSize(10).lineHeight(15)
+              .layoutWeight(1).fontSize(NativeDesign.fontMicro).lineHeight(15)
               .fontColor(NativeDesign.danger(this.dark))
               .copyOption(CopyOptions.InApp)
           }.width('100%').padding({ left: 8, right: 8, top: 7, bottom: 7 })
@@ -181,7 +182,7 @@ export struct NativeMediaCard {
             .backgroundColor(NativeDesign.dangerSurface(this.dark))
         }
         if (this.document.implicitLabel || this.document.visibleMark || this.document.c2pa) {
-          Text('AI 生成内容').fontSize(9).fontColor(NativeDesign.textTertiary(this.dark))
+          Text('AI 生成内容').fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.textTertiary(this.dark))
         }
       }
     }.width('100%').alignItems(HorizontalAlign.Start)

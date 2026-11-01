@@ -20,10 +20,21 @@ test('semantic design source owns colors, geometry, typography and icon tones', 
   assert.match(source, /static visualIconContainer: number = 36/);
   assert.match(source, /static compactRow: number = 44/);
   assert.match(source, /static standardRow: number = 48/);
-  assert.match(source, /static pickerRow: number = 46/);
+  assert.match(source, /static pickerRow: number = 44/);
+  assert.match(source, /static doubleLineRow: number = 60/);
+  assert.match(source, /static primaryActionHeight: number = 48/);
   assert.match(source, /static radiusControl: number = 10/);
   assert.match(source, /static radiusRow: number = 12/);
   assert.match(source, /static radiusGroup: number = 16/);
+  for (const token of [
+    'fontPageTitle', 'fontHeaderTitle', 'fontCompactTitle', 'fontBody',
+    'fontCompact', 'fontSection', 'fontCaption', 'fontMicro', 'fontEmptyTitle',
+    'fontMetric', 'fontBrand', 'glyphMicro', 'glyphInline', 'glyphCompact',
+    'glyphControl', 'glyphControlEmphasis', 'glyphHeader', 'glyphHero',
+    'glyphEmpty', 'spinnerInline', 'spinnerPage'
+  ]) {
+    assert.match(source, new RegExp('static ' + token + ':'), token);
+  }
 });
 
 test('shared icon button separates the 44vp hit target from its 36vp visual', () => {

@@ -34,7 +34,7 @@ export struct NativeTextContent {
     if (!this.monospace && this.table) {
       NativeTable({ table: this.table, client: this.client, sessionId: this.sessionId })
     } else if (this.monospace) {
-      Text(value).width('100%').fontSize(12).lineHeight('22fp')
+      Text(value).width('100%').fontSize(NativeDesign.fontSection).lineHeight('22fp')
         .fontFamily('Noto Sans Mono, monospace').copyOption(CopyOptions.InApp)
         .fontColor(NativeDesign.textPrimary(this.dark))
     } else {
@@ -45,19 +45,19 @@ export struct NativeTextContent {
   private reader() {
     Column({ space: 12 }) {
       Row({ space: 4 }) {
-        Text('完整内容').fontSize(14).fontWeight(FontWeight.Medium).layoutWeight(1)
+        Text('完整内容').fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).layoutWeight(1)
           .fontColor(NativeDesign.textPrimary(this.dark))
         NativeIconButton({
           glyph: this.copied ? 'check-outline' : 'copy-outline',
           label: this.copied ? '已复制全文' : '复制全文',
-          glyphSize: 15,
+          glyphSize: NativeDesign.glyphControl,
           onPressed: (): void => {
           pasteboard.getSystemPasteboard().setData(pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, this.text))
             .then(() => { this.copied = true; }).catch(() => { this.copied = false; });
           }
         })
         NativeIconButton({
-          glyph: 'close-outline', label: '关闭完整内容', tone: 'primary', glyphSize: 15,
+          glyph: 'close-outline', label: '关闭完整内容', tone: 'primary', glyphSize: NativeDesign.glyphControl,
           onPressed: (): void => { this.reading = false; }
         })
       }.width('100%').height(NativeDesign.headerHeight)
@@ -78,7 +78,7 @@ export struct NativeTextContent {
       this.body(this.text.length > 8192 ? this.source.getData(0) : this.text)
       if (this.text.length > 8192) {
         Button('阅读全文 · ' + this.text.length + ' 字符', { type: ButtonType.Normal })
-          .height(NativeDesign.hitTarget).fontSize(12)
+          .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.field(this.dark))
           .fontColor(NativeDesign.textSecondary(this.dark))

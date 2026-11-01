@@ -101,13 +101,13 @@ export struct NativeProcessStepView {
         Row({ space: 4 }) {
           DSHIcon({ glyph: nativeProcessIcon(this.message.role === 'tool' ?
             nativeToolCategory(this.message.toolName, this.message.args) : 'thinking'),
-            color: NativeDesign.textTertiary(this.dark), glyphSize: 14 })
-          Text(this.message.label || nativeOperationLead(this.message)).fontSize(12)
+            color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphCompact })
+          Text(this.message.label || nativeOperationLead(this.message)).fontSize(NativeDesign.fontSection)
             .fontWeight(FontWeight.Medium).maxLines(1)
             .fontColor(NativeDesign.textSecondary(this.dark))
           if (this.message.detail) {
-            Text('·').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
-            Text(this.message.detail).fontSize(12).layoutWeight(1).maxLines(1)
+            Text('·').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
+            Text(this.message.detail).fontSize(NativeDesign.fontSection).layoutWeight(1).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textTertiary(this.dark))
               .opacity(this.expanded ? 0 : 1)
@@ -116,24 +116,24 @@ export struct NativeProcessStepView {
             Blank().layoutWeight(1)
           }
           if (this.diffAdded > 0 || this.diffRemoved > 0) {
-            Text('+' + this.diffAdded).fontSize(10).fontWeight(FontWeight.Medium).maxLines(1)
+            Text('+' + this.diffAdded).fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium).maxLines(1)
               .fontColor(NativeDesign.success(this.dark))
-            Text('-' + this.diffRemoved).fontSize(10).fontWeight(FontWeight.Medium).maxLines(1)
+            Text('-' + this.diffRemoved).fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium).maxLines(1)
               .fontColor(NativeDesign.danger(this.dark))
           }
           if (this.message.status === 'error' || this.message.status === 'interrupted') {
-            Text(this.message.status === 'error' ? '失败' : '已中断').fontSize(10)
+            Text(this.message.status === 'error' ? '失败' : '已中断').fontSize(NativeDesign.fontMicro)
               .fontColor(this.message.status === 'error' ?
                 NativeDesign.danger(this.dark) : NativeDesign.warning(this.dark))
           }
           if (this.message.phase !== 'preparing') {
             DSHIcon({ glyph: 'chevron-left-outline',
-              color: NativeDesign.textTertiary(this.dark), glyphSize: 12 })
+              color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphInline })
               .rotate({ angle: this.expanded ? -90 : 180 })
               .animation(NativeMotion.disclosureParam())
           }
         }.width('100%')
-      }.height(30).width('100%').padding({ left: 2, right: 2 })
+      }.height(NativeDesign.compactControl).width('100%').padding({ left: 2, right: 2 })
         .responseRegion({ x: 0, y: -7, width: '100%', height: NativeDesign.hitTarget })
         .backgroundColor(Color.Transparent).enabled(this.message.phase !== 'preparing')
         .onClick((): void => { this.toggle(); })

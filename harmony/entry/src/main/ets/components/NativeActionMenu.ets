@@ -17,9 +17,9 @@ export struct NativeActionMenu {
         if (item.separator) { Divider().strokeWidth(0.5).color(NativeDesign.divider(this.dark)).margin({ top: 3, bottom: 3, left: 2, right: 2 }) }
         Button({ type: ButtonType.Normal }) {
           Row({ space: 8 }) {
-            DSHIcon({ glyph: item.icon, glyphSize: 14,
+            DSHIcon({ glyph: item.icon, glyphSize: NativeDesign.glyphCompact,
               color: item.danger ? NativeDesign.danger(this.dark) : NativeDesign.textPrimary(this.dark) })
-            Text(item.title).fontSize(13).maxLines(1).layoutWeight(1)
+            Text(item.title).fontSize(NativeDesign.fontCompact).maxLines(1).layoutWeight(1)
               .fontColor(item.danger ? NativeDesign.danger(this.dark) : NativeDesign.textPrimary(this.dark))
           }.width('100%')
         }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusRow).padding({ left: 8, right: 8 })

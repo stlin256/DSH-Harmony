@@ -37,10 +37,10 @@ export struct NativeCodeBlock {
   build() {
     Column({ space: 6 }) {
       Row({ space: 6 }) {
-        Text(this.language || '代码').fontSize(11).layoutWeight(1)
+        Text(this.language || '代码').fontSize(NativeDesign.fontCaption).layoutWeight(1)
           .fontColor(NativeDesign.textTertiary(this.dark))
         Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: this.copied ? 'check-outline' : 'copy-outline', glyphSize: 14,
+          DSHIcon({ glyph: this.copied ? 'check-outline' : 'copy-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textTertiary(this.dark) })
         }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
@@ -52,7 +52,7 @@ export struct NativeCodeBlock {
             ForEach(this.tokens, (token: NativeCodeToken) => {
               Span(token.text).fontColor(this.color(token.kind))
             }, (_token: NativeCodeToken, index: number) => index.toString())
-          }.fontSize(12).lineHeight('22fp').fontFamily('Noto Sans Mono, monospace')
+          }.fontSize(NativeDesign.fontSection).lineHeight('22fp').fontFamily('Noto Sans Mono, monospace')
             .copyOption(CopyOptions.InApp).textAlign(TextAlign.Start)
         }.width('100%').scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Auto)
       }.width('100%').height(this.codeHeight).scrollable(ScrollDirection.Vertical)

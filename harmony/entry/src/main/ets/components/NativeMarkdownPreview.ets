@@ -54,7 +54,7 @@ export struct NativeMarkdownPreview {
         }
       }, (_block: NativeMarkdownBlock, index: number) => index.toString())
       if (!this.blocks.length) {
-        Text('空文件').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
+        Text('空文件').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
       }
     }.width('100%').justifyContent(FlexAlign.Start).alignItems(HorizontalAlign.Start)
       .align(Alignment.TopStart)

@@ -105,13 +105,13 @@ export struct NativeQueueDock {
             })
           } else if (block.kind === 'file' && block.file) {
             Row({ space: 5 }) {
-              DSHIcon({ glyph: 'file-outline', glyphSize: 14,
+              DSHIcon({ glyph: 'file-outline', glyphSize: NativeDesign.glyphCompact,
                 color: NativeDesign.textSecondary(this.dark) })
               Column({ space: 1 }) {
-                Text(block.file.name).fontSize(10).maxLines(1)
+                Text(block.file.name).fontSize(NativeDesign.fontMicro).maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
                   .fontColor(NativeDesign.textPrimary(this.dark))
-                Text(this.fileSize(block.file.bytes)).fontSize(9)
+                Text(this.fileSize(block.file.bytes)).fontSize(NativeDesign.fontMicro)
                   .fontColor(NativeDesign.textTertiary(this.dark))
               }.constraintSize({ maxWidth: 132 }).alignItems(HorizontalAlign.Start)
             }.height(NativeDesign.compactHitTarget).padding({ left: 7, right: 8 })
@@ -127,7 +127,7 @@ export struct NativeQueueDock {
   private actions(item: NativeQueueItem) {
     if (!item.pending && item.sourceKind !== 'tool-jobs') {
       Button({ type: ButtonType.Normal }) {
-        DSHIcon({ glyph: 'edit-outline', glyphSize: 13,
+        DSHIcon({ glyph: 'edit-outline', glyphSize: NativeDesign.glyphCompact,
           color: nativeQueueEditable(item) ? NativeDesign.textSecondary(this.dark) :
             NativeDesign.textTertiary(this.dark) })
       }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
@@ -135,14 +135,14 @@ export struct NativeQueueDock {
         .enabled(nativeQueueEditable(item) && !this.busyId)
         .accessibilityText('修改排队消息').onClick((): void => { this.beginEdit(item); })
       Button({ type: ButtonType.Normal }) {
-        DSHIcon({ glyph: 'close-outline', glyphSize: 13,
+        DSHIcon({ glyph: 'close-outline', glyphSize: NativeDesign.glyphCompact,
           color: NativeDesign.textTertiary(this.dark) })
       }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
         .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
         .enabled(!this.busyId).accessibilityText('移除排队消息')
         .onClick((): void => { this.act(item, 'remove'); })
       Button({ type: ButtonType.Normal }) {
-        DSHIcon({ glyph: 'send-arrow', glyphSize: 13,
+        DSHIcon({ glyph: 'send-arrow', glyphSize: NativeDesign.glyphCompact,
           color: this.running ? NativeDesign.accent(this.dark) :
             NativeDesign.textTertiary(this.dark) })
       }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
@@ -156,7 +156,7 @@ export struct NativeQueueDock {
   private row(item: NativeQueueItem) {
     Row({ space: 6 }) {
       if (this.items.length === 1) {
-        DSHIcon({ glyph: 'queue-outline', glyphSize: 14,
+        DSHIcon({ glyph: 'queue-outline', glyphSize: NativeDesign.glyphCompact,
           color: NativeDesign.textTertiary(this.dark) })
       }
       if (this.editingId === item.id) {
@@ -167,15 +167,15 @@ export struct NativeQueueDock {
           .fontColor(NativeDesign.textPrimary(this.dark))
           .onChange((value: string): void => { this.editText = value; })
         Button({ type: ButtonType.Normal }) {
-          if (this.busyId === item.id) LoadingProgress().width(13).height(13)
-          else DSHIcon({ glyph: 'check-outline', glyphSize: 13,
+          if (this.busyId === item.id) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
+          else DSHIcon({ glyph: 'check-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.accent(this.dark) })
         }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .enabled(!!this.editText.trim() && !this.busyId)
           .accessibilityText('保存排队消息').onClick((): void => { this.act(item, 'edit', this.editText); })
         Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'close-outline', glyphSize: 13,
+          DSHIcon({ glyph: 'close-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textTertiary(this.dark) })
         }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
@@ -186,14 +186,14 @@ export struct NativeQueueDock {
           if (this.hasAttachments(item)) this.blocks(item)
           Row({ space: 6 }) {
             if (item.sourceKind === 'tool-jobs') {
-              Text('后台任务').fontSize(10).fontWeight(FontWeight.Medium)
+              Text('后台任务').fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium)
                 .fontColor(NativeDesign.textTertiary(this.dark))
             }
-            Text(this.textPreview(item)).fontSize(12).layoutWeight(1).maxLines(2)
+            Text(this.textPreview(item)).fontSize(NativeDesign.fontSection).layoutWeight(1).maxLines(2)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textPrimary(this.dark))
             if (item.pending) {
-              Text('发送中…').fontSize(10)
+              Text('发送中…').fontSize(NativeDesign.fontMicro)
                 .fontColor(NativeDesign.accent(this.dark))
             }
           }.width('100%')
@@ -214,15 +214,15 @@ export struct NativeQueueDock {
         if (this.items.length > 1) {
           Button({ type: ButtonType.Normal }) {
             Row({ space: 6 }) {
-              DSHIcon({ glyph: 'queue-outline', glyphSize: 14,
+              DSHIcon({ glyph: 'queue-outline', glyphSize: NativeDesign.glyphCompact,
                 color: NativeDesign.textTertiary(this.dark) })
-              Text(this.items.length.toString() + ' 条排队消息').fontSize(11).fontWeight(FontWeight.Medium)
+              Text(this.items.length.toString() + ' 条排队消息').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
                 .fontColor(NativeDesign.textSecondary(this.dark))
               if (this.items.some((item: NativeQueueItem): boolean => item.pending)) {
-                Text('发送中…').fontSize(10).fontColor(NativeDesign.accent(this.dark))
+                Text('发送中…').fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.accent(this.dark))
               }
               Blank()
-              DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
+              DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline,
                 color: NativeDesign.textTertiary(this.dark) })
                 .rotate({ angle: this.expanded() ? -90 : 90 })
                 .animation(NativeMotion.disclosureParam())
@@ -240,7 +240,7 @@ export struct NativeQueueDock {
             .transition(NativeMotion.disclosureTransition())
         }
         if (this.error) {
-          Text(this.error).fontSize(10).fontColor(NativeDesign.danger(this.dark))
+          Text(this.error).fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.danger(this.dark))
             .padding({ left: 8, right: 8, bottom: 3 })
         }
       }.width('100%')

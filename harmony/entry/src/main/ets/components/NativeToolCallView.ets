@@ -59,14 +59,14 @@ export struct NativeToolCallView {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 6 }) {
             DSHIcon({ glyph: nativeProcessIcon(nativeToolCategory(this.message.toolName, this.message.args)),
-              color: NativeDesign.textTertiary(this.dark), glyphSize: 14 })
+              color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphCompact })
             Text(nativeActivity(nativeToolCategory(this.message.toolName, this.message.args),
               this.message.status === 'running' || this.message.status === 'preparing'))
-              .fontSize(12).fontWeight(FontWeight.Medium)
+              .fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
               .fontColor(NativeDesign.textSecondary(this.dark)).maxLines(1)
             if (this.detail) {
-              Text('·').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
-              Text(this.detail).fontSize(12).layoutWeight(1).maxLines(1)
+              Text('·').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
+              Text(this.detail).fontSize(NativeDesign.fontSection).layoutWeight(1).maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(NativeDesign.textTertiary(this.dark))
                 .opacity(this.expanded ? 0 : 1).translate({ x: this.expanded ? 4 : 0 })
                 .animation(NativeMotion.disclosureParam())
@@ -74,24 +74,25 @@ export struct NativeToolCallView {
               Blank().layoutWeight(1)
             }
             if (this.diff.matched && (this.diff.added > 0 || this.diff.removed > 0)) {
-              Text('+' + this.diff.added).fontSize(10).fontWeight(FontWeight.Medium)
+              Text('+' + this.diff.added).fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium)
                 .fontColor(NativeDesign.success(this.dark))
-              Text('-' + this.diff.removed).fontSize(10).fontWeight(FontWeight.Medium)
+              Text('-' + this.diff.removed).fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium)
                 .fontColor(NativeDesign.danger(this.dark))
             }
             if (this.message.status === 'error' || this.message.status === 'interrupted') {
-              Text(this.message.status === 'error' ? '失败' : '已中断').fontSize(10)
+              Text(this.message.status === 'error' ? '失败' : '已中断').fontSize(NativeDesign.fontMicro)
                 .fontColor(this.message.status === 'error' ?
                   NativeDesign.danger(this.dark) : NativeDesign.warning(this.dark))
             }
             if (this.message.phase !== 'preparing') {
               DSHIcon({ glyph: 'chevron-left-outline',
-                color: NativeDesign.textTertiary(this.dark), glyphSize: 12 })
+                color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphInline })
                 .rotate({ angle: this.expanded ? -90 : 180 })
                 .animation(NativeMotion.disclosureParam())
             }
           }.width('100%')
-        }.height(30).width('100%').padding({ left: 2, right: 2 }).backgroundColor(Color.Transparent)
+        }.height(NativeDesign.compactControl).width('100%').padding({ left: 2, right: 2 })
+          .backgroundColor(Color.Transparent)
           .responseRegion({ x: 0, y: -7, width: '100%', height: NativeDesign.hitTarget })
           .onClick(() => { this.toggle(); })
       }
@@ -105,7 +106,7 @@ export struct NativeToolCallView {
                 NativePlanView({ document: this.plan })
               } else {
                 Text(this.message.phase === 'preparing' ? '正在更新计划' : '计划内容不可用')
-                  .fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
+                  .fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
               }
             } else if (this.structured.bodyStructured) {
               NativeStructuredToolView({
@@ -142,10 +143,10 @@ export struct NativeToolCallView {
                 NativeTextContent({ text: this.message.output, client: this.client, sessionId: this.sessionId })
               }
             }
-            if (this.message.error) { Text(this.message.error).fontSize(12)
+            if (this.message.error) { Text(this.message.error).fontSize(NativeDesign.fontSection)
               .fontColor(NativeDesign.danger(this.dark)) }
             if (this.message.status === 'interrupted') {
-              Text('已中断').fontSize(11).fontColor(NativeDesign.textTertiary(this.dark))
+              Text('已中断').fontSize(NativeDesign.fontCaption).fontColor(NativeDesign.textTertiary(this.dark))
             }
             ForEach(this.message.children, (child: NativeMessage) => {
               NativeNestedToolRow({ client: this.client, sessionId: this.sessionId, message: child,
@@ -153,7 +154,7 @@ export struct NativeToolCallView {
                 maxExpandedHeight: this.maxExpandedHeight })
             }, (child: NativeMessage) => child.id)
           }.padding({ left: 8, right: 16, top: 8, bottom: 8 }).width('100%')
-            .alignItems(HorizontalAlign.Start).borderRadius(8)
+            .alignItems(HorizontalAlign.Start).borderRadius(NativeDesign.radiusCompact)
             .backgroundColor(NativeDesign.field(this.dark))
         }.width('100%').constraintSize({ maxHeight: Math.max(96, this.maxExpandedHeight) })
           .scrollable(ScrollDirection.Vertical).scrollBar(BarState.Auto)
@@ -191,13 +192,13 @@ struct NativeNestedToolRow {
       Button({ type: ButtonType.Normal }) {
         Row({ space: 6 }) {
           DSHIcon({ glyph: nativeProcessIcon(nativeToolCategory(this.message.toolName, this.message.args)),
-            color: NativeDesign.textTertiary(this.dark), glyphSize: 13 })
+            color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphCompact })
           Text(nativeActivity(nativeToolCategory(this.message.toolName, this.message.args),
             this.message.status === 'running' || this.message.status === 'preparing'))
-            .fontSize(11).fontColor(NativeDesign.textSecondary(this.dark))
+            .fontSize(NativeDesign.fontCaption).fontColor(NativeDesign.textSecondary(this.dark))
           if (this.preview()) {
-            Text('·').fontSize(11).fontColor(NativeDesign.textTertiary(this.dark))
-            Text(this.preview()).fontSize(11).layoutWeight(1).maxLines(1)
+            Text('·').fontSize(NativeDesign.fontCaption).fontColor(NativeDesign.textTertiary(this.dark))
+            Text(this.preview()).fontSize(NativeDesign.fontCaption).layoutWeight(1).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textTertiary(this.dark))
               .opacity(this.expanded ? 0 : 1)
@@ -206,11 +207,11 @@ struct NativeNestedToolRow {
             Blank().layoutWeight(1)
           }
           DSHIcon({ glyph: 'chevron-left-outline',
-            color: NativeDesign.textTertiary(this.dark), glyphSize: 11 })
+            color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphInline })
             .rotate({ angle: this.expanded ? -90 : 180 })
             .animation(NativeMotion.disclosureParam())
         }.width('100%')
-      }.height(28).width('100%').padding({ left: 2, right: 2 })
+      }.height(NativeDesign.compactChip).width('100%').padding({ left: 2, right: 2 })
         .responseRegion({ x: 0, y: -8, width: '100%', height: NativeDesign.hitTarget })
         .backgroundColor(Color.Transparent).onClick((): void => { this.toggle(); })
       if (this.expanded) {

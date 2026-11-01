@@ -57,12 +57,12 @@ export struct NativeRollingNumber {
   build() {
     Stack({ alignContent: Alignment.Center }) {
       if (!this.settled && this.previousValue !== this.currentValue) {
-        Text(formattedCount(this.previousValue)).fontSize(12).fontWeight(FontWeight.Medium)
+        Text(formattedCount(this.previousValue)).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
           .fontColor(this.color)
           .translate({ y: -7 * this.progress })
           .opacity(1 - this.progress)
       }
-      Text(formattedCount(this.currentValue)).fontSize(12).fontWeight(FontWeight.Medium)
+      Text(formattedCount(this.currentValue)).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
         .fontColor(this.color)
         .translate({ y: (1 - this.progress) * 7 })
         .opacity(this.settled ? 1 : this.progress)
@@ -78,7 +78,7 @@ export struct NativeTurnChangePill {
 
   build() {
     Row({ space: 5 }) {
-      DSHIcon({ glyph: 'edit-outline', glyphSize: 13,
+      DSHIcon({ glyph: 'edit-outline', glyphSize: NativeDesign.glyphCompact,
         color: NativeDesign.accent(this.dark) })
       Text('正在编辑').fontSize(NativeDesign.fontCaption)
         .fontColor(NativeDesign.textSecondary(this.dark))
@@ -182,29 +182,29 @@ export struct NativeTurnChangesCard {
   private fileRow(file: NativeTurnFileChange) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 7 }) {
-        DSHIcon({ glyph: 'file-outline', glyphSize: 14,
+        DSHIcon({ glyph: 'file-outline', glyphSize: NativeDesign.glyphCompact,
           color: NativeDesign.textSecondary(this.dark) })
         Column({ space: 1 }) {
-          Text(this.fileName(file)).fontSize(12)
+          Text(this.fileName(file)).fontSize(NativeDesign.fontSection)
             .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
             .width('100%')
             .fontColor(NativeDesign.textPrimary(this.dark))
           if (this.fileDirectory(file)) {
-            Text(this.fileDirectory(file)).fontSize(9).maxLines(1)
+            Text(this.fileDirectory(file)).fontSize(NativeDesign.fontMicro).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .width('100%')
               .fontColor(NativeDesign.textTertiary(this.dark))
           }
         }.layoutWeight(1).constraintSize({ minWidth: 0 }).alignItems(HorizontalAlign.Start)
         if (file.binary || file.oversized) {
-          Text(this.fileMetric(file)).fontSize(11)
+          Text(this.fileMetric(file)).fontSize(NativeDesign.fontCaption)
             .flexShrink(0)
             .fontColor(NativeDesign.textTertiary(this.dark))
         } else {
-          Text('+' + formattedCount(file.added)).fontSize(11).fontWeight(FontWeight.Medium)
+          Text('+' + formattedCount(file.added)).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
             .flexShrink(0)
             .fontColor(this.metricColor(true))
-          Text('-' + formattedCount(file.removed)).fontSize(11).fontWeight(FontWeight.Medium)
+          Text('-' + formattedCount(file.removed)).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
             .flexShrink(0)
             .fontColor(this.metricColor(false))
         }
@@ -223,27 +223,28 @@ export struct NativeTurnChangesCard {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 9 }) {
             Stack({ alignContent: Alignment.Center }) {
-              DSHIcon({ glyph: 'edit-outline', glyphSize: 18,
+              DSHIcon({ glyph: 'edit-outline', glyphSize: NativeDesign.glyphControlEmphasis,
                 color: NativeDesign.textPrimary(this.dark) })
-            }.width(36).height(36).borderRadius(10)
+            }.width(NativeDesign.visualIconContainer).height(NativeDesign.visualIconContainer)
+              .borderRadius(NativeDesign.radiusControl)
               .backgroundColor(NativeDesign.selection(this.dark))
             Column({ space: 2 }) {
-              Text('已编辑 ' + this.summary.fileCount + ' 个文件').fontSize(14)
+              Text('已编辑 ' + this.summary.fileCount + ' 个文件').fontSize(NativeDesign.fontBody)
                 .fontWeight(FontWeight.Medium).maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
                 .fontColor(NativeDesign.textPrimary(this.dark))
               Row({ space: 8 }) {
-                Text('+' + formattedCount(this.summary.added)).fontSize(11)
+                Text('+' + formattedCount(this.summary.added)).fontSize(NativeDesign.fontCaption)
                   .fontWeight(FontWeight.Medium).fontColor(this.metricColor(true))
-                Text('-' + formattedCount(this.summary.removed)).fontSize(11)
+                Text('-' + formattedCount(this.summary.removed)).fontSize(NativeDesign.fontCaption)
                   .fontWeight(FontWeight.Medium).fontColor(this.metricColor(false))
-                Text(this.outcomeLabel()).fontSize(10)
+                Text(this.outcomeLabel()).fontSize(NativeDesign.fontMicro)
                   .fontColor(NativeDesign.textTertiary(this.dark))
               }.width('100%')
             }.layoutWeight(1).alignItems(HorizontalAlign.Start)
             if (this.summary.files.length > 3) {
               DSHIcon({ glyph: this.expanded ? 'chevron-up-outline' : 'chevron-down-outline',
-                glyphSize: 12, color: NativeDesign.textTertiary(this.dark) })
+                glyphSize: NativeDesign.glyphInline, color: NativeDesign.textTertiary(this.dark) })
             }
           }.width('100%').padding({ left: 10, right: 5 })
         }.layoutWeight(1).height(NativeDesign.standardRow).padding(0).borderRadius(0)
@@ -254,7 +255,7 @@ export struct NativeTurnChangesCard {
           .onClick((): void => { this.toggle(); })
         if (this.canCopy) {
           Button({ type: ButtonType.Normal }) {
-            DSHIcon({ glyph: this.copied ? 'check-outline' : 'copy-outline', glyphSize: 14,
+            DSHIcon({ glyph: this.copied ? 'check-outline' : 'copy-outline', glyphSize: NativeDesign.glyphCompact,
               color: NativeDesign.textTertiary(this.dark) })
           }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
             .padding(0).borderRadius(NativeDesign.radiusControl)
@@ -283,9 +284,9 @@ export struct NativeTurnChangesCard {
       if (this.summary.files.length > 3) {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 4 }) {
-            Text(this.expanded ? '收起文件' : '再显示 ' + (this.summary.files.length - 3) + ' 个文件').fontSize(11)
+            Text(this.expanded ? '收起文件' : '再显示 ' + (this.summary.files.length - 3) + ' 个文件').fontSize(NativeDesign.fontCaption)
             DSHIcon({ glyph: this.expanded ? 'chevron-up-outline' : 'chevron-down-outline',
-              glyphSize: 10, color: NativeDesign.textTertiary(this.dark) })
+              glyphSize: NativeDesign.glyphMicro, color: NativeDesign.textTertiary(this.dark) })
           }
         }.width('100%').height(NativeDesign.compactControl).padding({ left: 11, right: 11 })
           .borderRadius(0).backgroundColor(Color.Transparent)

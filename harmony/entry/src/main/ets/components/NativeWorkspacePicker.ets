@@ -47,11 +47,11 @@ export struct NativeWorkspacePicker {
   private row(title: string, detail: string, selected: boolean, click: () => void) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 8 }) {
-        DSHIcon({ glyph: 'browse-outline', color: NativeDesign.textTertiary(this.dark), glyphSize: 16 })
+        DSHIcon({ glyph: 'browse-outline', color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphControl })
         Column({ space: 3 }) {
-          Text(title).fontSize(14).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text(title).fontSize(NativeDesign.fontBody).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textPrimary(this.dark))
-          if (detail) { Text(detail).fontSize(11).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(NativeDesign.textTertiary(this.dark)) }
+          if (detail) { Text(detail).fontSize(NativeDesign.fontCaption).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(NativeDesign.textTertiary(this.dark)) }
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         if (selected) { DSHIcon({ glyph: 'check-outline', color: NativeDesign.accent(this.dark) }) }
       }.width('100%')
@@ -67,13 +67,13 @@ export struct NativeWorkspacePicker {
             if (this.page !== 'root') this.onPageChange('root'); else this.onClose();
           } })
         Text(this.creating() ? '添加工作区' : this.archived() ? '已归档会话' : '工作区')
-          .fontSize(18).fontWeight(FontWeight.Medium).layoutWeight(1)
+          .fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium).layoutWeight(1)
           .fontColor(NativeDesign.textPrimary(this.dark))
       }.width('100%')
       Scroll() {
         Column({ space: 5 }) {
           if (this.creating()) {
-            TextInput({ text: this.path, placeholder: '服务器上的目录路径' }).height(NativeDesign.hitTarget).fontSize(14)
+            TextInput({ text: this.path, placeholder: '服务器上的目录路径' }).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontBody)
               .onChange((value: string) => { this.path = value; })
             Button('添加', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).width('100%')
               .borderRadius(NativeDesign.radiusControl)
@@ -84,12 +84,12 @@ export struct NativeWorkspacePicker {
             ForEach(this.snapshot.archivedSessionIds, (id: string) => {
               Row({ space: 8 }) {
                 Text(this.sessions.find((row: NativeSession) => row.id === id)?.title || '未命名会话')
-                  .fontSize(13).layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-                Button('恢复', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(12).enabled(!this.busy)
+                  .fontSize(NativeDesign.fontCompact).layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+                Button('恢复', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection).enabled(!this.busy)
                   .onClick(() => { this.command(JSON.stringify({ operation: 'unarchive', sessionId: id })); })
               }.width('100%').padding(6)
             }, (id: string) => id)
-            if (!this.snapshot.archivedSessionIds.length) { Text('没有已归档会话').fontSize(13) }
+            if (!this.snapshot.archivedSessionIds.length) { Text('没有已归档会话').fontSize(NativeDesign.fontCompact) }
           } else {
             this.row('全部会话', '', !this.selectedId, () => { this.onSelect(''); })
             ForEach(this.snapshot.items, (workspace: NativeWorkspaceItem) => {
@@ -102,8 +102,8 @@ export struct NativeWorkspacePicker {
               }.width('100%')
               if (this.editingId === workspace.workspaceId) {
                 Row({ space: 6 }) {
-                  TextInput({ text: this.title }).fontSize(13).height(NativeDesign.hitTarget).layoutWeight(1).onChange((value: string) => { this.title = value; })
-                  Button('保存').height(NativeDesign.hitTarget).fontSize(12).enabled(!this.busy && this.title.trim().length > 0)
+                  TextInput({ text: this.title }).fontSize(NativeDesign.fontCompact).height(NativeDesign.hitTarget).layoutWeight(1).onChange((value: string) => { this.title = value; })
+                  Button('保存').height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection).enabled(!this.busy && this.title.trim().length > 0)
                     .onClick(() => { this.command(JSON.stringify({ operation: 'workspaceRename', workspaceId: this.editingId, title: this.title.trim() })); })
                 }.padding(6)
               }
@@ -116,8 +116,8 @@ export struct NativeWorkspacePicker {
           }
         }.width('100%').alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.Top)
-      if (this.busy) { LoadingProgress().width(20).height(20) }
-      if (this.error) { Text(this.error).fontSize(12).fontColor(NativeDesign.danger(this.dark)) }
+      if (this.busy) { LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage) }
+      if (this.error) { Text(this.error).fontSize(NativeDesign.fontSection).fontColor(NativeDesign.danger(this.dark)) }
     }.padding({ left: 12 + this.safeLeft, right: 12 + this.safeRight,
       top: this.safeTop + 8, bottom: this.safeBottom + 8 })
       .width('100%').height('100%').backgroundColor(NativeDesign.base(this.dark))

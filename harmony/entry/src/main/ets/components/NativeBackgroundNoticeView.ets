@@ -46,33 +46,33 @@ export struct NativeBackgroundNoticeView {
     Column({ space: 4 }) {
       Button({ type: ButtonType.Normal }) {
         Row({ space: 7 }) {
-          DSHIcon({ glyph: 'queue-outline', glyphSize: 14,
+          DSHIcon({ glyph: 'queue-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textTertiary(this.dark) })
-          Text(this.title()).fontSize(12).fontWeight(FontWeight.Medium)
+          Text(this.title()).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
             .fontColor(NativeDesign.textSecondary(this.dark))
           if (!this.expanded && this.preview()) {
-            Text('·').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
-            Text(this.preview()).layoutWeight(1).fontSize(11).maxLines(1)
+            Text('·').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
+            Text(this.preview()).layoutWeight(1).fontSize(NativeDesign.fontCaption).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textTertiary(this.dark))
           } else {
             Blank()
           }
           if (this.message.text) {
-            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
+            DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline,
               color: NativeDesign.textTertiary(this.dark) })
               .rotate({ angle: this.expanded ? -90 : 180 })
               .animation(NativeMotion.disclosureParam())
           }
         }.width('100%')
-      }.height(30).width('100%').padding({ left: 2, right: 2 })
+      }.height(NativeDesign.compactControl).width('100%').padding({ left: 2, right: 2 })
         .responseRegion({ x: 0, y: -7, width: '100%', height: NativeDesign.hitTarget })
         .backgroundColor(Color.Transparent)
         .accessibilityText(this.expanded ? '收起后台任务消息' : '展开后台任务消息')
         .onClick((): void => { this.toggle(); })
       if (this.expanded && this.message.text) {
         Scroll() {
-          Text(this.message.text).width('100%').fontSize(11).lineHeight(17)
+          Text(this.message.text).width('100%').fontSize(NativeDesign.fontCaption).lineHeight(17)
             .fontFamily('Noto Sans Mono, monospace')
             .fontColor(NativeDesign.textSecondary(this.dark))
             .copyOption(CopyOptions.InApp)

@@ -12,7 +12,7 @@ import { NativeDesign } from '../services/NativeDesign';
 export struct DSHIcon {
   @Prop glyph: string = 'plus-outline';
   @Prop color: ResourceColor = '#F9FAFB';
-  @Prop glyphSize: number = 16;
+  @Prop glyphSize: number = NativeDesign.glyphControl;
   @StorageLink('nativeDark') private dark: boolean = false;
 
   private pathForGlyph(): string {

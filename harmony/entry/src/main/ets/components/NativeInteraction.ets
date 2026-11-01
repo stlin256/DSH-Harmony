@@ -230,11 +230,11 @@ export struct NativeInteraction {
       Row({ space: 7 }) {
         Text('').width(8).height(8).borderRadius(4)
           .backgroundColor(NativeDesign.warning(this.dark))
-        Text('等待审批').fontSize(12).fontWeight(FontWeight.Medium)
+        Text('等待审批').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
           .fontColor(NativeDesign.warning(this.dark))
         Blank()
         if (this.remaining >= 0) {
-          Text(Math.ceil(this.remaining / 1000).toString() + 's').fontSize(11)
+          Text(Math.ceil(this.remaining / 1000).toString() + 's').fontSize(NativeDesign.fontCaption)
             .fontColor(NativeDesign.textTertiary(this.dark))
         }
       }.width('100%').height(NativeDesign.compactChip).padding({ left: 12, right: 12 })
@@ -242,19 +242,20 @@ export struct NativeInteraction {
       Scroll() {
         Column({ space: 7 }) {
           if (this.frame.request.toolName) {
-            Text(this.frame.request.toolName).fontSize(11).fontWeight(FontWeight.Medium)
-              .padding({ left: 7, right: 7, top: 3, bottom: 3 }).borderRadius(7)
+            Text(this.frame.request.toolName).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
+              .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+              .borderRadius(NativeDesign.radiusBadge)
               .backgroundColor(NativeDesign.selection(this.dark))
               .fontColor(NativeDesign.textSecondary(this.dark))
           }
-          Text(this.approvalReason() || '该工具请求执行需要你确认').fontSize(14)
+          Text(this.approvalReason() || '该工具请求执行需要你确认').fontSize(NativeDesign.fontBody)
             .fontWeight(FontWeight.Medium).fontColor(NativeDesign.textPrimary(this.dark))
         }.width('100%').alignItems(HorizontalAlign.Start)
       }.width('100%').constraintSize({ maxHeight: 220 }).scrollBar(BarState.Auto)
         .edgeEffect(EdgeEffect.None).padding(12)
       Row({ space: 8 }) {
         Button({ type: ButtonType.Normal }) {
-          Text('拒绝').fontSize(13).fontWeight(FontWeight.Medium)
+          Text('拒绝').fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
         }.layoutWeight(1).height(NativeDesign.compactHitTarget)
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.field(this.dark))
@@ -263,9 +264,9 @@ export struct NativeInteraction {
           .enabled(!this.busy && !this.unconfirmed)
           .onClick((): void => { this.submit('rejected'); })
         Button({ type: ButtonType.Normal }) {
-          if (this.busy) LoadingProgress().width(15).height(15)
+          if (this.busy) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
             .color(NativeDesign.textInverse(this.dark))
-          else Text('允许一次').fontSize(13).fontWeight(FontWeight.Medium)
+          else Text('允许一次').fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
         }.layoutWeight(1).height(NativeDesign.compactHitTarget)
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.accentStrong(this.dark))
@@ -284,16 +285,16 @@ export struct NativeInteraction {
       if (question.multiSelect) {
         Stack({ alignContent: Alignment.Center }) {
           if (this.selected(question.id, option.label)) {
-            DSHIcon({ glyph: 'check-outline', glyphSize: 11,
+            DSHIcon({ glyph: 'check-outline', glyphSize: NativeDesign.glyphInline,
               color: NativeDesign.textInverse(this.dark) })
           }
-        }.width(20).height(20).borderRadius(6)
+        }.width(20).height(20).borderRadius(NativeDesign.radiusBadge)
           .backgroundColor(this.selected(question.id, option.label) ?
             NativeDesign.accentStrong(this.dark) : Color.Transparent)
           .border({ width: 1, color: this.selected(question.id, option.label) ?
             NativeDesign.accentStrong(this.dark) : NativeDesign.border(this.dark) })
       } else {
-        Text((optionIndex + 1).toString()).fontSize(11).fontWeight(FontWeight.Medium)
+        Text((optionIndex + 1).toString()).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
           .width(22).height(22).textAlign(TextAlign.Center)
           .fontColor(this.selected(question.id, option.label) ?
             NativeDesign.textInverse(this.dark) : NativeDesign.textSecondary(this.dark))
@@ -302,10 +303,10 @@ export struct NativeInteraction {
           .borderRadius(11)
       }
       Column({ space: 3 }) {
-        Text(this.optionLabel(option)).fontSize(13).fontWeight(FontWeight.Medium)
+        Text(this.optionLabel(option)).fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
           .fontColor(NativeDesign.textPrimary(this.dark)).width('100%')
         if (this.optionDescription(option)) {
-          Text(this.optionDescription(option)).fontSize(11).maxLines(2)
+          Text(this.optionDescription(option)).fontSize(NativeDesign.fontCaption).maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textTertiary(this.dark)).width('100%')
         }
@@ -327,19 +328,19 @@ export struct NativeInteraction {
     Column({ space: 0 }) {
       Row({ space: 7 }) {
         Text(question.header ? nativeStructuredText(question.header) : '需要你的回答')
-          .fontSize(11).fontWeight(FontWeight.Medium).maxLines(1)
+          .fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium).maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
           .fontColor(NativeDesign.accent(this.dark))
         Text((this.index + 1).toString() + ' / ' + this.frame.request.questions.length.toString())
-          .fontSize(11).fontColor(NativeDesign.textTertiary(this.dark))
+          .fontSize(NativeDesign.fontCaption).fontColor(NativeDesign.textTertiary(this.dark))
         if (this.remaining >= 0) {
-          Text(' · ' + Math.ceil(this.remaining / 1000).toString() + 's').fontSize(11)
+          Text(' · ' + Math.ceil(this.remaining / 1000).toString() + 's').fontSize(NativeDesign.fontCaption)
             .fontColor(NativeDesign.textTertiary(this.dark))
         }
       }.width('100%').height(NativeDesign.compactChip).padding({ left: 12, right: 12 })
       Scroll() {
         Column({ space: 10 }) {
-          Text(this.questionTitle(question)).fontSize(15).fontWeight(FontWeight.Medium)
+          Text(this.questionTitle(question)).fontSize(NativeDesign.fontCompactTitle).fontWeight(FontWeight.Medium)
             .fontColor(NativeDesign.textPrimary(this.dark)).width('100%')
           if (question.detail) {
             NativeTextContent({ text: nativeStructuredText(question.detail),
@@ -357,20 +358,21 @@ export struct NativeInteraction {
               if (question.multiSelect) {
                 Stack({ alignContent: Alignment.Center }) {
                   if (this.answerFor(question.id).custom.trim()) {
-                    DSHIcon({ glyph: 'check-outline', glyphSize: 11,
+                    DSHIcon({ glyph: 'check-outline', glyphSize: NativeDesign.glyphInline,
                       color: NativeDesign.textInverse(this.dark) })
                   }
-                }.width(20).height(20).borderRadius(6)
+                }.width(20).height(20).borderRadius(NativeDesign.radiusBadge)
                   .backgroundColor(this.answerFor(question.id).custom.trim() ?
                     NativeDesign.accentStrong(this.dark) : Color.Transparent)
                   .border({ width: 1, color: NativeDesign.border(this.dark) })
               } else {
-                DSHIcon({ glyph: 'edit-outline', glyphSize: 14,
+                DSHIcon({ glyph: 'edit-outline', glyphSize: NativeDesign.glyphCompact,
                   color: this.answerFor(question.id).custom.trim() ?
                     NativeDesign.accent(this.dark) : NativeDesign.textTertiary(this.dark) })
               }
               TextArea({ text: this.answerFor(question.id).custom, placeholder: '自定义回答' })
-                .layoutWeight(1).height(NativeDesign.compactHitTarget).fontSize(13).borderRadius(8)
+                .layoutWeight(1).height(NativeDesign.compactHitTarget)
+                .fontSize(NativeDesign.fontCompact).borderRadius(NativeDesign.radiusCompact)
                 .padding({ left: 9, right: 9, top: 4, bottom: 4 })
                 .backgroundColor(NativeDesign.field(this.dark))
                 .fontColor(NativeDesign.textPrimary(this.dark))
@@ -385,16 +387,16 @@ export struct NativeInteraction {
         .edgeEffect(EdgeEffect.None)
       Row({ space: 6 }) {
         Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 13,
+          DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textSecondary(this.dark) })
         }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .enabled(this.index > 0 && !this.busy)
           .accessibilityText('上一题').onClick((): void => { this.move(this.index - 1); })
         Text((this.index + 1).toString() + ' / ' + this.frame.request.questions.length.toString())
-          .fontSize(11).fontColor(NativeDesign.textTertiary(this.dark))
+          .fontSize(NativeDesign.fontCaption).fontColor(NativeDesign.textTertiary(this.dark))
         Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'chevron-right-outline', glyphSize: 13,
+          DSHIcon({ glyph: 'chevron-right-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textSecondary(this.dark) })
         }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
@@ -402,16 +404,16 @@ export struct NativeInteraction {
           .accessibilityText('下一题').onClick((): void => { this.move(this.index + 1); })
         Blank()
         Button(question.intent?.reject || '跳过', { type: ButtonType.Normal })
-          .height(NativeDesign.compactHitTarget).fontSize(11)
+          .height(NativeDesign.compactHitTarget).fontSize(NativeDesign.fontCaption)
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.field(this.dark))
           .fontColor(NativeDesign.textSecondary(this.dark))
           .enabled(!this.busy && !this.unconfirmed).onClick((): void => { this.skipQuestion(); })
         Button({ type: ButtonType.Normal }) {
-          if (this.busy) LoadingProgress().width(14).height(14)
+          if (this.busy) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
             .color(NativeDesign.textInverse(this.dark))
           else Text(this.index < this.frame.request.questions.length - 1 ?
-            '下一题' : (question.intent?.approve || '提交')).fontSize(11).fontWeight(FontWeight.Medium)
+            '下一题' : (question.intent?.approve || '提交')).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
         }.height(NativeDesign.compactHitTarget).padding({ left: 12, right: 12 })
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(NativeDesign.accentStrong(this.dark))
@@ -436,7 +438,7 @@ export struct NativeInteraction {
         }, (question: NativeQuestion) => this.frame.eventId + ':' + question.id)
       }
       if (this.error) {
-        Text(this.error).fontSize(11).fontColor(NativeDesign.danger(this.dark))
+        Text(this.error).fontSize(NativeDesign.fontCaption).fontColor(NativeDesign.danger(this.dark))
           .padding({ left: 12, right: 12 })
       }
     }.width('100%').alignItems(HorizontalAlign.Start)

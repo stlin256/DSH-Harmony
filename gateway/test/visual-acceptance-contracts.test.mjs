@@ -11,7 +11,7 @@ test('compact visual controls use semantic dimensions', () => {
   const design = readService('NativeDesign.ets');
   assert.match(design, /compactHitTarget: number = 36/);
   assert.match(design, /compactControl: number = 32/);
-  assert.match(design, /compactChip: number = 30/);
+  assert.match(design, /compactChip: number = 28/);
 
   for (const component of ['NativeAutomationSurface.ets', 'NativePluginsSurface.ets']) {
     const source = readComponent(component);
@@ -22,7 +22,10 @@ test('compact visual controls use semantic dimensions', () => {
 
   const automation = readComponent('NativeAutomationSurface.ets');
   assert.match(automation, /Button\(label[\s\S]{0,100}height\(NativeDesign\.compactChip\)/);
-  assert.match(automation, /Text\(nativeAutomationRule\(task\)\)\.fontSize\(11\)\.maxLines\(1\)/);
+  assert.match(
+    automation,
+    /Text\(nativeAutomationRule\(task\)\)\.fontSize\(NativeDesign\.fontCaption\)\.maxLines\(1\)/,
+  );
   assert.doesNotMatch(
     automation,
     /Text\(nativeAutomationRule\(task\)\)\.fontSize\(11\)\.layoutWeight\(1\)/,
@@ -91,7 +94,7 @@ test('task plan header and mode chip stay compact and clipped', () => {
   const dock = readComponent('NativeTaskDock.ets');
   assert.match(
     dock,
-    /\.height\(NativeDesign\.compactHitTarget\)\.width\('100%'\)\.padding\(0\)\.borderRadius\(0\)/,
+    /\.height\(NativeDesign\.compactControl\)\.width\('100%'\)\.padding\(0\)\.borderRadius\(0\)/,
   );
   assert.match(dock, /constraintSize\(\{ maxWidth: 620 \}\)\.clip\(true\)/);
 
@@ -102,6 +105,6 @@ test('task plan header and mode chip stay compact and clipped', () => {
   );
   assert.match(
     workspace,
-    /\.borderRadius\(14\)[\s\S]{0,320}\.clip\(true\)[\s\S]{0,220}\.accessibilityText\('计划模式已开启，点击关闭'\)/,
+    /\.borderRadius\(NativeDesign\.radiusChip\)[\s\S]{0,320}\.clip\(true\)[\s\S]{0,220}\.accessibilityText\('计划模式已开启，点击关闭'\)/,
   );
 });

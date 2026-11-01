@@ -141,25 +141,37 @@ export class NativeDesign {
   static hitTarget: number = 44;
   static compactHitTarget: number = 36;
   static compactControl: number = 32;
-  static compactChip: number = 30;
+  static compactChip: number = 28;
   static visualIconContainer: number = 36;
   static compactRow: number = 44;
   static standardRow: number = 48;
-  static pickerRow: number = 46;
+  static pickerRow: number = 44;
+  static doubleLineRow: number = 60;
+  static primaryActionHeight: number = 48;
   static headerHeight: number = 52;
+  static statusHeaderHeight: number = 28;
 
-  static radiusControl: number = 10;
+  static radiusBadge: number = 6;
   static radiusCompact: number = 8;
+  static radiusControl: number = 10;
   static radiusRow: number = 12;
+  static radiusChip: number = 14;
   static radiusGroup: number = 16;
   static radiusSurface: number = 24;
 
+  static spaceXXS: number = 2;
   static spaceXS: number = 4;
   static spaceS: number = 8;
   static spaceM: number = 12;
   static spaceL: number = 16;
+  static spaceXL: number = 20;
+  static spaceXXL: number = 28;
   static pageInset: number = 16;
+  static drawerInset: number = 12;
+  static rowInset: number = 12;
   static cardPadding: number = 14;
+  static controlGap: number = 8;
+  static sectionGap: number = 12;
 
   static fontPageTitle: number = 20;
   static fontHeaderTitle: number = 18;
@@ -168,4 +180,20 @@ export class NativeDesign {
   static fontCompact: number = 13;
   static fontCaption: number = 11;
   static fontMicro: number = 10;
+  static fontCompactTitle: number = 15;
+  static fontEmptyTitle: number = 22;
+  static fontMetric: number = 28;
+  static fontBrand: number = 30;
+
+  static glyphMicro: number = 10;
+  static glyphInline: number = 12;
+  static glyphCompact: number = 14;
+  static glyphControl: number = 16;
+  static glyphControlEmphasis: number = 18;
+  static glyphHeader: number = 20;
+  static glyphHero: number = 30;
+  static glyphEmpty: number = 34;
+
+  static spinnerInline: number = 14;
+  static spinnerPage: number = 24;
 }

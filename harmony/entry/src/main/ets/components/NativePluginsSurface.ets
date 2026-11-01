@@ -368,13 +368,13 @@ export struct NativePluginsSurface {
   private pageHeader(title: string, actionLabel: string = '', action: () => void = (): void => {}) {
     Row({ space: 4 }) {
       NativeIconButton({ glyph: 'chevron-left-outline', label: '返回', tone: 'primary',
-        glyphSize: 17, onPressed: (): void => { this.back(); } })
-      Text(title).fontSize(18).fontWeight(FontWeight.Medium).layoutWeight(1).maxLines(1)
+        glyphSize: NativeDesign.glyphControl, onPressed: (): void => { this.back(); } })
+      Text(title).fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium).layoutWeight(1).maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.primaryText())
-      if (this.refreshing) LoadingProgress().width(18).height(18).color(this.accent())
+      if (this.refreshing) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.accent())
       if (actionLabel) {
         Button(actionLabel, { type: ButtonType.Normal }).height(NativeDesign.compactHitTarget)
-          .padding({ left: 12, right: 12 }).fontSize(12).borderRadius(NativeDesign.radiusControl)
+          .padding({ left: 12, right: 12 }).fontSize(NativeDesign.fontSection).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.fieldSurface()).fontColor(this.primaryText()).onClick(action)
       }
     }.width('100%').height(NativeDesign.headerHeight)
@@ -383,7 +383,7 @@ export struct NativePluginsSurface {
   @Builder
   private searchField() {
     Row({ space: 8 }) {
-      DSHIcon({ glyph: 'search-outline', glyphSize: 16, color: this.tertiaryText() })
+      DSHIcon({ glyph: 'search-outline', glyphSize: NativeDesign.glyphControl, color: this.tertiaryText() })
       TextInput({ text: this.query, placeholder: '搜索插件或组件' })
         .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontCompact)
         .backgroundColor(Color.Transparent).fontColor(this.primaryText())
@@ -391,7 +391,7 @@ export struct NativePluginsSurface {
         .onChange((value: string): void => { this.query = value; })
       if (this.query) {
         Button({ type: ButtonType.Circle }) {
-          DSHIcon({ glyph: 'close-outline', glyphSize: 12, color: this.tertiaryText() })
+          DSHIcon({ glyph: 'close-outline', glyphSize: NativeDesign.glyphInline, color: this.tertiaryText() })
         }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
           .backgroundColor(Color.Transparent).accessibilityText('清除搜索')
           .onClick((): void => { this.query = ''; })
@@ -404,10 +404,10 @@ export struct NativePluginsSurface {
   @Builder
   private sectionLabel(title: string, count: number) {
     Row() {
-      Text(title).fontSize(12).fontWeight(FontWeight.Medium).fontColor(this.secondaryText())
+      Text(title).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium).fontColor(this.secondaryText())
       Blank()
-      Text(count.toString()).fontSize(11).fontColor(this.tertiaryText())
-    }.width('100%').height(30).padding({ left: 4, right: 4 })
+      Text(count.toString()).fontSize(NativeDesign.fontCaption).fontColor(this.tertiaryText())
+    }.width('100%').height(NativeDesign.compactControl).padding({ left: 4, right: 4 })
   }
 
   @Builder
@@ -416,22 +416,23 @@ export struct NativePluginsSurface {
       Row({ space: 10 }) {
         Stack() {
           DSHIcon({ glyph: bundle.official ? 'deepseek-logo' : 'code-outline',
-            glyphSize: 18, color: bundle.enabled ? this.accent() : this.secondaryText() })
-        }.width(36).height(36).borderRadius(10)
+            glyphSize: NativeDesign.glyphControlEmphasis, color: bundle.enabled ? this.accent() : this.secondaryText() })
+        }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+          .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(bundle.enabled ? NativeDesign.accentSurface(this.dark) : this.fieldSurface())
         Column({ space: 2 }) {
           Row({ space: 6 }) {
-            Text(nativePluginTitle(bundle)).fontSize(14).fontWeight(FontWeight.Medium)
+            Text(nativePluginTitle(bundle)).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium)
               .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
               .layoutWeight(1).fontColor(this.primaryText())
             if (bundle.optional) this.chip('可选')
             if (bundle.official) this.chip('官方')
           }.width('100%')
-          Text(nativePluginDescription(bundle) || bundle.name).fontSize(11)
+          Text(nativePluginDescription(bundle) || bundle.name).fontSize(NativeDesign.fontCaption)
             .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
             .width('100%').fontColor(this.secondaryText())
           Text(this.statusFor(bundle) + (bundle.version ? ' · v' + bundle.version : ''))
-            .fontSize(10).maxLines(1).fontColor(bundle.errorCode ? this.danger() : this.tertiaryText())
+            .fontSize(NativeDesign.fontMicro).maxLines(1).fontColor(bundle.errorCode ? this.danger() : this.tertiaryText())
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         if (bundle.installed && !bundle.readOnlyReason) {
           Toggle({ type: ToggleType.Switch, isOn: bundle.enabled })
@@ -439,17 +440,19 @@ export struct NativePluginsSurface {
             .selectedColor(this.accent())
             .onChange((isOn: boolean): void => { this.toggleBundle(bundle); })
         } else if (!bundle.installed && bundle.installSpec) {
-          Button('添加', { type: ButtonType.Normal }).height(32).fontSize(11)
-            .padding({ left: 10, right: 10 }).borderRadius(8)
+          Button('添加', { type: ButtonType.Normal }).height(NativeDesign.compactControl)
+            .fontSize(NativeDesign.fontCaption).padding({ left: 10, right: 10 })
+            .borderRadius(NativeDesign.radiusCompact)
             .backgroundColor(this.selectedSurface()).fontColor(this.accent())
             .onClick((): void => {
               this.openInstall(bundle.installSpec);
             })
         } else {
-          DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 13, color: this.tertiaryText() })
+          DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphCompact, color: this.tertiaryText() })
             .rotate({ angle: 180 })
         }
-      }.width('100%').constraintSize({ minHeight: 62 }).padding({ left: 10, right: 10, top: 8, bottom: 8 })
+      }.width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
+        .padding({ left: 10, right: 10, top: 8, bottom: 8 })
     }.width('100%').borderRadius(NativeDesign.radiusRow).backgroundColor(Color.Transparent)
       .onClick((): void => { this.openDetail(bundle); })
       .transition(NativeMotion.rowTransition())
@@ -457,8 +460,8 @@ export struct NativePluginsSurface {
 
   @Builder
   private chip(value: string) {
-    Text(value).fontSize(9).fontColor(this.accent()).padding({ left: 5, right: 5, top: 2, bottom: 2 })
-      .borderRadius(5).backgroundColor(NativeDesign.accentSurface(this.dark))
+    Text(value).fontSize(NativeDesign.fontMicro).fontColor(this.accent()).padding({ left: 5, right: 5, top: 2, bottom: 2 })
+      .borderRadius(NativeDesign.radiusBadge).backgroundColor(NativeDesign.accentSurface(this.dark))
   }
 
   @Builder
@@ -468,18 +471,18 @@ export struct NativePluginsSurface {
         DSHIcon({
           glyph: this.notice.application === 'failed' ? 'warning-outline' :
             this.notice.application === 'restart-required' ? 'refresh-outline' : 'check-outline',
-          glyphSize: 16,
+          glyphSize: NativeDesign.glyphControl,
           color: this.notice.application === 'failed' ? this.danger() :
             this.notice.application === 'restart-required' ? NativeDesign.warning(this.dark) : this.accent()
         })
         Column({ space: 2 }) {
-          Text(nativePluginApplication(this.notice.application)).fontSize(12).fontWeight(FontWeight.Medium)
+          Text(nativePluginApplication(this.notice.application)).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
             .fontColor(this.primaryText())
           if (this.notice.restartReason) {
-            Text('DSH 重启后生效').fontSize(10).fontColor(this.secondaryText())
+            Text('DSH 重启后生效').fontSize(NativeDesign.fontMicro).fontColor(this.secondaryText())
           }
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        NativeIconButton({ glyph: 'close-outline', label: '关闭状态', glyphSize: 11,
+        NativeIconButton({ glyph: 'close-outline', label: '关闭状态', glyphSize: NativeDesign.glyphInline,
           onPressed: (): void => { this.noticeVisible = false; } })
       }.width('100%').padding({ left: 10, right: 4, top: 8, bottom: 8 })
         .borderRadius(NativeDesign.radiusRow).backgroundColor(this.fieldSurface())
@@ -492,11 +495,11 @@ export struct NativePluginsSurface {
   private errorNotice() {
     if (this.actionError || this.error) {
       Row({ space: 8 }) {
-        DSHIcon({ glyph: 'warning-outline', glyphSize: 16, color: this.danger() })
-        Text(this.actionError || this.error).fontSize(11).layoutWeight(1).maxLines(4)
+        DSHIcon({ glyph: 'warning-outline', glyphSize: NativeDesign.glyphControl, color: this.danger() })
+        Text(this.actionError || this.error).fontSize(NativeDesign.fontCaption).layoutWeight(1).maxLines(4)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.danger())
         Button('重试', { type: ButtonType.Normal }).height(NativeDesign.compactControl)
-          .fontSize(11).backgroundColor(Color.Transparent).fontColor(this.accent())
+          .fontSize(NativeDesign.fontCaption).backgroundColor(Color.Transparent).fontColor(this.accent())
           .onClick((): void => {
             if (this.page === 'root') this.refresh();
             else if (this.page === 'install') this.inspectInstall();
@@ -518,13 +521,13 @@ export struct NativePluginsSurface {
       this.errorNotice()
       if (this.loading && !this.inventory.bundles.length) {
         Column({ space: 10 }) {
-          LoadingProgress().width(26).height(26).color(this.accent())
-          Text('正在读取插件').fontSize(12).fontColor(this.secondaryText())
+          LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage).color(this.accent())
+          Text('正在读取插件').fontSize(NativeDesign.fontSection).fontColor(this.secondaryText())
         }.width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
       } else if (!this.loading && !this.inventory.bundles.length) {
         Column({ space: 12 }) {
-          DSHIcon({ glyph: 'code-outline', glyphSize: 32, color: this.tertiaryText() })
-          Text('还没有可显示的插件').fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
+          DSHIcon({ glyph: 'code-outline', glyphSize: NativeDesign.glyphHero, color: this.tertiaryText() })
+          Text('还没有可显示的插件').fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
           Button('安装插件', { type: ButtonType.Normal }).height(NativeDesign.hitTarget)
             .padding({ left: 16, right: 16 }).borderRadius(NativeDesign.radiusControl)
             .backgroundColor(this.accent()).fontColor(NativeDesign.textInverse(this.dark))
@@ -551,14 +554,15 @@ export struct NativePluginsSurface {
                 Row({ space: 9 }) {
                   Stack() {
                     DSHIcon({ glyph: entry.phase === 'failed' ? 'warning-outline' : 'api-outline',
-                      glyphSize: 16, color: entry.phase === 'failed' ? this.danger() :
+                      glyphSize: NativeDesign.glyphControl, color: entry.phase === 'failed' ? this.danger() :
                         entry.phase === 'active' ? this.accent() : this.tertiaryText() })
-                  }.width(32).height(32).borderRadius(9).backgroundColor(this.fieldSurface())
+                  }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
+                    .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
                   Column({ space: 2 }) {
-                    Text(entry.title || entry.moduleName).fontSize(13).maxLines(1)
+                    Text(entry.title || entry.moduleName).fontSize(NativeDesign.fontCompact).maxLines(1)
                       .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
                       .fontColor(this.primaryText())
-                    Text(nativePluginPhase(entry.phase) + ' · ' + entry.entryId).fontSize(10)
+                    Text(nativePluginPhase(entry.phase) + ' · ' + entry.entryId).fontSize(NativeDesign.fontMicro)
                       .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
                       .width('100%').fontColor(this.tertiaryText())
                   }.layoutWeight(1).alignItems(HorizontalAlign.Start)
@@ -568,7 +572,8 @@ export struct NativePluginsSurface {
           }
         }.layoutWeight(1).width('100%').scrollBar(BarState.Auto).cachedCount(10)
       }
-    }.padding({ left: 12, right: 12, top: this.safeTop + 4, bottom: this.safeBottom + 8 })
+    }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset,
+      top: this.safeTop + 4, bottom: this.safeBottom + 8 })
       .width('100%').height('100%').backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition(this.navigationDirection))
   }
@@ -576,25 +581,27 @@ export struct NativePluginsSurface {
   @Builder
   private detailRow(title: string, value: string, danger: boolean = false) {
     Row({ space: 12 }) {
-      Text(title).fontSize(12).fontColor(this.secondaryText()).width(82)
-      Text(value || '—').fontSize(12).layoutWeight(1).maxLines(3)
+      Text(title).fontSize(NativeDesign.fontSection).fontColor(this.secondaryText()).width(82)
+      Text(value || '—').fontSize(NativeDesign.fontSection).layoutWeight(1).maxLines(3)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .fontColor(danger ? this.danger() : this.primaryText())
-    }.width('100%').constraintSize({ minHeight: 40 }).padding({ left: 10, right: 10, top: 6, bottom: 6 })
+    }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
+      .padding({ left: 10, right: 10, top: 6, bottom: 6 })
   }
 
   @Builder
   private pluginRow(bundle: NativePluginBundle, row: NativePluginRow) {
     Row({ space: 9 }) {
       Stack() {
-        DSHIcon({ glyph: 'api-outline', glyphSize: 15,
+        DSHIcon({ glyph: 'api-outline', glyphSize: NativeDesign.glyphControl,
           color: row.entryId ? this.accent() : this.tertiaryText() })
-      }.width(30).height(30).borderRadius(8).backgroundColor(this.fieldSurface())
+      }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
+        .borderRadius(NativeDesign.radiusCompact).backgroundColor(this.fieldSurface())
       Column({ space: 2 }) {
-        Text(row.title || row.rowId).fontSize(12).fontWeight(FontWeight.Medium)
+        Text(row.title || row.rowId).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
           .fontColor(this.primaryText())
-        Text(row.description || row.moduleName).fontSize(10).maxLines(1)
+        Text(row.description || row.moduleName).fontSize(NativeDesign.fontMicro).maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
           .fontColor(this.tertiaryText())
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
@@ -605,7 +612,7 @@ export struct NativePluginsSurface {
           .selectedColor(this.accent())
           .onChange((isOn: boolean): void => { this.toggleRow(bundle, row.entryId, isOn); })
       } else {
-        Text('不可切换').fontSize(9).fontColor(this.tertiaryText())
+        Text('不可切换').fontSize(NativeDesign.fontMicro).fontColor(this.tertiaryText())
       }
     }.width('100%').height(NativeDesign.compactRow).padding({ left: 8, right: 8 })
       .borderRadius(NativeDesign.radiusControl)
@@ -624,13 +631,14 @@ export struct NativePluginsSurface {
           Row({ space: 12 }) {
             Stack() {
               DSHIcon({ glyph: this.selected.official ? 'deepseek-logo' : 'code-outline',
-                glyphSize: 25, color: this.accent() })
-            }.width(52).height(52).borderRadius(15).backgroundColor(NativeDesign.accentSurface(this.dark))
+                glyphSize: NativeDesign.glyphHero, color: this.accent() })
+            }.width(NativeDesign.standardRow).height(NativeDesign.standardRow)
+              .borderRadius(NativeDesign.radiusGroup).backgroundColor(NativeDesign.accentSurface(this.dark))
             Column({ space: 4 }) {
-              Text(nativePluginTitle(this.selected)).fontSize(18).fontWeight(FontWeight.Medium)
+              Text(nativePluginTitle(this.selected)).fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium)
                 .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.primaryText())
               Text((this.selected.version ? 'v' + this.selected.version + ' · ' : '') +
-                this.statusFor(this.selected)).fontSize(11).fontColor(this.secondaryText())
+                this.statusFor(this.selected)).fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
             }.layoutWeight(1).alignItems(HorizontalAlign.Start)
             if (this.selected.installed && !this.selected.readOnlyReason) {
               Toggle({ type: ToggleType.Switch, isOn: this.selected.enabled })
@@ -640,7 +648,7 @@ export struct NativePluginsSurface {
             }
           }.width('100%').padding({ top: 4, bottom: 4 })
           if (nativePluginDescription(this.selected)) {
-            Text(nativePluginDescription(this.selected)).fontSize(13).lineHeight(20)
+            Text(nativePluginDescription(this.selected)).fontSize(NativeDesign.fontCompact).lineHeight(20)
               .width('100%').fontColor(this.secondaryText())
           }
           Column() {
@@ -662,15 +670,15 @@ export struct NativePluginsSurface {
           if (this.versions) {
             Column({ space: 8 }) {
               Row() {
-                Text('版本更新').fontSize(12).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
+                Text('版本更新').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
                 Blank()
                 Text(this.versions.status === 'listed' ?
                   (this.versions.versions.length + ' 个可用') : '暂不可用')
-                  .fontSize(10).fontColor(this.tertiaryText())
+                  .fontSize(NativeDesign.fontMicro).fontColor(this.tertiaryText())
               }.width('100%')
               if (this.updateCandidate()) {
                 Button('更新到 ' + this.updateCandidate(), { type: ButtonType.Normal })
-                  .width('100%').height(NativeDesign.hitTarget).fontSize(12)
+                  .width('100%').height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
                   .borderRadius(NativeDesign.radiusControl).backgroundColor(this.accent())
                   .fontColor(NativeDesign.textInverse(this.dark))
                   .enabled(!this.isBusy('update:' + this.selected.name))
@@ -678,16 +686,16 @@ export struct NativePluginsSurface {
               } else {
                 Text(this.versions.status === 'refused' ?
                   nativePluginErrorText(this.versions.problem) : '已是最新版本')
-                  .fontSize(11).fontColor(this.secondaryText())
+                  .fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
               }
             }.width('100%').padding(10).borderRadius(NativeDesign.radiusRow)
               .backgroundColor(this.fieldSurface())
           }
           Row() {
-            Text('组件').fontSize(12).fontWeight(FontWeight.Medium).fontColor(this.secondaryText())
+            Text('组件').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium).fontColor(this.secondaryText())
             Blank()
-            Text(this.selected.rows.length.toString()).fontSize(10).fontColor(this.tertiaryText())
-          }.width('100%').height(30)
+            Text(this.selected.rows.length.toString()).fontSize(NativeDesign.fontMicro).fontColor(this.tertiaryText())
+          }.width('100%').height(NativeDesign.compactControl)
           if (this.selected.rows.length) {
             Column({ space: 2 }) {
               ForEach(this.selected.rows, (row: NativePluginRow) => {
@@ -695,19 +703,20 @@ export struct NativePluginsSurface {
               }, (row: NativePluginRow) => row.rowId)
             }.width('100%')
           } else {
-            Text('此插件没有可管理的运行组件').fontSize(11).fontColor(this.tertiaryText())
+            Text('此插件没有可管理的运行组件').fontSize(NativeDesign.fontCaption).fontColor(this.tertiaryText())
               .width('100%').padding(12)
           }
           if (this.selected.removable) {
             Button('移除插件', { type: ButtonType.Normal }).width('100%')
-              .height(NativeDesign.hitTarget).fontSize(12).borderRadius(NativeDesign.radiusControl)
+              .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection).borderRadius(NativeDesign.radiusControl)
               .backgroundColor(NativeDesign.dangerSurface(this.dark)).fontColor(this.danger())
               .enabled(!this.isBusy('remove:' + this.selected.name))
               .onClick((): void => { this.confirmRemove(); })
           }
         }.width('100%').padding({ bottom: 16 }).alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.Top).scrollBar(BarState.Auto)
-    }.padding({ left: 12, right: 12, top: this.safeTop + 4, bottom: this.safeBottom + 8 })
+    }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset,
+      top: this.safeTop + 4, bottom: this.safeBottom + 8 })
       .width('100%').height('100%').backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition(this.navigationDirection))
   }
@@ -721,9 +730,9 @@ export struct NativePluginsSurface {
           else this.inspectInstall();
         })
       this.errorNotice()
-      Text('包名').fontSize(12).fontWeight(FontWeight.Medium).width('100%').fontColor(this.secondaryText())
+      Text('包名').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium).width('100%').fontColor(this.secondaryText())
       TextInput({ text: this.installSpec, placeholder: '包名、Git 地址或本地路径' })
-        .width('100%').height(NativeDesign.standardRow).fontSize(13)
+        .width('100%').height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
         .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
         .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
         .onChange((value: string): void => {
@@ -732,13 +741,13 @@ export struct NativePluginsSurface {
         })
       Row({ space: 8 }) {
         Button(this.inspecting ? '检查中…' : '检查安装源', { type: ButtonType.Normal })
-          .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(12)
+          .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
           .fontColor(this.primaryText()).enabled(!this.inspecting && !!this.installSpec.trim())
           .onClick((): void => { this.inspectInstall(); })
         if (this.inspection?.status === 'accepted') {
           Button(this.installing ? '安装中…' : '安装', { type: ButtonType.Normal })
-            .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(12)
+            .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
             .borderRadius(NativeDesign.radiusControl).backgroundColor(this.accent())
             .fontColor(NativeDesign.textInverse(this.dark))
             .enabled(!this.installing).onClick((): void => { this.install(); })
@@ -746,12 +755,12 @@ export struct NativePluginsSurface {
       }.width('100%')
       if (this.inspection?.status === 'accepted') {
         Column({ space: 5 }) {
-          Text(this.inspection.name || '待确认插件').fontSize(16).fontWeight(FontWeight.Medium)
+          Text(this.inspection.name || '待确认插件').fontSize(NativeDesign.fontCompactTitle).fontWeight(FontWeight.Medium)
             .fontColor(this.primaryText())
           Text((this.inspection.version ? 'v' + this.inspection.version + ' · ' : '') +
-            (this.inspection.kind || 'package')).fontSize(11).fontColor(this.secondaryText())
+            (this.inspection.kind || 'package')).fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
           if (this.inspection.description) {
-            Text(this.inspection.description).fontSize(12).lineHeight(18)
+            Text(this.inspection.description).fontSize(NativeDesign.fontSection).lineHeight(18)
               .fontColor(this.secondaryText())
           }
         }.width('100%').padding(12).alignItems(HorizontalAlign.Start)
@@ -759,10 +768,10 @@ export struct NativePluginsSurface {
       }
       if (this.notice.pendingBuilds.length) {
         Column({ space: 8 }) {
-          Text('需要允许构建脚本').fontSize(13).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
-          Text(this.notice.pendingBuilds.join('、')).fontSize(11).fontColor(this.secondaryText())
+          Text('需要允许构建脚本').fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
+          Text(this.notice.pendingBuilds.join('、')).fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
           Button('批准并重试', { type: ButtonType.Normal }).width('100%')
-            .height(NativeDesign.hitTarget).fontSize(12).borderRadius(NativeDesign.radiusControl)
+            .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection).borderRadius(NativeDesign.radiusControl)
             .backgroundColor(NativeDesign.warningSurface(this.dark))
             .fontColor(NativeDesign.warning(this.dark))
             .onClick((): void => { this.install(this.notice.pendingBuilds); })
@@ -771,7 +780,8 @@ export struct NativePluginsSurface {
           .border({ width: 0.5, color: NativeDesign.warning(this.dark) })
       }
       Blank()
-    }.padding({ left: 12, right: 12, top: this.safeTop + 4, bottom: this.safeBottom + 8 })
+    }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset,
+      top: this.safeTop + 4, bottom: this.safeBottom + 8 })
       .width('100%').height('100%').backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition(this.navigationDirection))
   }

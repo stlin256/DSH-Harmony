@@ -530,7 +530,8 @@ export struct NativeSettings {
       Text('设置').fontSize(NativeDesign.fontPageTitle).fontWeight(FontWeight.Bold)
         .fontColor(this.primaryText())
         .layoutWeight(1)
-    }.width('100%').height(NativeDesign.headerHeight).padding({ left: 4, right: 4 })
+    }.width('100%').height(NativeDesign.headerHeight)
+      .padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset })
   }
 
   @Builder
@@ -540,13 +541,14 @@ export struct NativeSettings {
         onPressed: (): void => { this.openPage('root'); } })
       Text(title).fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium).layoutWeight(1)
         .fontColor(this.primaryText())
-    }.width('100%').height(NativeDesign.headerHeight).padding({ left: 4, right: 4 })
+    }.width('100%').height(NativeDesign.headerHeight)
+      .padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset })
   }
 
   @Builder
   private sectionLabel(title: string) {
     Text(title).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
-      .fontColor(this.tertiaryText()).padding({ left: 5, top: 8, bottom: 5 })
+      .fontColor(this.tertiaryText()).padding({ top: 8, bottom: 5 })
   }
 
   private choiceOptions(values: string[], labels: string[], current: string): SelectOption[] {
@@ -569,15 +571,16 @@ export struct NativeSettings {
   private navigationRow(icon: string, title: string, detail: string, page: string) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 12 }) {
-        DSHIcon({ glyph: icon, glyphSize: 18, color: this.secondaryText() })
+        DSHIcon({ glyph: icon, glyphSize: NativeDesign.glyphControlEmphasis, color: this.secondaryText() })
         Text(title).fontSize(NativeDesign.fontBody).layoutWeight(1).fontColor(this.primaryText())
         if (detail) {
-          Text(detail).fontSize(12).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text(detail).fontSize(NativeDesign.fontSection).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(this.tertiaryText())
         }
-        DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 13, color: this.tertiaryText() })
+        DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphCompact, color: this.tertiaryText() })
           .rotate({ angle: 180 })
-      }.width('100%').height(NativeDesign.standardRow).padding({ left: NativeDesign.cardPadding, right: 13 })
+      }.width('100%').height(NativeDesign.standardRow)
+        .padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset })
     }.width('100%').height(NativeDesign.standardRow).borderRadius(0).backgroundColor(Color.Transparent)
       .accessibilityText(title + (detail ? '，' + detail : ''))
       .onClick(() => { this.openPage(page); })
@@ -610,19 +613,19 @@ export struct NativeSettings {
           }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true).backgroundColor(this.cardSurface())
           if (this.initializing) {
             Row({ space: 8 }) {
-              LoadingProgress().width(15).height(15).color(this.tertiaryText())
-              Text('正在读取本机设置').fontSize(12).fontColor(this.tertiaryText())
+              LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.tertiaryText())
+              Text('正在读取本机设置').fontSize(NativeDesign.fontSection).fontColor(this.tertiaryText())
             }.padding({ top: 14, left: 5 })
           }
           if (this.error) {
-            Text(this.error).fontSize(12).padding({ top: 12, left: 5 })
+            Text(this.error).fontSize(NativeDesign.fontSection).padding({ top: 12, left: 5 })
               .fontColor(this.dangerText())
           }
         }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset, top: 2,
           bottom: this.safeBottom + 28 }).width('100%')
           .constraintSize({ maxWidth: 680 }).alignItems(HorizontalAlign.Start)
       }.width('100%').layoutWeight(1).align(Alignment.TopStart).scrollBar(BarState.Off)
-    }.padding({ top: this.safeTop, left: 12 + this.safeLeft, right: 12 + this.safeRight }).width('100%').height('100%')
+    }.padding({ top: this.safeTop, left: this.safeLeft, right: this.safeRight }).width('100%').height('100%')
       .backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition(-1))
   }
@@ -632,13 +635,13 @@ export struct NativeSettings {
     ns: string = 'ui-chat') {
     Row({ space: 10 }) {
       Column({ space: 2 }) {
-        Text(title).fontSize(14).fontColor(this.primaryText())
+        Text(title).fontSize(NativeDesign.fontBody).fontColor(this.primaryText())
         if (!this.host.writable) {
-          Text('服务端设置当前为只读').fontSize(11)
+          Text('服务端设置当前为只读').fontSize(NativeDesign.fontCaption)
             .fontColor(NativeDesign.warning(this.dark))
         }
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-      if (this.hostSaving.includes(ns + ':' + field)) LoadingProgress().width(14).height(14)
+      if (this.hostSaving.includes(ns + ':' + field)) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
       else {
         Select(this.choiceOptions(values, labels, current))
           .selected(this.choiceIndex(values, current))
@@ -660,7 +663,8 @@ export struct NativeSettings {
             this.saveHost(ns, field, values[valueIndex]);
           })
       }
-    }.width('100%').constraintSize({ minHeight: 54 }).padding({ left: 14, right: 12 })
+    }.width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
+      .padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset })
   }
 
   @Builder
@@ -670,10 +674,10 @@ export struct NativeSettings {
       Scroll() {
         Column({ space: 10 }) {
           Row({ space: 10 }) {
-            Text('插件版本').fontSize(14).fontWeight(FontWeight.Medium)
+            Text('插件版本').fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium)
               .fontColor(this.primaryText())
             Blank()
-            Text(this.pluginVersion ? 'v' + this.pluginVersion : '未报告').fontSize(12)
+            Text(this.pluginVersion ? 'v' + this.pluginVersion : '未报告').fontSize(NativeDesign.fontSection)
               .fontColor(this.tertiaryText())
           }.width('100%').constraintSize({ minHeight: NativeDesign.standardRow })
             .padding({ left: NativeDesign.cardPadding, right: NativeDesign.cardPadding })
@@ -700,23 +704,23 @@ export struct NativeSettings {
           }
           if (this.hostLoading) {
             Row({ space: 8 }) {
-              LoadingProgress().width(15).height(15)
-              Text('正在读取 DSH 设置').fontSize(12).fontColor(this.tertiaryText())
+              LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
+              Text('正在读取 DSH 设置').fontSize(NativeDesign.fontSection).fontColor(this.tertiaryText())
             }.padding(14)
           }
           if (!this.hostLoading && !this.host.namespaces.length && !this.hostError) {
-            Text('当前 DSH 服务未提供可写设置').fontSize(13).padding(14)
+            Text('当前 DSH 服务未提供可写设置').fontSize(NativeDesign.fontCompact).padding(14)
               .fontColor(this.tertiaryText())
           }
           if (!this.hostLoading && this.host.namespaces.length && !this.host.writable) {
-            Text('当前 DSH 服务未开放设置写入').fontSize(13).padding(14)
+            Text('当前 DSH 服务未开放设置写入').fontSize(NativeDesign.fontCompact).padding(14)
               .fontColor(this.tertiaryText())
           }
           if (this.hostError) {
             Row({ space: 8 }) {
-              Text(this.hostError).fontSize(12).layoutWeight(1)
+              Text(this.hostError).fontSize(NativeDesign.fontSection).layoutWeight(1)
                 .fontColor(this.dangerText())
-              Button('重试', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(12)
+              Button('重试', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
                 .onClick(() => { this.retryHostWrite(); })
             }.padding(NativeDesign.cardPadding).borderRadius(NativeDesign.radiusRow)
               .backgroundColor(NativeDesign.dangerSurface(this.dark))
@@ -725,7 +729,7 @@ export struct NativeSettings {
           bottom: this.safeBottom + 28 }).width('100%')
           .constraintSize({ maxWidth: 680 }).alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.TopStart).scrollBar(BarState.Off)
-    }.padding({ top: this.safeTop, left: 12 + this.safeLeft, right: 12 + this.safeRight }).width('100%').height('100%')
+    }.padding({ top: this.safeTop, left: this.safeLeft, right: this.safeRight }).width('100%').height('100%')
       .backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition())
   }
@@ -735,14 +739,14 @@ export struct NativeSettings {
     unavailable: string = '', showToggle: boolean = true) {
     Row({ space: 12 }) {
       Column({ space: 3 }) {
-        Text(title).fontSize(14).fontWeight(FontWeight.Medium)
+        Text(title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium)
           .fontColor(this.primaryText())
-        if (detail) Text(detail).fontSize(11).maxLines(2)
+        if (detail) Text(detail).fontSize(NativeDesign.fontCaption).maxLines(2)
           .fontColor(this.secondaryText())
-        if (unavailable) Text(unavailable).fontSize(11)
+        if (unavailable) Text(unavailable).fontSize(NativeDesign.fontCaption)
           .fontColor(NativeDesign.warning(this.dark))
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-      if (this.pendingFor(key)) LoadingProgress().width(18).height(18)
+      if (this.pendingFor(key)) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
       if (showToggle) {
         Toggle({ type: ToggleType.Switch, isOn: this.localValue(key) })
           .enabled(!this.initializing && unavailable.length === 0 && !this.pendingFor(key))
@@ -750,7 +754,8 @@ export struct NativeSettings {
           .hitTestBehavior(HitTestMode.None)
           .animation(NativeMotion.implicit('micro'))
       }
-    }.width('100%').constraintSize({ minHeight: 54 }).padding({ left: 14, right: 12, top: 7, bottom: 7 })
+    }.width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
+      .padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset, top: 7, bottom: 7 })
       .enabled(!this.initializing && unavailable.length === 0 && !this.pendingFor(key))
       .onClick(() => {
         if (showToggle) this.setting(key, !this.localValue(key));
@@ -761,9 +766,9 @@ export struct NativeSettings {
   private themeChoice(mode: string, icon: string, label: string) {
     Button({ type: ButtonType.Normal }) {
       Column({ space: 7 }) {
-        DSHIcon({ glyph: icon, glyphSize: 19,
+        DSHIcon({ glyph: icon, glyphSize: NativeDesign.glyphControlEmphasis,
           color: this.themeMode === mode ? this.primaryText() : this.tertiaryText() })
-        Text(label).fontSize(12)
+        Text(label).fontSize(NativeDesign.fontSection)
           .fontColor(this.themeMode === mode ? this.primaryText() : this.tertiaryText())
       }
     }.layoutWeight(1).height(72).borderRadius(NativeDesign.radiusRow)
@@ -792,15 +797,15 @@ export struct NativeSettings {
             Divider().strokeWidth(0.5).margin({ left: 14 }).color(this.dividerColor())
             this.toggleRow('reduceTransparency', '减少透明效果', '使用不透明表面')
           }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true).backgroundColor(this.cardSurface())
-          if (this.error) Text(this.error).fontSize(12)
+          if (this.error) Text(this.error).fontSize(NativeDesign.fontSection)
             .fontColor(this.dangerText()).padding(12)
-          if (this.status) Text(this.status).fontSize(12)
+          if (this.status) Text(this.status).fontSize(NativeDesign.fontSection)
             .fontColor(this.tertiaryText()).padding(8)
         }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset, top: 0,
           bottom: this.safeBottom + 28 }).width('100%')
           .constraintSize({ maxWidth: 680 }).alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.TopStart).scrollBar(BarState.Off)
-    }.padding({ top: this.safeTop, left: 12 + this.safeLeft, right: 12 + this.safeRight }).width('100%').height('100%')
+    }.padding({ top: this.safeTop, left: this.safeLeft, right: this.safeRight }).width('100%').height('100%')
       .backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition())
   }
@@ -822,11 +827,11 @@ export struct NativeSettings {
     Column({ space: 7 }) {
       Row() {
         Column({ space: 2 }) {
-          Text(title).fontSize(14).fontWeight(FontWeight.Medium)
+          Text(title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium)
             .fontColor(this.primaryText())
-          Text(detail).fontSize(11).fontColor(this.secondaryText())
+          Text(detail).fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        if (this.pendingFor('notification:' + category)) LoadingProgress().width(15).height(15)
+        if (this.pendingFor('notification:' + category)) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
       }.width('100%')
       Row({ space: 4 }) {
         this.notificationLevelButton(category, 'off', '关闭')
@@ -834,19 +839,19 @@ export struct NativeSettings {
         this.notificationLevelButton(category, 'standard', '标准')
         this.notificationLevelButton(category, 'prominent', '醒目')
       }.width('100%')
-    }.width('100%').padding({ left: 14, right: 12, top: 10, bottom: 10 })
+    }.width('100%').padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset, top: 10, bottom: 10 })
   }
 
   @Builder
   private actionRow(title: string, detail: string, command: string, destructive: boolean = false) {
     Row({ space: 12 }) {
       Column({ space: 3 }) {
-        Text(title).fontSize(14).fontWeight(FontWeight.Medium)
+        Text(title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium)
           .fontColor(destructive ? this.dangerText() : this.primaryText())
-        if (detail) Text(detail).fontSize(11).fontColor(this.secondaryText())
+        if (detail) Text(detail).fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-      if (this.pendingFor(command)) LoadingProgress().width(17).height(17)
-      else DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 13,
+      if (this.pendingFor(command)) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
+      else DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphCompact,
         color: this.tertiaryText() }).rotate({ angle: 180 })
     }.width('100%').constraintSize({ minHeight: NativeDesign.standardRow + 8 })
       .padding({ left: NativeDesign.cardPadding, right: 13, top: 7, bottom: 7 })
@@ -891,18 +896,18 @@ export struct NativeSettings {
           }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true).backgroundColor(this.cardSurface())
           if (!this.supportsPush) {
             Text('无 Push Kit · 后台运行受系统限制')
-              .fontSize(11).lineHeight(17).padding({ left: 5, right: 5 })
+              .fontSize(NativeDesign.fontCaption).lineHeight(17).padding({ left: 5, right: 5 })
               .fontColor(this.tertiaryText())
           }
-          if (this.error) Text(this.error).fontSize(12).padding(12)
+          if (this.error) Text(this.error).fontSize(NativeDesign.fontSection).padding(12)
             .fontColor(this.dangerText())
-          if (this.status) Text(this.status).fontSize(12).padding(8)
+          if (this.status) Text(this.status).fontSize(NativeDesign.fontSection).padding(8)
             .fontColor(this.tertiaryText())
         }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset, top: 0,
           bottom: this.safeBottom + 28 }).width('100%')
           .constraintSize({ maxWidth: 680 }).alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.TopStart).scrollBar(BarState.Off)
-    }.padding({ top: this.safeTop, left: 12 + this.safeLeft, right: 12 + this.safeRight }).width('100%').height('100%')
+    }.padding({ top: this.safeTop, left: this.safeLeft, right: this.safeRight }).width('100%').height('100%')
       .backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition())
   }
@@ -918,15 +923,15 @@ export struct NativeSettings {
             Divider().strokeWidth(0.5).margin({ left: 14 }).color(this.dividerColor())
             this.actionRow('立即同步', '刷新运行、待确认、完成与失败数量', 'sync')
           }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true).backgroundColor(this.cardSurface())
-          if (this.error) Text(this.error).fontSize(12).padding(12)
+          if (this.error) Text(this.error).fontSize(NativeDesign.fontSection).padding(12)
             .fontColor(this.dangerText())
-          if (this.status) Text(this.status).fontSize(12).padding(8)
+          if (this.status) Text(this.status).fontSize(NativeDesign.fontSection).padding(8)
             .fontColor(this.tertiaryText())
         }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset, top: 0,
           bottom: this.safeBottom + 28 }).width('100%')
           .constraintSize({ maxWidth: 680 }).alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.TopStart).scrollBar(BarState.Off)
-    }.padding({ top: this.safeTop, left: 12 + this.safeLeft, right: 12 + this.safeRight }).width('100%').height('100%')
+    }.padding({ top: this.safeTop, left: this.safeLeft, right: this.safeRight }).width('100%').height('100%')
       .backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition())
   }
@@ -934,9 +939,9 @@ export struct NativeSettings {
   @Builder
   private storageBreakdownRow(title: string, kind: string) {
     Row({ space: 12 }) {
-      Text(title).fontSize(14).layoutWeight(1).fontColor(this.primaryText())
+      Text(title).fontSize(NativeDesign.fontBody).layoutWeight(1).fontColor(this.primaryText())
       Text(nativeFormatStorageBytes(this.storageBreakdownValue(kind)))
-        .fontSize(13).fontWeight(FontWeight.Medium)
+        .fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
         .fontColor(this.secondaryText())
     }.width('100%').height(NativeDesign.standardRow).padding({ left: NativeDesign.cardPadding, right: NativeDesign.cardPadding })
   }
@@ -949,21 +954,21 @@ export struct NativeSettings {
         Column({ space: 10 }) {
           Row({ space: 12 }) {
             Column({ space: 5 }) {
-              Text('缓存池').fontSize(12).fontColor(this.tertiaryText())
+              Text('缓存池').fontSize(NativeDesign.fontSection).fontColor(this.tertiaryText())
               if (this.storageLoading && this.storageUsage.poolTotal === 0) {
-                LoadingProgress().width(20).height(20).color(NativeDesign.accent(this.dark))
+                LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage).color(NativeDesign.accent(this.dark))
               } else {
-                Text(nativeFormatStorageBytes(this.storageUsage.poolTotal)).fontSize(28)
+                Text(nativeFormatStorageBytes(this.storageUsage.poolTotal)).fontSize(NativeDesign.fontMetric)
                   .fontWeight(FontWeight.Medium).fontColor(this.primaryText())
               }
               Text('上限 ' + nativeFormatStorageBytes(this.storageUsage.limit) +
                 ' · 当前账户 ' + nativeFormatStorageBytes(this.storageUsage.total))
-                .fontSize(11).fontColor(this.tertiaryText())
+                .fontSize(NativeDesign.fontCaption).fontColor(this.tertiaryText())
             }.layoutWeight(1).alignItems(HorizontalAlign.Start)
             if (this.storageLoading && this.storageUsage.poolTotal > 0) {
-              LoadingProgress().width(18).height(18).color(this.tertiaryText())
+              LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.tertiaryText())
             }
-            DSHIcon({ glyph: 'archive-outline', glyphSize: 22,
+            DSHIcon({ glyph: 'archive-outline', glyphSize: NativeDesign.glyphHeader,
               color: NativeDesign.accent(this.dark) })
           }.width('100%').padding(NativeDesign.pageInset).borderRadius(NativeDesign.radiusGroup)
             .backgroundColor(this.cardSurface())
@@ -981,23 +986,25 @@ export struct NativeSettings {
             .backgroundColor(this.cardSurface())
           Button({ type: ButtonType.Normal }) {
             Row({ space: 10 }) {
-              DSHIcon({ glyph: 'archive-outline', glyphSize: 17,
+              DSHIcon({ glyph: 'archive-outline', glyphSize: NativeDesign.glyphControl,
                 color: this.dangerText() })
-              Text('清空缓存').fontSize(14).fontWeight(FontWeight.Medium)
+              Text('清空缓存').fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium)
                 .fontColor(this.dangerText())
               Blank()
-              if (this.storageClearing) LoadingProgress().width(17).height(17)
-            }.width('100%').height(52).padding({ left: 14, right: 14 })
-          }.width('100%').height(52).borderRadius(NativeDesign.radiusGroup).backgroundColor(Color.Transparent)
+              if (this.storageClearing) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
+            }.width('100%').height(NativeDesign.standardRow)
+              .padding({ left: NativeDesign.cardPadding, right: NativeDesign.cardPadding })
+          }.width('100%').height(NativeDesign.standardRow)
+            .borderRadius(NativeDesign.radiusGroup).backgroundColor(Color.Transparent)
             .enabled(!this.storageClearing && !this.storageLoading)
             .accessibilityText('清空缓存')
             .onClick((): void => { this.confirmClearStorage(); })
           if (this.storageError) {
             Row({ space: 10 }) {
-              Text(this.storageError).fontSize(12).layoutWeight(1)
+              Text(this.storageError).fontSize(NativeDesign.fontSection).layoutWeight(1)
                 .fontColor(this.dangerText())
               if (!this.storageLoading) {
-                Button('重试', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(12)
+                Button('重试', { type: ButtonType.Normal }).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
                   .backgroundColor(NativeDesign.dangerSurface(this.dark))
                   .fontColor(this.dangerText())
                   .onClick((): void => { this.refreshStorageUsage().catch((): void => {}); })
@@ -1009,7 +1016,7 @@ export struct NativeSettings {
           bottom: this.safeBottom + 28 }).width('100%')
           .constraintSize({ maxWidth: 680 }).alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.TopStart).scrollBar(BarState.Off)
-    }.padding({ top: this.safeTop, left: 12 + this.safeLeft, right: 12 + this.safeRight }).width('100%').height('100%')
+    }.padding({ top: this.safeTop, left: this.safeLeft, right: this.safeRight }).width('100%').height('100%')
       .backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition())
   }
@@ -1021,8 +1028,8 @@ export struct NativeSettings {
       Scroll() {
         Column({ space: 10 }) {
           Column({ space: 7 }) {
-            Text('当前服务').fontSize(12).fontColor(this.tertiaryText())
-            Text(this.serverOrigin).fontSize(14).width('100%').wordBreak(WordBreak.BREAK_ALL)
+            Text('当前服务').fontSize(NativeDesign.fontSection).fontColor(this.tertiaryText())
+            Text(this.serverOrigin).fontSize(NativeDesign.fontBody).width('100%').wordBreak(WordBreak.BREAK_ALL)
               .fontColor(this.primaryText()).copyOption(CopyOptions.InApp)
           }.padding(NativeDesign.cardPadding).width('100%').alignItems(HorizontalAlign.Start)
             .borderRadius(NativeDesign.radiusGroup)
@@ -1030,13 +1037,13 @@ export struct NativeSettings {
           Column() {
             this.actionRow('退出登录', '清除当前连接与本地会话缓存，返回登录页', 'logout', true)
           }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true).backgroundColor(this.cardSurface())
-          if (this.error) Text(this.error).fontSize(12).padding(12)
+          if (this.error) Text(this.error).fontSize(NativeDesign.fontSection).padding(12)
             .fontColor(this.dangerText())
         }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset, top: 0,
           bottom: this.safeBottom + 28 }).width('100%')
           .constraintSize({ maxWidth: 680 }).alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.TopStart).scrollBar(BarState.Off)
-    }.padding({ top: this.safeTop, left: 12 + this.safeLeft, right: 12 + this.safeRight }).width('100%').height('100%')
+    }.padding({ top: this.safeTop, left: this.safeLeft, right: this.safeRight }).width('100%').height('100%')
       .backgroundColor(this.baseSurface())
       .transition(NativeMotion.navigationTransition())
   }
@@ -1052,7 +1059,7 @@ export struct NativeSettings {
       Column() {
         this.pageHeader('关于')
         AboutSettings({ embedded: true, onBack: (): void => { this.openPage('root'); } }).layoutWeight(1)
-      }.padding({ top: this.safeTop, left: 12 + this.safeLeft, right: 12 + this.safeRight }).width('100%').height('100%')
+      }.padding({ top: this.safeTop, left: this.safeLeft, right: this.safeRight }).width('100%').height('100%')
         .backgroundColor(this.baseSurface())
         .transition(NativeMotion.navigationTransition())
     }

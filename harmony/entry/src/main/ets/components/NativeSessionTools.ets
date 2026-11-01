@@ -100,10 +100,10 @@ export struct NativeSessionTools {
   private row(label: string, detail: string, selected: boolean, child: boolean, action: () => void) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 8 }) {
-        Text(label).fontSize(13).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
-        if (detail) { Text(detail).fontSize(12).maxLines(1).constraintSize({ maxWidth: '45%' }).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(NativeDesign.textTertiary(this.dark)) }
-        if (selected) { DSHIcon({ glyph: 'check-outline', glyphSize: 14, color: NativeDesign.textPrimary(this.dark) }) }
-        else if (child) { DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12, color: NativeDesign.textTertiary(this.dark) }).rotate({ angle: 180 }) }
+        Text(label).fontSize(NativeDesign.fontCompact).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
+        if (detail) { Text(detail).fontSize(NativeDesign.fontSection).maxLines(1).constraintSize({ maxWidth: '45%' }).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(NativeDesign.textTertiary(this.dark)) }
+        if (selected) { DSHIcon({ glyph: 'check-outline', glyphSize: NativeDesign.glyphCompact, color: NativeDesign.textPrimary(this.dark) }) }
+        else if (child) { DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline, color: NativeDesign.textTertiary(this.dark) }).rotate({ angle: 180 }) }
       }.width('100%')
     }.width('100%').height(NativeDesign.standardRow).padding({ left: 8, right: 8 })
       .borderRadius(NativeDesign.radiusRow).backgroundColor(Color.Transparent)
@@ -114,13 +114,13 @@ export struct NativeSessionTools {
       Row({ space: 6 }) {
         NativeIconButton({ glyph: 'chevron-left-outline', label: '返回', tone: 'primary',
           controlEnabled: !this.busy, onPressed: (): void => { this.back(); } })
-        Text(this.heading()).fontSize(17).fontWeight(FontWeight.Medium).layoutWeight(1)
-        if (this.busy) { LoadingProgress().width(16).height(16) }
+        Text(this.heading()).fontSize(NativeDesign.fontCompactTitle).fontWeight(FontWeight.Medium).layoutWeight(1)
+        if (this.busy) { LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline) }
       }.width('100%')
       Scroll() {
         Column({ space: 4 }) {
           if (this.page === 'rename') {
-            TextInput({ text: this.title, placeholder: '会话名称' }).height(NativeDesign.hitTarget).fontSize(14).enabled(!this.busy).onChange((value: string) => { this.title = value; })
+            TextInput({ text: this.title, placeholder: '会话名称' }).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontBody).enabled(!this.busy).onChange((value: string) => { this.title = value; })
             Button('保存', { type: ButtonType.Normal }).width('100%').height(NativeDesign.hitTarget)
               .borderRadius(NativeDesign.radiusRow)
               .backgroundColor(NativeDesign.textPrimary(this.dark)).fontColor(NativeDesign.textInverse(this.dark))
@@ -130,10 +130,10 @@ export struct NativeSessionTools {
             if (this.currentModel()?.reasoning) { this.row('推理', this.directory.selected.reasoningEffort || this.currentModel()?.reasoning?.defaultEffort || '提供方默认', false, true, () => { this.pane('efforts'); }) }
           } else if (this.page === 'models') {
             if (this.directory.catalog.groups.reduce((sum: number, provider: NativeModelProvider) => sum + provider.models.length, 0) > 4) {
-              TextInput({ text: this.query, placeholder: '搜索模型' }).height(NativeDesign.hitTarget).fontSize(13).onChange((value: string) => { this.query = value; })
+              TextInput({ text: this.query, placeholder: '搜索模型' }).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontCompact).onChange((value: string) => { this.query = value; })
             }
             ForEach(this.directory.catalog.groups, (provider: NativeModelProvider) => {
-              Text(provider.name).fontSize(11).fontColor(NativeDesign.textTertiary(this.dark)).padding({ left: 8, top: 12, bottom: 4 })
+              Text(provider.name).fontSize(NativeDesign.fontCaption).fontColor(NativeDesign.textTertiary(this.dark)).padding({ left: 8, top: 12, bottom: 4 })
               ForEach(provider.models.filter((model: NativeCatalogModel) => !this.query || (model.name + ' ' + model.id).toLowerCase().includes(this.query.toLowerCase())), (model: NativeCatalogModel) => {
                 this.row(model.name, '', this.directory.selected.provider === provider.id && this.directory.selected.model === model.id, false,
                   () => { this.choose(provider.id, model, model.reasoning?.defaultEffort || ''); })
@@ -146,17 +146,17 @@ export struct NativeSessionTools {
                 () => { const model = this.currentModel(); if (model) this.choose(this.directory.selected.provider, model, effort.id); })
             }, (effort: NativeModelEffort) => effort.id)
           } else if (this.page === 'queueEdit') {
-            TextArea({ text: this.editingText }).height(140).fontSize(14).onChange((value: string) => { this.editingText = value; })
+            TextArea({ text: this.editingText }).height(140).fontSize(NativeDesign.fontBody).onChange((value: string) => { this.editingText = value; })
             Button('保存').height(NativeDesign.hitTarget).enabled(!this.busy && !!this.editingText.trim()).onClick(() => { this.mutateQueue(this.editingId, 'edit'); })
           } else if (this.page === 'queue') {
-            if (!this.queue.length) { Text('没有排队消息').fontSize(13).padding(12) }
+            if (!this.queue.length) { Text('没有排队消息').fontSize(NativeDesign.fontCompact).padding(12) }
             ForEach(this.queue, (item: QueueItem) => {
               Column({ space: 8 }) {
-                Text(item.content.filter((part: Part) => part.type === 'text').map((part: Part) => part.text).join('\n') || '包含附件').fontSize(13).maxLines(5).textOverflow({ overflow: TextOverflow.Ellipsis })
+                Text(item.content.filter((part: Part) => part.type === 'text').map((part: Part) => part.text).join('\n') || '包含附件').fontSize(NativeDesign.fontCompact).maxLines(5).textOverflow({ overflow: TextOverflow.Ellipsis })
                 Row({ space: 8 }) {
-                  if (item.content.every((part: Part) => part.type === 'text')) { Button('编辑').height(NativeDesign.hitTarget).fontSize(12).enabled(!this.busy).onClick(() => { this.editingId = item.id; this.editingText = item.content.map((part: Part) => part.text).join('\n'); this.pane('queueEdit'); }) }
-                  if (this.running) { Button('立即干预').height(NativeDesign.hitTarget).fontSize(12).enabled(!this.busy).onClick(() => { this.mutateQueue(item.id, 'steer'); }) }
-                  Button('移除').height(NativeDesign.hitTarget).fontSize(12).enabled(!this.busy).onClick(() => { this.mutateQueue(item.id, 'remove'); })
+                  if (item.content.every((part: Part) => part.type === 'text')) { Button('编辑').height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection).enabled(!this.busy).onClick(() => { this.editingId = item.id; this.editingText = item.content.map((part: Part) => part.text).join('\n'); this.pane('queueEdit'); }) }
+                  if (this.running) { Button('立即干预').height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection).enabled(!this.busy).onClick(() => { this.mutateQueue(item.id, 'steer'); }) }
+                  Button('移除').height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection).enabled(!this.busy).onClick(() => { this.mutateQueue(item.id, 'remove'); })
                 }
               }.padding(10).width('100%').alignItems(HorizontalAlign.Start)
                 .borderRadius(NativeDesign.radiusRow).backgroundColor(NativeDesign.field(this.dark))
@@ -164,7 +164,7 @@ export struct NativeSessionTools {
           }
         }.width('100%').alignItems(HorizontalAlign.Start)
       }.layoutWeight(1).width('100%').align(Alignment.Top)
-      if (this.error) { Row() { Text(this.error).fontSize(12).layoutWeight(1); Button('重试').height(NativeDesign.hitTarget).onClick(() => { this.refresh(); }) }.width('100%') }
+      if (this.error) { Row() { Text(this.error).fontSize(NativeDesign.fontSection).layoutWeight(1); Button('重试').height(NativeDesign.hitTarget).onClick(() => { this.refresh(); }) }.width('100%') }
     }.padding(12).width('100%').height('100%').backgroundColor(NativeDesign.base(this.dark))
       .foregroundColor(NativeDesign.textPrimary(this.dark))
   }

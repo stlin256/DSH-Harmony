@@ -138,7 +138,7 @@ export struct NativeCodeViewer {
           Column({ space: 0 }) {
             ForEach(this.lines, (line: NativeSourceLine) => {
               Text(String(line.number)).width('100%').height(22).lineHeight(22)
-                .fontSize(11).fontFamily('Noto Sans Mono, monospace').textAlign(TextAlign.End)
+                .fontSize(NativeDesign.fontCaption).fontFamily('Noto Sans Mono, monospace').textAlign(TextAlign.End)
                 .fontColor(NativeDesign.textTertiary(this.dark))
             }, (line: NativeSourceLine) => String(line.number))
           }.width(this.gutterWidth()).height(this.workspaceHeight())
@@ -151,7 +151,7 @@ export struct NativeCodeViewer {
                   ForEach(this.tokens(line.text), (token: NativeCodeToken) => {
                     Span(token.text).fontColor(this.color(token.kind))
                   }, (_token: NativeCodeToken, index: number) => index.toString())
-                }.height(22).lineHeight(22).fontSize(12).maxLines(1)
+                }.height(22).lineHeight(22).fontSize(NativeDesign.fontSection).maxLines(1)
                   .fontFamily('Noto Sans Mono, monospace').copyOption(CopyOptions.InApp)
                   .fontColor(NativeDesign.textPrimary(this.dark))
               }, (line: NativeSourceLine) => String(line.number))

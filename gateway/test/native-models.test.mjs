@@ -375,7 +375,8 @@ test('navigation polish keeps the drawer, uses incremental browsing and guarded 
   assert.match(workspace,/scrollEdge\(Edge\.Bottom, \{ velocity: 6000 \}\)/);
   assert.match(workspace,/!this\.taskPlan\.items\.length && plan\.items\.length[\s\S]{0,140}NativeMotion\.disclosure/);
   assert.match(workspace,/\.transition\(NativeMotion\.disclosureTransition\(\)\)[\s\S]{0,100}\.animation\(NativeMotion\.disclosureParam\(\)\)/);
-  assert.match(workspace,/Text\(this\.title\)[\s\S]{0,700}LoadingProgress\(\)\.width\(14\)/);
+  assert.match(workspace,/Text\(this\.title\)/);
+  assert.match(workspace,/LoadingProgress\(\)\.width\(NativeDesign\.spinnerInline\)/);
   assert.doesNotMatch(workspace,/if \(\(this\.connectionPhase === 'opening'[\s\S]{0,180}Text\('正在加载会话…'\)/);
   assert.doesNotMatch(workspace,/},\s*320\);/);
   assert.match(workspace,/onScrollStop\(\(\) => \{[\s\S]{0,140}settleScrollTail/);
@@ -1876,7 +1877,7 @@ test('todo_write projects structured status rows and the newest replacement plan
     import.meta.url),'utf8');
   assert.match(taskDock,/constraintSize\(\{ maxHeight: 180 \}\)/);
   assert.match(taskDock,/NativeMotion\.disclosure\(this\.getUIContext\(\)/);
-  assert.match(taskDock,/\.height\(NativeDesign\.compactHitTarget\)/);
+  assert.match(taskDock,/\.height\(NativeDesign\.compactControl\)/);
   assert.match(taskDock,/\.backgroundColor\(NativeDesign\.raised\(this\.dark\)\)/);
   const showcase=readFileSync(new URL('../../harmony/entry/src/main/ets/services/StoreShowcaseClient.ets',
     import.meta.url),'utf8');
@@ -2092,7 +2093,7 @@ test('PDF and HTML preview source contracts use bounded native surfaces', () => 
   assert.match(html, /\.onErrorReceive\([\s\S]{0,260}event\.request\.isMainFrame\(\)/);
   assert.match(html, /\.fileAccess\(false\)/);
   assert.match(html, /onLoadIntercept\(\(event\): boolean => this\.intercept/);
-  assert.match(preview, /LoadingProgress\(\)\.width\(12\)\.height\(12\)/);
+  assert.match(preview, /LoadingProgress\(\)\.width\(NativeDesign\.spinnerInline\)\.height\(NativeDesign\.spinnerInline\)/);
   assert.match(preview, /this\.loading \|\| this\.previewBusy/);
   assert.match(preview, /onBusyChange: \(busy: boolean\)[\s\S]{0,180}this\.previewBusy = busy/);
   assert.match(preview, /NativeHtmlPreview\(\{[\s\S]{0,260}layoutWeight\(1\)/);
@@ -2832,7 +2833,7 @@ test('user message copy is a long-press action and does not add a footer row', (
 
 test('sent-image lightbox exposes the shared download and close actions', () => {
   const source=readFileSync(new URL('../../harmony/entry/src/main/ets/components/NativeImageLightbox.ets', import.meta.url),'utf8');
-  assert.match(source,/glyph: 'download-outline'[\s\S]{0,180}accessibilityText\('下载图片'\)[\s\S]{0,80}saveToGallery\(\)/);
+  assert.match(source,/glyph: 'download-outline'[\s\S]{0,240}accessibilityText\('下载图片'\)[\s\S]{0,80}saveToGallery\(\)/);
   assert.match(source,/DSHIcon\(\{ glyph: 'close-outline',[\s\S]{0,260}accessibilityText\('关闭图片预览'\)/);
 });
 

@@ -149,7 +149,7 @@ test('native shell keeps mode UI separate from todo plans and hides child sessio
   assert.match(workspace, /NativeSubagentLineage\(\{/);
   assert.match(workspace, /subagentPath/);
   assert.match(lineage, /constraintSize\(\{ maxHeight: this\.maxHeight \}\)/);
-  assert.match(lineage, /constraintSize\(\{ minHeight: 48 \}\)/);
+  assert.match(lineage, /constraintSize\(\{ minHeight: NativeDesign\.standardRow \}\)/);
   assert.match(lineage, /nativeSubagentCanOpen\(entry\)/);
   assert.match(session, /origin !== 'subagent'/);
   assert.match(showcase,

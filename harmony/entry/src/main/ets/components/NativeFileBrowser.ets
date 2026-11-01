@@ -312,25 +312,25 @@ export struct NativeFileBrowser {
         glyph: 'chevron-left-outline',
         label: '返回',
         tone: 'primary',
-        glyphSize: 17,
+        glyphSize: NativeDesign.glyphControl,
         onPressed: (): void => { this.back(false); }
       })
       Column({ space: 1 }) {
         Row({ space: 5 }) {
-          Text(this.navigationPath || '工作区').fontSize(14).fontWeight(FontWeight.Medium).maxLines(1)
+          Text(this.navigationPath || '工作区').fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textPrimary(this.dark))
           if (this.navigating) {
-            LoadingProgress().width(13).height(13).color(NativeDesign.accent(this.dark))
+            LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(NativeDesign.accent(this.dark))
           }
         }.width('100%')
-        Text(this.navigationPath ? '文件夹' : '工作区根目录').fontSize(10)
+        Text(this.navigationPath ? '文件夹' : '工作区根目录').fontSize(NativeDesign.fontMicro)
           .fontColor(NativeDesign.textTertiary(this.dark))
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       NativeIconButton({
         glyph: 'browse-outline',
         label: '在工作区根目录中查找文件',
-        glyphSize: 15,
+        glyphSize: NativeDesign.glyphControl,
         controlEnabled: !!this.navigationPath,
         onPressed: (): void => { if (this.navigationPath) this.navigate(''); }
       })
@@ -338,7 +338,7 @@ export struct NativeFileBrowser {
         glyph: 'close-outline',
         label: '关闭文件浏览器',
         tone: 'primary',
-        glyphSize: 15,
+        glyphSize: NativeDesign.glyphControl,
         onPressed: (): void => { this.onClose(); }
       })
     }.width('100%').height(NativeDesign.headerHeight)
@@ -348,15 +348,17 @@ export struct NativeFileBrowser {
     Scroll() {
       Row({ space: 2 }) {
         Button(this.navigationPath ? '工作区' : '根目录', { type: ButtonType.Normal })
-          .height(26).fontSize(10).borderRadius(7).padding({ left: 6, right: 6 })
+          .height(NativeDesign.compactChip).fontSize(NativeDesign.fontMicro)
+          .borderRadius(NativeDesign.radiusChip).padding({ left: 6, right: 6 })
           .backgroundColor(Color.Transparent)
           .fontColor(NativeDesign.textTertiary(this.dark))
           .responseRegion({ x: 0, y: -9, width: '100%', height: NativeDesign.hitTarget })
           .enabled(!!this.navigationPath).onClick(() => { this.navigate(''); })
         ForEach(this.crumbs(), (part: NativePathPart, index: number) => {
-          Text('/').fontSize(10).fontColor(NativeDesign.textTertiary(this.dark))
+          Text('/').fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.textTertiary(this.dark))
           Button(part.label, { type: ButtonType.Normal })
-            .height(26).fontSize(10).borderRadius(7).padding({ left: 5, right: 5 })
+            .height(NativeDesign.compactChip).fontSize(NativeDesign.fontMicro)
+            .borderRadius(NativeDesign.radiusChip).padding({ left: 5, right: 5 })
             .backgroundColor(Color.Transparent)
             .fontColor(index === this.crumbs().length - 1 ?
               NativeDesign.textPrimary(this.dark) : NativeDesign.textTertiary(this.dark))
@@ -364,13 +366,13 @@ export struct NativeFileBrowser {
             .onClick(() => { this.navigate(part.path); })
         }, (part: NativePathPart) => part.path)
       }.constraintSize({ minWidth: '100%' }).justifyContent(FlexAlign.Start)
-    }.scrollable(ScrollDirection.Horizontal).width('100%').height(28)
+    }.scrollable(ScrollDirection.Horizontal).width('100%').height(NativeDesign.compactChip)
   }
   @Builder
   private fileIcon(entry: NativeDirectoryEntry) {
     DSHIcon({
       glyph: entry.type === 'directory' ? 'folder-outline' : entry.type === 'file' ? 'code-outline' : 'question-outline',
-      glyphSize: 16, color: entry.type === 'directory' ?
+      glyphSize: NativeDesign.glyphControl, color: entry.type === 'directory' ?
         NativeDesign.accent(this.dark) : NativeDesign.textSecondary(this.dark)
     })
   }
@@ -381,31 +383,33 @@ export struct NativeFileBrowser {
         Row({ space: 9 }) {
           this.fileIcon(entry)
           Column({ space: 1 }) {
-            Text(entry.name).fontSize(13).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+            Text(entry.name).fontSize(NativeDesign.fontCompact).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textPrimary(this.dark))
             if (entry.type === 'file' && entry.size >= 0 || entry.type === 'other') {
-              Text(entry.type === 'other' ? '不支持预览' : this.formatBytes(entry.size)).fontSize(10)
+              Text(entry.type === 'other' ? '不支持预览' : this.formatBytes(entry.size)).fontSize(NativeDesign.fontMicro)
                 .fontColor(NativeDesign.textTertiary(this.dark))
             }
           }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         }.width('100%')
-      }.layoutWeight(1).height(48).padding(0).borderRadius(0).backgroundColor(Color.Transparent)
+      }.layoutWeight(1).height(NativeDesign.standardRow).padding(0).borderRadius(0)
+        .backgroundColor(Color.Transparent)
         .stateEffect(false)
         .enabled(entry.type !== 'other')
         .accessibilityText(entry.name + '，' + entry.type)
         .onClick(() => { this.open(entry); })
       if (entry.type === 'directory') {
-        DSHIcon({ glyph: 'chevron-left-outline', glyphSize: 12,
+        DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline,
           color: NativeDesign.textTertiary(this.dark) }).rotate({ angle: 180 })
       } else if (entry.type === 'file') {
         Button({ type: ButtonType.Normal }) {
           if (this.downloadingFile === this.filePath(entry)) {
-            LoadingProgress().width(14).height(14).color(NativeDesign.accent(this.dark))
+            LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(NativeDesign.accent(this.dark))
           } else {
-            DSHIcon({ glyph: 'download-outline', glyphSize: 15,
+            DSHIcon({ glyph: 'download-outline', glyphSize: NativeDesign.glyphControl,
               color: NativeDesign.textTertiary(this.dark) })
           }
-        }.width(44).height(44).padding(0).borderRadius(10).backgroundColor(Color.Transparent)
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget).padding(0)
+          .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .accessibilityText('下载 ' + entry.name)
           .enabled(!this.downloadingFile)
           .onClick((): void => { this.download(entry); })
@@ -424,14 +428,14 @@ export struct NativeFileBrowser {
   private content() {
     if (this.loading && !this.hasLoaded) {
       Column({ space: 10 }) {
-        LoadingProgress().width(24).height(24).color(NativeDesign.accent(this.dark))
-        Text('正在读取…').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
+        LoadingProgress().width(NativeDesign.spinnerPage).height(NativeDesign.spinnerPage).color(NativeDesign.accent(this.dark))
+        Text('正在读取…').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
       }.layoutWeight(1).justifyContent(FlexAlign.Center)
     } else if (this.error && !this.hasLoaded) {
       Column({ space: 10 }) {
-        Text(this.error).fontSize(13).fontColor(NativeDesign.danger(this.dark))
+        Text(this.error).fontSize(NativeDesign.fontCompact).fontColor(NativeDesign.danger(this.dark))
         Button({ type: ButtonType.Normal }) {
-          DSHIcon({ glyph: 'browse-outline', glyphSize: 15,
+          DSHIcon({ glyph: 'browse-outline', glyphSize: NativeDesign.glyphControl,
             color: NativeDesign.textPrimary(this.dark) })
         }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
           .borderRadius(NativeDesign.hitTarget / 2)
@@ -439,15 +443,15 @@ export struct NativeFileBrowser {
           .accessibilityText('重试').onClick(() => { this.load(this.navigationPath); })
       }.layoutWeight(1).justifyContent(FlexAlign.Center)
     } else if (!this.entries.length) {
-      Text('此文件夹为空').fontSize(12).fontColor(NativeDesign.textTertiary(this.dark))
+      Text('此文件夹为空').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
         .layoutWeight(1).textAlign(TextAlign.Center)
     } else {
       List({ space: 2 }) {
         if (this.directoryEntries().length) {
           ListItem() {
-            Text('文件夹').fontSize(11).fontWeight(FontWeight.Medium)
+            Text('文件夹').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
               .fontColor(NativeDesign.textTertiary(this.dark))
-              .width('100%').height(26).padding({ left: 8 })
+              .width('100%').height(NativeDesign.compactChip).padding({ left: NativeDesign.rowInset })
           }
           ForEach(this.directoryEntries(), (entry: NativeDirectoryEntry) => {
             ListItem() { this.entryRow(entry) }
@@ -455,9 +459,10 @@ export struct NativeFileBrowser {
         }
         if (this.fileEntries().length) {
           ListItem() {
-            Text('文件').fontSize(11).fontWeight(FontWeight.Medium)
+            Text('文件').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
               .fontColor(NativeDesign.textTertiary(this.dark))
-              .width('100%').height(26).padding({ left: 8, top: this.directoryEntries().length ? 4 : 0 })
+              .width('100%').height(NativeDesign.compactChip)
+              .padding({ left: NativeDesign.rowInset, top: this.directoryEntries().length ? 4 : 0 })
           }
           ForEach(this.fileEntries(), (entry: NativeDirectoryEntry) => {
             ListItem() { this.entryRow(entry) }
@@ -465,7 +470,7 @@ export struct NativeFileBrowser {
         }
         if (this.truncated) {
           ListItem() {
-            Text('文件过多，仅显示前一部分').fontSize(11).padding(10)
+            Text('文件过多，仅显示前一部分').fontSize(NativeDesign.fontCaption).padding(10)
               .fontColor(NativeDesign.textTertiary(this.dark))
           }
         }
@@ -482,7 +487,7 @@ export struct NativeFileBrowser {
         this.breadcrumb()
         this.content()
       }.padding({
-        left: 10 + this.safeLeft, right: 10 + this.safeRight,
+        left: NativeDesign.pageInset + this.safeLeft, right: NativeDesign.pageInset + this.safeRight,
         top: 8 + this.safeTop, bottom: 10 + this.safeBottom
       }).width('100%').height('100%').backgroundColor(NativeDesign.base(this.dark))
       if (this.previewPath) {
