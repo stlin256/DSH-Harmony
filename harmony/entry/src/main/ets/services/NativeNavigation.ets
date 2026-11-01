@@ -9,11 +9,13 @@ export class NativeNavigationState {
   menu: boolean = false;
   imagePreview: boolean = false;
   filePreview: boolean = false;
+  lineage: boolean = false;
+  subagentHistory: boolean = false;
 }
 export function nativeCanGoBack(state: NativeNavigationState): boolean {
   return state.drawerOpen === true || state.picker === true || state.create === true ||
     state.tools === true || state.menu === true || state.imagePreview === true ||
-    state.filePreview === true;
+    state.filePreview === true || state.lineage === true || state.subagentHistory === true;
 }
 export class NativeMenuItem {
   id: string = '';

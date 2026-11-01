@@ -7,6 +7,8 @@ import { NativeHostSettings } from './NativeHostSettings';
 import { NativeModelDirectory } from './NativeModelDirectory';
 import { nativeFileWindowMetadata } from './NativeFileWindow';
 import { nativeResolvedWorkspaceTarget, NativeWorkspaceTarget } from './NativeWorkspaceTarget';
+import { NativeProjectionSnapshot, NativeSessionAddress, nativeSessionAddress,
+  nativeSessionAddressKey } from './NativeModeSubagent';
 
 export class NativeHttpError extends Error {
   status: number;
@@ -66,6 +68,56 @@ class NativeDirectorySearch {
   constructor(path: string, depth: number) {
     this.path = path;
     this.depth = depth;
+  }
+}
+class NativePageRequest {
+  sessionId: string;
+  beforeSeq: number;
+  throughSeq: number;
+  parentSessionId?: string;
+  parentMode?: string;
+  constructor(sessionId: string, beforeSeq: number, throughSeq: number,
+    address: NativeSessionAddress) {
+    this.sessionId = sessionId;
+    this.beforeSeq = beforeSeq;
+    this.throughSeq = throughSeq;
+    if (address.kind === 'subagent') {
+      this.parentSessionId = address.parentSessionId;
+      this.parentMode = address.mode;
+    }
+  }
+}
+class NativePromptRequest {
+  sessionId: string;
+  requestId: string;
+  text: string;
+  mode: string;
+  attachments: NativePromptAttachment[];
+  parentSessionId?: string;
+  parentMode?: string;
+  constructor(sessionId: string, requestId: string, text: string, mode: string,
+    attachments: NativePromptAttachment[], address: NativeSessionAddress | null) {
+    this.sessionId = sessionId;
+    this.requestId = requestId;
+    this.text = text;
+    this.mode = mode;
+    this.attachments = attachments;
+    if (address?.kind === 'subagent') {
+      this.parentSessionId = address.parentSessionId;
+      this.parentMode = address.mode;
+    }
+  }
+}
+class NativeCancelRequest {
+  sessionId: string;
+  parentSessionId?: string;
+  parentMode?: string;
+  constructor(sessionId: string, address: NativeSessionAddress | null) {
+    this.sessionId = sessionId;
+    if (address?.kind === 'subagent') {
+      this.parentSessionId = address.parentSessionId;
+      this.parentMode = address.mode;
+    }
   }
 }
 
@@ -235,16 +287,26 @@ export class NativeHarnessClient {
         cwd: workspaceId ? undefined : cwd || undefined, agentPreset: agentPreset || undefined }))) as NativeCreatedSession;
     return result.id;
   }
-  async page(id: string, before: number, throughSeq: number = -1): Promise<NativeFrame> {
-    const key = id + ':' + before + ':' + throughSeq;
+  async page(id: string, before: number, throughSeq: number = -1,
+    address: NativeSessionAddress | null = null): Promise<NativeFrame> {
+    const resolvedAddress = address || nativeSessionAddress(id);
+    const key = nativeSessionAddressKey(resolvedAddress) + ':' + before + ':' + throughSeq;
     const existing = this.pageReads.get(key);
     if (existing) return existing;
     const pending = this.request('/pocket/api/native/page', http.RequestMethod.POST,
-      JSON.stringify({ sessionId: id, beforeSeq: before, throughSeq: throughSeq }))
+      JSON.stringify(new NativePageRequest(id, before, throughSeq, resolvedAddress)))
       .then((value: string): NativeFrame => JSON.parse(value) as NativeFrame)
       .finally((): void => { this.pageReads.delete(key); });
     this.pageReads.set(key, pending);
     return pending;
+  }
+  async projections(id: string): Promise<NativeProjectionSnapshot> {
+    return JSON.parse(await this.operation(JSON.stringify({
+      operation: 'projections', sessionId: id
+    }))) as NativeProjectionSnapshot;
+  }
+  async planOff(id: string): Promise<void> {
+    await this.operation(JSON.stringify({ operation: 'planOff', sessionId: id }));
   }
   async file(id: string, path: string, offset: number = 1, limit: number = 240): Promise<NativeFilePage> {
     return JSON.parse(await this.request('/pocket/api/native/file', http.RequestMethod.POST,
@@ -444,7 +506,11 @@ export class NativeHarnessClient {
   }
 
   async prompt(id: string, text: string, mode: string = 'queue',
-    attachments: NativeAttachmentDraft[] = [], requestId: string = ''): Promise<string> {
+    attachments: NativeAttachmentDraft[] = [], requestId: string = '',
+    address: NativeSessionAddress | null = null): Promise<string> {
+    if (address?.kind === 'subagent' && attachments.length) {
+      throw new Error('子智能体不支持此附件');
+    }
     this.uncertain.add(id);
     const resolvedRequestId = requestId || util.generateRandomUUID();
     const ready = attachments.filter((item: NativeAttachmentDraft): boolean =>
@@ -455,13 +521,7 @@ export class NativeHarnessClient {
     });
     try {
       await this.request('/pocket/api/native/prompt', http.RequestMethod.POST,
-        JSON.stringify({
-          sessionId: id,
-          requestId: resolvedRequestId,
-          text: text,
-          mode: mode,
-          attachments: ready
-        }));
+        JSON.stringify(new NativePromptRequest(id, resolvedRequestId, text, mode, ready, address)));
     } catch (error) {
       if (error instanceof NativeHttpError && error.status >= 400 && error.status < 500) this.uncertain.delete(id);
       throw new Error(error instanceof Error ? error.message : String(error));
@@ -506,8 +566,9 @@ export class NativeHarnessClient {
       if (consumerError) throw consumerError as Error;
     } finally { task.destroy(); }
   }
-  async cancel(id: string): Promise<void> {
-    await this.request('/pocket/api/native/cancel', http.RequestMethod.POST, JSON.stringify({ sessionId: id }));
+  async cancel(id: string, address: NativeSessionAddress | null = null): Promise<void> {
+    await this.request('/pocket/api/native/cancel', http.RequestMethod.POST,
+      JSON.stringify(new NativeCancelRequest(id, address)));
   }
   pause(): void {
     this.generation++;
@@ -524,7 +585,7 @@ export class NativeHarnessClient {
     this.fileLookups.clear(); this.selectedId = '';
   }
   async follow(id: string, receive: (frame: NativeFrame) => void, ended: (reason: string) => void,
-    background: boolean = false): Promise<void> {
+    background: boolean = false, address: NativeSessionAddress | null = null): Promise<void> {
     if (!/^[A-Za-z0-9_-]{1,160}$/.test(id)) throw new Error('Invalid session');
     this.pause();
     const generation = this.generation;
@@ -563,8 +624,11 @@ export class NativeHarnessClient {
     const socketOrigin = this.origin.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
     try {
       const profile = background ? '&profile=background' : '';
+      const parent = address?.kind === 'subagent' ?
+        '&parentSessionId=' + encodeURIComponent(address.parentSessionId) +
+          '&parentMode=' + encodeURIComponent(address.mode) : '';
       const created = await socket.connect(socketOrigin + '/pocket/native/live?sessionId=' +
-        encodeURIComponent(id) + profile,
+        encodeURIComponent(id) + profile + parent,
         { header: { cookie: cookie }, supportOriginPort: true });
       if (!created) finish('connect_rejected');
     } catch (_) { finish('connect_error'); }

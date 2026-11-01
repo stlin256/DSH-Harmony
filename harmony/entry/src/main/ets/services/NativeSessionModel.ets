@@ -1,3 +1,6 @@
+import { NativePlanProjection, NativeSubagentEntry, NativeSubagentIdentity, NativeSubagentTiming,
+  NativeSubagentProjectionValues } from './NativeModeSubagent';
+
 export class NativeTextBlock {
   kind: string = 'text';
   text: string = '';
@@ -91,8 +94,10 @@ export class NativeSession {
   title: string = '';
   blank: boolean | undefined = undefined;
   cwd: string = '';
+  agentAvailable: boolean | undefined = undefined;
   running: boolean = false;
   updatedAt: number = 0;
+  projections: NativeSubagentProjectionValues | null = null;
 }
 export class NativeWorkspaceItem {
   workspaceId: string = ''; path: string = ''; title: string = ''; sessionIds: string[] = [];
@@ -309,6 +314,11 @@ export class NativeFrame {
   running: boolean = false;
   waiting: boolean = false;
   stateKnown: boolean = false;
+  projectionSeq: number = -1;
+  plan: NativePlanProjection | null = null;
+  catalog: NativeSubagentEntry[] | null = null;
+  identity: NativeSubagentIdentity | null = null;
+  timing: NativeSubagentTiming | null = null;
 }
 export class NativeJournalEntry { seq: number = 0; raw: string = ''; }
 export class NativeCacheFlag {

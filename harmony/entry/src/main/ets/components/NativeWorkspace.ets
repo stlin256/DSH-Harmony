@@ -38,6 +38,13 @@ import { NativeStorageManager } from '../services/NativeStorageManager';
 import { NativeMotion } from '../services/NativeMotion';
 import { NativeDesign } from '../services/NativeDesign';
 import { NativeImageLightbox } from './NativeImageLightbox';
+import { NativeSubagentLineage } from './NativeSubagentLineage';
+import {
+  NativePlanProjection, NativeProjectionSequence, NativeSessionAddress, NativeSubagentEntry,
+  NativeSubagentIdentity, NativeSubagentProjectionValues, NativeSubagentTiming,
+  nativePlanTargetActive, nativeSessionAddress, nativeSubagentAddress,
+  nativeSubagentComposerEnabled, nativeSubagentReadOnlyReason, nativeSubagentStackPush
+} from '../services/NativeModeSubagent';
 import { NativeFilePreview } from './NativeFilePreview';
 import { NativeFileBrowser } from './NativeFileBrowser';
 import { NativeHistoryRetryPolicy, nativeHistoryPageAdvanced } from '../services/NativeHistoryPrefetch';
@@ -194,6 +201,18 @@ export struct NativeWorkspace {
   @State private conversationDockHeight: number = 0;
   @State private footerCopiedId: string = '';
   @State private taskPlan: NativePlanDocument = new NativePlanDocument();
+  @State private planProjection: NativePlanProjection | null = null;
+  @State private subagentCatalog: NativeSubagentEntry[] | null = null;
+  @State private subagentIdentity: NativeSubagentIdentity | null = null;
+  @State private subagentIdentityKnown: boolean = false;
+  @State private subagentTiming: NativeSubagentTiming | null = null;
+  @State private activeAddress: NativeSessionAddress = nativeSessionAddress('');
+  @State private subagentPath: NativeSessionAddress[] = [];
+  @State private lineageOpen: boolean = false;
+  @State private lineageLoading: boolean = false;
+  @State private lineageError: string = '';
+  @State private planLeaving: boolean = false;
+  @State private planError: string = '';
   @State private turnChanges: NativeTurnChangeSummary[] = [];
   @State private officialTurnChanges: NativeTurnChangeSummary[] = [];
   @State private liveTurnChanges: NativeTurnChangeSummary = new NativeTurnChangeSummary();
@@ -207,6 +226,9 @@ export struct NativeWorkspace {
   private source: NativeListSource<NativeMessage> = new NativeListSource<NativeMessage>();
   private scroller: Scroller = new Scroller();
   private model: NativeSessionModel = new NativeSessionModel();
+  private projectionValues: Map<string, NativeSubagentProjectionValues> =
+    new Map<string, NativeSubagentProjectionValues>();
+  private projectionSeq: NativeProjectionSequence = new NativeProjectionSequence();
   private transcriptBaseSource: NativeMessage[] | null = null;
   private transcriptBaseRows: NativeMessage[] = [];
   private transcriptBaseRoot: string = '';
@@ -349,6 +371,8 @@ export struct NativeWorkspace {
     state.menu = !!this.menuId || this.utilityOpen || this.modelPickerOpen;
     state.imagePreview = this.imagePreviewOpen;
     state.filePreview = this.fileViewOpen;
+    state.lineage = this.lineageOpen;
+    state.subagentHistory = this.activeAddress.kind === 'subagent';
     AppStorage.setOrCreate<boolean>('nativeWorkspaceCanGoBack', nativeCanGoBack(state));
     AppStorage.setOrCreate<boolean>('nativeWorkspaceHasSelection', this.selected.length > 0);
   }
@@ -437,13 +461,181 @@ export struct NativeWorkspace {
       const next = new NativeSession();
       next.titleKnown = true; next.origin = item.origin; next.parentSessionId = item.parentSessionId;
       next.agentPreset = item.agentPreset; next.id = item.id; next.title = title;
-      next.blank = false; next.cwd = item.cwd; next.running = item.running;
-      next.updatedAt = item.updatedAt;
+      next.blank = false; next.cwd = item.cwd; next.agentAvailable = item.agentAvailable;
+      next.running = item.running;
+      next.updatedAt = item.updatedAt; next.projections = item.projections;
       return next;
     });
     if (this.selected === id) this.title = title;
     this.sessionsChanged();
     NativeMetadataCache.save(this.context, this.client.cacheKey(), this.sessions, this.workspaces);
+  }
+  private projectionValueFor(id: string): NativeSubagentProjectionValues {
+    const value = this.projectionValues.get(id);
+    if (value) return value;
+    if (this.projectionValues.size >= 24 && !this.projectionValues.has(id)) {
+      const oldest = Array.from(this.projectionValues.keys())[0];
+      if (oldest && oldest !== this.selected) this.projectionValues.delete(oldest);
+    }
+    const created = new NativeSubagentProjectionValues();
+    this.projectionValues.set(id, created);
+    return created;
+  }
+  private cloneSubagentCatalog(entries: NativeSubagentEntry[] | null): NativeSubagentEntry[] | null {
+    if (entries === null) return null;
+    return entries.map((entry: NativeSubagentEntry): NativeSubagentEntry => {
+      const next = new NativeSubagentEntry();
+      next.id = entry.id; next.createdAt = entry.createdAt; next.mode = entry.mode;
+      next.label = entry.label || '';
+      next.running = this.sessions.find((session: NativeSession): boolean =>
+        session.id === entry.id)?.running === true;
+      return next;
+    });
+  }
+  private refreshSelectedProjection(): void {
+    const value = this.projectionValueFor(this.selected);
+    this.planProjection = value.plan;
+    this.subagentCatalog = this.cloneSubagentCatalog(value.subagentCatalog);
+    this.subagentIdentity = value.subagent;
+    this.subagentIdentityKnown = value.subagentKnown;
+    this.subagentTiming = value.subagentTiming;
+  }
+  private mergeSessionProjection(session: NativeSession): void {
+    if (!session.projections) return;
+    const source = session.projections;
+    const target = this.projectionValueFor(session.id);
+    if (source.plan) target.plan = source.plan;
+    if (source.subagentCatalog) target.subagentCatalog = source.subagentCatalog;
+    if (source.subagentKnown) {
+      target.subagentKnown = true;
+      target.subagent = source.subagent;
+    }
+    if (source.subagentTiming) target.subagentTiming = source.subagentTiming;
+  }
+  private applyModeProjectionFrame(id: string, frame: NativeFrame): void {
+    const value = this.projectionValueFor(id);
+    if (frame.type === 'plan' && frame.plan &&
+      this.projectionSeq.accept(id + ':plan', frame.projectionSeq)) {
+      value.plan = frame.plan;
+    } else if (frame.type === 'subagent-catalog' && frame.catalog &&
+      this.projectionSeq.accept(id + ':subagentCatalog', frame.projectionSeq)) {
+      value.subagentCatalog = frame.catalog;
+    } else if (frame.type === 'subagent-identity' &&
+      this.projectionSeq.accept(id + ':subagent', frame.projectionSeq)) {
+      value.subagentKnown = true;
+      value.subagent = frame.identity;
+    } else if (frame.type === 'subagent-timing' && frame.timing &&
+      this.projectionSeq.accept(id + ':subagentTiming', frame.projectionSeq)) {
+      value.subagentTiming = frame.timing;
+    } else {
+      return;
+    }
+    if (this.selected === id) this.refreshSelectedProjection();
+  }
+  private hydrateModeProjections(): void {
+    this.sessions.forEach((session: NativeSession): void => { this.mergeSessionProjection(session); });
+    if (this.selected) this.refreshSelectedProjection();
+  }
+  private currentSubagentReadOnlyReason(): string {
+    return nativeSubagentReadOnlyReason(this.activeAddress, this.subagentIdentity,
+      this.subagentIdentityKnown, this.currentParentAgentAvailable(), this.running);
+  }
+  private currentSubagentInputEnabled(): boolean {
+    return nativeSubagentComposerEnabled(this.activeAddress, this.subagentIdentity,
+      this.subagentIdentityKnown, this.currentParentAgentAvailable(), this.running);
+  }
+  private currentParentAgentAvailable(): boolean | undefined {
+    if (this.activeAddress.kind !== 'subagent') return true;
+    return this.sessions.find((session: NativeSession): boolean =>
+      session.id === this.activeAddress.parentSessionId)?.agentAvailable;
+  }
+  private currentParentTitle(): string {
+    if (this.activeAddress.kind !== 'subagent') return '';
+    return this.sessions.find((session: NativeSession): boolean =>
+      session.id === this.activeAddress.parentSessionId)?.title || '父会话';
+  }
+  private currentSubagentTitle(): string {
+    if (this.activeAddress.kind !== 'subagent') return '';
+    return this.subagentIdentity?.label || this.sessions.find((session: NativeSession): boolean =>
+      session.id === this.activeAddress.childSessionId)?.title || '子智能体';
+  }
+  private runningSubagentCount(): number {
+    return (this.subagentCatalog || []).filter((entry: NativeSubagentEntry): boolean =>
+      entry.running).length;
+  }
+  private openLineage(): void {
+    this.utilityOpen = false;
+    this.modelPickerOpen = false;
+    this.menuId = '';
+    this.lineageLoading = this.subagentCatalog === null;
+    this.lineageError = '';
+    this.lineageOpen = true;
+    this.navigationChanged();
+    if (this.subagentCatalog === null && this.selected) this.loadSelectedProjections();
+  }
+  private async loadSelectedProjections(): Promise<void> {
+    const id = this.selected;
+    if (!id) return;
+    try {
+      const snapshot = await this.client.projections(id);
+      if (!this.mounted || this.selected !== id) return;
+      const value = this.projectionValueFor(id);
+      if (snapshot.values?.plan) value.plan = snapshot.values.plan;
+      if (snapshot.values?.subagentCatalog !== undefined) {
+        value.subagentCatalog = snapshot.values.subagentCatalog;
+      }
+      if (snapshot.values?.subagentKnown === true) {
+        value.subagentKnown = true;
+        value.subagent = snapshot.values.subagent;
+      }
+      if (snapshot.values?.subagentTiming) value.subagentTiming = snapshot.values.subagentTiming;
+      this.refreshSelectedProjection();
+      this.lineageLoading = false;
+      this.lineageError = '';
+    } catch (_) {
+      if (this.mounted && this.selected === id) {
+        this.lineageLoading = false;
+        this.lineageError = '无法加载子智能体';
+      }
+    }
+  }
+  private openSubagent(entry: NativeSubagentEntry): void {
+    if (!this.selected || entry.mode === 'external') return;
+    const parentId = this.activeAddress.kind === 'subagent' ?
+      this.activeAddress.childSessionId : this.selected;
+    const address = nativeSubagentAddress(parentId, entry.id, entry.mode);
+    if (!address) return;
+    const trail = nativeSubagentStackPush(this.subagentPath, address);
+    this.lineageOpen = false;
+    this.navigationChanged();
+    this.select(entry.id, address, trail, entry.label || entry.id);
+  }
+  private backToParentSession(): void {
+    if (!this.subagentPath.length) return;
+    const current = this.activeAddress;
+    const nextTrail = this.subagentPath.slice(0, -1);
+    const parentAddress = nextTrail.length ? nextTrail[nextTrail.length - 1] :
+      nativeSessionAddress(current.parentSessionId);
+    const parentTitle = this.sessions.find((session: NativeSession): boolean =>
+      session.id === current.parentSessionId)?.title || '父会话';
+    this.select(current.parentSessionId, parentAddress, nextTrail, parentTitle);
+  }
+  private async exitPlanMode(): Promise<void> {
+    if (!this.selected || this.planLeaving) return;
+    this.planLeaving = true;
+    this.planError = '';
+    try {
+      await this.client.planOff(this.selected);
+    } catch (_) {
+      if (this.mounted) {
+        this.planError = '退出计划模式失败';
+        setTimeout((): void => {
+          if (this.mounted && this.planError === '退出计划模式失败') this.planError = '';
+        }, 2200);
+      }
+    } finally {
+      if (this.mounted) this.planLeaving = false;
+    }
   }
   aboutToAppear(): void {
     this.mounted = true;
@@ -492,6 +684,7 @@ export struct NativeWorkspace {
     const cached = NativeMetadataCache.read(this.context, this.client.cacheKey());
     if (cached.sessions.length) {
       this.sessions = cached.sessions;
+      this.hydrateModeProjections();
       if (cached.workspaces) this.workspaces = cached.workspaces;
       this.sessionsChanged();
       // Paint the remembered conversation from the encrypted cache before the
@@ -529,6 +722,7 @@ export struct NativeWorkspace {
       if (!this.mounted || generation !== this.generation) return;
       if (value.protocol !== 2) throw new Error('请升级 DSH Harmony 插件或网关');
       this.sessions = value.items;
+      this.hydrateModeProjections();
       if (nextWorkspaces.available) {
         this.workspaces = nextWorkspaces;
         if (!this.workspaceOrderBusy) this.workspaceOrderConfirmed = cloneWorkspaceSnapshot(nextWorkspaces);
@@ -873,6 +1067,11 @@ export struct NativeWorkspace {
   private backToSessions(): void {
     if (this.imagePreviewOpen) { this.closeImagePreview(); return; }
     if (this.fileViewOpen) return;
+    if (this.lineageOpen) {
+      this.lineageOpen = false;
+      this.navigationChanged();
+      return;
+    }
     if (this.menuId || this.utilityOpen) { this.menuId = ''; this.utilityOpen = false; return; }
     if (this.modelPickerOpen) { this.modelPickerOpen = false; return; }
     if (this.workspacePickerOpen) {
@@ -885,6 +1084,10 @@ export struct NativeWorkspace {
       const parent = nativeToolsParent(AppStorage.get<string>('nativeSessionToolsPage') || 'root');
       if (parent) AppStorage.setOrCreate<string>('nativeSessionToolsPage', parent);
       else this.toolsOpen = false;
+      return;
+    }
+    if (this.subagentPath.length > 0 && this.activeAddress.kind === 'subagent') {
+      this.backToParentSession();
       return;
     }
     if (this.showSessions) this.closeDrawer();
@@ -912,6 +1115,7 @@ export struct NativeWorkspace {
     const rows = await this.client.sessions();
     if (!this.mounted || expectedGeneration !== this.workspaceOrderGeneration) return;
     this.sessions = rows.items;
+    this.hydrateModeProjections();
     const nextWorkspaces = await this.client.workspaces();
     if (!this.mounted || expectedGeneration !== this.workspaceOrderGeneration) return;
     if (nextWorkspaces.available) {
@@ -1380,8 +1584,17 @@ export struct NativeWorkspace {
     }
     this.select(id);
   }
-  private select(id: string): void {
+  private select(id: string, address: NativeSessionAddress | null = null,
+    trail: NativeSessionAddress[] = [], displayTitle: string = ''): void {
     if (!id) return;
+    const resolvedAddress = address || nativeSessionAddress(id);
+    if (resolvedAddress.kind === 'session') {
+      this.activeAddress = resolvedAddress;
+      this.subagentPath = [];
+    } else {
+      this.activeAddress = resolvedAddress;
+      this.subagentPath = trail.length ? trail.slice() : [resolvedAddress];
+    }
     this.stopHistoryDrain();
     const selection = ++this.selectionGeneration;
     this.paging = false;
@@ -1398,17 +1611,22 @@ export struct NativeWorkspace {
     this.suppressProcessEntrance = true;
     this.processEntranceBaselinePending = false;
     const session = this.sessions.find((item: NativeSession) => item.id === id);
-    this.title = session ? session.title.trim() || '未命名会话' : '会话';
+    if (session) this.mergeSessionProjection(session);
+    this.title = displayTitle || (session ? session.title.trim() || '未命名会话' : '会话');
     this.draft = this.client.drafts.get(id) || '';
     this.attachments = this.client.attachments.get(id) || [];
     this.uncertain = this.client.uncertain.has(id);
     this.connectionNotified = false;
-    this.animatePane(() => { this.selected = id; this.setDrawerState(false); }); this.followTail = true;
+    this.animatePane(() => { this.selected = id; this.setDrawerState(false); });
+    this.refreshSelectedProjection();
+    this.followTail = true;
     this.interactionTimes = NativeMetadataCache.rememberInteraction(
       this.context, this.client.cacheKey(), id);
     this.sessionsChanged();
-    NativeMetadataCache.rememberSession(this.context, this.client.cacheKey(), id);
-    NativeTranscriptCache.saveRoute(this.context, this.client.cacheKey(), id).catch(() => {});
+    if (resolvedAddress.kind === 'session') {
+      NativeMetadataCache.rememberSession(this.context, this.client.cacheKey(), id);
+      NativeTranscriptCache.saveRoute(this.context, this.client.cacheKey(), id).catch(() => {});
+    }
     this.navigationChanged();
     this.model = this.client.models.get(id) || new NativeSessionModel();
     this.client.models.set(id, this.model);
@@ -1468,6 +1686,8 @@ export struct NativeWorkspace {
     clearTimeout(this.followWatchdogTimer); this.followWatchdogTimer = -1;
     clearTimeout(this.settlementTimer); this.settlementTimer = -1;
     const id = this.selected;
+    const address = this.activeAddress;
+    this.projectionSeq.clear();
     this.followActivityAt = Date.now();
     this.assistantProgressAt = 0;
     this.followProgressKey = '';
@@ -1504,6 +1724,11 @@ export struct NativeWorkspace {
       }
       if (frame.type === 'title') {
         this.applyLiveTitle(id, frame.title);
+        return;
+      }
+      if (frame.type === 'plan' || frame.type === 'subagent-catalog' ||
+        frame.type === 'subagent-identity' || frame.type === 'subagent-timing') {
+        this.applyModeProjectionFrame(id, frame);
         return;
       }
       if (frame.type === 'error') {
@@ -1567,7 +1792,7 @@ export struct NativeWorkspace {
     }, (reason: string): void => {
       console.error('DSH Harmony live socket ended: ' + reason);
       this.reconnect(id);
-    }, background).catch((): void => { this.scheduleReconnect(id); });
+    }, background, address).catch((): void => { this.scheduleReconnect(id); });
   }
   private async reconnect(id: string): Promise<void> {
     if (!this.liveAllowed(id) || this.reconnectInFlight) return;
@@ -1938,7 +2163,7 @@ export struct NativeWorkspace {
   }
   private async send(): Promise<void> {
     if (this.sending || (!this.draft.trim() && !this.attachments.length) || !this.selected ||
-        this.uncertain || !this.attachmentsReady()) return;
+        this.uncertain || !this.attachmentsReady() || !this.currentSubagentInputEnabled()) return;
     const id = this.selected; const text = this.draft; const attachmentSnapshot = this.attachments.slice();
     const mode = this.steer ? 'steer' : 'queue';
     const expectQueuedEcho = this.running && mode === 'queue';
@@ -1955,7 +2180,8 @@ export struct NativeWorkspace {
     }
     try {
       const admittedRequestId = await this.client.prompt(
-        id, text, mode, attachmentSnapshot, requestId);
+        id, text, mode, attachmentSnapshot, requestId,
+        this.activeAddress.kind === 'subagent' ? this.activeAddress : null);
       if (admittedRequestId !== requestId) {
         this.pendingQueue = this.pendingQueue.filter((item: NativeQueueItem): boolean =>
           item.rpcId !== requestId);
@@ -1981,14 +2207,16 @@ export struct NativeWorkspace {
   }
   private async sendDshUiReply(text: string): Promise<boolean> {
     const id = this.selected;
-    if (!id || !text.trim() || this.sending || this.running || this.waiting || this.uncertain) {
+    if (!id || !text.trim() || this.sending || this.running || this.waiting || this.uncertain ||
+      !this.currentSubagentInputEnabled()) {
       return false;
     }
     const requestId = util.generateRandomUUID();
     this.sending = true;
     this.error = '';
     try {
-      const admittedRequestId = await this.client.prompt(id, text, 'queue', [], requestId);
+      const admittedRequestId = await this.client.prompt(id, text, 'queue', [], requestId,
+        this.activeAddress.kind === 'subagent' ? this.activeAddress : null);
       if (admittedRequestId !== requestId) return false;
       this.interactionTimes = NativeMetadataCache.rememberInteraction(
         this.context, this.client.cacheKey(), id);
@@ -2213,7 +2441,7 @@ export struct NativeWorkspace {
     this.paging = true;
     if (!prefetch) this.followTail = false;
     try {
-      const page = await this.client.page(id, historyBefore, historyCut);
+      const page = await this.client.page(id, historyBefore, historyCut, this.activeAddress);
       if (this.selected !== id || this.selectionGeneration !== generation || !this.mounted) return false;
       const offset = this.hasMore ? 1 : 0;
       let anchorIndex = Math.max(0, this.firstVisible - offset);
@@ -2581,16 +2809,147 @@ export struct NativeWorkspace {
   }
 
   @Builder
+  private subagentReadOnlyComposer() {
+    Row({ space: 8 }) {
+      DSHIcon({ glyph: 'branch-outline', glyphSize: 15, color: this.tertiaryText() })
+      Column({ space: 2 }) {
+        Text(this.currentSubagentReadOnlyReason() === 'one-shot' ?
+          '一次性子智能体记录' : '此子智能体暂时只读')
+          .fontSize(12).fontWeight(FontWeight.Medium).fontColor(this.primaryText())
+        Text(this.currentSubagentReadOnlyReason() === 'one-shot' ?
+          '可查看完整执行记录' : '确认子会话模式后可继续')
+          .fontSize(10).fontColor(this.tertiaryText())
+      }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+    }
+    .width('100%')
+    .constraintSize({ minHeight: NativeDesign.hitTarget })
+    .padding({ left: 10, right: 10 })
+    .borderRadius(14)
+    .backgroundColor(this.fieldSurface())
+  }
+
+  @Builder
+  private subagentEditableComposer() {
+    Column({ space: 8 }) {
+      TextArea({ text: this.draft, placeholder: '发送消息…' }).height(44)
+        .enabled(!this.sending && this.currentSubagentInputEnabled())
+        .placeholderColor(this.tertiaryText())
+        .fontSize(14).borderRadius(0).padding({ left: 7, right: 7, top: 3, bottom: 3 })
+        .backgroundColor(Color.Transparent).fontColor(this.primaryText())
+        .onChange((value: string) => { this.draft = value; this.client.drafts.set(this.selected, value); })
+      Row({ space: 6 }) {
+        Button({ type: ButtonType.Normal }) {
+          Row({ space: 4 }) {
+            Text(this.modelCaption).fontSize(11).maxLines(1).constraintSize({ maxWidth: 160 })
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }.constraintSize({ maxWidth: 168 })
+        }.height(NativeDesign.hitTarget).padding({ left: 4, right: 4 })
+          .backgroundColor(Color.Transparent)
+          .fontColor(this.secondaryText()).accessibilityText('模型与推理')
+          .onClick(() => { this.utilityOpen = false; this.modelPickerOpen = true; })
+          .bindPopup(this.modelPickerOpen, { builder: this.modelPicker, placement: Placement.Top,
+            enableArrow: false, targetSpace: 8, radius: 16, mask: false,
+            popupColor: NativeDesign.overlay(this.dark), backgroundBlurStyle: BlurStyle.NONE,
+            onStateChange: (event): void => { if (!event.isVisible) this.modelPickerOpen = false; } })
+        Blank()
+        if (this.activeAddress.kind !== 'subagent') {
+          Button({ type: ButtonType.Normal }) {
+            if (this.attaching) { LoadingProgress().width(14).height(14).color(this.primaryText()) }
+            else { DSHIcon({ glyph: 'image-outline', color: this.primaryText() }) }
+          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+            .borderRadius(NativeDesign.hitTarget / 2)
+            .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
+            .accessibilityText(this.attaching ? '读取中' : '添加图片')
+            .enabled(!this.attaching && !this.sending).onClick(() => { this.attachImages(); })
+          Button({ type: ButtonType.Normal }) {
+            DSHIcon({ glyph: 'file-outline', color: this.secondaryText() })
+          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+            .borderRadius(NativeDesign.hitTarget / 2)
+            .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
+            .accessibilityText('添加文件')
+            .enabled(!this.attaching && !this.sending).onClick(() => { this.attachFiles(); })
+        }
+        if (this.running) {
+          Button({ type: ButtonType.Normal }) {
+            Row({ space: 5 }) {
+              DSHIcon({ glyph: this.steer ? 'paper-plane-outline' : 'queue-outline',
+                color: this.secondaryText(), glyphSize: 14 })
+              Text(this.steer ? '接管' : '排队').fontSize(11).fontColor(this.secondaryText())
+            }
+          }.height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
+            .backgroundColor(Color.Transparent)
+            .accessibilityText(this.steer ? '发送模式：接管' : '发送模式：排队，点击切换')
+            .onClick(() => { this.steer = !this.steer; })
+        }
+        if (this.running && !this.sending && !this.draft.trim() && !this.attachments.length) {
+          Button({ type: ButtonType.Normal }) {
+            DSHIcon({ glyph: 'stop-fill', color: NativeDesign.textInverse(this.dark) })
+          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+            .borderRadius(NativeDesign.hitTarget / 2)
+            .backgroundColor(NativeDesign.accentStrong(this.dark)).accessibilityText('停止任务')
+            .onClick(() => {
+              this.client.cancel(this.selected,
+                this.activeAddress.kind === 'subagent' ? this.activeAddress : null)
+                .catch((error: Error) => this.handleError(error));
+            })
+        } else {
+          Button({ type: ButtonType.Normal }) {
+            if (this.sending) {
+              LoadingProgress().width(16).height(16)
+                .color(NativeDesign.textInverse(this.dark))
+            } else {
+              DSHIcon({ glyph: 'send-arrow', color: NativeDesign.textInverse(this.dark) })
+            }
+          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+            .borderRadius(NativeDesign.hitTarget / 2)
+            .backgroundColor(NativeDesign.accentStrong(this.dark))
+            .enabled(this.connectionPhase === 'live' && !this.sending && !this.uncertain &&
+              this.attachmentsReady() && (this.draft.trim().length > 0 || this.attachments.length > 0))
+            .opacity(this.connectionPhase === 'live' && !this.sending && !this.uncertain &&
+              this.attachmentsReady() && (this.draft.trim().length > 0 || this.attachments.length > 0) ?
+              1 : 0.4)
+            .accessibilityText(this.sending ? '发送中' : '发送')
+            .onClick(() => { this.followTail = true; this.send(); })
+        }
+      }.width('100%')
+    }.padding(8).width('100%').borderRadius(16)
+      .border({ width: 0.5, color: this.semanticBorderColor() })
+      .backgroundColor(this.raisedSurface())
+      .onAreaChange((_old: Area, area: Area): void => {
+        const height = Number(area.height);
+        if (height > 0 && height !== this.composerHeight) this.composerHeight = height;
+      })
+  }
+
+  @Builder
   private conversation() {
     Column({ space: 8 }) {
       Row({ space: 6 }) {
+        if (this.activeAddress.kind === 'subagent') {
+          NativeIconButton({ glyph: 'chevron-left-outline', label: '返回父会话', tone: 'primary',
+            onPressed: (): void => { this.backToParentSession(); } })
+        }
         if (!this.wide) {
           NativeIconButton({ glyph: 'panel-left-outline', label: '打开侧边栏', tone: 'primary',
             onPressed: (): void => { this.openDrawer(); } })
         }
-        Text(this.title).fontSize(15).fontWeight(FontWeight.Medium).layoutWeight(1)
-          .maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.primaryText())
-          .onClick(() => { this.getUIContext().getPromptAction().showDialog({ title: '会话标题', message: this.title, buttons: [{ text: '关闭', color: this.accentColor() }] }); })
+        Column({ space: 1 }) {
+          if (this.activeAddress.kind === 'subagent') {
+            Text(this.currentParentTitle()).fontSize(10).maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
+              .fontColor(this.tertiaryText())
+          }
+          Text(this.title).fontSize(15).fontWeight(FontWeight.Medium)
+            .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
+            .fontColor(this.primaryText())
+        }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+          .onClick(() => {
+            this.getUIContext().getPromptAction().showDialog({
+              title: this.activeAddress.kind === 'subagent' ? '子智能体会话' : '会话标题',
+              message: this.title,
+              buttons: [{ text: '关闭', color: this.accentColor() }]
+            });
+          })
         if ((this.connectionPhase === 'opening' || this.connectionPhase === 'syncing') &&
           !this.model.messages.length) {
           LoadingProgress().width(14).height(14).color(this.accentColor())
@@ -2600,6 +2959,56 @@ export struct NativeWorkspace {
           active: this.utilityOpen, glyphSize: 16,
           onPressed: (): void => { this.openUtilities(); } })
       }.width('100%')
+      if (nativePlanTargetActive(this.planProjection) || this.planError ||
+        ((this.subagentCatalog?.length || 0) > 0)) {
+        Row({ space: 6 }) {
+          if (nativePlanTargetActive(this.planProjection)) {
+            Button({ type: ButtonType.Normal }) {
+              Row({ space: 5 }) {
+                DSHIcon({ glyph: 'plan-outline', glyphSize: 14, color: this.accentColor() })
+                Text('计划').fontSize(11).fontColor(this.accentColor())
+                if (this.planLeaving) LoadingProgress().width(11).height(11).color(this.accentColor())
+              }
+            }
+            .height(28)
+            .padding({ left: 9, right: 9 })
+            .borderRadius(14)
+            .backgroundColor(this.selectionSurface())
+            .border({ width: 0.5, color: this.semanticBorderColor() })
+            .enabled(!this.planLeaving)
+            .accessibilityText('计划模式已开启，点击关闭')
+            .onClick((): void => { this.exitPlanMode(); })
+          }
+          if (this.planError) {
+            Text(this.planError).fontSize(10).fontColor(this.dangerText())
+              .transition(NativeMotion.rowTransition())
+          }
+          Blank()
+          if ((this.subagentCatalog?.length || 0) > 0) {
+            Button({ type: ButtonType.Normal }) {
+              Row({ space: 5 }) {
+                if (this.runningSubagentCount() > 0) {
+                  Text('').width(6).height(6).borderRadius(3)
+                    .backgroundColor(this.accentColor())
+                } else {
+                  DSHIcon({ glyph: 'branch-outline', glyphSize: 13, color: this.secondaryText() })
+                }
+                Text((this.subagentCatalog?.length || 0).toString() + ' 个子智能体')
+                  .fontSize(11).fontColor(this.secondaryText())
+                DSHIcon({ glyph: 'chevron-down-outline', glyphSize: 12, color: this.tertiaryText() })
+              }
+            }
+            .height(28)
+            .padding({ left: 9, right: 8 })
+            .borderRadius(14)
+            .backgroundColor(this.fieldSurface())
+            .border({ width: 0.5, color: this.semanticBorderColor() })
+            .accessibilityText((this.subagentCatalog?.length || 0).toString() +
+              ' 个子智能体' + (this.runningSubagentCount() > 0 ? '，正在运行' : ''))
+            .onClick((): void => { this.openLineage(); })
+          }
+        }.width('100%')
+      }
       if (this.connectionPhase === 'retrying') {
         Row({ space: 8 }) {
           Text('•').fontSize(14).fontColor(this.warningText())
@@ -2891,84 +3300,11 @@ export struct NativeWorkspace {
             }.width('100%').padding({ left: 8, right: 12 })
               .transition(NativeMotion.disclosureTransition())
           }
-          Column({ space: 8 }) {
-          TextArea({ text: this.draft, placeholder: '发送消息…' }).height(44).enabled(!this.sending)
-            .placeholderColor(this.tertiaryText())
-            .fontSize(14).borderRadius(0).padding({ left: 7, right: 7, top: 3, bottom: 3 })
-            .backgroundColor(Color.Transparent).fontColor(this.primaryText())
-            .onChange((value: string) => { this.draft = value; this.client.drafts.set(this.selected, value); })
-          Row({ space: 6 }) {
-            Button({ type: ButtonType.Normal }) {
-              Row({ space: 4 }) {
-                Text(this.modelCaption).fontSize(11).maxLines(1).constraintSize({ maxWidth: 160 })
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-              }.constraintSize({ maxWidth: 168 })
-            }.height(NativeDesign.hitTarget).padding({ left: 4, right: 4 })
-              .backgroundColor(Color.Transparent)
-              .fontColor(this.secondaryText()).accessibilityText('模型与推理')
-              .onClick(() => { this.utilityOpen = false; this.modelPickerOpen = true; })
-              .bindPopup(this.modelPickerOpen, { builder: this.modelPicker, placement: Placement.Top,
-                enableArrow: false, targetSpace: 8, radius: 16, mask: false,
-                popupColor: NativeDesign.overlay(this.dark), backgroundBlurStyle: BlurStyle.NONE,
-                onStateChange: (event): void => { if (!event.isVisible) this.modelPickerOpen = false; } })
-            Blank()
-            Button({ type: ButtonType.Normal }) {
-              if (this.attaching) { LoadingProgress().width(14).height(14).color(this.primaryText()) }
-              else { DSHIcon({ glyph: 'image-outline', color: this.primaryText() }) }
-            }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
-              .borderRadius(NativeDesign.hitTarget / 2)
-              .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
-              .accessibilityText(this.attaching ? '读取中' : '添加图片')
-              .enabled(!this.attaching && !this.sending).onClick(() => { this.attachImages(); })
-            Button({ type: ButtonType.Normal }) {
-              DSHIcon({ glyph: 'file-outline', color: this.secondaryText() })
-            }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
-              .borderRadius(NativeDesign.hitTarget / 2)
-              .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
-              .accessibilityText('添加文件')
-              .enabled(!this.attaching && !this.sending).onClick(() => { this.attachFiles(); })
-            if (this.running) { Button({ type: ButtonType.Normal }) {
-              Row({ space: 5 }) {
-                DSHIcon({ glyph: this.steer ? 'paper-plane-outline' : 'queue-outline', color: this.secondaryText(), glyphSize: 14 })
-                Text(this.steer ? '接管' : '排队').fontSize(11).fontColor(this.secondaryText())
-              }
-            }.height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
-              .backgroundColor(Color.Transparent)
-              .accessibilityText(this.steer ? '发送模式：接管' : '发送模式：排队，点击切换')
-              .onClick(() => { this.steer = !this.steer; })
-            }
-            if (this.running && !this.sending && !this.draft.trim() && !this.attachments.length) {
-              Button({ type: ButtonType.Normal }) {
-                DSHIcon({ glyph: 'stop-fill', color: NativeDesign.textInverse(this.dark) })
-              }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
-                .borderRadius(NativeDesign.hitTarget / 2)
-                .backgroundColor(NativeDesign.accentStrong(this.dark)).accessibilityText('停止任务')
-                .onClick(() => { this.client.cancel(this.selected).catch((error: Error) => this.handleError(error)); })
-            } else {
-              Button({ type: ButtonType.Normal }) {
-                if (this.sending) {
-                  LoadingProgress().width(16).height(16)
-                    .color(NativeDesign.textInverse(this.dark))
-                } else {
-                  DSHIcon({ glyph: 'send-arrow', color: NativeDesign.textInverse(this.dark) })
-                }
-              }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
-                .borderRadius(NativeDesign.hitTarget / 2)
-                .backgroundColor(NativeDesign.accentStrong(this.dark))
-                .enabled(this.connectionPhase === 'live' && !this.sending && !this.uncertain && this.attachmentsReady() &&
-                  (this.draft.trim().length > 0 || this.attachments.length > 0))
-                .opacity(this.connectionPhase === 'live' && !this.sending && !this.uncertain && this.attachmentsReady() &&
-                  (this.draft.trim().length > 0 || this.attachments.length > 0) ? 1 : 0.4)
-                .accessibilityText(this.sending ? '发送中' : '发送').onClick(() => { this.followTail = true; this.send(); })
-            }
-          }.width('100%')
-        }.padding(8).width('100%').borderRadius(16)
-          .border({ width: 0.5, color: this.semanticBorderColor() })
-          .backgroundColor(this.raisedSurface())
-          .onAreaChange((_old: Area, area: Area): void => {
-            const height = Number(area.height);
-            if (height > 0 && height !== this.composerHeight) this.composerHeight = height;
-          })
+          if (this.currentSubagentReadOnlyReason()) {
+            this.subagentReadOnlyComposer()
+          } else {
+            this.subagentEditableComposer()
+          }
         }.width('100%')
       }
     }.padding({ left: 12, right: 12, top: this.safeTop + 4,
@@ -3066,6 +3402,43 @@ export struct NativeWorkspace {
     }.width('100%').height('100%')
   }
 
+  @Builder
+  private lineageOverlay() {
+    Stack({ alignContent: Alignment.Bottom }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor(NativeDesign.mask(this.dark))
+        .onClick((): void => {
+          this.lineageOpen = false;
+          this.navigationChanged();
+        })
+      NativeSubagentLineage({
+        dark: this.dark,
+        title: this.currentSubagentTitle() || this.title,
+        entries: this.subagentCatalog || [],
+        currentId: this.activeAddress.kind === 'subagent' ?
+          this.activeAddress.childSessionId : '',
+        loading: this.lineageLoading,
+        error: this.lineageError,
+        maxHeight: Math.max(280, Math.min(520, this.transcriptViewportHeight * 0.6)),
+        bottomInset: this.safeBottom,
+        onClose: (): void => {
+          this.lineageOpen = false;
+          this.navigationChanged();
+        },
+        onOpen: (entry: NativeSubagentEntry): void => { this.openSubagent(entry); },
+        onRetry: (): void => {
+          this.lineageLoading = true;
+          this.lineageError = '';
+          this.loadSelectedProjections();
+        }
+      })
+    }
+    .width('100%')
+    .height('100%')
+  }
+
   build() {
     Stack() {
       if (this.wide) {
@@ -3097,6 +3470,7 @@ export struct NativeWorkspace {
       }
 
       if (this.utilityOpen) { this.utilityOverlay() }
+      if (this.lineageOpen) { this.lineageOverlay() }
       if (this.workspacePickerOpen) {
         Column() {
           NativeWorkspacePicker({ client: this.client, snapshot: this.workspaces, sessions: this.sessions,
