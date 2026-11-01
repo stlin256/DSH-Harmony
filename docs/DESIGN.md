@@ -1,5 +1,10 @@
 # 与 Harness 的界面适配
 
+设计系统的权威事实源是
+[DSH Harmony 设计系统](design/2026-11-01-dsh-harmony-design-system.md)。
+所有新增原生界面先使用其中的语义颜色、排版、密度、组件和 Quiet Precision
+动效规则；本文保留模块适配记录。
+
 本文件的视觉基线由
 [DSH Harmony 视觉与动效设计](design/2026-10-31-dsh-harmony-visual-motion.md)
 补充。新的控件、页面和结构变化应先使用该文档的 Quiet Precision 语义；本文保留具体

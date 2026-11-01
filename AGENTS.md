@@ -39,6 +39,16 @@ or real transcript content in source, tests, docs, logs or commits.
 ## Design, Spec and Evidence Index
 
 - Visual baseline: [DESIGN.md](docs/DESIGN.md)
+- Authoritative design system and motion baseline:
+  [2026-11-01-dsh-harmony-design-system.md](docs/design/2026-11-01-dsh-harmony-design-system.md)
+- Design-system unification requirement:
+  [2026-11-01-design-system-unification.md](docs/requirements/2026-11-01-design-system-unification.md)
+- Complete native UI element audit:
+  [2026-11-01-design-system-audit.md](docs/research/2026-11-01-design-system-audit.md)
+- Design-system unification implementation spec:
+  [2026-11-01-design-system-unification.md](docs/specs/2026-11-01-design-system-unification.md)
+- Design-system unification E2E:
+  [2026-11-01-design-system-unification-e2e.md](docs/testing/2026-11-01-design-system-unification-e2e.md)
 - Visual and motion design:
   [2026-10-31-dsh-harmony-visual-motion.md](docs/design/2026-10-31-dsh-harmony-visual-motion.md)
 - Motion requirement:
