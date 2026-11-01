@@ -244,6 +244,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-11-01-queued-interaction-process-motion.md](docs/specs/2026-11-01-queued-interaction-process-motion.md)
 - Queue, interaction and process motion device E2E:
   [2026-11-01-queued-interaction-process-motion-e2e.md](docs/testing/2026-11-01-queued-interaction-process-motion-e2e.md)
+- Visual consistency and interactive Dock requirement:
+  [2026-11-01-visual-consistency-dock-send-e2e.md](docs/requirements/2026-11-01-visual-consistency-dock-send-e2e.md)
+- Visual consistency, Mock and Dock research:
+  [2026-11-01-visual-consistency-dock-send-e2e.md](docs/research/2026-11-01-visual-consistency-dock-send-e2e.md)
+- Visual consistency, interactive Mock and Dock material implementation spec:
+  [2026-11-01-visual-consistency-dock-send-e2e.md](docs/specs/2026-11-01-visual-consistency-dock-send-e2e.md)
+- Visual consistency, screenshot and Dock send E2E:
+  [2026-11-01-visual-consistency-dock-send-e2e.md](docs/testing/2026-11-01-visual-consistency-dock-send-e2e.md)
 
 ## Upstream Tracking
 
