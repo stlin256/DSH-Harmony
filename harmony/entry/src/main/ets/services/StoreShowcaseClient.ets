@@ -11,6 +11,7 @@ import {
 import {
   NativeFrame,
   NativeMessage,
+  NativeQueueItem,
   NativeSession,
   NativeSessionCacheRecord,
   NativeSessionList,
@@ -19,6 +20,11 @@ import {
   NativeWorkspaceItem,
   NativeWorkspaceSnapshot
 } from './NativeSessionModel';
+import {
+  NativeShowcaseAttachment,
+  NativeShowcaseInteraction,
+  nativeShowcaseQueueItem
+} from './NativeShowcaseInteraction';
 import { NativeUiFixture } from './NativeUiFixture';
 import { http } from '@kit.NetworkKit';
 
@@ -189,6 +195,21 @@ function showcaseMessages(): NativeMessage[] {
   return rows;
 }
 
+function showcaseDockMessages(): NativeMessage[] {
+  const rows: NativeMessage[] = [];
+  rows.push(message('dock-user', 'user', 1, 1, 1,
+    '请检查底部工具栏、消息发送和队列状态。'));
+  const assistant = message('dock-assistant', 'assistant', 2, 1, 2,
+    '底部工具栏布局稳定，可以继续测试发送与排队。');
+  rows.push(assistant);
+  const end = message('dock-turn-end', 'turn', 3, 1, 2, '');
+  end.eventType = 'turn/end';
+  end.outcome = 'completed';
+  end.label = '已完成';
+  rows.push(end);
+  return rows;
+}
+
 function showcaseLiveChangeMessages(): NativeMessage[] {
   const rows: NativeMessage[] = [];
   rows.push(message('user-live-change', 'user', 1, 7, 1,
@@ -240,12 +261,46 @@ function showcaseLongHistoryMessages(): NativeMessage[] {
 }
 
 function showcaseMessagesFor(state: string): NativeMessage[] {
+  if (state === 'dock-send-idle' || state === 'dock-send-error' ||
+      state === 'dock-material-quiet') return showcaseDockMessages();
+  if (state === 'dock-queue-pending') return showcaseStreamingMessages();
+  if (state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
+      state === 'dock-material-elevated') return showcaseLiveChangeMessages();
   if (state === 'live-change') return showcaseLiveChangeMessages();
   if (state === 'streaming') return showcaseStreamingMessages();
   if (state === 'empty') return [];
   if (state === 'long-history') return showcaseLongHistoryMessages();
   if (state === 'attachments') return showcaseLiveChangeMessages();
   return showcaseMessages();
+}
+
+function showcaseQueue(state: string): NativeQueueItem[] {
+  const showcaseFile = new NativeShowcaseAttachment();
+  showcaseFile.id = 'showcase-queue-file-a';
+  showcaseFile.kind = 'file';
+  showcaseFile.name = 'NativeBottomConversationDock.ets';
+  showcaseFile.mediaType = 'text/plain';
+  showcaseFile.bytes = 2048;
+  showcaseFile.receiptId = 'showcase-queue-receipt-a';
+  if (state === 'dock-queue-authoritative') {
+    return [nativeShowcaseQueueItem('showcase-seeded-authoritative',
+      '检查权威队列行是否保持紧凑。', [showcaseFile])];
+  }
+  if (state === 'dock-queue-many') {
+    return [
+      nativeShowcaseQueueItem('showcase-seeded-1', '第一条排队消息。', []),
+      nativeShowcaseQueueItem('showcase-seeded-2', '第二条排队消息。', [showcaseFile]),
+      nativeShowcaseQueueItem('showcase-seeded-3', '第三条排队消息。', []),
+      nativeShowcaseQueueItem('showcase-seeded-4', '第四条排队消息。', [])
+    ];
+  }
+  if (state === 'dock-material-elevated') {
+    return [
+      nativeShowcaseQueueItem('showcase-material-1', '检查 Dock 背景材质。', []),
+      nativeShowcaseQueueItem('showcase-material-2', '检查渐变与安全区。', [showcaseFile])
+    ];
+  }
+  return [];
 }
 
 function showcaseAttachments(): NativeAttachmentDraft[] {
@@ -267,6 +322,12 @@ function showcaseAttachments(): NativeAttachmentDraft[] {
 function showcaseSessions(state: string = 'completed'): NativeSession[] {
   const firstTitle = state === 'live-change' ? '底部 Dock 运行态' :
     state === 'streaming' ? '流式输出与标题更新' :
+    state === 'dock-send-idle' || state === 'dock-material-quiet' ? 'Dock 空闲与发送' :
+    state === 'dock-send-error' ? '发送失败与重试' :
+    state === 'dock-queue-pending' ? '发送中与队列确认' :
+    state === 'dock-queue-authoritative' ? '权威排队消息' :
+    state === 'dock-queue-many' ? '多行排队消息' :
+    state === 'dock-material-elevated' ? '渐变材质与实时变更' :
     state === 'empty' ? '空运行态' :
     state === 'long-history' ? '长会话与连续预取' :
     state === 'attachments' ? '附件与实时变更 Dock' :
@@ -286,7 +347,9 @@ function showcaseSessions(state: string = 'completed'): NativeSession[] {
     value.cwd = row[2];
     value.blank = row[3] === 'true';
     value.running = (state === 'live-change' || state === 'attachments' ||
-      state === 'streaming' || state === 'empty') &&
+      state === 'streaming' || state === 'empty' || state === 'dock-queue-pending' ||
+      state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
+      state === 'dock-material-elevated') &&
       row[0] === SHOWCASE_SESSION;
     value.updatedAt = 1761900000000 - definitions.findIndex((item: string[]) => item[0] === row[0]) * 60000;
     return value;
@@ -311,25 +374,6 @@ function showcaseWorkspaces(): NativeWorkspaceSnapshot {
   return value;
 }
 
-function showcaseFrame(state: string = 'completed'): NativeFrame {
-  const frame = new NativeFrame();
-  frame.type = 'snapshot';
-  frame.messages = showcaseMessagesFor(state);
-  frame.cursor = state === 'long-history' ? 80 :
-    state === 'live-change' || state === 'attachments' ? 4 :
-    state === 'streaming' ? 2 : state === 'empty' ? 0 : 14;
-  frame.beforeSeq = 0;
-  frame.hasMore = false;
-  frame.running = state === 'live-change' || state === 'attachments' ||
-    state === 'streaming' || state === 'empty';
-  frame.waiting = false;
-  frame.text = state === 'streaming' ?
-    '正在输出完整的流式回答，内容会按显示帧更新而不会阻塞底部工具栏。' : '';
-  frame.reasoning = state === 'streaming' ?
-    '先检查传输状态，再确认工作过程与底部 Dock 的布局。' : '';
-  return frame;
-}
-
 /**
  * In-memory Host used only when EntryAbility receives `storeShowcase=true`.
  * The normal product never selects this client and never loads these fixtures.
@@ -337,21 +381,38 @@ function showcaseFrame(state: string = 'completed'): NativeFrame {
 export class StoreShowcaseClient extends NativeHarnessClient {
   private paused: boolean = false;
   private fixtureState: string;
+  private interaction: NativeShowcaseInteraction = new NativeShowcaseInteraction([]);
+  private receiver: (frame: NativeFrame) => void = (_frame: NativeFrame): void => {};
+  private receiverReady: boolean = false;
+  private promptSerial: number = 0;
+  private timers: number[] = [];
 
   constructor(state: string = 'completed') {
     super('https://showcase.invalid');
     this.fixtureState = NativeUiFixture.state(state);
+    const seedMessages = showcaseMessagesFor(this.fixtureState);
+    const seedRunning = this.fixtureState === 'live-change' ||
+      this.fixtureState === 'attachments' || this.fixtureState === 'streaming' ||
+      this.fixtureState === 'empty' || this.fixtureState === 'dock-queue-pending' ||
+      this.fixtureState === 'dock-queue-authoritative' ||
+      this.fixtureState === 'dock-queue-many' ||
+      this.fixtureState === 'dock-material-elevated';
+    let seedCursor = 0;
+    seedMessages.forEach((row: NativeMessage): void => {
+      if (Number.isSafeInteger(row.seq) && row.seq > seedCursor) seedCursor = row.seq;
+    });
+    const seedQueue = showcaseQueue(this.fixtureState);
+    this.interaction = new NativeShowcaseInteraction(seedMessages, seedRunning, seedCursor, seedQueue);
+    const initial = this.interaction.snapshot();
     const model = new NativeSessionModel();
     const record = new NativeSessionCacheRecord();
     record.version = 1;
-    record.messages = showcaseMessagesFor(this.fixtureState);
-    record.cursor = this.fixtureState === 'long-history' ? 80 :
-      this.fixtureState === 'live-change' || this.fixtureState === 'attachments' ? 4 :
-      this.fixtureState === 'streaming' ? 2 : this.fixtureState === 'empty' ? 0 : 14;
+    record.messages = initial.messages;
+    record.cursor = initial.cursor;
     record.hasMore = false;
-    record.running = this.fixtureState === 'live-change' || this.fixtureState === 'attachments' ||
-      this.fixtureState === 'streaming' || this.fixtureState === 'empty';
+    record.running = initial.running;
     record.waiting = false;
+    record.queue = initial.queue;
     record.streamText = this.fixtureState === 'streaming' ?
       '正在输出完整的流式回答，内容会按显示帧更新而不会阻塞底部工具栏。' : '';
     record.streamReasoning = this.fixtureState === 'streaming' ?
@@ -417,16 +478,21 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   }
 
   async page(_id: string, _before: number, _throughSeq: number = -1): Promise<NativeFrame> {
-    return showcaseFrame(this.fixtureState);
+    return this.interaction.snapshot();
   }
 
   async follow(id: string, receive: (frame: NativeFrame) => void, _ended: (reason: string) => void): Promise<void> {
     if (id !== SHOWCASE_SESSION || this.paused) return;
-    receive(showcaseFrame(this.fixtureState));
+    this.receiver = receive;
+    this.receiverReady = true;
+    receive(this.interaction.snapshot());
   }
 
   pause(): void {
     this.paused = true;
+    this.receiverReady = false;
+    this.timers.forEach((timer: number): void => { clearTimeout(timer); });
+    this.timers = [];
     setTimeout((): void => {
       this.paused = false;
     }, 0);
@@ -592,12 +658,47 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     return SHOWCASE_SESSION;
   }
 
-  async prompt(_id: string, _text: string, _mode: string = 'queue',
-    _attachments: NativeAttachmentDraft[] = []): Promise<string> {
-    return 'showcase-request';
+  async prompt(id: string, text: string, mode: string = 'queue',
+    attachments: NativeAttachmentDraft[] = []): Promise<string> {
+    if (id !== SHOWCASE_SESSION) throw new Error('Showcase session unavailable');
+    if (this.fixtureState === 'dock-send-error') {
+      throw new Error('Mock 发送失败，请重试');
+    }
+    const requestId = 'showcase-request-' + (++this.promptSerial).toString();
+    const mapped = attachments.map((item: NativeAttachmentDraft): NativeShowcaseAttachment => {
+      const value = new NativeShowcaseAttachment();
+      value.id = item.id;
+      value.kind = item.kind;
+      value.name = item.name;
+      value.mediaType = item.mediaType;
+      value.bytes = item.bytes;
+      value.receiptId = item.receiptId;
+      return value;
+    });
+    const plan = this.interaction.prompt(requestId, text, mapped, mode);
+    if (!plan.accepted) throw new Error('Mock prompt rejected an empty request');
+    const acknowledgementDelay = plan.queued &&
+      this.fixtureState === 'dock-queue-pending' ? 4200 : plan.queued ? 650 : 120;
+    this.emit(plan.admissionFrames, acknowledgementDelay);
+    if (plan.streamFrames.length) {
+      this.emit(plan.streamFrames, acknowledgementDelay + 360);
+      this.emit(plan.settleFrames, acknowledgementDelay + 820);
+    }
+    return requestId;
   }
 
   async cancel(_id: string): Promise<void> {
+    this.emit(this.interaction.cancel(), 80);
+  }
+
+  private emit(frames: NativeFrame[], delay: number): void {
+    if (!frames.length) return;
+    const timer = setTimeout((): void => {
+      this.timers = this.timers.filter((value: number): boolean => value !== timer);
+      if (!this.receiverReady || this.paused) return;
+      frames.forEach((frame: NativeFrame): void => { this.receiver(frame); });
+    }, delay);
+    this.timers.push(timer);
   }
 
   async exportSession(_id: string, _format: string, _receive: (part: ArrayBuffer) => void): Promise<void> {

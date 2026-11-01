@@ -21,26 +21,21 @@ export struct NativeBottomConversationDock {
       if (this.elevated && NativeExperience.materialsEnabled()) {
         Stack({ alignContent: Alignment.Bottom }) {
           Column()
-            // The component material is much lighter than window material.
-            // Gradient foreground blur keeps its upper edge visually open.
+            // Component material performs the actual backdrop blur. The
+            // theme gradient below only controls visibility of that material.
             .width('100%').height(this.measuredHeight)
             .backgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THIN, {
               colorMode: this.dark ? ThemeColorMode.DARK : ThemeColorMode.LIGHT
             })
-            .linearGradientBlur(24, {
-              fractionStops: [[0, 0], [0.18, 0], [0.58, 0.56], [1, 1]],
-              direction: GradientDirection.Bottom
-            })
-            .opacity(0.88)
           Column()
             .width('100%').height(this.measuredHeight)
             // A translucent theme scrim provides the visible top-to-bottom
-            // falloff without replacing the live backdrop with an opaque fill.
+            // falloff while retaining background detail above the bottom edge.
             .linearGradient({
               angle: 180,
               colors: this.dark
-                ? [['#001D1E20', 0], ['#261D1E20', 0.18], ['#70242628', 0.62], ['#A627292C', 1]]
-                : [['#00FFFFFF', 0], ['#29FFFFFF', 0.18], ['#8FFFFFFF', 0.62], ['#D9FFFFFF', 1]]
+                ? [['#001D1E20', 0], ['#241D1E20', 0.18], ['#661F2022', 0.62], ['#B3232528', 1]]
+                : [['#00FFFFFF', 0], ['#24FFFFFF', 0.18], ['#70FFFFFF', 0.62], ['#B8FFFFFF', 1]]
             })
         }.width('100%').height(this.measuredHeight)
           .transition(NativeMotion.rowTransition())

@@ -4,7 +4,21 @@ param(
   [string]$HapPath = '',
   [ValidateSet('conversation', 'process', 'sidebar', 'browser', 'settings')]
   [string]$Screen = 'conversation',
-  [ValidateSet('completed', 'live-change', 'attachments', 'streaming', 'empty', 'long-history')]
+  [ValidateSet(
+    'completed',
+    'live-change',
+    'attachments',
+    'streaming',
+    'empty',
+    'long-history',
+    'dock-send-idle',
+    'dock-queue-pending',
+    'dock-queue-authoritative',
+    'dock-queue-many',
+    'dock-send-error',
+    'dock-material-quiet',
+    'dock-material-elevated'
+  )]
   [string]$State = 'live-change',
   [ValidateSet('light', 'dark', 'system')]
   [string]$Theme = 'dark',
@@ -12,7 +26,9 @@ param(
   [ValidateRange(5, 120)]
   [int]$StartupTimeoutSeconds = 30,
   [switch]$SkipBuild,
-  [switch]$SkipInstall
+  [switch]$SkipInstall,
+  [switch]$ReduceMotion,
+  [switch]$ReduceTransparency
 )
 
 $ErrorActionPreference = 'Stop'
@@ -148,17 +164,21 @@ if (-not $SkipInstall) {
 }
 
 $bundle = 'io.github.stlin256.dshharmony'
-$captureName = "$State-$Theme-$Screen"
+$variantSuffix = ''
+if ($ReduceMotion) { $variantSuffix += '-reduced-motion' }
+if ($ReduceTransparency) { $variantSuffix += '-reduced-transparency' }
+$captureName = "$State-$Theme-$Screen$variantSuffix"
 $captureDir = Join-Path $OutputDir $captureName
 New-Item -ItemType Directory -Force -Path $captureDir | Out-Null
 Get-ChildItem -LiteralPath $captureDir -File | Remove-Item -Force
 
 & $hdc -t $Device shell "aa force-stop $bundle" | Out-Null
-& $hdc -t $Device shell (
-  "aa start -a EntryAbility -b $bundle -m entry " +
+$launch = "aa start -a EntryAbility -b $bundle -m entry " +
   "--ps storeShowcase true --ps showcaseScreen $Screen " +
   "--ps showcaseState $State --ps showcaseTheme $Theme"
-)
+if ($ReduceMotion) { $launch += ' --ps showcaseReduceMotion true' }
+if ($ReduceTransparency) { $launch += ' --ps showcaseReduceTransparency true' }
+& $hdc -t $Device shell $launch
 if ($LASTEXITCODE -ne 0) {
   throw "Fixture launch failed: $State/$Theme/$Screen"
 }
@@ -216,6 +236,8 @@ $manifest = [ordered]@{
     screen = $Screen
     state = $State
     theme = $Theme
+    reduceMotion = [bool]$ReduceMotion
+    reduceTransparency = [bool]$ReduceTransparency
   }
   files = [ordered]@{
     screenshot = 'screen.jpeg'

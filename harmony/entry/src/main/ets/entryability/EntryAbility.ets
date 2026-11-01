@@ -81,6 +81,12 @@ export default class EntryAbility extends UIAbility {
     AppStorage.setOrCreate<string>('storeShowcaseState', NativeUiFixture.state(showcaseState));
     const showcaseTheme = want.parameters?.showcaseTheme;
     AppStorage.setOrCreate<string>('storeShowcaseTheme', NativeUiFixture.theme(showcaseTheme));
+    const showcaseReduceMotion = want.parameters?.showcaseReduceMotion;
+    AppStorage.setOrCreate<boolean>('showcaseReduceMotion',
+      showcaseReduceMotion === true || showcaseReduceMotion === 'true');
+    const showcaseReduceTransparency = want.parameters?.showcaseReduceTransparency;
+    AppStorage.setOrCreate<boolean>('showcaseReduceTransparency',
+      showcaseReduceTransparency === true || showcaseReduceTransparency === 'true');
     const route = want.parameters?.pocketRoute;
     if (typeof route === 'string' && ['workspace', 'overview', 'settings'].includes(route)) {
       AppStorage.setOrCreate<string>('requestedPocketRoute', route);

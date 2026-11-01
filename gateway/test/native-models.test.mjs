@@ -216,6 +216,13 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.equal(NativeUiFixture.state('attachments'), 'attachments');
   assert.equal(NativeUiFixture.state('streaming'), 'streaming');
   assert.equal(NativeUiFixture.state('long-history'), 'long-history');
+  assert.equal(NativeUiFixture.state('dock-send-idle'), 'dock-send-idle');
+  assert.equal(NativeUiFixture.state('dock-queue-pending'), 'dock-queue-pending');
+  assert.equal(NativeUiFixture.state('dock-queue-authoritative'), 'dock-queue-authoritative');
+  assert.equal(NativeUiFixture.state('dock-queue-many'), 'dock-queue-many');
+  assert.equal(NativeUiFixture.state('dock-send-error'), 'dock-send-error');
+  assert.equal(NativeUiFixture.state('dock-material-quiet'), 'dock-material-quiet');
+  assert.equal(NativeUiFixture.state('dock-material-elevated'), 'dock-material-elevated');
   assert.equal(NativeUiFixture.state('private-path'), 'completed');
   assert.equal(NativeUiFixture.theme('dark'), 'dark');
   assert.equal(NativeUiFixture.theme('sepia'), 'system');
@@ -229,8 +236,10 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.match(entry, /storeShowcaseState/);
   assert.match(entry, /NativeUiFixture\.screen/);
   assert.match(entry, /NativeUiFixture\.state/);
+  assert.match(entry, /showcaseReduceTransparency/);
   assert.match(index, /if \(AppStorage\.get<boolean>\('storeShowcase'\) === true\)/);
   assert.match(index, /new StoreShowcaseClient\([\s\S]{0,120}storeShowcaseState/);
+  assert.match(index, /AppStorage\.setOrCreate<boolean>\('nativeReduceTransparency'/);
   assert.match(index, /showcaseReduceMotion/);
   assert.match(index, /showcaseReduceTransparency/);
   assert.match(index, /command === 'reduceMotion' \|\| command === 'reduceTransparency'/);
@@ -247,8 +256,62 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.match(showcase, /state === 'long-history'/);
   assert.match(showcase, /if \(state === 'attachments'\) return showcaseLiveChangeMessages/);
   assert.match(showcase, /completedDiff\.diffs\.push\(completedDocs\)/);
-  assert.match(showcase, /record\.running = this\.fixtureState === 'live-change' \|\|[\s\S]{0,80}attachments/);
+  assert.match(showcase, /const seedRunning = this\.fixtureState === 'live-change'/);
+  assert.match(showcase, /record\.running = initial\.running/);
+  assert.match(showcase, /this\.interaction\.prompt\(requestId, text, mapped, mode\)/);
+  assert.match(showcase, /this\.receiverReady = true/);
+  assert.match(showcase, /dock-send-error[\s\S]{0,100}Mock 发送失败/);
   assert.match(showcase, /this\.attachments\.set\(SHOWCASE_SESSION, showcaseAttachments\(\)\)/);
+});
+
+test('interactive showcase inserts idle sends and reconciles queued echoes by rpcId', () => {
+  const model = load('NativeSessionModel', {});
+  const interaction = load('NativeShowcaseInteraction', {});
+  const seed = Object.assign(new model.NativeMessage(), {
+    id: 'seed',
+    role: 'assistant',
+    text: 'Ready',
+    seq: 1,
+    turn: 1
+  });
+  const file = Object.assign(new interaction.NativeShowcaseAttachment(), {
+    id: 'attachment-a',
+    kind: 'file',
+    name: 'NativeWorkspace.ets',
+    mediaType: 'text/plain',
+    bytes: 512,
+    receiptId: 'receipt-a'
+  });
+
+  const idle = new interaction.NativeShowcaseInteraction([seed], false, 1);
+  const idlePlan = idle.prompt('request-idle', 'dock_send_probe', [file], 'queue');
+  assert.equal(idlePlan.accepted, true);
+  assert.equal(idlePlan.queued, false);
+  assert.equal(idlePlan.admissionFrames[1].message.text, 'dock_send_probe');
+  assert.equal(idlePlan.streamFrames[1].text,
+    '已收到这条测试消息。Dock、发送与流式状态均已正常更新。');
+  const idleModel = new model.NativeSessionModel();
+  idleModel.apply(idle.snapshot());
+  idlePlan.admissionFrames.forEach(frame => idleModel.apply(frame));
+  idlePlan.streamFrames.forEach(frame => idleModel.apply(frame));
+  idlePlan.settleFrames.forEach(frame => idleModel.apply(frame));
+  assert.equal(idleModel.messages.filter(row => row.role === 'user' &&
+    row.text === 'dock_send_probe').length, 1);
+  assert.equal(idleModel.messages.filter(row => row.role === 'assistant' &&
+    row.text.includes('Dock、发送与流式状态')).length, 1);
+  assert.equal(idleModel.running, false);
+
+  const running = new interaction.NativeShowcaseInteraction([seed], true, 1);
+  const first = running.prompt('request-queue', 'queue_probe', [file], 'queue');
+  const duplicate = running.prompt('request-queue', 'queue_probe', [file], 'queue');
+  assert.equal(first.queued, true);
+  assert.equal(duplicate.queued, true);
+  assert.equal(running.queue.length, 1);
+  assert.equal(running.queue[0].rpcId, 'request-queue');
+  assert.equal(running.queue[0].blocks[0].kind, 'file');
+  assert.equal(running.queue[0].blocks[1].kind, 'text');
+  assert.equal(running.queue[0].blocks[1].text, 'queue_probe');
+  assert.equal(running.prompt('', '', [], 'queue').accepted, false);
 });
 
 test('double-tap zoom targets the tapped image point and resets from an enlarged view', () => {
@@ -1108,8 +1171,11 @@ test('turn change card and bottom live control keep compact ownership and motion
   assert.match(workspace, /nativeTurnChangeSummaryFromJson/);
   assert.match(workspace, /officialTurnChangeSequences\.get\(reference\.turnKey\)/);
   assert.match(workspace, /NativeBottomConversationDock\(\{[\s\S]{0,260}horizontalBleed: 12/);
-  assert.match(workspace, /elevated: this\.liveTurnChangesVisible \|\| this\.attachments\.length > 0/);
+  assert.match(workspace,
+    /elevated: this\.liveTurnChangesVisible \|\| this\.attachments\.length > 0 \|\|[\s\S]{0,120}this\.error\.length > 0/);
   assert.doesNotMatch(workspace, /bottomDockContentHeight|bottomDockOverlayInset|translate\(\{ y: -\(this\.bottomDock/);
+  assert.match(workspace, /if \(this\.error\)[\s\S]{0,1200}Text\(this\.error\)[\s\S]{0,500}关闭错误/);
+  assert.match(workspace, /if \(this\.error && !this\.selected\)/);
   assert.match(workspace, /if \(this\.liveTurnChangesVisible\)[\s\S]{0,360}NativeTurnChangePill/);
   assert.match(workspace, /if \(this\.attachments\.length\)[\s\S]{0,260}NativeAttachmentDraft/);
   assert.match(dock, /@Prop elevated: boolean = false/);
@@ -1117,11 +1183,12 @@ test('turn change card and bottom live control keep compact ownership and motion
   assert.match(dock, /\.width\('100%'\)\.height\(this\.measuredHeight\)/);
   assert.doesNotMatch(dock, /\.width\('100%'\)\.height\('100%'\)/);
   assert.match(dock, /\.backgroundBlurStyle\(BlurStyle\.COMPONENT_ULTRA_THIN/);
-  assert.match(dock, /\.linearGradientBlur\(24/);
-  assert.match(dock, /direction: GradientDirection\.Bottom/);
+  assert.doesNotMatch(dock, /\.linearGradientBlur\(/,
+    'foreground blur on an empty material layer cannot create a gradient backdrop blur');
+  assert.match(dock, /Component material performs the actual backdrop blur/);
   assert.match(dock, /\.linearGradient\(\{[\s\S]{0,300}angle: 180/);
-  assert.match(dock, /#00FFFFFF[\s\S]{0,140}#D9FFFFFF/);
-  assert.match(dock, /#001D1E20[\s\S]{0,140}#A627292C/);
+  assert.match(dock, /#00FFFFFF[\s\S]{0,140}#B8FFFFFF/);
+  assert.match(dock, /#001D1E20[\s\S]{0,140}#B3232528/);
   assert.doesNotMatch(dock, /\.backgroundColor\(/);
   assert.match(dock, /margin\(\{ left: -this\.horizontalBleed, right: -this\.horizontalBleed \}\)/);
   assert.match(dock, /nativeSafeBottom/);
@@ -1928,7 +1995,7 @@ test('composer source contract uses intrinsic model width, natural dock height a
   assert.match(source,/this\.attaching = false;[\s\S]{0,180}added\.forEach/);
   assert.match(source,/NativeBottomConversationDock\(\{/);
   assert.doesNotMatch(source,/translate\(\{ y: -\(this\.composerHeight \+ 8\) \}\)/);
-  assert.match(source,/Column\(\{ space: 8 \}\) \{[\s\S]{0,600}NativeQueueDock/);
+  assert.match(source,/Column\(\{ space: 8 \}\) \{[\s\S]{0,1400}NativeQueueDock/);
   assert.match(source,/NativeQueueDock[\s\S]{0,600}NativeTurnChangePill/);
   assert.match(source,/if \(this\.attachments\.length\)[\s\S]{0,260}NativeAttachmentDraft/);
   assert.doesNotMatch(source,/if \(this\.attachments\.length\) \{\s*Scroll\(\)/);

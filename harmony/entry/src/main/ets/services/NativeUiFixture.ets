@@ -1,7 +1,10 @@
 export class NativeUiFixture {
   static readonly screens: string[] = ['conversation', 'process', 'sidebar', 'browser', 'settings'];
   static readonly states: string[] = [
-    'completed', 'live-change', 'attachments', 'streaming', 'empty', 'long-history'
+    'completed', 'live-change', 'attachments', 'streaming', 'empty', 'long-history',
+    'dock-send-idle', 'dock-queue-pending', 'dock-queue-authoritative',
+    'dock-queue-many', 'dock-send-error', 'dock-material-quiet',
+    'dock-material-elevated'
   ];
   static readonly themes: string[] = ['light', 'dark', 'system'];
 

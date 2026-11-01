@@ -89,6 +89,10 @@ struct Index {
     if (AppStorage.get<boolean>('storeShowcase') === true) {
       this.showcase = true;
       this.uiMode = 'native';
+      AppStorage.setOrCreate<boolean>('nativeUserReduceMotion',
+        AppStorage.get<boolean>('showcaseReduceMotion') === true);
+      AppStorage.setOrCreate<boolean>('nativeReduceTransparency',
+        AppStorage.get<boolean>('showcaseReduceTransparency') === true);
       const showcaseTheme = AppStorage.get<string>('storeShowcaseTheme');
       this.nativeThemeMode = showcaseTheme === 'dark' || showcaseTheme === 'light' ? showcaseTheme : 'system';
       this.nativeClient = new StoreShowcaseClient(

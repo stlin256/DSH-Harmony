@@ -77,6 +77,12 @@ def main() -> int:
     )
     parser.add_argument("--expect-checked", choices=("true", "false"))
     parser.add_argument("--expect-background")
+    parser.add_argument("--expect-count", type=int)
+    parser.add_argument(
+        "--exact-text",
+        action="store_true",
+        help="match the complete visible text instead of a substring",
+    )
     args = parser.parse_args()
 
     find_text = (
@@ -95,7 +101,13 @@ def main() -> int:
             continue
         if not inside(root_bounds, attributes.get("bounds", "")):
             continue
-        if find_text in label(node):
+        candidate_label = label(node)
+        matches_text = (
+            candidate_label == find_text
+            if args.exact_text
+            else find_text in candidate_label
+        )
+        if matches_text:
             matches.append((node, ancestors))
         if (
             args.container_text_hex
@@ -118,12 +130,34 @@ def main() -> int:
                 for candidate, candidate_ancestors in walk(ancestor)
                 if candidate.get("attributes", {}).get("visible") == "true"
                 and inside(root_bounds, candidate.get("attributes", {}).get("bounds", ""))
-                and find_text in label(candidate)
+                and (
+                    label(candidate) == find_text
+                    if args.exact_text
+                    else find_text in label(candidate)
+                )
             ]
             if descendant_matches:
                 matches = descendant_matches
                 break
 
+    match_count = len(matches)
+    if args.expect_count is not None and match_count != args.expect_count:
+        print(
+            f"visible text count mismatch for {find_text}: "
+            f"expected {args.expect_count}, got {match_count}",
+            file=sys.stderr,
+        )
+        return 1
+    if not matches and args.expect_count == 0:
+        print(json.dumps({
+            "text": find_text,
+            "count": 0,
+            "x": None,
+            "y": None,
+            "checked": None,
+            "background": "",
+        }))
+        return 0
     if not matches:
         print(f"visible text not found: {find_text}", file=sys.stderr)
         return 1
@@ -180,6 +214,7 @@ def main() -> int:
 
     print(json.dumps({
         "text": find_text,
+        "count": match_count,
         "x": x,
         "y": y,
         "checked": checked,

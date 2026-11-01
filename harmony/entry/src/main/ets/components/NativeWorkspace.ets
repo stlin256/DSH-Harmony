@@ -2508,9 +2508,30 @@ export struct NativeWorkspace {
       NativeBottomConversationDock({
         horizontalBleed: 12,
         contentInset: 0,
-        elevated: this.liveTurnChangesVisible || this.attachments.length > 0 || this.queueItems().length > 0
+        elevated: this.liveTurnChangesVisible || this.attachments.length > 0 ||
+          this.queueItems().length > 0 || this.error.length > 0
       }) {
         Column({ space: 8 }) {
+          if (this.error) {
+            Row({ space: 8 }) {
+              Text('!').fontSize(11).fontWeight(FontWeight.Bold)
+                .fontColor(this.dark ? '#FFD7D7' : '#9F2D2D')
+                .width(18).height(18).borderRadius(9).textAlign(TextAlign.Center)
+                .backgroundColor(this.dark ? '#4A292B' : '#FBE6E4')
+              Text(this.error).fontSize(11).lineHeight(16).maxLines(2)
+                .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
+                .fontColor(this.dark ? '#FFB1B1' : '#A12F2F')
+              Button({ type: ButtonType.Normal }) {
+                DSHIcon({ glyph: 'close-outline', glyphSize: 11,
+                  color: this.dark ? '#CFD3D6' : '#61666B' })
+              }.width(28).height(28).borderRadius(8).backgroundColor(Color.Transparent)
+                .accessibilityText('关闭错误').onClick((): void => { this.error = ''; })
+            }.width('100%').padding({ left: 8, right: 2, top: 5, bottom: 5 })
+              .borderRadius(12)
+              .backgroundColor(this.dark ? '#2A2526' : '#FFF7F6')
+              .border({ width: 0.5, color: this.dark ? '#674044' : '#F1D5D1' })
+              .transition(NativeMotion.rowTransition())
+          }
           if (this.queueItems().length) {
             NativeQueueDock({
               client: this.client,
@@ -2706,7 +2727,7 @@ export struct NativeWorkspace {
           }.height(36).width(32).backgroundColor(Color.Transparent).onClick(() => { this.archivedUndo = ''; })
         }.padding({ left: 12, right: 8 }).width('100%').backgroundColor(this.dark ? '#232324' : '#F5F6F7')
       }
-      if (this.error) {
+      if (this.error && !this.selected) {
         Text(this.error).fontSize(12).padding(12).width('100%').fontColor(this.dark ? '#FF9393' : '#C53030')
       }
     }.width('100%').height('100%').backgroundColor(this.dark ? '#151517' : '#FFFFFF')

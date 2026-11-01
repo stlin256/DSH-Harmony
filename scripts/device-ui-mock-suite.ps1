@@ -17,16 +17,38 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
 $scenarios = @(
   [pscustomobject]@{ Screen = 'conversation'; State = 'completed'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'completed'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'live-change'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'live-change'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'attachments'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'attachments'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'streaming'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'streaming'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'empty'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'empty'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'long-history'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'long-history'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-send-idle'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-send-idle'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-queue-authoritative'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-queue-authoritative'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-queue-many'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-queue-many'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-send-error'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-quiet'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-quiet'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'light'; ReduceTransparency = $true },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'dark'; ReduceTransparency = $true },
   [pscustomobject]@{ Screen = 'process'; State = 'completed'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'process'; State = 'completed'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'sidebar'; State = 'completed'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'sidebar'; State = 'completed'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'browser'; State = 'completed'; Theme = 'light' },
-  [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'dark' }
+  [pscustomobject]@{ Screen = 'browser'; State = 'completed'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'light' }
 )
 
 $mockScript = Join-Path $PSScriptRoot 'device-ui-mock.ps1'
@@ -46,6 +68,10 @@ foreach ($scenario in $scenarios) {
   }
   if ($Device) {
     $arguments.Device = $Device
+  }
+  if ($scenario.PSObject.Properties.Name -contains 'ReduceTransparency' -and
+      $scenario.ReduceTransparency) {
+    $arguments.ReduceTransparency = $true
   }
 
   # Build and install once. Reinstalling between graphical scenarios only
@@ -88,6 +114,14 @@ $summaryPath = Join-Path $OutputDir 'suite-summary.json'
 $summary |
   ConvertTo-Json -Depth 5 |
   Set-Content -LiteralPath $summaryPath -Encoding utf8
+
+$contactSheet = Join-Path $OutputDir 'dock-material-contact-sheet.png'
+& python (Join-Path $PSScriptRoot 'compose-dock-contact-sheet.py') `
+  --root $OutputDir `
+  --out $contactSheet
+if ($LASTEXITCODE -ne 0) {
+  throw "Dock material contact sheet failed: $LASTEXITCODE"
+}
 
 $results | Format-Table -AutoSize | Out-Host
 if ($failedCount -gt 0) {
