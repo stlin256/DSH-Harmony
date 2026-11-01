@@ -8,7 +8,7 @@ Date: 2026-11-01
 
 | ID | 场景 | 预期 | 状态 | 证据 |
 | --- | --- | --- | --- | --- |
-| MC-01 | 运行 `verify-mock-coverage.mjs` | 所有 screen/state 为 100%，无 missing | Passed | 7/7 screens、21/21 states、23/23 features；50 个静态组合 |
+| MC-01 | 运行 `verify-mock-coverage.mjs` | 所有 screen/state 为 100%，无 missing | Passed | 10/10 screens、34/34 states、27/27 features；68 个静态组合 |
 | MC-02 | 新增一个未登记 state | 检查明确失败并列出 state | Passed | Gateway 负向测试通过 |
 | MC-03 | 构建三个 Release | default、store、mock 均成功 | Passed | 2026-11-01 三套 signed HAP 编译成功 |
 | MC-04 | 安装 mock HAP | 默认进入 completed fixture，不访问网络 | Pending | |
@@ -45,6 +45,10 @@ Date: 2026-11-01
 | MF-21 | 侧边栏与工作区 | `sidebar/completed` | static | Pending device |
 | MF-22 | 文件浏览器 | `browser/completed` | static | Pending device |
 | MF-23 | 设置与二级页 | `settings/completed` | static + settings interaction | Pending device |
+| MF-24 | 插件管理原生页 | `plugins/plugins-*` | static | Pending device |
+| MF-25 | 自动化任务列表与空态 | `automation/automation-list,automation-empty` | static | Pending device |
+| MF-26 | 自动化详情、编辑、历史与冲突 | `automation/automation-detail,automation-editor,automation-history,automation-conflict` | static | Pending device |
+| MF-27 | 更多锚定菜单 | `more/more-actions` | static | Pending device |
 
 ## Plan 与子智能体
 

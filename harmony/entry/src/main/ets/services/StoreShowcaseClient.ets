@@ -709,6 +709,218 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     }, 0);
   }
 
+  private pluginInventoryJson(): string {
+    if (this.fixtureState === 'plugins-empty') {
+      return '{"available":true,"bundles":[],"plugins":[]}';
+    }
+    return `{
+      "available": true,
+      "bundles": [
+        {
+          "name": "@dsh-harmony/plugin",
+          "official": true,
+          "availability": "profile",
+          "installed": true,
+          "enabled": true,
+          "removable": false,
+          "updatable": true,
+          "optional": false,
+          "version": "0.4.7",
+          "title": "DSH Harmony",
+          "localizedDescription": "原生通知、文件预览与移动端能力",
+          "source": "Profile",
+          "installSpec": "",
+          "rows": [
+            {
+              "rowId": "native-bridge",
+              "moduleName": "@dsh-harmony/plugin/native",
+              "entryId": "native-bridge",
+              "title": "原生桥接",
+              "description": "会话、预览与通知"
+            },
+            {
+              "rowId": "push-delivery",
+              "moduleName": "@dsh-harmony/plugin/push",
+              "entryId": "push-delivery",
+              "title": "通知投递",
+              "description": "按级别送入系统通知中心"
+            }
+          ]
+        },
+        {
+          "name": "@dsh/workspace-tools",
+          "official": false,
+          "availability": "installation",
+          "installed": true,
+          "enabled": false,
+          "removable": true,
+          "updatable": true,
+          "optional": true,
+          "version": "1.8.2",
+          "title": "Workspace Tools",
+          "localizedDescription": "补充工作区搜索与批量检查",
+          "source": "https://registry.example.invalid/workspace-tools",
+          "installSpec": "@dsh/workspace-tools",
+          "rows": [
+            {
+              "rowId": "workspace-search",
+              "moduleName": "@dsh/workspace-tools/search",
+              "entryId": "workspace-search",
+              "title": "工作区搜索",
+              "description": "索引项目文件"
+            }
+          ]
+        },
+        {
+          "name": "@dsh/markdown-check",
+          "official": false,
+          "availability": "installation",
+          "installed": false,
+          "enabled": false,
+          "removable": false,
+          "updatable": false,
+          "optional": true,
+          "version": "2.1.0",
+          "title": "Markdown Check",
+          "localizedDescription": "检查文档链接与代码块",
+          "installSpec": "@dsh/markdown-check",
+          "rows": []
+        }
+      ],
+      "plugins": [
+        {
+          "entryId": "native-bridge",
+          "moduleName": "@dsh-harmony/plugin/native",
+          "title": "原生桥接",
+          "enabled": true,
+          "phase": "active"
+        },
+        {
+          "entryId": "push-delivery",
+          "moduleName": "@dsh-harmony/plugin/push",
+          "title": "通知投递",
+          "enabled": true,
+          "phase": "active"
+        }
+      ]
+    }`;
+  }
+
+  private automationCatalogJson(): string {
+    if (this.fixtureState === 'automation-empty') {
+      return '{"available":true,"items":[]}';
+    }
+    return `{
+      "available": true,
+      "items": [
+        {
+          "id": "automation-review",
+          "kind": "daily",
+          "status": "active",
+          "title": "每日检查构建状态",
+          "prompt": "检查当前工作区的最新构建结果，汇总失败原因并给出下一步。",
+          "scheduledAt": "2026-11-02T01:00:00.000Z",
+          "timeZone": "Asia/Shanghai",
+          "time": "09:00:00",
+          "targetKind": "new_once",
+          "targetCwd": "DSH Harmony",
+          "createdAt": "2026-10-26T02:10:00.000Z",
+          "updatedAt": "2026-11-01T02:10:00.000Z",
+          "lastDeliveryAt": "2026-11-01T01:00:00.000Z"
+        },
+        {
+          "id": "automation-docs",
+          "kind": "weekly",
+          "status": "active",
+          "title": "整理本周文档变更",
+          "prompt": "汇总本周规格、设计与测试文档的变更，列出需要复核的条目。",
+          "scheduledAt": "2026-11-03T02:30:00.000Z",
+          "timeZone": "Asia/Shanghai",
+          "time": "10:30:00",
+          "weekdays": [2],
+          "targetKind": "session",
+          "targetSessionId": "showcase-release",
+          "updatedAt": "2026-10-31T08:00:00.000Z"
+        },
+        {
+          "id": "automation-paused",
+          "kind": "every",
+          "status": "paused",
+          "title": "依赖更新巡检",
+          "prompt": "检查过期的直接依赖，并说明兼容性风险。",
+          "scheduledAt": "2026-11-01T12:00:00.000Z",
+          "everySeconds": 21600,
+          "timeZone": "Asia/Shanghai",
+          "targetKind": "new",
+          "targetAgentPreset": "reviewer",
+          "updatedAt": "2026-10-30T06:20:00.000Z"
+        },
+        {
+          "id": "automation-ended",
+          "kind": "at",
+          "status": "ended",
+          "title": "发布前检查",
+          "prompt": "核对版本号、变更说明和签名配置。",
+          "scheduledAt": "2026-10-30T01:00:00.000Z",
+          "timeZone": "Asia/Shanghai",
+          "targetKind": "session",
+          "targetSessionId": "showcase-release",
+          "updatedAt": "2026-10-30T01:02:00.000Z",
+          "lastDeliveryAt": "2026-10-30T01:02:00.000Z"
+        }
+      ]
+    }`;
+  }
+
+  private automationTaskJson(): string {
+    return `{
+      "id": "automation-review",
+      "kind": "daily",
+      "status": "active",
+      "title": "每日检查构建状态",
+      "prompt": "检查当前工作区的最新构建结果，汇总失败原因并给出下一步。",
+      "scheduledAt": "2026-11-02T01:00:00.000Z",
+      "timeZone": "Asia/Shanghai",
+      "time": "09:00:00",
+      "targetKind": "new_once",
+      "targetCwd": "DSH Harmony",
+      "createdAt": "2026-10-26T02:10:00.000Z",
+      "updatedAt": "2026-11-01T02:10:00.000Z",
+      "lastDeliveryAt": "2026-11-01T01:00:00.000Z"
+    }`;
+  }
+
+  private automationHistoryJson(): string {
+    return `{
+      "available": true,
+      "records": [
+        {
+          "scheduledAt": "2026-11-01T01:00:00.000Z",
+          "deliveredAt": "2026-11-01T01:00:02.000Z",
+          "messageId": "message-31",
+          "targetSessionId": "showcase-release",
+          "prompt": "检查当前工作区的最新构建结果，汇总失败原因并给出下一步。"
+        },
+        {
+          "scheduledAt": "2026-10-31T01:00:00.000Z",
+          "deliveredAt": "2026-10-31T01:00:01.000Z",
+          "messageId": "message-18",
+          "targetSessionId": "showcase-release",
+          "prompt": "检查当前工作区的最新构建结果，汇总失败原因并给出下一步。"
+        },
+        {
+          "scheduledAt": "2026-10-30T01:00:00.000Z",
+          "deliveredAt": "2026-10-30T01:00:03.000Z",
+          "messageId": "message-9",
+          "targetSessionId": "showcase-release",
+          "prompt": "检查当前工作区的最新构建结果，汇总失败原因并给出下一步。"
+        }
+      ],
+      "earlierRecordsUnavailable": false,
+      "earlierRecordsPruned": false
+    }`;
+  }
+
   async operation(body: string): Promise<string> {
     let value: Record<string, Object> = {};
     try {
@@ -717,6 +929,59 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     }
     const operation = value.operation;
     const sessionId = typeof value.sessionId === 'string' ? value.sessionId : SHOWCASE_SESSION;
+    if (operation === 'pluginsList') {
+      if (this.fixtureState === 'plugins-error') throw new Error('插件服务暂不可用');
+      return this.pluginInventoryJson();
+    }
+    if (operation === 'pluginSetEnabled' || operation === 'pluginSetRowEnabled') {
+      return `{
+        "changed": true, "application": "applied", "stage": "enable",
+        "target": "DSH Harmony", "enabled": true, "pendingBuilds": []
+      }`;
+    }
+    if (operation === 'pluginInspect') {
+      return `{
+        "status": "accepted", "kind": "registry", "name": "@dsh/markdown-check",
+        "version": "2.1.0", "description": "检查文档链接与代码块",
+        "bundle": true, "registry": "https://registry.example.invalid", "host": "registry.example.invalid"
+      }`;
+    }
+    if (operation === 'pluginInstall') {
+      if (this.fixtureState === 'plugins-install-failed') {
+        return `{
+          "changed": false, "application": "failed", "stage": "install",
+          "target": "dsh-plugin-with-missing-build", "pendingBuilds": [],
+          "errorCode": "unsupported-platform"
+        }`;
+      }
+      return `{
+        "changed": true, "application": "restart-required", "stage": "install",
+        "target": "@dsh/markdown-check@2.1.0", "restartReason": "plugin", "pendingBuilds": []
+      }`;
+    }
+    if (operation === 'pluginVersions') {
+      return `{
+        "status": "listed", "installed": "0.4.7", "registry": "https://registry.example.invalid",
+        "omitted": 0,
+        "versions": [
+          { "version": "0.4.7", "tags": ["latest"], "prerelease": false, "deprecated": "", "bundle": true },
+          { "version": "0.4.6", "tags": [], "prerelease": false, "deprecated": "", "bundle": true }
+        ]
+      }`;
+    }
+    if (operation === 'pluginUpdate' || operation === 'pluginRemove') {
+      return `{
+        "changed": true, "application": "restart-required", "stage": "install",
+        "target": "DSH Harmony", "restartReason": "plugin", "pendingBuilds": []
+      }`;
+    }
+    if (operation === 'automationList') return this.automationCatalogJson();
+    if (operation === 'automationView' || operation === 'automationCreate' ||
+      operation === 'automationRun' || operation === 'automationEdit') {
+      return this.automationTaskJson();
+    }
+    if (operation === 'automationHistory') return this.automationHistoryJson();
+    if (operation === 'automationDelete') return '{"deleted":true}';
     if (operation === 'settingsDescribe') {
       return `{
         "writable": true,

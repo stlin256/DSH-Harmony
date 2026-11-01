@@ -65,7 +65,25 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'browser'; State = 'completed'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'browser'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'dark' },
-  [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'light' }
+  [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-list'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-list'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-empty'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-error'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-detail'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-detail'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-restart'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-install-failed'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'automation'; State = 'automation-list'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'automation'; State = 'automation-list'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'automation'; State = 'automation-empty'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'automation'; State = 'automation-detail'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'automation'; State = 'automation-detail'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'automation'; State = 'automation-editor'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'automation'; State = 'automation-history'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'automation'; State = 'automation-conflict'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'more'; State = 'more-actions'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'more'; State = 'more-actions'; Theme = 'dark' }
 )
 
 $mockScript = Join-Path $PSScriptRoot 'device-ui-mock.ps1'

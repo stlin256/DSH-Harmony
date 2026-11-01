@@ -2,7 +2,8 @@ param(
   [string]$DevEcoHome = 'C:\Users\yjzlx\AppData\Local\Programs\Huawei\DevEcoStudio-26.0.0',
   [string]$Device = '',
   [string]$HapPath = '',
-  [ValidateSet('conversation', 'process', 'sidebar', 'browser', 'settings', 'lineage', 'subagent')]
+  [ValidateSet('conversation', 'process', 'sidebar', 'browser', 'settings', 'lineage', 'subagent',
+    'plugins', 'automation', 'more')]
   [string]$Screen = 'conversation',
   [ValidateSet(
     'completed',
@@ -25,7 +26,20 @@ param(
     'subagent-continuable',
     'subagent-one-shot',
     'subagent-unknown',
-    'subagent-parent-offline'
+    'subagent-parent-offline',
+    'plugins-list',
+    'plugins-empty',
+    'plugins-error',
+    'plugins-detail',
+    'plugins-restart',
+    'plugins-install-failed',
+    'automation-list',
+    'automation-empty',
+    'automation-detail',
+    'automation-editor',
+    'automation-history',
+    'automation-conflict',
+    'more-actions'
   )]
   [string]$State = 'live-change',
   [ValidateSet('light', 'dark', 'system')]

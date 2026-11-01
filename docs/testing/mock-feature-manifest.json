@@ -172,6 +172,36 @@
       "states": ["completed"],
       "drivers": ["device-ui-mock-suite.ps1", "device-ui-settings-e2e.ps1"],
       "e2eIds": ["MF-23"]
+    },
+    {
+      "id": "admin.plugins",
+      "screens": ["plugins"],
+      "states": ["plugins-list", "plugins-empty", "plugins-error", "plugins-detail",
+        "plugins-restart", "plugins-install-failed"],
+      "drivers": ["device-ui-mock-suite.ps1"],
+      "e2eIds": ["MF-24"]
+    },
+    {
+      "id": "admin.automation",
+      "screens": ["automation"],
+      "states": ["automation-list", "automation-empty"],
+      "drivers": ["device-ui-mock-suite.ps1"],
+      "e2eIds": ["MF-25"]
+    },
+    {
+      "id": "admin.automation-detail",
+      "screens": ["automation"],
+      "states": ["automation-detail", "automation-editor", "automation-history",
+        "automation-conflict"],
+      "drivers": ["device-ui-mock-suite.ps1"],
+      "e2eIds": ["MF-26"]
+    },
+    {
+      "id": "admin.more",
+      "screens": ["more"],
+      "states": ["more-actions"],
+      "drivers": ["device-ui-mock-suite.ps1"],
+      "e2eIds": ["MF-27"]
     }
   ]
 }

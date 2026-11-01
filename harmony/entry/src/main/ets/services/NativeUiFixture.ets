@@ -1,6 +1,7 @@
 export class NativeUiFixture {
   static readonly screens: string[] = [
-    'conversation', 'process', 'sidebar', 'browser', 'settings', 'lineage', 'subagent'
+    'conversation', 'process', 'sidebar', 'browser', 'settings', 'lineage', 'subagent',
+    'plugins', 'automation', 'more'
   ];
   static readonly states: string[] = [
     'completed', 'live-change', 'attachments', 'streaming', 'empty', 'long-history',
@@ -8,7 +9,12 @@ export class NativeUiFixture {
     'dock-queue-many', 'dock-send-error', 'dock-material-quiet',
     'dock-material-elevated', 'interaction-approval', 'interaction-question',
     'plan-subagent', 'plan-off-error', 'subagent-continuable',
-    'subagent-one-shot', 'subagent-unknown', 'subagent-parent-offline'
+    'subagent-one-shot', 'subagent-unknown', 'subagent-parent-offline',
+    'plugins-list', 'plugins-empty', 'plugins-error', 'plugins-detail',
+    'plugins-restart', 'plugins-install-failed',
+    'automation-list', 'automation-empty', 'automation-detail',
+    'automation-editor', 'automation-history', 'automation-conflict',
+    'more-actions'
   ];
   static readonly themes: string[] = ['light', 'dark', 'system'];
 
