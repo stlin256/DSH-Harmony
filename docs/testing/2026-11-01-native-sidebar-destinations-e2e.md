@@ -26,7 +26,7 @@ Status values: Pending, Pass, Fail, Blocked.
 | NSD-18 | Pause/resume task | Status changes and list reorders | Pending |
 | NSD-19 | Run now | Execution-pending and delivery outcomes are distinct | Pending |
 | NSD-20 | Delete task | Confirmation is required; row disappears after ack | Pending |
-| NSD-21 | Delivery history | Page loads records and older cursor | Pending |
+| NSD-21 | Delivery history | Page loads records and older cursor; Back returns to the task detail | Pending |
 | NSD-22 | Open More | Native menu expands under the launcher with motion | Pending |
 | NSD-23 | Dismiss More | Menu closes without changing drawer state | Pending |
 | NSD-24 | More actions | Each shown action executes its native destination | Pending |
