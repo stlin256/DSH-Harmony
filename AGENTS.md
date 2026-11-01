@@ -286,6 +286,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-11-01-structured-tool-content.md](docs/specs/2026-11-01-structured-tool-content.md)
 - Structured tool-content E2E:
   [2026-11-01-structured-tool-content-e2e.md](docs/testing/2026-11-01-structured-tool-content-e2e.md)
+- Structured protocol completeness requirement:
+  [2026-11-01-structured-protocol-completeness.md](docs/requirements/2026-11-01-structured-protocol-completeness.md)
+- Structured protocol completeness research:
+  [2026-11-01-structured-protocol-completeness-dsh-go.md](docs/research/2026-11-01-structured-protocol-completeness-dsh-go.md)
+- Structured protocol completeness implementation spec:
+  [2026-11-01-structured-protocol-completeness.md](docs/specs/2026-11-01-structured-protocol-completeness.md)
+- Structured protocol completeness E2E:
+  [2026-11-01-structured-protocol-completeness-e2e.md](docs/testing/2026-11-01-structured-protocol-completeness-e2e.md)
 
 ## Upstream Tracking
 
