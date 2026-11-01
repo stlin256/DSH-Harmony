@@ -1,6 +1,7 @@
 import { NativeMessage, NativeAssistantSegment } from './NativeSessionModel';
 import { NativeChatPreferences } from './NativeHostSettings';
 import { NativePlanDocument, nativePlanDiff, nativePlanDocument, nativePlanProgress } from './NativePlan';
+import { nativeToolStructured, nativeToolGroupSummary } from './NativeToolStructured';
 
 /** Flatten editor, terminal and reasoning text into one width-fillable preview. */
 export function nativeOneLinePreview(value: string, limit: number = 160): string {
@@ -43,11 +44,13 @@ export function nativeProcessIcon(category: string): string {
   if (category === 'questions') return 'question-outline';
   return category === 'tools' ? 'sparkle' : 'think-outline';
 }
-export function nativeToolDetail(tool: NativeMessage): string {
+export function nativeToolDetail(tool: NativeMessage, workspaceRoot: string = ''): string {
   if (tool.toolName === 'todo_write') {
     const plan = nativePlanDocument(tool);
     if (plan.parsed) return tool.planDiff || nativePlanProgress(plan);
   }
+  const structured = nativeToolStructured(tool, workspaceRoot);
+  if (structured.summary) return structured.summary;
   const fields = ['title', 'description', 'objective', 'task', 'task_name', 'name', 'question', 'questions', 'prompt', 'message', 'command', 'cmd', 'queries', 'query', 'pattern', 'url', 'uri', 'file_path', 'path', 'target', 'action', 'status'];
   let values: Record<string, Object> = {};
   try { values = JSON.parse(tool.args) as Record<string, Object>; } catch (_) {}
@@ -147,10 +150,10 @@ export function nativeProcessLead(group: NativeMessage): string {
   return nativeOneLinePreview(operation.label || operation.text ||
     (group.closed ? '已完成分析' : '正在分析请求'));
 }
-export function nativeProcessPreview(group: NativeMessage): string {
+export function nativeProcessPreview(group: NativeMessage, workspaceRoot: string = ''): string {
   const operation = group.children[0];
   if (!operation) return '';
-  if (operation.role === 'tool') return nativeOneLinePreview(nativeToolDetail(operation));
+  if (operation.role === 'tool') return nativeOneLinePreview(nativeToolDetail(operation, workspaceRoot));
   if (operation.role === 'reasoning') {
     return nativeOneLinePreview(nativeReasoningPreview(operation.reasoning || operation.text, !group.closed));
   }
@@ -166,18 +169,22 @@ export function nativeOperationLead(operation: NativeMessage): string {
   return nativeActivity(nativeToolCategory(operation.toolName),
     operation.status === 'running' || operation.status === 'preparing');
 }
-export function nativeOperationPreview(operation: NativeMessage): string {
+export function nativeOperationPreview(operation: NativeMessage, workspaceRoot: string = ''): string {
   if (operation.role === 'tool' && operation.toolName === 'todo_write') {
     const plan = nativePlanDocument(operation);
     if (plan.parsed) return operation.planDiff || nativePlanProgress(plan);
   }
-  if (operation.role === 'tool') return nativeOneLinePreview(nativeToolDetail(operation));
+  if (operation.role === 'tool') return nativeOneLinePreview(nativeToolDetail(operation, workspaceRoot));
   if (operation.role === 'reasoning') {
     return nativeOneLinePreview(nativeReasoningPreview(operation.reasoning || operation.text, false));
   }
   return nativeOneLinePreview(operation.text || operation.label || '');
 }
-export function nativeProcessGroupPreview(group: NativeMessage): string {
+export function nativeProcessGroupPreview(group: NativeMessage, workspaceRoot: string = ''): string {
+  const tools = group.children.filter((operation: NativeMessage): boolean =>
+    operation.role === 'tool');
+  const counts = nativeToolGroupSummary(tools);
+  if (counts.label) return counts.label;
   const labels: string[] = [];
   group.children.forEach((operation: NativeMessage): void => {
     const label = nativeOperationLead(operation);
@@ -187,13 +194,16 @@ export function nativeProcessGroupPreview(group: NativeMessage): string {
   return nativeOneLinePreview(labels.slice(0, 3).join('、') +
     (group.children.length > 3 ? '等' + group.children.length + '项' : ''));
 }
-export function nativeProcessTitle(group: NativeMessage, showDetail: boolean = true): string {
+export function nativeProcessTitle(group: NativeMessage, showDetail: boolean = true,
+  workspaceRoot: string = ''): string {
   const lead = nativeProcessLead(group);
-  const preview = showDetail ? nativeProcessPreview(group) : '';
+  const preview = showDetail ? nativeProcessPreview(group, workspaceRoot) : '';
   return lead + (preview ? ' · ' + preview : '');
 }
 
-export function nativeTranscript(records: NativeMessage[], running: boolean, streamTools: NativeMessage[] = [], reasoning: string = '', text: string = ''): NativeMessage[] {
+export function nativeTranscript(records: NativeMessage[], running: boolean,
+  streamTools: NativeMessage[] = [], reasoning: string = '', text: string = '',
+  workspaceRoot: string = ''): NativeMessage[] {
   const calls: Map<string, NativeMessage> = new Map<string, NativeMessage>();
   const ordered: NativeMessage[] = [];
   const ends: Map<string, NativeMessage> = new Map<string, NativeMessage>();
@@ -286,11 +296,11 @@ export function nativeTranscript(records: NativeMessage[], running: boolean, str
     const group: NativeMessage = processGroup;
     group.closed = closed;
     group.label = '工作过程';
-    group.detail = nativeProcessGroupPreview(group);
+    group.detail = nativeProcessGroupPreview(group, workspaceRoot);
     group.children.forEach((operation: NativeMessage, index: number): void => {
       operation.renderKey = group.id + ':' + operation.seq + ':' + index;
       operation.label = nativeOperationLead(operation);
-      operation.detail = nativeOperationPreview(operation);
+      operation.detail = nativeOperationPreview(operation, workspaceRoot);
     });
     rows.push(group);
     processGroup = null;
@@ -347,7 +357,8 @@ export function nativeTranscript(records: NativeMessage[], running: boolean, str
 
 /** Presentation policy is independent from event pairing and does not mutate durable records. */
 export function nativePresentTranscript(rows: NativeMessage[], preferences: NativeChatPreferences,
-  manual: Map<string, boolean>, collapseThrough: number = -1): NativeMessage[] {
+  manual: Map<string, boolean>, collapseThrough: number = -1,
+  workspaceRoot: string = ''): NativeMessage[] {
   const ended: Set<string> = new Set<string>();
   const lastReply: Map<string, number> = new Map<string, number>();
   const endSeq: Map<string, number> = new Map<string, number>();
@@ -377,10 +388,10 @@ export function nativePresentTranscript(rows: NativeMessage[], preferences: Nati
       row.flat = preferences.mode === 'verbose' || (preferences.mode === 'detailed' && row.runningTurn);
       row.preview = true;
       row.label = '工作过程';
-      row.detail = nativeProcessGroupPreview(row);
+      row.detail = nativeProcessGroupPreview(row, workspaceRoot);
       row.children.forEach((operation: NativeMessage): void => {
         operation.label = nativeOperationLead(operation);
-        operation.detail = nativeOperationPreview(operation);
+        operation.detail = nativeOperationPreview(operation, workspaceRoot);
       });
       return true;
     }

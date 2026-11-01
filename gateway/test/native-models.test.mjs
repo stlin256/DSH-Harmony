@@ -1950,12 +1950,13 @@ test('running activity uses latest still-running start time and exact upstream t
   assert.equal(group.label,'工作过程');
   assert.equal(group.groupedProcess,true);
   assert.equal(group.children.map(x=>x.label).join(','),'正在运行命令,已读取文件');
-  assert.equal(group.detail,'正在运行命令、已读取文件');
+  assert.equal(group.detail,'执行 1 条命令 · 读取 1 个文件');
   const many = new types.NativeMessage();
-  many.children = Array.from({length:11},()=>Object.assign(new types.NativeMessage(),{
-    role:'tool', toolName:'read', status:'success'
+  many.children = Array.from({length:11},(_,index)=>Object.assign(new types.NativeMessage(),{
+    role:'tool', toolName:'read', status:'success', callId:'read-'+index,
+    args:JSON.stringify({path:'src/file-'+index+'.ts'})
   }));
-  assert.equal(nativeProcessGroupPreview(many),'已读取文件等11项');
+  assert.equal(nativeProcessGroupPreview(many),'读取 11 个文件');
   assert.equal(nativeToolCategory('functions.read'),'tools');
   assert.equal(nativeToolCategory('terminal_inspect'),'search');
   assert.equal(nativeToolCategory('subagent_codex'),'subagents');
