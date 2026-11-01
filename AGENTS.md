@@ -45,6 +45,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-11-01-design-system-unification.md](docs/requirements/2026-11-01-design-system-unification.md)
 - Complete native UI element audit:
   [2026-11-01-design-system-audit.md](docs/research/2026-11-01-design-system-audit.md)
+- Plan mode and subagent presentation requirement:
+  [2026-11-01-mode-subagent-presentation.md](docs/requirements/2026-11-01-mode-subagent-presentation.md)
+- Plan mode and subagent presentation research:
+  [2026-11-01-mode-subagent-presentation.md](docs/research/2026-11-01-mode-subagent-presentation.md)
+- Plan mode and subagent presentation implementation spec:
+  [2026-11-01-mode-subagent-presentation.md](docs/specs/2026-11-01-mode-subagent-presentation.md)
+- Plan mode and subagent presentation device E2E:
+  [2026-11-01-mode-subagent-presentation-e2e.md](docs/testing/2026-11-01-mode-subagent-presentation-e2e.md)
 - Design-system unification implementation spec:
   [2026-11-01-design-system-unification.md](docs/specs/2026-11-01-design-system-unification.md)
 - Design-system unification E2E:

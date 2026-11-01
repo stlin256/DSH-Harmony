@@ -37,6 +37,18 @@
 - `NAV06` 会话操作顺序：置顶/取消置顶 → 重命名 → 创建分支 → 归档/恢复 → 复制会话 ID。归档会话不提供置顶；模型、队列不塞入此菜单。
 - `NAV06a` 标题区utilities复制完整服务端Markdown，不仅复制已加载窗口；日志经Host授权export route生成ZIP，可选择是否包含后代，手机使用系统保存选择器。忙碌时禁用对应操作，复制/下载失败分别反馈。
 - `NAV07` 更多视图按官方视图注册顺序、固定偏好和可用宽度决定可见标签，聊天固定；默认溢出菜单列出其余视图与当前勾选，以及可用的插件浏览/创建入口。owner虽提供固定回调，官方默认菜单不消费它，不添加臆测的固定按钮。只有一个视图时隐藏视图栏；没有原生实现的视图记录为待移植，不伪造菜单项。
+- `NAV08` Plan 模式 chip 与子智能体入口位于会话标题下方的紧凑状态行，不形成第二条常驻顶栏。子智能体抽屉、聊天页面和系统 Back 共用同一导航栈；子会话逐级返回直接父会话，抽屉打开时 Back 只关闭抽屉。
+
+### MODE：Plan 与子智能体
+
+- `MODE01` Plan 只读取 authority `plan` projection。显示目标是 `pending ? !active : active`；进入或待切换时显示“计划”，点击用 `commands/execute(sessionId, '/plan off', [])`。收到权威 inactive projection 前不乐观隐藏，失败保留状态并短暂显示“退出计划模式失败”。
+- `MODE02` Plan 模式与 `todo_write` 任务 Dock 分属不同生命周期。不得从任务清单、回复文字或本地开关推导 Plan 状态，也不得把任务 Dock 当作 Plan 入口。
+- `MODE03` 会话的直接 `subagentCatalog` 决定子智能体计数和运行点，不从普通 workspace 列表或 id 猜成员。`external` 只显示为不可进入的叶子；`one-shot` 与 `unknown` 可读历史但不能发送。
+- `MODE04` 子智能体 Follow 和 page 使用 `{ kind: 'subagent', parentSessionId, childSessionId, mode }`。Projection/state subscription 仍点名 child id；普通根列表继续过滤 `origin: 'subagent'`。
+- `MODE05` `continuable` 使用精确父会话地址发送。Host 可用性未知时保持正常输入；仅在明确 `agentAvailable: false` 且子会话空闲时退化只读，运行中仍保留独立 Stop。停止走 `subagents/interruptByParent(child, parent, 'continuable')`。一次性、未知或显式 null identity 使用紧凑只读状态，不显示普通附件入口。
+- `MODE06` `subagents/prompt` 保留 requestId、精确父/子地址、mode、delivery 和有序文本/图片内容；拒绝普通文件 receipt。发送失败不得生成成功消息或自动重试。
+- `MODE07` Projection 按 key 用 seq 单调更新，忽略旧帧。显式 `subagent: null` 是权威 unknown，不继承目录里的旧 continuable。重连以新 baseline 替换会话级模式状态。
+- `MODE08` 子智能体抽屉最高为 60% 视口、使用实色主题表面与底部安全区，当前行、运行状态和模式均有文本反馈。加载、失败与重试占用紧凑状态行，不显示协议原文或教学段落。
 
 ### WS：工作区与会话
 
@@ -148,7 +160,7 @@
 | --- | --- | --- |
 | 视图与检查 | trajectory、renderer、message-feedback、deliverables | 原始记录与Chat投影分开；token/时序/工具检查依据真实字段；反馈身份与文件打开 |
 | 文档与远端文件 | sidebar-files、documentpreview、directory-picker、open-in-app | 目录分页/导航、授权读取、预览、变更、焦点与返回，远端与本地路径严格区分 |
-| 运行控制 | plan、goal、jobs、schedule、subagent、workflow-run | 每种状态、取消、确认、重试、历史与实时数据分离，不把回执当结果 |
+| 运行控制 | plan、goal、jobs、schedule、subagent、workflow-run | Plan 与子智能体已有部分原生实现，其余模块待拆；每种状态、取消、确认、重试、历史与实时数据分离，不把回执当结果 |
 | 输入扩展 | commands、reference、input-trigger、permission-presets、skill | 注册能力、过滤与选择、语义草稿、权限/计划模式切换和失效状态 |
 | Host配置 | settings-*、agent-preset、plugin-manager、plugin-market | 部署可用项、scope与access、变更验证、忙碌/失败/重启、敏感值处理 |
 | 布局基础 | layout、dockkit、sidebar、sidebar-right/browser/terminal | 手机panel导航替代桌面并列，但保留所属会话、状态、关闭与恢复行为 |
