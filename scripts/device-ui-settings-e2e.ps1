@@ -127,6 +127,25 @@ function Text-Hex {
   return [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($Text))
 }
 
+function Parse-Bounds {
+  param([string]$Value)
+  if ($Value -notmatch '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$') {
+    throw "Invalid layout bounds: $Value"
+  }
+  $left = [int]$Matches[1]
+  $top = [int]$Matches[2]
+  $right = [int]$Matches[3]
+  $bottom = [int]$Matches[4]
+  return [pscustomobject]@{
+    left = $left
+    top = $top
+    right = $right
+    bottom = $bottom
+    width = $right - $left
+    height = $bottom - $top
+  }
+}
+
 $settingsRoot = Dump-Layout 'settings-root'
 $appearance = Query-Node $settingsRoot $appearanceText
 Invoke-Click $appearance
@@ -185,6 +204,7 @@ Capture-Screen 'appearance-reopened'
 Start-Sleep -Milliseconds 750
 
 $pageResults = [System.Collections.Generic.List[object]]::new()
+$selectorSpacingResults = [System.Collections.Generic.List[object]]::new()
 $pages = @(
   [pscustomobject]@{ Name = 'dsh'; Label = 'DSH 设置'; Expected = '插件版本' },
   [pscustomobject]@{ Name = 'notifications'; Label = '通知'; Expected = '通知级别' },
@@ -201,6 +221,38 @@ foreach ($page in $pages) {
   $null = Query-Node $detail (Text-Hex $page.Expected) 'text'
   if ($page.Name -eq 'dsh') {
     $null = Query-Node $detail (Text-Hex 'v0.3.7') 'text'
+    $selectorValues = @('详细', '完成时', '全部回复', '排队')
+    $selectorBounds = @()
+    foreach ($value in $selectorValues) {
+      $selector = Query-Node $detail (Text-Hex $value) 'clickable'
+      $selectorBounds += [pscustomobject]@{
+        value = $value
+        bounds = $selector.bounds
+        geometry = Parse-Bounds $selector.bounds
+      }
+    }
+    $selectorBounds = @($selectorBounds | Sort-Object { $_.geometry.top })
+    for ($index = 1; $index -lt $selectorBounds.Count; $index++) {
+      $previous = $selectorBounds[$index - 1]
+      $current = $selectorBounds[$index]
+      $gap = $current.geometry.top - $previous.geometry.bottom
+      $minimumGap = [Math]::Max(1, [int]($previous.geometry.height * 0.6))
+      if ($gap -lt $minimumGap) {
+        throw (
+          "DSH selector rows are too close: {0} to {1} gap {2}px, expected at least {3}px" -f
+          $previous.value, $current.value, $gap, $minimumGap
+        )
+      }
+      $selectorSpacingResults.Add([pscustomobject]@{
+        from = $previous.value
+        to = $current.value
+        fromBounds = $previous.bounds
+        toBounds = $current.bounds
+        gapPx = $gap
+        minimumGapPx = $minimumGap
+      })
+    }
+    Capture-Screen 'dsh-page'
   }
   $interaction = 'opened-and-returned'
   if ($page.Name -eq 'notifications') {
@@ -255,16 +307,19 @@ $manifest = [ordered]@{
     switchTapToggledReduceTransparency = $true
     stateSurvivedSettingsBackAndReopen = $true
     pluginVersionVisible = $true
+    dshSelectorRowsHaveVerticalGaps = ($selectorSpacingResults.Count -eq 3)
     themeSwitchedToLightAndBack = $true
     notificationLevelAndMonitorUpdated = $true
     cardTaskNameToggleUpdated = $true
   }
+  dshSelectorSpacing = $selectorSpacingResults
   settingsPages = $pageResults
   captures = @(
     'appearance-before.jpeg',
     'appearance-light.jpeg',
     'both-on.jpeg',
-    'appearance-reopened.jpeg'
+    'appearance-reopened.jpeg',
+    'dsh-page.jpeg'
   )
 }
 $manifest |

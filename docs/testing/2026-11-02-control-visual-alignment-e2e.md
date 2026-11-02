@@ -20,13 +20,13 @@ Previous Store HAP SHA-256:
 `BB63226FB42895102D5566D7017F83CB6EC115F376639AF6FC76919FA42B87AC`.
 
 Current Mock HAP SHA-256:
-`BEDD9A7AD31A4C45DA7A7E7702A2A008EACD226752A0C1DCBE680E49BE12C3EF`.
+`29B12064EDB31454D702BA81681F3CEE7EBE95EA3D031824BDCB7A4E17FAEAB5`.
 
 Current Default HAP SHA-256:
-`F7044321EE18F6D6B78986ED5C44AE1842B24C5F4AAFD08F7F384BAF1A3EA5DE`.
+`B30469743804B1010EEF5E3F7CF74161138888A726A7A249508D7181DC06E542`.
 
 Current Store HAP SHA-256:
-`7AEA9D1A9F7764F3208F9FE4EA8D7AD5A1970A104A696CE866BBD60F984ECFBF`.
+`82BE9926ACB06C5370D8ECB537A1EF12939AE528BEE579E0D0B8C4AFDAB5FC12`.
 
 | ID | Surface | Expected result | Status |
 | --- | --- | --- | --- |
@@ -35,7 +35,7 @@ Current Store HAP SHA-256:
 | CVA-03 | Composer and bottom dock | Model, image, file, send, stop, queue and attachment controls use aligned sizes and gaps | Partial; passed on the previous HAP, current-HAP subagent send rerun pending |
 | CVA-04 | Plan and live-change surfaces | Task-plan disclosure is compact; progress, chips and file-change rows form one hierarchy without clipping | Partial; filename-first file cards and compact plan banner passed, while the current Normal-capsule chip correction requires a current-HAP capture |
 | CVA-05 | Pending interactions | Approval, question, option, pagination and submit controls align in dark and light themes | Passed; dark/light captures plus submitted interaction |
-| CVA-06 | Settings root and children | Header, compact single-line rows, fields, toggles, retry and destructive actions align across every page | Partial; older captures passed, while current-HAP 44vp single-line row compaction requires recapture |
+| CVA-06 | Settings root and children | Header, compact single-line rows, fields, toggles, retry and destructive actions align across every page; DSH selector rows retain 44vp Select targets with a 60vp rhythm and visible 8vp vertical inset | Pending current-HAP dark verification after the selector-row rhythm correction; light and maximum-font reruns also Pending |
 | CVA-07 | About and storage | Author/repository rows, storage metric and clear-cache action use documented roles | Passed; settings driver opened both pages and returned |
 | CVA-08 | File browser | Breadcrumbs, header actions, groups and file rows share one inset and radius system | Passed; dark/light completed-browser captures |
 | CVA-09 | File preview and lightbox | Header controls, mode switch, load-more, close/download and retry states align safely | Partial; source-file preview and Back passed, while current-device image-lightbox visual proof remains Pending |
@@ -70,4 +70,4 @@ Current Store HAP SHA-256:
   `artifacts/device-e2e/20261102-launch-2`.
 - PR QA:
   previous `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`; current
-  portable `.artifacts/qa/20261102T051035Z-9cdbdc84/report.json`.
+  selector-rhythm run `.artifacts/qa/20261102T053410Z-8f4a02be/report.json`.

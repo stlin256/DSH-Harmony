@@ -760,10 +760,9 @@ export struct NativeSettings {
             this.saveHost(ns, field, values[valueIndex]);
           })
       }
-    }.width('100%').constraintSize({
-      minHeight: this.host.writable ? NativeDesign.compactRow : NativeDesign.doubleLineRow
-    })
-      .padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset })
+    }.width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
+      .padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset,
+        top: NativeDesign.spaceS, bottom: NativeDesign.spaceS })
   }
 
   @Builder

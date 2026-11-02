@@ -50,11 +50,14 @@ The compatibility-mode DSH web page remains an upstream visual exception.
    scale. Dynamic circles remain tied to half of their explicit dimension.
 7. Adjacent controls MUST use a consistent 8vp gap unless geometry is dictated
    by a segmented control, attachment strip or safe-area constraint.
-8. Busy, loading, empty and error states MUST preserve the same control inset,
+8. `设置 > DSH 设置` selector rows MUST keep the 44vp Select touch target while
+   using a 60vp row rhythm and 8vp vertical inset. Dividers MUST sit at the row
+   boundary with visible breathing room, not against the Select surface.
+9. Busy, loading, empty and error states MUST preserve the same control inset,
    label hierarchy and recovery action placement as their idle state.
-9. Visual alignment MUST apply in light and dark themes, large text, narrow
+10. Visual alignment MUST apply in light and dark themes, large text, narrow
    layout, reduced motion, reduced transparency and API 23 fallbacks.
-10. Source contracts and Mock mapping MUST cover every migrated control family.
+11. Source contracts and Mock mapping MUST cover every migrated control family.
     A static pass is not physical-device evidence.
 
 ## Non-goals

@@ -48,7 +48,8 @@ No product component may add a new local number for an audited control role.
   chip, 8vp control gap and aligned attachment/queue/change surfaces.
 - Settings: 16vp page inset, 44vp intrinsic single-line options, 60vp two-line
   options, 44vp icon controls, one field radius and one destructive-action
-  recipe.
+  recipe. Rows that embed a 44vp `Select` use the 60vp rhythm with 8vp top and
+  bottom padding; the select itself MUST NOT be reduced to create room.
 - Files: 52vp header, 44vp icon controls, 28vp breadcrumb chips, 48vp file rows.
 - Plugins/automation: 52vp header, 48vp primary actions, 36vp inline controls,
   60vp two-line cards and one status-badge recipe.

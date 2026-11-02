@@ -99,14 +99,21 @@ test('files, plugin rows and settings use the shared row and field recipes', () 
   assert.match(settings, /minHeight: NativeDesign\.doubleLineRow/);
 });
 
-test('settings single-line options use compact intrinsic rows', () => {
+test('settings navigation rows stay compact while selector rows keep vertical rhythm', () => {
   const settings = readComponent('NativeSettings.ets');
   assert.match(settings,
     /private navigationRow\([\s\S]{0,900}constraintSize\(\{ minHeight: NativeDesign\.compactRow \}\)[\s\S]{0,240}constraintSize\(\{ minHeight: NativeDesign\.compactRow \}\)/);
   assert.doesNotMatch(settings,
     /private navigationRow\([\s\S]{0,900}NativeDesign\.standardRow/);
-  assert.match(settings,
-    /minHeight: this\.host\.writable \? NativeDesign\.compactRow : NativeDesign\.doubleLineRow/);
+  const hostChoiceStart = settings.indexOf('private hostChoice(');
+  const hostChoiceEnd = settings.indexOf('\n  @Builder', hostChoiceStart);
+  assert.ok(hostChoiceStart >= 0 && hostChoiceEnd > hostChoiceStart,
+    'hostChoice builder should be present and bounded by the next builder');
+  const hostChoice = settings.slice(hostChoiceStart, hostChoiceEnd);
+  assert.match(hostChoice,
+    /constraintSize\(\{ minHeight: NativeDesign\.doubleLineRow \}\)/);
+  assert.match(hostChoice,
+    /top: NativeDesign\.spaceS, bottom: NativeDesign\.spaceS/);
   assert.match(settings,
     /private storageBreakdownRow\([\s\S]{0,420}constraintSize\(\{ minHeight: NativeDesign\.compactRow \}\)/);
 });

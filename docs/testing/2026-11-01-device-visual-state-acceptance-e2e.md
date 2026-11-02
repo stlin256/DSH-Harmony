@@ -30,9 +30,9 @@ Implementation spec:
 | Previous Mock HAP SHA-256 | `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89` |
 | Previous Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
 | Previous Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
-| Current Mock HAP SHA-256 | `093BB55AB93FD341BAE3308ADFD24F06911EC7AB25964DB2BF528089E6DC20EA` |
-| Current Default HAP SHA-256 | `AB06FC3FD364638CA879FC58B80EC5CB31E9D382120D71D05C96B80B91A3994D` |
-| Current Store HAP SHA-256 | `FC6DFE577E74B8CB96D2CC41900D29208A83E3D21F7FD756C422B52A1996D70D` |
+| Current Mock HAP SHA-256 | `29B12064EDB31454D702BA81681F3CEE7EBE95EA3D031824BDCB7A4E17FAEAB5` |
+| Current Default HAP SHA-256 | `B30469743804B1010EEF5E3F7CF74161138888A726A7A249508D7181DC06E542` |
+| Current Store HAP SHA-256 | `82BE9926ACB06C5370D8ECB537A1EF12939AE528BEE579E0D0B8C4AFDAB5FC12` |
 
 ## Device evidence
 
@@ -63,8 +63,8 @@ Implementation spec:
   `artifacts/device-e2e/20261102-launch-2`
 - Previous PR QA run: `20261101T192208Z-eefbe49f`
   `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`
-- Current portable PR QA run: `20261102T051035Z-9cdbdc84`
-  `.artifacts/qa/20261102T051035Z-9cdbdc84/report.json`
+- Selector-rhythm PR QA run: `20261102T053410Z-8f4a02be`
+  `.artifacts/qa/20261102T053410Z-8f4a02be/report.json`
 - Keyboard IME PR QA run: `20261102T052550Z-a8ca704d`
   `.artifacts/qa/20261102T052550Z-a8ca704d/report.json`
 
@@ -96,6 +96,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-16 | Settings single-line options | Root navigation and single-line setting fields render as compact 44vp intrinsic rows without clipping or excess vertical space | Pending current-HAP dark, light and maximum-font verification |
 | VSA-17 | Composer IME open | Header title and chips keep their screen top; the transcript viewport and bottom Dock resize instead of the whole page translating | Pending current-HAP dark and light verification |
 | VSA-18 | Composer IME close and draft | System Back restores the exact header/composer geometry and keeps the draft | Pending current-HAP verification |
+| VSA-19 | DSH settings selector rhythm | `工作步骤展示`, `过程收起时机`, `收起后显示回复` and `运行时发送` retain 44vp Select targets inside 60vp rows with visible vertical spacing and no divider touching the controls | Pending current-HAP dark verification; light and maximum-font reruns also Pending |
 
 ## Remaining device checks
 
@@ -128,6 +129,9 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   large-text check.
 - Confirm settings root, DSH settings, storage and clear-cache single-line
   options use compact 44vp rows in dark, light and maximum system font size.
+- Run `scripts/device-ui-settings-e2e.ps1` on the current Mock HAP and verify
+  the four DSH Select bounds have visible vertical gaps. Capture the dark DSH
+  settings page and repeat in light theme and at maximum system font size.
 - Verify the floating task-plan Dock in `plan-dock-overlay`: capture collapsed
   and expanded layouts, prove the transcript List top/height are unchanged,
   swipe outside the Dock surface, and repeat in light, dark, reduced motion and
