@@ -579,9 +579,10 @@ export struct NativeSettings {
         }
         DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphCompact, color: this.tertiaryText() })
           .rotate({ angle: 180 })
-      }.width('100%').height(NativeDesign.standardRow)
+      }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
         .padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset })
-    }.width('100%').height(NativeDesign.standardRow).borderRadius(0).backgroundColor(Color.Transparent)
+    }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
+      .borderRadius(0).backgroundColor(Color.Transparent)
       .accessibilityText(title + (detail ? '，' + detail : ''))
       .onClick(() => { this.openPage(page); })
   }
@@ -663,7 +664,9 @@ export struct NativeSettings {
             this.saveHost(ns, field, values[valueIndex]);
           })
       }
-    }.width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
+    }.width('100%').constraintSize({
+      minHeight: this.host.writable ? NativeDesign.compactRow : NativeDesign.doubleLineRow
+    })
       .padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset })
   }
 
@@ -679,7 +682,7 @@ export struct NativeSettings {
             Blank()
             Text(this.pluginVersion ? 'v' + this.pluginVersion : '未报告').fontSize(NativeDesign.fontSection)
               .fontColor(this.tertiaryText())
-          }.width('100%').constraintSize({ minHeight: NativeDesign.standardRow })
+          }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
             .padding({ left: NativeDesign.cardPadding, right: NativeDesign.cardPadding })
             .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.cardSurface())
           if (this.hasHost('ui-chat')) {
@@ -943,7 +946,8 @@ export struct NativeSettings {
       Text(nativeFormatStorageBytes(this.storageBreakdownValue(kind)))
         .fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
         .fontColor(this.secondaryText())
-    }.width('100%').height(NativeDesign.standardRow).padding({ left: NativeDesign.cardPadding, right: NativeDesign.cardPadding })
+    }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
+      .padding({ left: NativeDesign.cardPadding, right: NativeDesign.cardPadding })
   }
 
   @Builder
@@ -992,9 +996,9 @@ export struct NativeSettings {
                 .fontColor(this.dangerText())
               Blank()
               if (this.storageClearing) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
-            }.width('100%').height(NativeDesign.standardRow)
+            }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
               .padding({ left: NativeDesign.cardPadding, right: NativeDesign.cardPadding })
-          }.width('100%').height(NativeDesign.standardRow)
+          }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
             .borderRadius(NativeDesign.radiusGroup).backgroundColor(Color.Transparent)
             .enabled(!this.storageClearing && !this.storageLoading)
             .accessibilityText('清空缓存')

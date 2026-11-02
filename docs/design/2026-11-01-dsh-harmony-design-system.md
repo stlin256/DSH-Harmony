@@ -96,8 +96,8 @@
 | Chip | 28vp | 状态、筛选、计划标签 |
 | Dense control | 32vp | 图标操作、紧凑文字按钮 |
 | Compact inline | 36vp | 输入行、双行紧凑按钮、工具动作 |
-| Compact row | 44vp | 抽屉、选择项、单行字段、紧凑列表 |
-| Standard row | 48vp | 设置、文件、主导航和主操作 |
+| Compact row | 44vp | 设置单行选项、抽屉、选择项、单行字段、紧凑列表 |
+| Standard row | 48vp | 文件、主导航和主操作 |
 | Header | 52vp | 页面标题与最多两个操作 |
 | Double-line row | 60vp | 插件、自动化等固定双行内容 |
 | Icon control | 44vp hit / 36vp visual | 返回、关闭、搜索、下载、更多 |

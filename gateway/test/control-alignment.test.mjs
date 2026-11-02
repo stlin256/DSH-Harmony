@@ -94,9 +94,21 @@ test('files, plugin rows and settings use the shared row and field recipes', () 
   assert.match(plugins, /height\(NativeDesign\.compactRow\)/);
 
   const settings = readComponent('NativeSettings.ets');
-  assert.match(settings, /\.height\(NativeDesign\.standardRow\)/);
+  assert.match(settings, /constraintSize\(\{ minHeight: NativeDesign\.compactRow \}\)/);
   assert.match(settings, /NativeDesign\.radiusGroup/);
   assert.match(settings, /minHeight: NativeDesign\.doubleLineRow/);
+});
+
+test('settings single-line options use compact intrinsic rows', () => {
+  const settings = readComponent('NativeSettings.ets');
+  assert.match(settings,
+    /private navigationRow\([\s\S]{0,900}constraintSize\(\{ minHeight: NativeDesign\.compactRow \}\)[\s\S]{0,240}constraintSize\(\{ minHeight: NativeDesign\.compactRow \}\)/);
+  assert.doesNotMatch(settings,
+    /private navigationRow\([\s\S]{0,900}NativeDesign\.standardRow/);
+  assert.match(settings,
+    /minHeight: this\.host\.writable \? NativeDesign\.compactRow : NativeDesign\.doubleLineRow/);
+  assert.match(settings,
+    /private storageBreakdownRow\([\s\S]{0,420}constraintSize\(\{ minHeight: NativeDesign\.compactRow \}\)/);
 });
 
 test('turn file rows prioritize filename and reserve fixed metrics', () => {

@@ -30,9 +30,9 @@ Implementation spec:
 | Previous Mock HAP SHA-256 | `893177598199A3DA33BFF36BDFFF0BD64ED808D9C56D79F9C5818D3DAAAD250B` |
 | Previous Default HAP SHA-256 | `7F9173B44580975674EA9C1953C89AFB7635D13E1DA7031C9658259C4BBA1986` |
 | Previous Store HAP SHA-256 | `BB63226FB42895102D5566D7017F83CB6EC115F376639AF6FC76919FA42B87AC` |
-| Current Mock HAP SHA-256 | `B90B029F5AF90FC0732C000FB42499F70D574EF38DCD1997B3650E931162FBB7` |
-| Current Default HAP SHA-256 | `CBA03A1DF5B9A00A11BD564C086B7C87CAF9E8728FE45BD8BD4F23592F54C86C` |
-| Current Store HAP SHA-256 | `91FCF1DC18F62108E9095A90E8C4BAD7EB5003DBA2330E8DA65A553DF11D93F6` |
+| Current Mock HAP SHA-256 | `64D739AF27E9855AF0B13E80D3320EEA5E450DDECA643CA5BBE215781EDEDF2B` |
+| Current Default HAP SHA-256 | `61E83E9DDFEA4F4CAB1271ACF4594E2255A1008CD96250B5B0C71049DDCFD3E5` |
+| Current Store HAP SHA-256 | `0A4076CB9836FF0965536AF1286ADC95A76FFDC1D017AB593371909D36242244` |
 
 ## Device evidence
 
@@ -63,8 +63,8 @@ Implementation spec:
   `artifacts/device-e2e/20261102-launch-2`
 - Previous PR QA run: `20261101T192208Z-eefbe49f`
   `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`
-- Current portable PR QA run: `20261102T011204Z-9c1b97b1`
-  `.artifacts/qa/20261102T011204Z-9c1b97b1/report.json`
+- Current portable PR QA run: `20261102T012235Z-7195b93e`
+  `.artifacts/qa/20261102T012235Z-7195b93e/report.json`
 
 The user's saved annotation run
 `20261101T152352Z-visual-acceptance-1` contains 32 markers across 20 source
@@ -91,18 +91,21 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-13 | Reduced motion | Affected disclosures, Dock transitions and onboarding resolve directly to the final state | Passed; 13 representative surfaces plus onboarding frames |
 | VSA-14 | Large text | Rows and controls remain readable without overlap, clipping or safe-area intrusion | Partial; portrait at maximum `超大` passed, while landscape remains Pending |
 | VSA-15 | Plan and subagent mode chips | Both chips render one continuous semantic surface without a split default-button fill | Pending current-HAP dark and light verification after moving both controls to explicit Normal capsules |
+| VSA-16 | Settings single-line options | Root navigation and single-line setting fields render as compact 44vp intrinsic rows without clipping or excess vertical space | Pending current-HAP dark, light and maximum-font verification |
 
 ## Remaining device checks
 
 - Rerun the 98-scene static Mock suite, subagent send flow, settings navigation
   and all disclosure matrices against current Mock HAP
-  `B90B029F5AF90FC0732C000FB42499F70D574EF38DCD1997B3650E931162FBB7`.
+  `64D739AF27E9855AF0B13E80D3320EEA5E450DDECA643CA5BBE215781EDEDF2B`.
 - Confirm the subagent composer send button becomes enabled after text entry
   and that exactly one prompt appears. The interrupted run recorded the text in
   the field while the action remained disabled.
 - Confirm the plan and subagent chips each paint one continuous surface in dark
   and light themes, including while the subagent catalog contains a running
   member.
+- Confirm settings root, DSH settings, storage and clear-cache single-line
+  options use compact 44vp rows in dark, light and maximum system font size.
 - API 23 material fallback requires a physical or emulated API 23 target.
 - Valid saved-session restore, expired-session recovery and logout/relaunch need
   a real account exchange and must not be inferred from Mock fixtures.

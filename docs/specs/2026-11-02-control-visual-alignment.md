@@ -46,8 +46,9 @@ No product component may add a new local number for an audited control role.
   row, 12vp row inset and one consistent chevron role.
 - Composer/dock: 36vp inline control, 32vp task-plan disclosure header, 28vp
   chip, 8vp control gap and aligned attachment/queue/change surfaces.
-- Settings: 16vp page inset, 48vp rows, 44vp icon controls, one field radius and
-  one destructive-action recipe.
+- Settings: 16vp page inset, 44vp intrinsic single-line options, 60vp two-line
+  options, 44vp icon controls, one field radius and one destructive-action
+  recipe.
 - Files: 52vp header, 44vp icon controls, 28vp breadcrumb chips, 48vp file rows.
 - Plugins/automation: 52vp header, 48vp primary actions, 36vp inline controls,
   60vp two-line cards and one status-badge recipe.
