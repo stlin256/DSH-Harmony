@@ -61,9 +61,16 @@ or real transcript content in source, tests, docs, logs or commits.
 
 ## Device Verification Ledger
 
-API 26 physical-device evidence is current for Mock HAP SHA-256
+API 26 physical-device evidence for the rapid-iteration launch notice uses Mock
+HAP SHA-256
+`3FE9EE11C150C2C7380B5C360C4994782A87AFB2F94162D2445950C641C0DB48`.
+The earlier complete 115/115 visual suite remains qualified on Mock HAP SHA-256
 `F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD`.
+Do not present those two evidence sets as one current-HAP release claim.
 
+- Rapid-iteration notice, logo continuity, dark/light themes, reduced motion,
+  System Back and Mock logout return:
+  `artifacts/device-e2e-final/launch-notice-release/iteration-notice/manifest.json`.
 - Full static Mock suite: 115/115 captured scenes passed. Review contact sheets
   live under `artifacts/device-e2e-final/mock-suite-clean/contact-sheets-audit/`.
 - Subagent/title-row/navigation and child send:
@@ -115,6 +122,12 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-01-device-visual-state-acceptance.md](docs/specs/2026-11-01-device-visual-state-acceptance.md)
 - Physical-device visual acceptance and pending verification ledger:
   [2026-11-01-device-visual-state-acceptance-e2e.md](docs/testing/2026-11-01-device-visual-state-acceptance-e2e.md)
+- Rapid-iteration notice requirement:
+  [2026-11-03-iteration-notice-launch.md](docs/requirements/2026-11-03-iteration-notice-launch.md)
+- Rapid-iteration notice implementation spec:
+  [2026-11-03-iteration-notice-launch.md](docs/specs/2026-11-03-iteration-notice-launch.md)
+- Rapid-iteration notice device E2E:
+  [2026-11-03-iteration-notice-launch-e2e.md](docs/testing/2026-11-03-iteration-notice-launch-e2e.md)
 - DSH Go-inspired frontend hardening requirement:
   [2026-11-02-dsh-go-frontend-hardening.md](docs/requirements/2026-11-02-dsh-go-frontend-hardening.md)
 - DSH Go frontend learning research:

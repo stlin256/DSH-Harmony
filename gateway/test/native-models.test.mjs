@@ -437,6 +437,17 @@ test('launch flow separates restoration, onboarding, guided setup and workspace'
   assert.equal(NativeLaunchFlow.afterPreferences(false, false), NativeLaunchPhase.intro);
   assert.equal(NativeLaunchFlow.afterPreferences(true, false), NativeLaunchPhase.intro);
   assert.equal(NativeLaunchFlow.afterPreferences(true, true), NativeLaunchPhase.restoring);
+  assert.equal(NativeLaunchFlow.iterationNoticeEnabled, true);
+  assert.equal(NativeLaunchFlow.initialPhase(false, false, false),
+    NativeLaunchPhase.iterationNotice);
+  assert.equal(NativeLaunchFlow.initialPhase(true, true, false),
+    NativeLaunchPhase.iterationNotice);
+  assert.equal(NativeLaunchFlow.initialPhase(true, true, true),
+    NativeLaunchPhase.restoring);
+  assert.equal(NativeLaunchFlow.initialPhase(true, true, false, false),
+    NativeLaunchPhase.restoring);
+  assert.equal(NativeLaunchFlow.initialPhase(false, false, false, false),
+    NativeLaunchPhase.intro);
   assert.equal(NativeLaunchPhase.install, 'install');
   assert.equal(NativeLaunchFlow.needsLogin('请输入访问密钥'), true);
   assert.equal(NativeLaunchFlow.needsLogin('登录失败，请检查访问密钥'), true);
@@ -446,6 +457,13 @@ test('launch flow separates restoration, onboarding, guided setup and workspace'
   const source = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/pages/Index.ets', import.meta.url), 'utf8');
   assert.match(source, /launchPhase: string = NativeLaunchPhase\.booting/);
+  assert.match(source, /getSync\('iterationNoticeSeen', false\)/);
+  assert.match(source, /NativeLaunchFlow\.initialPhase\(/);
+  assert.match(source, /setIterationNoticeSeen\(true\)/);
+  assert.match(source, /onConfirmIterationNotice/);
+  assert.match(source, /await this\.setIterationNoticeSeen\(true\);[\s\S]{0,400}NativeMotion\.animate/);
+  assert.match(source,
+    /putSync\('iterationNoticeSeen', false\)[\s\S]{0,260}NativeLaunchFlow\.initialPhase\(/);
   assert.match(source, /this\.launchPhase !== NativeLaunchPhase\.hidden/);
   assert.match(source, /this\.launchPhase === NativeLaunchPhase\.entering/);
   assert.match(source, /NativeLaunchSurface\(\{/);
@@ -454,6 +472,14 @@ test('launch flow separates restoration, onboarding, guided setup and workspace'
   assert.doesNotMatch(source, /Column\(\{ space: 16 \}\) \{\s*Text\('DSH Harmony'\)/s);
   const surface = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/components/NativeLaunchSurface.ets', import.meta.url), 'utf8');
+  assert.match(surface, /onConfirmIterationNotice: \(\) => void/);
+  assert.match(surface, /private iterationNotice\(\)/);
+  assert.match(surface, /private contentBelowLogoTop\(\): number/);
+  assert.equal((surface.match(/top: this\.contentBelowLogoTop\(\)/g) || []).length, 2);
+  assert.match(surface, /\.id\('launch-brand-logo'\)/);
+  assert.match(surface, /\.id\('iteration-notice'\)/);
+  assert.match(surface,
+    /this\.primaryButton\('我已知晓，继续', false, this\.onConfirmIterationNotice, 'iteration-notice-confirm'\)/);
   assert.match(surface, /phase === NativeLaunchPhase\.guide/);
   assert.doesNotMatch(surface, /\.scale\(\{ x: this\.logoScale\(\)/);
   assert.match(surface, /private installDetails\(\)/);

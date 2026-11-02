@@ -30,6 +30,7 @@ Implementation spec:
 | Previous Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
 | Previous Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
 | Device-qualified Mock HAP SHA-256 | `F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD` |
+| Launch-notice Mock HAP SHA-256 | `3FE9EE11C150C2C7380B5C360C4994782A87AFB2F94162D2445950C641C0DB48` |
 | Final Default Release SHA-256 | `43E3466D0C878A07C673899B2B213E6348A0DC0424BA032E16C080D31D880E08` |
 | Final Store Release SHA-256 | `2BC7E88367F6CAD626954CDA7F9FC72FB6324702E9C6EE9AAFEFD0168DB9A6E6` |
 | Final Mock Release SHA-256 | `EED9CAB2AC4ACC6B81AAF715B5D76D5E0A1D178557A9EF03BB337805052980F3` |
@@ -73,6 +74,9 @@ Implementation spec:
   from `20261102-large-text-1`)
 - Fixed launch/login geometry:
   `artifacts/device-e2e/20261102-launch-2`
+- Rapid-iteration notice, logo continuity, dark/light themes, reduced motion,
+  System Back and Mock logout return:
+  `artifacts/device-e2e-final/launch-notice-release/iteration-notice/manifest.json`
 - Previous PR QA run: `20261101T192208Z-eefbe49f`
   `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`
 - Selector-rhythm PR QA run: `20261102T053410Z-8f4a02be`
@@ -122,6 +126,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-24 | Document preview/source toggle | SVG, Markdown and HTML expose one title-row icon action instead of a second toolbar row; the glyph names the target mode and toggling preserves header height and reading space | Passed for SVG; Markdown/HTML maximum-font evidence remains Pending |
 | VSA-25 | Global bottom navigation inset | Every native page, drawer, overlay, preview, lightbox and composer keeps interactive controls at least 20vp above the display edge in all covered themes and states; an IME-raised composer uses a 12vp gap | Passed for the current API 26 default-font Mock matrix; API 23, maximum font and landscape remain Pending |
 | VSA-26 | Conversation scrollbar edge | The transcript scroll container reaches the physical right edge while body text keeps its page inset; a swipe moves content and preserves the process | Passed |
+| VSA-27 | Rapid-iteration notice launch gate | The first-run notice precedes welcome, keeps the shared logo bounds stable, remains on System Back, adapts to light/dark themes, resolves under reduced motion and reappears after logout | Passed on API 26 default-font Mock HAP `3FE9EE11…`; API 23, maximum font, landscape and real-account saved-session relaunch remain Pending |
 
 ## Remaining device checks
 
@@ -138,6 +143,8 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   launch flow at maximum system font size.
 - Reduced-motion task Dock can be rerun when a final-clean-HAP artifact must be
   qualified independently from the tested Mock HAP.
+- The rapid-iteration notice still needs API 23, maximum-font and landscape
+  runs, plus a real-account saved-session relaunch after confirmation.
 
 These environment-bound checks remain `Pending`; source tests and the current
 API 26 portrait default-font device run are not substitutes for them.

@@ -31,6 +31,9 @@ if (-not $OutputDir) {
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
 $scenarios = @(
+  [pscustomobject]@{ Screen = 'launch'; State = 'iteration-notice'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'launch'; State = 'iteration-notice'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'launch'; State = 'iteration-notice'; Theme = 'dark'; ReduceMotion = $true },
   [pscustomobject]@{ Screen = 'conversation'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'completed'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'live-change'; Theme = 'dark' },
@@ -162,6 +165,7 @@ function Text-Hex {
 function Get-ExpectedMarker {
   param([string]$Screen, [string]$State)
   switch ("$Screen/$State") {
+    'launch/iteration-notice' { return '项目正在快速迭代' }
     'conversation/completed' { return '发布检查完成' }
     'conversation/live-change' { return '底部 Dock 运行态' }
     'conversation/attachments' { return '附件与实时变更 Dock' }

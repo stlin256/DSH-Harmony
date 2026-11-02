@@ -2,10 +2,11 @@ param(
   [string]$DevEcoHome = '',
   [string]$Device = '',
   [string]$HapPath = '',
-  [ValidateSet('conversation', 'process', 'disclosure', 'sidebar', 'browser', 'preview', 'settings', 'lineage', 'subagent',
-    'plugins', 'automation', 'more')]
+  [ValidateSet('launch', 'conversation', 'process', 'disclosure', 'sidebar', 'browser', 'preview', 'settings',
+    'lineage', 'subagent', 'plugins', 'automation', 'more')]
   [string]$Screen = 'conversation',
   [ValidateSet(
+    'iteration-notice',
     'completed',
     'live-change',
     'attachments',

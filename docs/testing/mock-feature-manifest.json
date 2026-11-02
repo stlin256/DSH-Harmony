@@ -2,6 +2,15 @@
   "schemaVersion": 1,
   "features": [
     {
+      "id": "launch.iteration-notice",
+      "screens": ["launch"],
+      "states": ["iteration-notice"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-launch-notice-e2e.ps1"],
+      "e2eIds": ["ITER-01", "ITER-02", "ITER-03", "ITER-04", "ITER-05",
+        "ITER-06", "ITER-07", "ITER-08"],
+      "requiresInteraction": true
+    },
+    {
       "id": "conversation.completed-turn",
       "screens": ["conversation"],
       "states": ["completed"],

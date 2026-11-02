@@ -64,6 +64,7 @@ struct Index {
   @State private launchOpacity: number = 1;
   @State private launchError: string = '';
   @State private onboardingSeen: boolean = false;
+  @State private iterationNoticeSeen: boolean = false;
   private launchStartedAt: number = 0;
   private settingsExitTimer: number = -1;
   private launchFinishTimer: number = -1;
@@ -105,6 +106,14 @@ struct Index {
       this.error = '';
       this.ready = true;
       this.settingsCached = true;
+      if (AppStorage.get<string>('storeShowcaseScreen') === 'launch') {
+        this.ready = false;
+        this.settingsCached = false;
+        this.launchOpacity = 1;
+        this.launchPhase = NativeLaunchPhase.iterationNotice;
+        this.applyNativeTheme();
+        return;
+      }
       this.launchOpacity = 0;
       this.launchPhase = NativeLaunchPhase.hidden;
       this.applyNativeTheme();
@@ -126,6 +135,7 @@ struct Index {
     }
     this.address = this.store.getSync('origin', '') as string;
     this.onboardingSeen = this.store.getSync('onboardingSeen', false) === true;
+    this.iterationNoticeSeen = this.store.getSync('iterationNoticeSeen', false) === true;
     const savedLoginMode = this.store.getSync('mode', 'native') as string;
     this.mode = ProductCapabilities.supportsPasskey && savedLoginMode === 'passkey' ? 'passkey' : 'native';
     if (!ProductCapabilities.supportsPasskey && savedLoginMode === 'passkey') {
@@ -133,7 +143,13 @@ struct Index {
       await this.store.flush();
     }
     const next = this.normalize(this.address);
-    const phase = NativeLaunchFlow.afterPreferences(next.length > 0, this.onboardingSeen);
+    const phase = NativeLaunchFlow.initialPhase(
+      next.length > 0, this.onboardingSeen, this.iterationNoticeSeen);
+    if (phase === NativeLaunchPhase.iterationNotice) {
+      await this.revealLaunch();
+      this.launchPhase = NativeLaunchPhase.iterationNotice;
+      return;
+    }
     if (phase === NativeLaunchPhase.intro) {
       await this.revealLaunch();
       this.launchPhase = NativeLaunchPhase.intro;
@@ -194,6 +210,36 @@ struct Index {
     this.onboardingSeen = value;
     this.store?.putSync('onboardingSeen', value);
     try { await this.store?.flush(); } catch (_) {}
+  }
+
+  private async setIterationNoticeSeen(value: boolean): Promise<void> {
+    this.iterationNoticeSeen = value;
+    this.store?.putSync('iterationNoticeSeen', value);
+    try { await this.store?.flush(); } catch (_) {}
+  }
+
+  private async confirmIterationNotice(): Promise<void> {
+    await this.setIterationNoticeSeen(true);
+    if (this.showcase) {
+      NativeMotion.animate(this.getUIContext(), 'brand', (): void => {
+        this.launchError = '';
+        this.launchPhase = NativeLaunchPhase.intro;
+      });
+      return;
+    }
+    const next = this.normalize(this.address);
+    const phase = NativeLaunchFlow.afterPreferences(next.length > 0, this.onboardingSeen);
+    NativeMotion.animate(this.getUIContext(), 'brand', (): void => {
+      this.launchError = '';
+      this.launchPhase = phase;
+    });
+    if (phase === NativeLaunchPhase.restoring) {
+      this.connect(true).then((): void => {
+        if (this.uiMode !== 'native' || this.authSurface) this.finishLaunch();
+      }).catch((error: Error): void => {
+        this.failLaunch(NativeLaunchFlow.safeMessage(error, '无法恢复上次连接'));
+      });
+    }
   }
 
   private skipOnboarding(): void {
@@ -472,13 +518,16 @@ struct Index {
     this.requestedPocketRoute = ''; this.requestedSession = '';
     try { this.store?.putSync('origin', retainedAddress); await this.store?.flush(); } catch (_) {}
     this.onboardingSeen = false;
+    this.iterationNoticeSeen = false;
     try {
       this.store?.putSync('onboardingSeen', false);
+      this.store?.putSync('iterationNoticeSeen', false);
       await this.store?.flush();
     } catch (_) {}
     this.launchError = '';
     this.launchOpacity = 1;
-    this.launchPhase = NativeLaunchPhase.intro;
+    this.launchPhase = NativeLaunchFlow.initialPhase(
+      this.normalize(this.address).length > 0, false, false);
     this.applyNativeTheme();
   }
   private async disconnectConnection(): Promise<void> {
@@ -564,6 +613,7 @@ struct Index {
 
   onBackPress(): boolean {
     if (this.launchPhase === NativeLaunchPhase.booting ||
+      this.launchPhase === NativeLaunchPhase.iterationNotice ||
       this.launchPhase === NativeLaunchPhase.restoring ||
       this.launchPhase === NativeLaunchPhase.entering) return true;
     if (this.launchPhase === NativeLaunchPhase.install) { this.closeInstallDetails(); return true; }
@@ -736,6 +786,9 @@ struct Index {
             },
             onConnect: (): void => { this.attemptConnect(); },
             onOpenGuide: (): void => { this.openGuide(); },
+            onConfirmIterationNotice: (): void => {
+              this.confirmIterationNotice().catch((): void => {});
+            },
             onCloseGuide: (): void => { this.backGuide(); },
             onOpenInstall: (): void => { this.openInstallDetails(); },
             onCloseInstall: (): void => { this.closeInstallDetails(); },

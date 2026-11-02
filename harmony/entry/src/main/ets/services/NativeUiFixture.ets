@@ -1,10 +1,10 @@
 export class NativeUiFixture {
   static readonly screens: string[] = [
-    'conversation', 'process', 'disclosure', 'sidebar', 'browser', 'preview', 'settings', 'lineage', 'subagent',
-    'plugins', 'automation', 'more'
+    'launch', 'conversation', 'process', 'disclosure', 'sidebar', 'browser', 'preview', 'settings', 'lineage',
+    'subagent', 'plugins', 'automation', 'more'
   ];
   static readonly states: string[] = [
-    'completed', 'live-change', 'attachments', 'streaming', 'stream-long', 'empty', 'long-history',
+    'iteration-notice', 'completed', 'live-change', 'attachments', 'streaming', 'stream-long', 'empty', 'long-history',
     'secret-masked', 'stream-repaired', 'document-preview',
     'text-config-preview', 'delimited-preview', 'tsv-preview',
     'delimited-error-preview', 'binary-preview',

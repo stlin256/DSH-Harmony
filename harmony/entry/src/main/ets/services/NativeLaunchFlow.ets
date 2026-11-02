@@ -1,5 +1,6 @@
 export class NativeLaunchPhase {
   static readonly booting: string = 'booting';
+  static readonly iterationNotice: string = 'iteration-notice';
   static readonly intro: string = 'intro';
   static readonly guide: string = 'guide';
   static readonly install: string = 'install';
@@ -16,6 +17,15 @@ export class NativeLaunchPhase {
  * visible and which failures need user credentials.
  */
 export class NativeLaunchFlow {
+  /** Source-level rollout switch for the rapid-iteration notice. */
+  static readonly iterationNoticeEnabled: boolean = true;
+
+  static initialPhase(hasOrigin: boolean, onboardingSeen: boolean,
+    iterationNoticeSeen: boolean, noticeEnabled: boolean = NativeLaunchFlow.iterationNoticeEnabled): string {
+    if (noticeEnabled && !iterationNoticeSeen) return NativeLaunchPhase.iterationNotice;
+    return NativeLaunchFlow.afterPreferences(hasOrigin, onboardingSeen);
+  }
+
   static afterPreferences(hasOrigin: boolean, onboardingSeen: boolean): string {
     if (!hasOrigin || !onboardingSeen) return NativeLaunchPhase.intro;
     return NativeLaunchPhase.restoring;

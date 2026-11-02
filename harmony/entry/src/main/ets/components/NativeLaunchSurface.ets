@@ -21,6 +21,7 @@ export struct NativeLaunchSurface {
   onAccessKeyChange: (value: string) => void = (): void => {};
   onModeChange: (value: string) => void = (): void => {};
   onConnect: () => void = (): void => {};
+  onConfirmIterationNotice: () => void = (): void => {};
   onOpenGuide: () => void = (): void => {};
   onCloseGuide: () => void = (): void => {};
   onOpenInstall: () => void = (): void => {};
@@ -70,6 +71,10 @@ export struct NativeLaunchSurface {
 
   private logoSize(): number {
     return this.viewportWidth < 360 ? 80 : 92;
+  }
+
+  private contentBelowLogoTop(): number {
+    return Math.max(this.safeTop + 235, this.viewportHeight * 0.345);
   }
 
   private cornerLogoX(): number {
@@ -133,7 +138,7 @@ export struct NativeLaunchSurface {
   }
 
   @Builder
-  private primaryButton(label: string, loading: boolean, action: () => void) {
+  private primaryButton(label: string, loading: boolean, action: () => void, controlId: string = '') {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 8 }) {
         if (loading) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
@@ -144,6 +149,7 @@ export struct NativeLaunchSurface {
     }
     .width('100%').height(NativeDesign.primaryActionHeight).borderRadius(NativeDesign.radiusRow)
     .backgroundColor(NativeDesign.textPrimary(this.dark))
+    .id(controlId)
     .enabled(!loading)
     .onClick(action)
   }
@@ -156,6 +162,51 @@ export struct NativeLaunchSurface {
       .width('100%').height(NativeDesign.primaryActionHeight).borderRadius(NativeDesign.radiusRow)
       .backgroundColor(this.raised())
       .onClick(action)
+  }
+
+  @Builder
+  private iterationNotice() {
+    Column({ space: 0 }) {
+      Row({ space: 7 }) {
+        DSHIcon({ glyph: 'sparkle', glyphSize: NativeDesign.glyphCompact, color: this.primary() })
+        Text('快速迭代版本').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
+          .fontColor(this.primary())
+      }
+      .constraintSize({ minHeight: NativeDesign.compactChip })
+      .padding({ left: 10, right: 11, top: 5, bottom: 5 })
+      .borderRadius(NativeDesign.radiusChip)
+      .backgroundColor(NativeDesign.accentSurface(this.dark))
+      .border({ width: 0.5, color: this.primary() })
+      .alignSelf(ItemAlign.Start)
+      Text('项目正在快速迭代').fontSize(NativeDesign.fontBrand).fontWeight(FontWeight.Bold)
+        .fontColor(this.foreground()).margin({ top: 16 })
+      Text('当前仍有许多功能尚未完成，也可能出现 Bug 或不够顺畅的交互。')
+        .fontSize(NativeDesign.fontBody).lineHeight('22fp').fontColor(this.secondary())
+        .width('100%').margin({ top: 10 })
+      Text('遇到问题时，欢迎在项目仓库提交 Issue，帮助我们把体验做得更好。')
+        .fontSize(NativeDesign.fontBody).lineHeight('22fp').fontColor(this.secondary())
+        .width('100%').margin({ top: 10 })
+      Blank()
+      Row() {
+        Text(BuildInfo.appName + ' · v' + BuildInfo.version)
+          .fontSize(NativeDesign.fontCaption).fontColor(NativeDesign.textTertiary(this.dark))
+          .layoutWeight(1)
+        DSHIcon({ glyph: 'branch-outline', glyphSize: NativeDesign.glyphCompact,
+          color: NativeDesign.textTertiary(this.dark) })
+      }.width('100%').margin({ bottom: 12 })
+      this.primaryButton('我已知晓，继续', false, this.onConfirmIterationNotice, 'iteration-notice-confirm')
+    }
+    .id('iteration-notice')
+    .width('100%').height('100%')
+    .padding({
+      left: 28 + this.safeLeft,
+      right: 28 + this.safeRight,
+      top: this.contentBelowLogoTop(),
+      bottom: Math.max(this.safeBottom, NativeDesign.navigationBarMinInset) + 20
+    })
+    .constraintSize({ maxWidth: 520 })
+    .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 6 }))
+      .animation(NativeMotion.implicit('brand')))
   }
 
   @Builder
@@ -178,7 +229,7 @@ export struct NativeLaunchSurface {
     .padding({
       left: 28 + this.safeLeft,
       right: 28 + this.safeRight,
-      top: Math.max(this.safeTop + 235, this.viewportHeight * 0.345),
+      top: this.contentBelowLogoTop(),
       bottom: this.safeBottom + 30
     })
     .constraintSize({ maxWidth: 520 })
@@ -555,6 +606,7 @@ export struct NativeLaunchSurface {
       if (this.phase !== NativeLaunchPhase.restoring &&
         this.phase !== NativeLaunchPhase.entering) {
         Image($r('app.media.app_icon'))
+          .id('launch-brand-logo')
           .width(this.logoSize()).height(this.logoSize())
           .objectFit(ImageFit.Contain)
           .position({ x: this.logoX(), y: this.logoY() })
@@ -568,7 +620,9 @@ export struct NativeLaunchSurface {
           ? 0.10 : 0)
         .animation(NativeMotion.implicit('brand'))
         .accessibilityLevel('no')
-      if (this.phase === NativeLaunchPhase.booting || this.phase === NativeLaunchPhase.intro) {
+      if (this.phase === NativeLaunchPhase.iterationNotice) {
+        this.iterationNotice()
+      } else if (this.phase === NativeLaunchPhase.booting || this.phase === NativeLaunchPhase.intro) {
         this.welcome()
       } else if (this.phase === NativeLaunchPhase.guide) {
         this.guide()
