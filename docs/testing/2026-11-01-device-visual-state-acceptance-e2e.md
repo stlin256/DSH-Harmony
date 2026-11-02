@@ -27,12 +27,12 @@ Implementation spec:
 | Runtime API | `26` |
 | API 23 device | Not available |
 | Mock evidence HAP | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` |
-| Previous Mock HAP SHA-256 | `893177598199A3DA33BFF36BDFFF0BD64ED808D9C56D79F9C5818D3DAAAD250B` |
-| Previous Default HAP SHA-256 | `7F9173B44580975674EA9C1953C89AFB7635D13E1DA7031C9658259C4BBA1986` |
-| Previous Store HAP SHA-256 | `BB63226FB42895102D5566D7017F83CB6EC115F376639AF6FC76919FA42B87AC` |
-| Current Mock HAP SHA-256 | `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89` |
-| Current Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
-| Current Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
+| Previous Mock HAP SHA-256 | `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89` |
+| Previous Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
+| Previous Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
+| Current Mock HAP SHA-256 | `BEDD9A7AD31A4C45DA7A7E7702A2A008EACD226752A0C1DCBE680E49BE12C3EF` |
+| Current Default HAP SHA-256 | `F7044321EE18F6D6B78986ED5C44AE1842B24C5F4AAFD08F7F384BAF1A3EA5DE` |
+| Current Store HAP SHA-256 | `7AEA9D1A9F7764F3208F9FE4EA8D7AD5A1970A104A696CE866BBD60F984ECFBF` |
 
 ## Device evidence
 
@@ -63,8 +63,8 @@ Implementation spec:
   `artifacts/device-e2e/20261102-launch-2`
 - Previous PR QA run: `20261101T192208Z-eefbe49f`
   `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`
-- Current portable PR QA run: `20261102T015713Z-2cd32021`
-  `.artifacts/qa/20261102T015713Z-2cd32021/report.json`
+- Current portable PR QA run: `20261102T051035Z-9cdbdc84`
+  `.artifacts/qa/20261102T051035Z-9cdbdc84/report.json`
 
 The user's saved annotation run
 `20261101T152352Z-visual-acceptance-1` contains 32 markers across 20 source
@@ -76,7 +76,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 
 | ID | Surface | Required device check | Status |
 | --- | --- | --- | --- |
-| VSA-01 | Task-plan banner | Dark-theme banner is compact, readable and touchable without transcript drawing behind it | Passed; final `plan-subagent` and `completed` captures show the banner in normal conversation flow |
+| VSA-01 | Floating task-plan Dock | Dark-theme Dock overlays the transcript from the top, does not reserve layout height, expands over messages and leaves gestures outside its surface scrollable | Pending current-HAP verification; previous evidence covered the superseded in-flow layout |
 | VSA-02 | Plan-mode header chip | Active chip is one filled capsule with no rectangular highlight or detached surface | Passed; final dark and light captures plus `plan-visible` interaction |
 | VSA-03 | Turn changed-file cards | Filename is the primary line, workspace-relative directory is secondary, fixed metrics remain visible and no horizontal overflow occurs | Passed; dark/light captures and `completed-card` layout assertions |
 | VSA-04 | Turn changed-file card expansion | Four files expand and collapse without changing row identity; preview opens and Back returns to the expanded card | Passed; `20261102-device-turn-change-final` |
@@ -107,9 +107,9 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   targets without overlap.
 - HDC currently reports only UART placeholders (`COM3`, `COM4`) after a server
   restart, so none of the FHH device rows is passed.
-- Rerun the 104-pair static Mock suite, subagent send flow, settings navigation
+- Rerun the 106-pair static Mock suite, subagent send flow, settings navigation
   and all disclosure matrices against current Mock HAP
-  `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89`.
+  `BEDD9A7AD31A4C45DA7A7E7702A2A008EACD226752A0C1DCBE680E49BE12C3EF`.
 - Confirm the subagent composer send button becomes enabled after text entry
   and that exactly one prompt appears. The interrupted run recorded the text in
   the field while the action remained disabled.
@@ -118,6 +118,10 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   member.
 - Confirm settings root, DSH settings, storage and clear-cache single-line
   options use compact 44vp rows in dark, light and maximum system font size.
+- Verify the floating task-plan Dock in `plan-dock-overlay`: capture collapsed
+  and expanded layouts, prove the transcript List top/height are unchanged,
+  swipe outside the Dock surface, and repeat in light, dark, reduced motion and
+  maximum system font size. Current HDC target inventory is empty.
 - API 23 material fallback requires a physical or emulated API 23 target.
 - Valid saved-session restore, expired-session recovery and logout/relaunch need
   a real account exchange and must not be inferred from Mock fixtures.

@@ -3156,15 +3156,6 @@ export struct NativeWorkspace {
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.selectionSurface())
       }
-      if (this.taskPlan.items.length) {
-        Column() {
-          NativeConversationDock() {
-            NativeTaskDock({ document: this.taskPlan, sessionId: this.selected })
-          }
-        }.width('100%')
-          .transition(NativeMotion.disclosureTransition())
-          .animation(NativeMotion.disclosureParam())
-      }
       Stack({ alignContent: Alignment.TopStart }) {
         List({ space: 12, scroller: this.scroller }) {
           if (this.hasMore) {
@@ -3280,6 +3271,17 @@ export struct NativeWorkspace {
             else if (this.scrollMotionActive) this.scheduleScrollMotionSettle();
             else this.updateScrollTail();
           })
+        if (this.taskPlan.items.length) {
+          Column() {
+            NativeConversationDock() {
+              NativeTaskDock({ document: this.taskPlan, sessionId: this.selected })
+            }
+          }.width('100%')
+            .hitTestBehavior(HitTestMode.Transparent)
+            .zIndex(5)
+            .transition(NativeMotion.disclosureTransition())
+            .animation(NativeMotion.disclosureParam())
+        }
         if (this.backToBottomVisible && !this.menuId && !this.utilityOpen &&
           !this.modelPickerOpen && !this.toolsOpen && !this.workspacePickerOpen &&
           !this.showSessions) {

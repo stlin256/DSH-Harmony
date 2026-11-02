@@ -2,7 +2,9 @@
 
 Date: 2026-10-31
 
-Status: implementation requested.
+Updated: 2026-11-02
+
+Status: implementation correction requested for the floating task-plan Dock.
 
 ## User Requirements
 
@@ -29,6 +31,11 @@ Status: implementation requested.
   contract.
 - `PLAN-UI-10` The circular back-to-bottom control must stay above the dock group
   and anchored at the transcript's bottom-right edge.
+- `PLAN-UI-11` The floating task-plan Dock must be painted inside the transcript
+  viewport as a top overlay. Collapsing, expanding or removing it must not
+  change the transcript List's top, height or scroll position. Its expanded
+  surface may occlude messages, and touches outside the Dock surface must still
+  reach the transcript for scrolling.
 
 ## Constraints
 
@@ -53,6 +60,12 @@ Status: implementation requested.
   task control whenever the current plan is non-empty.
 - The floating control stays visible while chat scrolls without shrinking the
   transcript viewport.
+- The transcript List bounds remain unchanged across collapsed and expanded
+  Dock states; the expanded Dock paints over message content instead of
+  reserving another row or shrinking the List.
+- Touch input outside the Dock's visible surface scrolls the transcript
+  normally, while the Dock header and expanded task viewport remain
+  interactive.
 - The dock group and a populated plan stay compact near the title; expanded
   content uses an opaque themed surface and remains bounded for long lists.
 - A tap expands or collapses the task list with directional motion; long lists

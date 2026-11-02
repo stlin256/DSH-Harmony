@@ -114,6 +114,14 @@
       "requiresInteraction": true
     },
     {
+      "id": "conversation.floating-task-plan",
+      "screens": ["conversation"],
+      "states": ["plan-dock-overlay"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-task-dock-e2e.ps1"],
+      "e2eIds": ["PLAN-UI-E2E-13", "PLAN-UI-E2E-14", "PLAN-UI-E2E-15"],
+      "requiresInteraction": true
+    },
+    {
       "id": "mode.plan-and-lineage",
       "screens": ["conversation", "lineage"],
       "states": ["plan-subagent", "plan-off-error"],

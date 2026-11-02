@@ -67,6 +67,9 @@ Keep these gaps explicit until a physical or emulated target proves them:
   and all four disclosure matrices after the composer-state correction.
 - Current-HAP secret mask first paint, reveal/hide, raw-copy source, long
   virtual-window boundary, settings search navigation and system Back.
+- Floating task-plan Dock collapsed and expanded overlay geometry, unchanged
+  transcript List bounds, outside-surface scrolling, light/dark themes,
+  reduced motion and maximum system font size.
 - API 23 opaque-material fallback.
 - Portrait and landscape layouts under maximum system font size.
 - Saved-session restore, expired-session recovery and logout/relaunch with a

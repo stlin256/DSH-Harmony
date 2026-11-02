@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const queryScript = join(root, 'scripts', 'device-ui-layout-query.py');
+const taskDockAssertScript = join(root, 'scripts', 'device-ui-task-dock-assert.py');
 const python = process.platform === 'win32' ? 'python' : 'python3';
 
 function hex(value) {
@@ -64,6 +65,67 @@ function queryRightmostNear(layout, x, y, radius) {
     encoding: 'utf8',
     windowsHide: true,
   });
+}
+
+function taskDockLayout({ dockBottom, item = null, messageY = 500, listTop = 300 }) {
+  const taskText = {
+    attributes: {
+      bounds: '[50,310][180,350]',
+      text: '任务计划',
+      visible: 'true',
+    },
+    children: [],
+  };
+  const taskButton = {
+    attributes: {
+      accessibilityText: '展开任务计划',
+      bounds: '[24,300][1056,364]',
+      clickable: 'true',
+      visible: 'true',
+    },
+    children: [taskText],
+  };
+  const dockChildren = [taskButton];
+  if (item) {
+    dockChildren.push({
+      attributes: {
+        bounds: '[40,500][800,550]',
+        text: item,
+        visible: 'true',
+      },
+      children: [],
+    });
+  }
+  return {
+    attributes: {
+      bounds: '[0,0][1080,2400]',
+      visible: 'true',
+    },
+    children: [
+      {
+        attributes: {
+          bounds: `[0,${listTop}][1080,2200]`,
+          type: 'List',
+          visible: 'true',
+        },
+        children: [{
+          attributes: {
+            bounds: `[20,${messageY}][900,${messageY + 80}]`,
+            text: 'fixture message',
+            visible: 'true',
+          },
+          children: [],
+        }],
+      },
+      {
+        attributes: {
+          bounds: `[0,300][1080,${dockBottom}]`,
+          visible: 'true',
+        },
+        children: dockChildren,
+      },
+    ],
+  };
 }
 
 test('layout query uses hint only when no visible text label exists', (t) => {
@@ -195,4 +257,55 @@ test('layout query uses hint only when no visible text label exists', (t) => {
   assert.equal(send.status, 0, send.stderr);
   assert.equal(JSON.parse(send.stdout).x, 875);
   assert.equal(JSON.parse(send.stdout).y, 325);
+});
+
+test('task Dock assertion requires an overlay that does not reflow the transcript', (t) => {
+  const directory = mkdtempSync(join(tmpdir(), 'dsh-task-dock-'));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const collapsed = join(directory, 'collapsed.json');
+  const expanded = join(directory, 'expanded.json');
+  const scrolled = join(directory, 'scrolled.json');
+  const inFlow = join(directory, 'in-flow.json');
+  writeFileSync(collapsed, JSON.stringify([taskDockLayout({ dockBottom: 364 })]));
+  writeFileSync(expanded, JSON.stringify([taskDockLayout({
+    dockBottom: 700,
+    item: '检查隐私与账户入口',
+  })]));
+  writeFileSync(scrolled, JSON.stringify([taskDockLayout({
+    dockBottom: 700,
+    item: '检查隐私与账户入口',
+    messageY: 420,
+  })]));
+  writeFileSync(inFlow, JSON.stringify([taskDockLayout({
+    dockBottom: 364,
+    listTop: 372,
+  })]));
+
+  const passing = spawnSync(python, [
+    taskDockAssertScript,
+    '--collapsed',
+    collapsed,
+    '--expanded',
+    expanded,
+    '--scrolled',
+    scrolled,
+  ], {
+    encoding: 'utf8',
+    windowsHide: true,
+  });
+  assert.equal(passing.status, 0, passing.stderr);
+  assert.equal(JSON.parse(passing.stdout).transcriptList[1], 300);
+
+  const failing = spawnSync(python, [
+    taskDockAssertScript,
+    '--collapsed',
+    inFlow,
+    '--expanded',
+    inFlow,
+  ], {
+    encoding: 'utf8',
+    windowsHide: true,
+  });
+  assert.notEqual(failing.status, 0);
+  assert.match(failing.stderr, /not anchored at the transcript top/);
 });

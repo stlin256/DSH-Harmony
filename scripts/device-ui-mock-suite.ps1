@@ -66,6 +66,8 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-question'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'plan-subagent'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'plan-subagent'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'plan-dock-overlay'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'plan-dock-overlay'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'plan-off-error'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'lineage'; State = 'plan-subagent'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'lineage'; State = 'plan-subagent'; Theme = 'dark' },
@@ -168,6 +170,7 @@ function Get-ExpectedMarker {
     'conversation/interaction-approval' { return '等待审批' }
     'conversation/interaction-question' { return '问题卡样式检查' }
     'conversation/plan-subagent' { return '计划与子智能体' }
+    'conversation/plan-dock-overlay' { return '悬浮任务计划' }
     'conversation/plan-off-error' { return '计划退出失败' }
     'lineage/plan-subagent' { return '4 个子智能体' }
     'subagent/subagent-continuable' { return '可继续子会话' }

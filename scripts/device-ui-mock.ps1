@@ -25,6 +25,7 @@ param(
     'interaction-approval',
     'interaction-question',
     'plan-subagent',
+    'plan-dock-overlay',
     'plan-off-error',
     'subagent-continuable',
     'subagent-one-shot',

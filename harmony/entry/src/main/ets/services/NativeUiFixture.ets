@@ -9,7 +9,7 @@ export class NativeUiFixture {
     'dock-send-idle', 'dock-queue-pending', 'dock-queue-authoritative',
     'dock-queue-many', 'dock-send-error', 'dock-material-quiet',
     'dock-material-elevated', 'interaction-approval', 'interaction-question',
-    'plan-subagent', 'plan-off-error', 'subagent-continuable',
+    'plan-subagent', 'plan-dock-overlay', 'plan-off-error', 'subagent-continuable',
     'subagent-one-shot', 'subagent-unknown', 'subagent-parent-offline',
     'plugins-list', 'plugins-empty', 'plugins-error', 'plugins-detail',
     'plugins-restart', 'plugins-install-failed',

@@ -424,7 +424,8 @@ function isSubagentFixtureState(state: string): boolean {
 }
 
 function isPlanFixtureState(state: string): boolean {
-  return state === 'plan-subagent' || state === 'plan-off-error';
+  return state === 'plan-subagent' || state === 'plan-dock-overlay' ||
+    state === 'plan-off-error';
 }
 
 function showcaseSubagentCatalog(): ShowcaseSubagentCatalogRow[] {
@@ -527,6 +528,7 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
     state === 'interaction-approval' ? '审批卡样式检查' :
     state === 'interaction-question' ? '问题卡样式检查' :
     state === 'plan-subagent' ? '计划与子智能体' :
+    state === 'plan-dock-overlay' ? '悬浮任务计划' :
     state === 'plan-off-error' ? '计划退出失败' :
     state === 'subagent-continuable' ? '可继续子会话' :
     state === 'subagent-one-shot' ? '一次性子会话' :

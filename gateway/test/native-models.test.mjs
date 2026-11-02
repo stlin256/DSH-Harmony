@@ -1881,12 +1881,24 @@ test('todo_write projects structured status rows and the newest replacement plan
   assert.match(toolView,/this\.message\.toolName !== 'todo_write'/);
   const workspaceView=readFileSync(new URL('../../harmony/entry/src/main/ets/components/NativeWorkspace.ets',
     import.meta.url),'utf8');
-  assert.match(workspaceView,/NativeConversationDock\(\) \{[\s\S]{0,100}NativeTaskDock/);
-  assert.match(workspaceView,/Stack\(\{ alignContent: Alignment\.Bottom \}\)/);
-  const taskDockIndex=workspaceView.indexOf('NativeTaskDock({ document: this.taskPlan');
-  const transcriptListIndex=workspaceView.indexOf("List({ space: 12, scroller: this.scroller })");
-  assert.ok(taskDockIndex >= 0 && taskDockIndex < transcriptListIndex,
-    'task-plan dock must occupy its own row above the transcript viewport');
+  const conversationStart=workspaceView.indexOf('private conversation()');
+  const interactionStart=workspaceView.indexOf('ForEach(this.interactions.concat(this.continued)',
+    conversationStart);
+  const conversation=workspaceView.slice(conversationStart,interactionStart);
+  const transcriptStackIndex=conversation.indexOf('Stack({ alignContent: Alignment.TopStart })');
+  const transcriptListIndex=conversation.indexOf("List({ space: 12, scroller: this.scroller })");
+  const taskDockIndex=conversation.indexOf('NativeTaskDock({ document: this.taskPlan');
+  assert.ok(conversationStart >= 0 && interactionStart > conversationStart);
+  assert.ok(transcriptStackIndex >= 0 &&
+    transcriptStackIndex < transcriptListIndex &&
+    transcriptListIndex < taskDockIndex,
+    'task-plan dock must be an overlay after the transcript List in the same Stack');
+  assert.doesNotMatch(conversation.slice(0,transcriptStackIndex),
+    /NativeConversationDock|NativeTaskDock/,
+    'task-plan dock must not reserve a sibling row above the transcript');
+  assert.match(conversation,
+    /Column\(\) \{\s*NativeConversationDock\(\) \{[\s\S]{0,120}NativeTaskDock[\s\S]{0,180}\}\s*\}\.width\('100%'\)\s*\.hitTestBehavior\(HitTestMode\.Transparent\)\s*\.zIndex\(5\)/);
+  assert.match(conversation,/Stack\(\{ alignContent: Alignment\.Bottom \}\)/);
   assert.doesNotMatch(workspaceView,/conversationDockHeight/);
   assert.doesNotMatch(workspaceView,/contentStartOffset\(/);
   assert.match(workspaceView,/\.width\('100%'\)\.height\('100%'\)\.clip\(true\)\.cachedCount\(6\)/);
