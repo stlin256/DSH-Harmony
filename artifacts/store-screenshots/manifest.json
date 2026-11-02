@@ -1,13 +1,78 @@
 {
-  "generatedAt": "2026-10-31T07:29:04.8433876Z",
-  "device": "connected-device",
+  "generatedAt": "2026-11-02T23:05:23.1979161Z",
+  "device": "33Z0224801015621",
+  "deviceModel": "HBN-AL80",
+  "deviceApi": "26",
   "bundleName": "io.github.stlin256.dshharmony",
-  "product": "store",
-  "hap": "harmony/entry/build/store/outputs/store/entry-store-signed.hap",
+  "product": "mock",
+  "hap": "harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap",
+  "hapSha256": "FE5AEF43AFA733BE726A36BCF5627E7396ADAF16F90D6B6DAC8267CAD01ADF18",
   "rawDirectory": "artifacts/store-screenshots/raw",
   "finalDirectory": "artifacts/store-screenshots/final",
-  "model": "DeepSeek-V4-Pro",
+  "mockModel": "DeepSeek-V4-Pro",
   "reasoningEffort": "max",
+  "scenes": [
+    {
+      "file": "01-conversation-light.png",
+      "screen": "conversation",
+      "state": "plan-dock-overlay",
+      "theme": "light"
+    },
+    {
+      "file": "02-process-light.png",
+      "screen": "process",
+      "state": "completed",
+      "theme": "light"
+    },
+    {
+      "file": "03-lineage-light.png",
+      "screen": "lineage",
+      "state": "plan-subagent",
+      "theme": "light"
+    },
+    {
+      "file": "04-preview-light.png",
+      "screen": "preview",
+      "state": "text-config-preview",
+      "theme": "light"
+    },
+    {
+      "file": "05-settings-light.png",
+      "screen": "settings",
+      "state": "completed",
+      "theme": "light"
+    },
+    {
+      "file": "06-conversation-dark.png",
+      "screen": "conversation",
+      "state": "plan-subagent",
+      "theme": "dark"
+    },
+    {
+      "file": "07-process-dark.png",
+      "screen": "process",
+      "state": "completed",
+      "theme": "dark"
+    },
+    {
+      "file": "08-subagent-dark.png",
+      "screen": "subagent",
+      "state": "subagent-continuable",
+      "theme": "dark"
+    },
+    {
+      "file": "09-automation-dark.png",
+      "screen": "automation",
+      "state": "automation-list",
+      "theme": "dark"
+    },
+    {
+      "file": "10-plugins-dark.png",
+      "screen": "plugins",
+      "state": "plugins-list",
+      "theme": "dark"
+    }
+  ],
   "artifactCount": 26,
   "appGalleryLandscapeCount": 10,
   "appGalleryPortraitCount": 10

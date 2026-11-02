@@ -28,7 +28,7 @@
 
 ## Harness, designed for a phone
 
-DSH Harmony brings DeepSeek Harness workspaces, sessions, tool calls and live output to HarmonyOS. Keep every capability of the original web workspace, or switch to a native surface redesigned for touch, keyboards, safe areas and system Back.
+DSH Harmony brings DeepSeek Harness workspaces, sessions, tool calls and live output to HarmonyOS through an ArkUI surface redesigned for touch, keyboards, safe areas and system Back.
 
 The goal goes beyond making Harness fit. From cold start to long-history scrolling, from a tool call to a background notification, DSH Harmony is built around less waiting, clearer state and more natural interaction.
 
@@ -46,21 +46,21 @@ The goal goes beyond making Harness fit. From cold start to long-history scrolli
       <sub>Reasoning, commands and file changes stay compact and expand in context.</sub>
     </td>
     <td align="center" width="33%">
-      <img src="artifacts/store-screenshots/final/appgallery-portrait/03-sidebar-1080x1920.png" width="250" alt="Workspace sidebar"><br>
-      <strong>Workspaces in order</strong><br>
-      <sub>Pinned sessions, recents, search and workspace controls stay within reach.</sub>
+      <img src="artifacts/store-screenshots/final/appgallery-portrait/03-plan-subagent-1080x1920.png" width="250" alt="Plan and subagent lineage"><br>
+      <strong>Plans and subagents stay connected</strong><br>
+      <sub>Plans, subagents and parent-child sessions keep their context in view.</sub>
     </td>
     <td align="center" width="33%">
-      <img src="artifacts/store-screenshots/final/appgallery-portrait/04-file-browser-1080x1920.png" width="250" alt="Workspace file browser"><br>
+      <img src="artifacts/store-screenshots/final/appgallery-portrait/04-file-preview-1080x1920.png" width="250" alt="Workspace file preview"><br>
       <strong>Files live in the workspace</strong><br>
-      <sub>Browse folders and preview Markdown, code and images in read-only form.</sub>
+      <sub>Read configs, tables, Markdown, code and images directly in read-only form.</sub>
     </td>
   </tr>
 </table>
 
 <p align="center">
   <img src="artifacts/store-screenshots/final/appgallery-landscape/09-process-dark-1920x1080.png" width="49%" alt="DSH Harmony dark mode process view">
-  <img src="artifacts/store-screenshots/final/appgallery-landscape/10-sidebar-dark-1920x1080.png" width="49%" alt="DSH Harmony dark mode sidebar">
+  <img src="artifacts/store-screenshots/final/appgallery-landscape/10-subagent-dark-1920x1080.png" width="49%" alt="DSH Harmony dark mode subagent view">
 </p>
 
 ## Fluid, focused and complete
@@ -70,11 +70,9 @@ The goal goes beyond making Harness fit. From cold start to long-history scrolli
 | Cache-first rendering and incremental sync preload nearby history. Stable lists and virtualized rendering keep long conversations light, while transitions follow HarmonyOS motion. | DSH's compact hierarchy and visual language keep tools, reasoning, files and messages distinct without letting chrome compete with content. |
 | Press feedback, drawers, navigation, safe areas and system Back are implemented natively, with respect for reduced-motion preferences. | Sessions, models, tools, approvals, questions, images, Markdown, code, file browsing and tiered notifications cover real mobile workflows. |
 
-## Two experiences, one workspace
+## One native workspace
 
-**Compatibility mode** preserves the original Harness web workspace, plugins and advanced controls. Native settings integrate into its sidebar, so the familiar interface stays one product.
-
-**Native mode** rebuilds high-frequency flows in ArkUI: sessions, live messages, tool steps, approvals, questions, model selection, file previews and an image lightbox all use DSH's visual language. It remembers the last session, workspace, scroll position and disclosure state.
+DSH Harmony builds one native workspace in ArkUI: sessions, live messages, tool steps, approvals, questions, model selection, file previews, plugins and automation all use DSH's visual language. It remembers the last session, workspace, scroll position and disclosure state.
 
 Login stays flexible:
 
@@ -93,7 +91,7 @@ You can also open **Plugins → Add plugin** in DSH and paste the same versioned
 
 Setup guides:
 
-[Plugin installation](docs/PLUGIN-INSTALL.md) · [Deployment](docs/DEPLOYMENT.md) · [Passkey](docs/OIDC-DEPLOYMENT.md) · [Interface modes](docs/UI-MODES.md)
+[Plugin installation](docs/PLUGIN-INSTALL.md) · [Deployment](docs/DEPLOYMENT.md) · [Passkey](docs/OIDC-DEPLOYMENT.md)
 
 ## Stay close to every task
 

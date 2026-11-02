@@ -13,7 +13,7 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'resolve-deveco-home.ps1')
 $DevEcoHome = Resolve-DevEcoHome -ExplicitHome $DevEcoHome
 if (-not $HapPath) {
-  $HapPath = Join-Path $repo 'harmony\entry\build\store\outputs\store\entry-store-signed.hap'
+  $HapPath = Join-Path $repo 'harmony\entry\build\mock\outputs\mock\entry-mock-signed.hap'
 }
 if (-not $OutputDir) {
   $OutputDir = Join-Path $repo 'artifacts\store-screenshots'
@@ -46,9 +46,9 @@ if (-not $Device) {
 
 $env:DEVECO_CLI_STUDIO_PATH = $DevEcoHome
 if (-not $SkipBuild) {
-  & (Join-Path $PSScriptRoot 'build-harmony.ps1') -DevEcoHome $DevEcoHome -Product store -BuildMode release -AssembleApp
+  & (Join-Path $PSScriptRoot 'build-harmony.ps1') -DevEcoHome $DevEcoHome -Product mock -BuildMode release -AssembleApp
   if ($LASTEXITCODE -ne 0) {
-    throw "Store Release build failed: $LASTEXITCODE"
+    throw "Mock Release build failed: $LASTEXITCODE"
   }
 }
 $hap = (Resolve-Path -LiteralPath $HapPath).Path
@@ -62,13 +62,13 @@ if (-not $SkipInstall) {
 
 $bundle = 'io.github.stlin256.dshharmony'
 
-function Capture([string]$fileName, [string]$screen, [string]$theme) {
+function Capture([string]$fileName, [string]$screen, [string]$state, [string]$theme) {
   $path = Join-Path $rawDir $fileName
   Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
   & $hdc -t $Device shell "aa force-stop $bundle" | Out-Null
-  & $hdc -t $Device shell "aa start -a EntryAbility -b $bundle -m entry --ps storeShowcase true --ps showcaseScreen $screen --ps showcaseTheme $theme"
+  & $hdc -t $Device shell "aa start -a EntryAbility -b $bundle -m entry --ps storeShowcase true --ps showcaseScreen $screen --ps showcaseState $state --ps showcaseTheme $theme"
   if ($LASTEXITCODE -ne 0) {
-    throw "Launch failed for $screen/$theme"
+    throw "Launch failed for $screen/$state/$theme"
   }
   Start-Sleep -Seconds 4
   devecocli ui screenshot --device $Device --path $path
@@ -77,32 +77,45 @@ function Capture([string]$fileName, [string]$screen, [string]$theme) {
   }
 }
 
-Capture '01-conversation-light.png' 'conversation' 'light'
-Capture '02-process-light.png' 'process' 'light'
-Capture '03-sidebar-light.png' 'sidebar' 'light'
-Capture '04-browser-light.png' 'browser' 'light'
-Capture '05-settings-light.png' 'settings' 'light'
-Capture '06-conversation-dark.png' 'conversation' 'dark'
-Capture '07-process-dark.png' 'process' 'dark'
-Capture '08-sidebar-dark.png' 'sidebar' 'dark'
-Capture '09-browser-dark.png' 'browser' 'dark'
-Capture '10-settings-dark.png' 'settings' 'dark'
+$captures = @(
+  [ordered]@{ file = '01-conversation-light.png'; screen = 'conversation'; state = 'plan-dock-overlay'; theme = 'light' },
+  [ordered]@{ file = '02-process-light.png'; screen = 'process'; state = 'completed'; theme = 'light' },
+  [ordered]@{ file = '03-lineage-light.png'; screen = 'lineage'; state = 'plan-subagent'; theme = 'light' },
+  [ordered]@{ file = '04-preview-light.png'; screen = 'preview'; state = 'text-config-preview'; theme = 'light' },
+  [ordered]@{ file = '05-settings-light.png'; screen = 'settings'; state = 'completed'; theme = 'light' },
+  [ordered]@{ file = '06-conversation-dark.png'; screen = 'conversation'; state = 'plan-subagent'; theme = 'dark' },
+  [ordered]@{ file = '07-process-dark.png'; screen = 'process'; state = 'completed'; theme = 'dark' },
+  [ordered]@{ file = '08-subagent-dark.png'; screen = 'subagent'; state = 'subagent-continuable'; theme = 'dark' },
+  [ordered]@{ file = '09-automation-dark.png'; screen = 'automation'; state = 'automation-list'; theme = 'dark' },
+  [ordered]@{ file = '10-plugins-dark.png'; screen = 'plugins'; state = 'plugins-list'; theme = 'dark' }
+)
+
+foreach ($capture in $captures) {
+  Capture $capture.file $capture.screen $capture.state $capture.theme
+}
 
 python (Join-Path $PSScriptRoot 'compose-store-screenshots.py') --raw $rawDir --out $finalDir
 if ($LASTEXITCODE -ne 0) {
   throw "Screenshot composition failed: $LASTEXITCODE"
 }
 
+$deviceModel = (& $hdc -t $Device shell "param get const.product.model").Trim()
+$deviceApi = (& $hdc -t $Device shell "param get const.ohos.apiversion").Trim()
+$hapHash = (Get-FileHash -LiteralPath $hap -Algorithm SHA256).Hash
 $manifest = [ordered]@{
   generatedAt = (Get-Date).ToUniversalTime().ToString('o')
-  device = 'connected-device'
+  device = $Device
+  deviceModel = $deviceModel
+  deviceApi = $deviceApi
   bundleName = $bundle
-  product = 'store'
-  hap = 'harmony/entry/build/store/outputs/store/entry-store-signed.hap'
+  product = 'mock'
+  hap = 'harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap'
+  hapSha256 = $hapHash
   rawDirectory = 'artifacts/store-screenshots/raw'
   finalDirectory = 'artifacts/store-screenshots/final'
-  model = 'DeepSeek-V4-Pro'
+  mockModel = 'DeepSeek-V4-Pro'
   reasoningEffort = 'max'
+  scenes = $captures
   artifactCount = @(Get-ChildItem -LiteralPath $finalDir -Filter '*.png').Count
   appGalleryLandscapeCount = @(Get-ChildItem -LiteralPath (Join-Path $finalDir 'appgallery-landscape') -Filter '*.png').Count
   appGalleryPortraitCount = @(Get-ChildItem -LiteralPath (Join-Path $finalDir 'appgallery-portrait') -Filter '*.png').Count

@@ -14,14 +14,14 @@ REPOSITORY = "github.com/stlin256/DSH-Harmony"
 CURATED_OUTPUTS = (
     ("01-conversation-light", "01-conversation"),
     ("02-process-light", "02-process"),
-    ("03-sidebar-light", "03-sidebar"),
-    ("04-browser-light", "04-file-browser"),
+    ("03-lineage-light", "03-plan-subagent"),
+    ("04-preview-light", "04-file-preview"),
     ("05-settings-light", "05-settings"),
     ("11-paired-appearance", "06-appearance-light-dark"),
     ("12-desktop-cards", "07-desktop-cards"),
     ("13-open-source", "08-open-source"),
     ("07-process-dark", "09-process-dark"),
-    ("08-sidebar-dark", "10-sidebar-dark"),
+    ("08-subagent-dark", "10-subagent-dark"),
 )
 
 CAPTURES = (
@@ -30,8 +30,8 @@ CAPTURES = (
         "01-conversation-light",
         "会话",
         "每个对话\n都在掌控中",
-        "原生会话、工具过程与 Markdown，保持 DSH 的清晰与紧凑。",
-        ("原生渲染", "流式会话", "代码高亮"),
+        "会话、工作过程与浮动任务计划保持在同一视野，长内容也可以自然展开。",
+        ("原生会话", "任务计划", "流式输出"),
         False,
     ),
     (
@@ -39,26 +39,26 @@ CAPTURES = (
         "02-process-light",
         "工作过程",
         "过程清楚\n结果直接",
-        "命令、文件与思考过程按 DSH 语义展开，重要信息一眼可见。",
-        ("工具调用", "文件变更", "过程回顾"),
+        "思考、命令、文件和结果按实际顺序展开，重要信息保持紧凑而清楚。",
+        ("真实顺序", "结构化工具", "紧凑展开"),
         False,
     ),
     (
-        "03-sidebar-light.png",
-        "03-sidebar-light",
-        "侧边栏",
-        "工作区\n一滑即达",
-        "置顶会话、工作区分组与搜索，在轻量侧边抽屉中随手切换。",
-        ("置顶会话", "工作区分组", "最近交互"),
+        "03-lineage-light.png",
+        "03-lineage-light",
+        "计划与子代理",
+        "分工清楚\n上下文相连",
+        "计划、子代理和父子会话汇成一条清晰谱系，继续检查也不会丢失上下文。",
+        ("计划模式", "子代理谱系", "会话继续"),
         False,
     ),
     (
-        "04-browser-light.png",
-        "04-browser-light",
-        "文件浏览",
+        "04-preview-light.png",
+        "04-preview-light",
+        "文件预览",
         "文件就在\n工作区里",
-        "浏览目录、预览内容并保存文件，全程保持只读边界。",
-        ("目录分组", "图片预览", "只读浏览"),
+        "配置文件、表格、Markdown、代码和图片都能在工作区中直接阅读。",
+        ("文本预览", "表格预览", "只读浏览"),
         False,
     ),
     (
@@ -73,10 +73,10 @@ CAPTURES = (
     (
         "06-conversation-dark.png",
         "06-conversation-dark",
-        "深色模式",
-        "专注，从夜色\n延续",
-        "亮色、暗色与跟随系统，阅读体验始终一致。",
-        ("原生深色", "低干扰", "跟随系统"),
+        "计划与子代理",
+        "复杂协作\n一眼看清",
+        "计划状态、子代理数量与会话内容在深色界面中保持清楚且不喧宾夺主。",
+        ("计划模式", "子代理数量", "原生深色"),
         True,
     ),
     (
@@ -84,35 +84,35 @@ CAPTURES = (
         "07-process-dark",
         "深色工作过程",
         "复杂过程\n依然清楚",
-        "思考、工具与结果保持层级，深色界面也能快速扫读。",
-        ("工具调用", "折叠过程", "差异查看"),
+        "思考顺序、命令结果与文件变化保持层级，深色界面也能快速扫读。",
+        ("思考顺序", "命令结果", "差异查看"),
         True,
     ),
     (
-        "08-sidebar-dark.png",
-        "08-sidebar-dark",
-        "深色侧边栏",
-        "切换工作区\n不打断思路",
-        "在深色界面中快速切换置顶会话与最近工作区。",
-        ("置顶会话", "搜索", "快速切换"),
+        "08-subagent-dark.png",
+        "08-subagent-dark",
+        "子代理",
+        "继续检查\n不离开上下文",
+        "从标题进入子代理会话，查看结果并继续发送，父子关系始终清楚。",
+        ("子代理会话", "模式标识", "继续发送"),
         True,
     ),
     (
-        "09-browser-dark.png",
-        "09-browser-dark",
-        "深色文件浏览",
-        "文件预览\n同样清晰",
-        "目录、图片、Markdown 和代码在深色模式下保持可读。",
-        ("目录浏览", "预览模式", "保存文件"),
+        "09-automation-dark.png",
+        "09-automation-dark",
+        "自动化",
+        "重复工作\n交给自动化",
+        "在原生界面中浏览自动化、核对运行状态，并把常用流程集中管理。",
+        ("原生列表", "运行状态", "集中管理"),
         True,
     ),
     (
-        "10-settings-dark.png",
-        "10-settings-dark",
-        "深色设置",
-        "一致的设置\n一致的体验",
-        "外观、通知与账户设置完整适配深色模式。",
-        ("主题适配", "通知分级", "工作区"),
+        "10-plugins-dark.png",
+        "10-plugins-dark",
+        "插件",
+        "插件管理\n就在手边",
+        "浏览已安装插件、确认运行状态，并在同一处完成启用与管理。",
+        ("插件列表", "运行状态", "集中管理"),
         True,
     ),
 )
@@ -152,14 +152,19 @@ def wrap_pixels(
     face: ImageFont.FreeTypeFont,
     max_width: int,
 ) -> list[str]:
+    no_line_start = "，。！？；：、）》】」』”’"
     lines: list[str] = []
     for paragraph in text.splitlines():
         current = ""
         for char in paragraph:
             candidate = current + char
             if current and text_width(draw, candidate, face) > max_width:
-                lines.append(current.rstrip())
-                current = char.lstrip()
+                if char in no_line_start:
+                    lines.append(candidate.rstrip())
+                    current = ""
+                else:
+                    lines.append(current.rstrip())
+                    current = char.lstrip()
             else:
                 current = candidate
         if current:

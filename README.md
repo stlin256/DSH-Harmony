@@ -28,7 +28,7 @@
 
 ## 为手机而生的 Harness
 
-DSH Harmony 将 DeepSeek Harness 的工作空间、会话、工具调用和实时输出带到 HarmonyOS。你可以保留原版网页的全部能力，也可以切换到为触控、键盘、安全区与系统返回重新设计的原生界面。
+DSH Harmony 将 DeepSeek Harness 的工作空间、会话、工具调用和实时输出带到 HarmonyOS，并以 ArkUI 构建为触控、键盘、安全区与系统返回重新设计的原生界面。
 
 它关心的不只是“能不能用”。从冷启动到长对话滚动，从一次工具调用到一条后台通知，DSH Harmony 都围绕更少的等待、更清楚的状态和更自然的操作展开。
 
@@ -46,21 +46,21 @@ DSH Harmony 将 DeepSeek Harness 的工作空间、会话、工具调用和实�
       <sub>思考、命令与文件改动保持紧凑，并在同一处展开。</sub>
     </td>
     <td align="center" width="33%">
-      <img src="artifacts/store-screenshots/final/appgallery-portrait/03-sidebar-1080x1920.png" width="250" alt="工作区侧边栏"><br>
-      <strong>工作区井然有序</strong><br>
-      <sub>置顶、最近会话、搜索与工作区管理随手可达。</sub>
+      <img src="artifacts/store-screenshots/final/appgallery-portrait/03-plan-subagent-1080x1920.png" width="250" alt="计划与子代理谱系"><br>
+      <strong>计划与子代理，上下文相连</strong><br>
+      <sub>计划、子代理和父子会话保持清楚，继续检查也不丢失上下文。</sub>
     </td>
     <td align="center" width="33%">
-      <img src="artifacts/store-screenshots/final/appgallery-portrait/04-file-browser-1080x1920.png" width="250" alt="工作区文件浏览器"><br>
+      <img src="artifacts/store-screenshots/final/appgallery-portrait/04-file-preview-1080x1920.png" width="250" alt="工作区文件预览"><br>
       <strong>文件就在工作区里</strong><br>
-      <sub>浏览目录，预览 Markdown、代码和图片，全程只读。</sub>
+      <sub>直接阅读配置、表格、Markdown、代码和图片，全程只读。</sub>
     </td>
   </tr>
 </table>
 
 <p align="center">
   <img src="artifacts/store-screenshots/final/appgallery-landscape/09-process-dark-1920x1080.png" width="49%" alt="DSH Harmony 深色模式工作过程">
-  <img src="artifacts/store-screenshots/final/appgallery-landscape/10-sidebar-dark-1920x1080.png" width="49%" alt="DSH Harmony 深色模式侧边栏">
+  <img src="artifacts/store-screenshots/final/appgallery-landscape/10-subagent-dark-1920x1080.png" width="49%" alt="DSH Harmony 深色模式子代理">
 </p>
 
 ## 顺滑、简洁，也足够完整
@@ -70,11 +70,9 @@ DSH Harmony 将 DeepSeek Harness 的工作空间、会话、工具调用和实�
 | 缓存先行、增量同步，历史内容提前预取；稳定列表与虚拟化渲染让长对话保持轻盈，页面切换和展开状态遵循 HarmonyOS 的节奏。 | 沿用 DSH 的紧凑信息层级与视觉语义。工具、思考、文件和消息保持清楚，但不让界面替内容抢戏。 |
 | 触控反馈、抽屉、页面动线、安全区和系统 Back 都为 HarmonyOS 重新实现，并尊重系统的减少动态效果设置。 | 覆盖会话、模型、工具、审批、提问、图片、Markdown、代码、文件浏览与分级通知，让移动端真正完成工作流。 |
 
-## 两种体验，一套工作空间
+## 原生界面，一套工作流
 
-**兼容模式**完整呈现 Harness 原版网页、插件和高级控件。原生设置会无缝注入侧边栏，熟悉的界面不必被拆成两套产品。
-
-**原生模式**用 ArkUI 重写高频工作流：会话列表、实时消息、工具步骤、审批、提问、模型选择、文件预览和图片灯箱都以 DSH 的视觉语言呈现。它会记住上次会话、工作区、滚动位置和展开状态。
+DSH Harmony 以 ArkUI 构建单一的原生工作空间：会话列表、实时消息、工具步骤、审批、提问、模型选择、文件预览、插件和自动化都以 DSH 的视觉语言呈现。它会记住上次会话、工作区、滚动位置和展开状态。
 
 登录同样保持灵活：
 
@@ -93,7 +91,7 @@ DSH Harmony 将 DeepSeek Harness 的工作空间、会话、工具调用和实�
 
 完整说明：
 
-[插件安装](docs/PLUGIN-INSTALL.md) · [部署](docs/DEPLOYMENT.md) · [Passkey](docs/OIDC-DEPLOYMENT.md) · [界面模式](docs/UI-MODES.md)
+[插件安装](docs/PLUGIN-INSTALL.md) · [部署](docs/DEPLOYMENT.md) · [Passkey](docs/OIDC-DEPLOYMENT.md)
 
 ## 连接状态，随时知道
 
