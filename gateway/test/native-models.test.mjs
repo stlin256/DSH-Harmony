@@ -1992,6 +1992,21 @@ test('native syntax highlighting preserves source and completed turns own one fo
   assert.ok(tokens.some(token => token.kind === 'keyword'));
   assert.ok(tokens.some(token => token.kind === 'string'));
   assert.equal(nativeHighlightCode(source, 'unknown').map(token => token.text).join(''), source);
+  const config = '; network\nhost = localhost\nport=8080\n';
+  const configTokens = nativeHighlightCode(config, 'ini');
+  assert.equal(configTokens.map(token => token.text).join(''), config);
+  assert.ok(configTokens.some(token => token.kind === 'comment'));
+  assert.ok(configTokens.some(token => token.kind === 'property'));
+  const powershell = 'Get-ChildItem # files\n';
+  assert.ok(nativeHighlightCode(powershell, 'powershell').some(token => token.kind === 'comment'));
+  const aliasedTypeScript = nativeHighlightCode('const alias = "kept";', 'ts');
+  assert.equal(aliasedTypeScript.map(token => token.text).join(''), 'const alias = "kept";');
+  assert.ok(aliasedTypeScript.some(token => token.kind === 'keyword'));
+  const aliasedShell = nativeHighlightCode('#!/usr/bin/env sh\nprintf ok', 'sh');
+  assert.ok(aliasedShell.some(token => token.kind === 'comment'));
+  assert.ok(nativeHighlightCode('# heading', 'md').some(token => token.kind === 'keyword'));
+  assert.deepEqual(Array.from(nativeHighlightCode('version 2 "quoted"', 'text'),
+    token => token.kind), ['plain']);
 
   const model = load('NativeSessionModel', {});
   const transcript = load('NativeTranscript', {});
@@ -2031,10 +2046,11 @@ test('foreground navigation wins over width changes and the session menu keeps t
   assert.equal(nativeUtilityMenu(true,false,false,false,false).map(x=>x.id).join(','),'files');
 });
 
-test('workspace document model distinguishes previewable images, SVG and Markdown from source files', () => {
+test('workspace document model classifies previews, configuration, text fallback and binary files', () => {
   const document = load('NativeDocumentModel', {});
   assert.equal(document.nativeDocumentDescriptor('assets/photo.PNG').kind, 'image');
   assert.equal(document.nativeDocumentDescriptor('assets/photo.png').defaultMode, 'preview');
+  assert.equal(document.nativeDocumentDescriptor('assets/photo.avif').kind, 'image');
   assert.equal(document.nativeDocumentDescriptor('diagram.svg').kind, 'svg');
   assert.equal(document.nativeDocumentDescriptor('diagram.svg').defaultMode, 'preview');
   assert.equal(document.nativeDocumentDescriptor('diagram.svg').language, 'svg');
@@ -2049,8 +2065,69 @@ test('workspace document model distinguishes previewable images, SVG and Markdow
   assert.equal(document.nativeDocumentDescriptor('site/index.html').canToggle, true);
   assert.equal(document.nativeDocumentDescriptor('src/main.ets').kind, 'code');
   assert.equal(document.nativeDocumentDescriptor('src/main.ets').language, 'arkts');
-  assert.equal(document.nativeDocumentDescriptor('LICENSE').kind, 'unknown');
+  assert.equal(document.nativeDocumentDescriptor('config/app.conf').kind, 'code');
+  assert.equal(document.nativeDocumentDescriptor('config/app.conf').language, 'ini');
+  assert.equal(document.nativeDocumentDescriptor('config/app.conf').canPreview, true);
+  assert.equal(document.nativeDocumentDescriptor('.env.production').language, 'dotenv');
+  assert.equal(document.nativeDocumentDescriptor('ops/service.cfg').language, 'ini');
+  assert.equal(document.nativeDocumentDescriptor('data/settings.properties').language, 'ini');
+  assert.equal(document.nativeDocumentDescriptor('logs/runtime.log').language, 'log');
+  assert.equal(document.nativeDocumentDescriptor('notes.txt').kind, 'text');
+  assert.equal(document.nativeDocumentDescriptor('tsconfig.jsonc').language, 'json');
+  assert.equal(document.nativeDocumentDescriptor('events.jsonl').language, 'json');
+  assert.equal(document.nativeDocumentDescriptor('table.csv').kind, 'delimited');
+  assert.equal(document.nativeDocumentDescriptor('table.csv').defaultMode, 'preview');
+  assert.equal(document.nativeDocumentDescriptor('table.csv').canToggle, true);
+  assert.equal(document.nativeDocumentDescriptor('table.tsv').language, 'tsv');
+  assert.equal(document.nativeDocumentDescriptor('LICENSE').kind, 'text');
+  assert.equal(document.nativeDocumentDescriptor('.gitignore').kind, 'code');
+  assert.equal(document.nativeDocumentDescriptor('.gitignore').language, 'ini');
+  assert.equal(document.nativeDocumentDescriptor('.gitattributes').language, 'ini');
+  assert.equal(document.nativeDocumentDescriptor('Dockerfile.dev').language, 'dockerfile');
+  assert.equal(document.nativeDocumentDescriptor('Makefile').language, 'make');
+  assert.equal(document.nativeDocumentDescriptor('PKGBUILD').language, 'shell');
+  assert.equal(document.nativeDocumentDescriptor('source.unknown').kind, 'text');
+  assert.equal(document.nativeDocumentDescriptor('source.unknown').canPreview, true);
+  assert.equal(document.nativeDocumentDescriptor('archive.tar.gz').kind, 'binary');
+  assert.equal(document.nativeDocumentDescriptor('archive.tar.gz').canPreview, false);
+  assert.equal(document.nativeDocumentDescriptor('settings.sqlite').kind, 'binary');
+  assert.equal(document.nativeDocumentDescriptor('scan.tiff').kind, 'binary');
+  assert.equal(document.nativeDocumentDescriptor('artwork.psd').kind, 'binary');
+  assert.equal(document.nativeDocumentDescriptor('design.fig').kind, 'binary');
+  assert.equal(document.nativeDocumentDescriptor('diagram.svgz').kind, 'binary');
   assert.equal(document.nativeDocumentExtension('archive.tar.gz'), 'gz');
+});
+
+test('native delimited preview preserves RFC 4180 records and bounds only the table projection', () => {
+  const delimited = load('NativeDelimitedModel', {});
+  const csv = delimited.nativeDelimitedTable(
+    'name,note,empty\r\nAlice,"hello, ""world""",\r\nBob,"two\nlines",x\r\nshort',
+    'csv');
+  assert.equal(csv.error, '');
+  assert.equal(csv.columnCount, 3);
+  assert.deepEqual(Array.from(csv.rows[0]), ['name', 'note', 'empty']);
+  assert.deepEqual(Array.from(csv.rows[1]), ['Alice', 'hello, "world"', '']);
+  assert.deepEqual(Array.from(csv.rows[2]), ['Bob', 'two\nlines', 'x']);
+  assert.deepEqual(Array.from(csv.rows[3]), ['short']);
+
+  const tsv = delimited.nativeDelimitedTable('a\tb\n1\t2\t3', 'tsv');
+  assert.equal(tsv.error, '');
+  assert.deepEqual(Array.from(tsv.rows[1]), ['1', '2', '3']);
+
+  const bounded = delimited.nativeDelimitedTable('aa,bb,cc\n11,22,33\n44,55,66', 'csv', 2, 2, 1);
+  assert.equal(bounded.rows.length, 2);
+  assert.equal(bounded.truncatedRows, true);
+  assert.equal(bounded.truncatedColumns, true);
+  assert.equal(bounded.truncatedCells, true);
+
+  const incomplete = delimited.nativeDelimitedTable('a,b\n1,"open', 'csv', 200, 32, 4096, true);
+  assert.equal(incomplete.error, '');
+  assert.equal(incomplete.incomplete, true);
+  assert.equal(incomplete.rows.length, 1);
+  assert.equal(delimited.nativeDelimitedTable('a\n"open', 'csv').error,
+    '表格包含未闭合的引号');
+  assert.equal(delimited.nativeDelimitedTable('a\n"closed"x', 'csv').error,
+    '表格中存在无法解析的引号');
 });
 
 test('document preview/source mode uses one title-row icon action', () => {
@@ -2188,6 +2265,23 @@ test('PDF and HTML preview source contracts use bounded native surfaces', () => 
   assert.match(htmlDocument, /style-src[\s\S]{0,100}http: https:/);
   assert.match(htmlDocument, /connect-src http: https:/);
   assert.match(htmlDocument, /viewport-fit=cover/);
+});
+
+test('config, delimited and binary previews use preclassified native branches', () => {
+  const preview = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeFilePreview.ets', import.meta.url), 'utf8');
+  const delimited = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeDelimitedPreview.ets', import.meta.url), 'utf8');
+  assert.match(preview, /this\.canPreview = value\.canPreview/);
+  assert.match(preview, /if \(!this\.canPreview \|\| this\.documentKind === 'binary'\)/);
+  assert.match(preview, /this\.error = '此文件类型暂不支持预览，仍可下载'/);
+  assert.match(preview, /this\.documentKind === 'binary'\) \{\s*this\.unsupportedBody\(\)/);
+  assert.match(preview, /this\.documentKind === 'delimited' && this\.mode === 'preview'/);
+  assert.match(preview, /NativeDelimitedPreview\(\{[\s\S]{0,180}format: this\.language/);
+  assert.doesNotMatch(preview, /documentKind === 'unknown'/);
+  assert.match(delimited, /nativeDelimitedTable\([\s\S]{0,160}this\.hasMore/);
+  assert.match(delimited, /literal: true/);
+  assert.match(delimited, /ScrollDirection\.Vertical/);
 });
 
 test('short Markdown preview pins blocks to the top of the reader', () => {

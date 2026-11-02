@@ -7,6 +7,9 @@ import { NativeDesign } from '../services/NativeDesign';
 export struct NativeTable {
   @Prop table: NativeMarkdownTable = new NativeMarkdownTable();
   @Prop maskSecrets: boolean = false;
+  @Prop literal: boolean = false;
+  @Prop cellWidth: number = 148;
+  @Prop maxLines: number = 3;
   client: NativeHarnessClient = new NativeHarnessClient('');
   sessionId: string = '';
   @StorageLink('nativeDark') private dark: boolean = false;
@@ -14,9 +17,19 @@ export struct NativeTable {
   @Builder
   private cell(value: string, header: boolean, align: string) {
     Column() {
-      NativeInlineText({ text: value, textSize: 12, muted: !header, alignment: align,
-        maskSecrets: this.maskSecrets, client: this.client, sessionId: this.sessionId })
-    }.width(148).padding({ left: 10, right: 10, top: 8, bottom: 8 }).alignItems(HorizontalAlign.Start)
+      if (this.literal && !header) {
+        Text(value || ' ')
+          .fontSize(NativeDesign.fontCaption)
+          .fontColor(NativeDesign.textPrimary(this.dark))
+          .textAlign(align === 'right' ? TextAlign.End : align === 'center' ? TextAlign.Center : TextAlign.Start)
+          .maxLines(this.maxLines)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+      } else {
+        NativeInlineText({ text: value, textSize: 12, muted: !header, alignment: align,
+          maskSecrets: this.maskSecrets, client: this.client, sessionId: this.sessionId })
+      }
+    }.width(this.cellWidth).padding({ left: 10, right: 10, top: 8, bottom: 8 }).alignItems(HorizontalAlign.Start)
       .backgroundColor(header ? NativeDesign.field(this.dark) : Color.Transparent)
   }
 

@@ -20,19 +20,40 @@ const constants: Set<string> = new Set<string>([
   'undefined', 'NaN', 'Infinity', 'None', 'True', 'False', 'nil', 'NULL', 'true', 'false', 'null'
 ]);
 const hashComments: Set<string> = new Set<string>([
-  'python', 'py', 'shell', 'bash', 'sh', 'powershell', 'ps1', 'yaml', 'yml', 'toml', 'ruby'
+  'python', 'shell', 'fish', 'powershell', 'yaml', 'toml', 'ruby', 'ini', 'dotenv',
+  'dockerfile', 'make', 'cmake', 'r', 'perl', 'elixir', 'nix', 'graphql', 'hcl'
 ]);
 const slashComments: Set<string> = new Set<string>([
-  'javascript', 'js', 'typescript', 'ts', 'arkts', 'jsx', 'tsx', 'go', 'rust', 'java', 'kotlin',
-  'swift', 'c', 'cpp', 'c++', 'cs', 'scss', 'less'
+  'javascript', 'typescript', 'arkts', 'tsx', 'jsx', 'go', 'rust', 'java', 'c',
+  'cpp', 'csharp', 'kotlin', 'swift', 'php', 'scala', 'dart', 'groovy', 'hcl',
+  'scss', 'less', 'system-verilog', 'verilog'
 ]);
 const htmlLike: Set<string> = new Set<string>(['html', 'xml', 'svg']);
-const markdownLike: Set<string> = new Set<string>(['markdown', 'md']);
+const markdownLike: Set<string> = new Set<string>(['markdown']);
+const semicolonComments: Set<string> = new Set<string>(['ini']);
 const languages: Set<string> = new Set<string>([
-  'javascript', 'js', 'typescript', 'ts', 'arkts', 'jsx', 'tsx', 'json', 'shell', 'bash', 'sh',
-  'powershell', 'ps1', 'python', 'py', 'go', 'rust', 'java', 'kotlin', 'swift', 'c', 'cpp', 'c++',
-  'cs', 'html', 'xml', 'svg', 'css', 'scss', 'less', 'yaml', 'yml', 'toml', 'sql', 'markdown', 'md',
-  'diff', 'patch', 'ruby'
+  'typescript', 'tsx', 'javascript', 'jsx', 'arkts', 'shell', 'fish', 'json', 'csv',
+  'tsv', 'python', 'ruby', 'go', 'rust', 'java', 'c', 'cpp', 'csharp', 'kotlin',
+  'swift', 'php', 'yaml', 'toml', 'ini', 'dotenv', 'log', 'text', 'diff', 'http',
+  'markdown', 'mdx', 'rst', 'latex', 'bibtex', 'asciidoc', 'html', 'xml', 'svg',
+  'css', 'scss', 'less', 'sql', 'lua', 'bat', 'powershell', 'r', 'julia', 'dart',
+  'scala', 'clojure', 'erlang', 'elixir', 'haskell', 'fsharp', 'vb', 'perl',
+  'verilog', 'system-verilog', 'graphql', 'proto', 'hcl', 'nix', 'vue', 'svelte',
+  'make', 'cmake', 'groovy', 'dockerfile', 'plain'
+]);
+const languageAliases: Map<string, string> = new Map<string, string>([
+  ['js', 'javascript'], ['mjs', 'javascript'], ['cjs', 'javascript'],
+  ['ts', 'typescript'], ['mts', 'typescript'], ['cts', 'typescript'],
+  ['sh', 'shell'], ['bash', 'shell'], ['zsh', 'shell'],
+  ['yml', 'yaml'], ['py', 'python'], ['pyw', 'python'], ['pyi', 'python'],
+  ['rb', 'ruby'], ['rake', 'ruby'], ['gemspec', 'ruby'], ['rs', 'rust'],
+  ['kt', 'kotlin'], ['kts', 'kotlin'], ['cs', 'csharp'], ['htm', 'html'],
+  ['md', 'markdown'], ['patch', 'diff'], ['ps1', 'powershell'], ['psm1', 'powershell'],
+  ['psd1', 'powershell'], ['conf', 'ini'], ['cfg', 'ini'], ['properties', 'ini'],
+  ['env', 'dotenv'], ['txt', 'text'], ['text', 'text'], ['plain', 'text'],
+  ['docker', 'dockerfile'], ['makefile', 'make'], ['cmakelists', 'cmake'],
+  ['fs', 'fsharp'], ['fsi', 'fsharp'], ['fsx', 'fsharp'], ['v', 'verilog'],
+  ['sv', 'system-verilog'], ['svh', 'system-verilog'], ['gql', 'graphql']
 ]);
 
 function push(tokens: NativeCodeToken[], text: string, kind: string = 'plain'): void {
@@ -62,8 +83,12 @@ function isWord(value: string): boolean {
 }
 
 export function nativeHighlightCode(source: string, language: string): NativeCodeToken[] {
-  const normalized = language.toLowerCase().replace(/^language-/, '');
+  const requested = language.toLowerCase().replace(/^language-/, '');
+  const normalized = languageAliases.get(requested) || requested;
   if (!languages.has(normalized) || source.length > 65536 || source.split('\n').length > 1500) {
+    return lineTokens(source, (_line: string): string => 'plain');
+  }
+  if (normalized === 'text' || normalized === 'plain' || normalized === 'log') {
     return lineTokens(source, (_line: string): string => 'plain');
   }
   if (normalized === 'diff' || normalized === 'patch') {
@@ -100,6 +125,14 @@ export function nativeHighlightCode(source: string, language: string): NativeCod
     }
     if (normalized === 'sql' && rest.startsWith('--')) {
       const end = source.indexOf('\n', index + 2);
+      const stop = end < 0 ? source.length : end;
+      push(tokens, source.slice(index, stop), 'comment');
+      index = stop;
+      continue;
+    }
+    if (semicolonComments.has(normalized) && rest.startsWith(';') &&
+      (index === 0 || source[index - 1] === '\n' || source[index - 1] === '\r')) {
+      const end = source.indexOf('\n', index + 1);
       const stop = end < 0 ? source.length : end;
       push(tokens, source.slice(index, stop), 'comment');
       index = stop;
@@ -144,7 +177,10 @@ export function nativeHighlightCode(source: string, language: string): NativeCod
     if (word) {
       const value = word[0];
       const next = source.slice(index + value.length).match(/^\s*\(/);
-      const kind = keywords.has(value) || keywords.has(value.toUpperCase()) ? 'keyword' :
+      const configKey = (normalized === 'ini' || normalized === 'dotenv') &&
+        /^\s*(?:=|:)/.test(source.slice(index + value.length));
+      const kind = configKey ? 'property' :
+        keywords.has(value) || keywords.has(value.toUpperCase()) ? 'keyword' :
         constants.has(value) ? 'constant' :
           next ? 'function' :
             previous === '.' ? 'property' :

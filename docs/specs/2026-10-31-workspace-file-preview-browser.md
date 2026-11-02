@@ -10,17 +10,21 @@ the response body as a type oracle.
 image     -> platform-decoded preview only
 svg       -> preview | code
 markdown  -> preview | code
+delimited -> preview(table) | code
 code      -> code
 text      -> code
-unknown   -> download-only error surface
+binary    -> download-only error surface
 ```
 
 The image set includes the platform-supported raster/container extensions used
 by the reader: PNG, JPEG, WEBP, GIF, BMP, ICO, DNG, HEIC and HEIF. SVG is handled
 as a switchable document. The code mapping covers JavaScript, TypeScript,
 ArkTS, JSON, shell, PowerShell, Python, Go, Rust, Java, Kotlin, Swift, C/C++,
-C#, HTML/XML, CSS-family, YAML, TOML, SQL, Markdown, diff/patch and Ruby. An
-extensionless text-like file falls back to the text reader.
+C#, HTML/XML, CSS-family, YAML, TOML, INI/config, dotenv, log, JSON variants,
+CSV/TSV, Markdown, diff/patch and the wider pinned upstream language table.
+Common extensionless and dot-prefixed developer files are recognized by name.
+An unknown non-binary suffix still falls back to the text reader. Known binary
+suffixes use the download-only descriptor and do not issue a text read.
 
 The model also provides pure helpers for source line numbering and a small
 block projection used by Markdown preview. These helpers contain no ArkUI
@@ -61,8 +65,10 @@ line numbers start at the response offset, so pagination never restarts the
 gutter at one.
 
 There is no text-to-image fallback. A failed image decode reports a compact
-image error and leaves download available. A failed text read is considered a
-binary/unsupported preview rather than evidence that the file is an image.
+image error and leaves download available. A declared binary suffix skips the
+text read and reports download-only. A failed read for an unknown suffix is
+considered a binary/unsupported preview rather than evidence that the file is an
+image.
 
 ## Mode switch and views
 
@@ -78,9 +84,11 @@ rendered content or source body communicates the active mode. This keeps the
 toolbar visually consistent with copy, download and close while maximizing
 vertical reading space.
 
-SVG, Markdown and HTML begin with `mode = preview`. A mode change is local UI
-state and survives additional-page loads. Images, PDF and ordinary code files do
-not show the switch because they have only one meaningful mode.
+SVG, Markdown, HTML, CSV and TSV begin with `mode = preview`. A mode change is
+local UI state and survives additional-page loads. CSV/TSV preview is a bounded,
+literal table projection with row numbers and column labels; source mode shows
+the unchanged paged text. Images, PDF and ordinary code files do not show the
+switch because they have only one meaningful mode.
 
 `NativeCodeViewer` renders a two-column source surface. The gutter column and
 the horizontally scrollable code column share a fixed 22vp line rhythm. Each

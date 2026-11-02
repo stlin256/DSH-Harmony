@@ -60,6 +60,46 @@ const SHOWCASE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height
 <path d="M204 88h264M204 132h196M204 176h228" stroke="#F6F7F9" stroke-width="16" stroke-linecap="round"/>
 </svg>
 `;
+const SHOWCASE_CONF = `; DSH_CONFIG_MARKER
+[server]
+host = 127.0.0.1
+port = 4317
+read_timeout = 30s
+
+[preview]
+marker = DSH_CONFIG_MARKER
+line_limit = 500
+table_rows = 200
+`;
+const SHOWCASE_CSV = `name,team,note,status
+Alpha,Platform,"first line
+second line",DSH_TABLE_MARKER
+Beta,Client,"quoted, separator",ready
+Gamma,Infra,"literal ""quote""",**literal value**
+Delta,Quality,,ready
+short`;
+const SHOWCASE_TSV = `name\tteam\tmarker
+Alpha\tPlatform\tDSH_TSV_MARKER
+Beta\tClient\tready
+`;
+const SHOWCASE_MALFORMED_CSV = `name,note
+"unterminated,value
+`;
+const SHOWCASE_BINARY = new Uint8Array([
+  0x50, 0x4B, 0x03, 0x04, 0x00, 0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00
+]);
+
+function showcaseFileSource(path: string): string {
+  if (path.endsWith('README.md')) return SHOWCASE_README;
+  if (path.endsWith('diagram.svg')) return SHOWCASE_SVG;
+  if (path.endsWith('app.conf')) return SHOWCASE_CONF;
+  if (path.endsWith('users.csv')) return SHOWCASE_CSV;
+  if (path.endsWith('report.tsv')) return SHOWCASE_TSV;
+  if (path.endsWith('malformed.csv')) return SHOWCASE_MALFORMED_CSV;
+  if (path.endsWith('.npmrc')) return 'registry=https://registry.example.invalid/\nstrict-ssl=true\n';
+  if (path.endsWith('LICENSE')) return 'DSH Harmony fixture license text.\n';
+  return '{\n  "name": "dsh-harmony"\n}\n';
+}
 
 class ShowcaseFileDiff {
   path: string = '';
@@ -1168,24 +1208,37 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     value.path = path;
     const entries: NativeDirectoryEntry[] = [];
     if (!path || path === '.') {
-      ['docs', 'harmony', 'gateway'].forEach((name: string): void => {
+      ['config', 'docs', 'harmony', 'gateway'].forEach((name: string): void => {
         const entry = new NativeDirectoryEntry();
         entry.name = name;
         entry.type = 'directory';
         entries.push(entry);
       });
-      ['README.md', 'package.json'].forEach((name: string): void => {
+      ['README.md', 'LICENSE', '.npmrc', 'package.json'].forEach((name: string): void => {
         const entry = new NativeDirectoryEntry();
         entry.name = name;
         entry.type = 'file';
-        entry.size = name === 'README.md' ? SHOWCASE_README.length : 420;
+        entry.size = showcaseFileSource(name).length;
+        entries.push(entry);
+      });
+    } else if (path === 'config') {
+      ['app.conf', 'production.env', 'service.cfg'].forEach((name: string): void => {
+        const entry = new NativeDirectoryEntry();
+        entry.name = name;
+        entry.type = 'file';
+        entry.size = name === 'app.conf' ? SHOWCASE_CONF.length : 160;
         entries.push(entry);
       });
     } else if (path === 'docs') {
-      ['assets', 'DEPLOYMENT.md', 'DESIGN.md'].forEach((name: string): void => {
+      ['assets', 'archive.zip', 'DEPLOYMENT.md', 'DESIGN.md', 'malformed.csv',
+        'report.tsv', 'users.csv'].forEach((name: string): void => {
         const entry = new NativeDirectoryEntry();
         entry.name = name;
         entry.type = name === 'assets' ? 'directory' : 'file';
+        entry.size = name === 'users.csv' ? SHOWCASE_CSV.length :
+          name === 'report.tsv' ? SHOWCASE_TSV.length :
+            name === 'malformed.csv' ? SHOWCASE_MALFORMED_CSV.length :
+              name === 'archive.zip' ? SHOWCASE_BINARY.length : 420;
         entries.push(entry);
       });
     }
@@ -1196,6 +1249,13 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   async findWorkspaceFile(_id: string, name: string): Promise<string> {
     if (name === 'README.md') return 'README.md';
     if (name === 'diagram.svg') return 'docs/diagram.svg';
+    if (name === 'app.conf') return 'config/app.conf';
+    if (name === 'users.csv') return 'docs/users.csv';
+    if (name === 'report.tsv') return 'docs/report.tsv';
+    if (name === 'malformed.csv') return 'docs/malformed.csv';
+    if (name === 'archive.zip') return 'docs/archive.zip';
+    if (name === 'LICENSE') return 'LICENSE';
+    if (name === '.npmrc') return '.npmrc';
     return '';
   }
 
@@ -1203,8 +1263,8 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     const value = new NativeFileStat();
     value.absolutePath = path;
     value.version = id + ':v1';
-    value.bytes = path.endsWith('README.md') ? SHOWCASE_README.length :
-      path.endsWith('diagram.svg') ? SHOWCASE_SVG.length : 420;
+    value.bytes = path.endsWith('archive.zip') ? SHOWCASE_BINARY.length :
+      showcaseFileSource(path).length;
     return value;
   }
 
@@ -1212,8 +1272,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     const value = new NativeFilePage();
     value.absolutePath = path;
     value.version = id + ':v1';
-    value.text = path.endsWith('README.md') ? SHOWCASE_README :
-      path.endsWith('diagram.svg') ? SHOWCASE_SVG : '{\n  "name": "dsh-harmony"\n}\n';
+    value.text = showcaseFileSource(path);
     value.lines = value.text.split('\n').length;
     value.offset = offset;
     value.eof = true;
@@ -1223,9 +1282,8 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   async readFileBytes(id: string, path: string, _baseFile: string = '',
     offset: number = 0, length: number = 262144, _expectedVersion: string = '',
     _expectedBytes: number = -1): Promise<NativeFileBytes> {
-    const source = path.endsWith('README.md') ? SHOWCASE_README :
-      path.endsWith('diagram.svg') ? SHOWCASE_SVG : '{\n  "name": "dsh-harmony"\n}\n';
-    const bytes = StoreShowcaseClient.utf8(source);
+    const bytes = path.endsWith('archive.zip') ? SHOWCASE_BINARY :
+      StoreShowcaseClient.utf8(showcaseFileSource(path));
     const value = new NativeFileBytes();
     value.protocol = 1;
     value.absolutePath = path;

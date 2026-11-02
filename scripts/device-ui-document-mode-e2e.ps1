@@ -198,6 +198,50 @@ $null = Query-Node $restoredLayout '<!-- DSH_SOURCE_MARKER -->' 'text' 0
 Assert-Same-HeaderRow $title $restoredAction
 Capture-Screen 'preview-restored'
 
+Launch-Fixture -State 'text-config-preview'
+$configTitle = Wait-Query-Node 'config-title' 'app.conf' 'text'
+$configMarker = Wait-Query-Node 'config-marker' 'DSH_CONFIG_MARKER' 'text'
+$configSourceAction = Wait-Query-Node 'config-source-action' '切换到源码' 'clickable'
+Assert-Same-HeaderRow $configTitle $configSourceAction
+Capture-Screen 'config-preview'
+
+Launch-Fixture -State 'delimited-preview'
+$delimitedTitle = Wait-Query-Node 'delimited-title' 'users.csv' 'text'
+$tableMarker = Wait-Query-Node 'delimited-table-marker' 'DSH_TABLE_MARKER' 'text'
+$literalTable = Wait-Query-Node 'delimited-literal-table' '**literal value**' 'text'
+$delimitedSourceAction = Wait-Query-Node 'delimited-source-action' '切换到源码' 'clickable'
+Assert-Same-HeaderRow $delimitedTitle $delimitedSourceAction
+Capture-Screen 'delimited-table'
+
+Invoke-Click $delimitedSourceAction
+$delimitedPreviewAction = Wait-Query-Node 'delimited-preview-action' '切换到渲染预览' 'clickable'
+$delimitedSourceLayout = Dump-Layout 'delimited-source-layout'
+$null = Query-Node $delimitedSourceLayout '**literal value**' 'text' 0
+Capture-Screen 'delimited-source'
+
+Invoke-Click $delimitedPreviewAction
+$restoredTableMarker = Wait-Query-Node 'delimited-restored-marker' 'DSH_TABLE_MARKER' 'text'
+Capture-Screen 'delimited-restored'
+
+Launch-Fixture -State 'tsv-preview'
+$tsvTitle = Wait-Query-Node 'tsv-title' 'report.tsv' 'text'
+$tsvMarker = Wait-Query-Node 'tsv-marker' 'DSH_TSV_MARKER' 'text'
+$tsvSourceAction = Wait-Query-Node 'tsv-source-action' '切换到源码' 'clickable'
+Assert-Same-HeaderRow $tsvTitle $tsvSourceAction
+Capture-Screen 'tsv-table'
+
+Launch-Fixture -State 'delimited-error-preview'
+$delimitedErrorTitle = Wait-Query-Node 'delimited-error-title' 'malformed.csv' 'text'
+$delimitedError = Wait-Query-Node 'delimited-error-message' '表格包含未闭合的引号' 'text'
+$delimitedErrorAction = Wait-Query-Node 'delimited-error-source-action' '切换到源码' 'clickable'
+Assert-Same-HeaderRow $delimitedErrorTitle $delimitedErrorAction
+Capture-Screen 'delimited-error'
+
+Launch-Fixture -State 'binary-preview'
+$binaryTitle = Wait-Query-Node 'binary-title' 'archive.zip' 'text'
+$binaryMessage = Wait-Query-Node 'binary-message' '此文件类型暂不支持预览，仍可下载' 'text'
+Capture-Screen 'binary-preview'
+
 $processId = ((& $hdc -t $Device shell "pidof $bundle") -join ' ').Trim()
 if (-not $processId) {
   throw 'The application process exited during document mode E2E.'
@@ -217,6 +261,17 @@ $manifest = [ordered]@{
     sourceModeShowsSource = $true
     previewModeRestoresRendering = $true
     sourceMarkerAbsentAfterRestore = $true
+    configMarkerRendered = $true
+    configModeActionSharesTitleRow = $true
+    csvTableRenderedByDefault = $true
+    csvLiteralCellNotMarkdown = $true
+    csvSourceModeActionSharesTitleRow = $true
+    csvSourceHidesTableProjection = $true
+    csvTableRestored = $true
+    tsvTableRendered = $true
+    malformedCsvShowsTableError = $true
+    malformedCsvSourceRemainsAvailable = $true
+    binaryDownloadOnlyMessageRendered = $true
     processAliveAfterToggle = $true
   }
 }

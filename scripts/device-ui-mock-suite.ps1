@@ -88,6 +88,11 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'browser'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'preview'; State = 'document-preview'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'preview'; State = 'document-preview'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'preview'; State = 'text-config-preview'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'preview'; State = 'delimited-preview'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'preview'; State = 'tsv-preview'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'preview'; State = 'delimited-error-preview'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'preview'; State = 'binary-preview'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'settings'; State = 'settings-search'; Theme = 'dark' },
@@ -186,6 +191,11 @@ function Get-ExpectedMarker {
     'sidebar/completed' { return '置顶' }
     'browser/completed' { return '工作区根目录' }
     'preview/document-preview' { return 'diagram.svg' }
+    'preview/text-config-preview' { return 'app.conf' }
+    'preview/delimited-preview' { return 'users.csv' }
+    'preview/tsv-preview' { return 'report.tsv' }
+    'preview/delimited-error-preview' { return 'malformed.csv' }
+    'preview/binary-preview' { return 'archive.zip' }
     'settings/completed' { return '外观与动效' }
     'settings/settings-search' { return '搜索设置' }
     'plugins/plugins-list' { return 'Workspace Tools' }

@@ -199,6 +199,46 @@
       "requiresInteraction": true
     },
     {
+      "id": "surface.file-preview-config-text",
+      "screens": ["preview"],
+      "states": ["text-config-preview"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
+      "e2eIds": ["PREVIEW-TEXT-01", "PREVIEW-TEXT-02", "PREVIEW-TEXT-03"],
+      "requiresInteraction": true
+    },
+    {
+      "id": "surface.file-preview-delimited",
+      "screens": ["preview"],
+      "states": ["delimited-preview"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
+      "e2eIds": ["PREVIEW-DELIM-01", "PREVIEW-DELIM-02"],
+      "requiresInteraction": true
+    },
+    {
+      "id": "surface.file-preview-tsv",
+      "screens": ["preview"],
+      "states": ["tsv-preview"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
+      "e2eIds": ["PREVIEW-DELIM-03"],
+      "requiresInteraction": true
+    },
+    {
+      "id": "surface.file-preview-delimited-error",
+      "screens": ["preview"],
+      "states": ["delimited-error-preview"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
+      "e2eIds": ["PREVIEW-DELIM-05"],
+      "requiresInteraction": true
+    },
+    {
+      "id": "surface.file-preview-binary",
+      "screens": ["preview"],
+      "states": ["binary-preview"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
+      "e2eIds": ["PREVIEW-TEXT-06"],
+      "requiresInteraction": true
+    },
+    {
       "id": "surface.settings",
       "screens": ["settings"],
       "states": ["completed"],

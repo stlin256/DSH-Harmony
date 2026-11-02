@@ -701,10 +701,15 @@ export struct NativeWorkspace {
     } else if (showcaseScreen === 'preview') {
       setTimeout((): void => {
         if (!this.mounted) return;
+        const state = AppStorage.get<string>('storeShowcaseState') || '';
         const request = new NativeFileViewRequest();
         request.kind = 'file';
         request.sessionId = 'showcase-release';
-        request.path = 'docs/diagram.svg';
+        request.path = state === 'text-config-preview' ? 'config/app.conf' :
+          state === 'delimited-preview' ? 'docs/users.csv' :
+            state === 'tsv-preview' ? 'docs/report.tsv' :
+              state === 'delimited-error-preview' ? 'docs/malformed.csv' :
+                state === 'binary-preview' ? 'docs/archive.zip' : 'docs/diagram.svg';
         request.previewOnly = true;
         this.fileView = request;
         this.fileViewOpen = true;

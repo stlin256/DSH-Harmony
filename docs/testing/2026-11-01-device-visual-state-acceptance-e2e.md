@@ -30,9 +30,9 @@ Implementation spec:
 | Previous Mock HAP SHA-256 | `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89` |
 | Previous Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
 | Previous Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
-| Current Mock HAP SHA-256 | `CBDAAC6954223145A2114B519652D7F6E333AE103A1AA385BF1A78FD7B5156B4` |
-| Current Default HAP SHA-256 | `12A50B4138BFE8BA3B6792C493B13B8948BC6349AFF09F27309A4717229C3878` |
-| Current Store HAP SHA-256 | `906B262EABDD48793AD33632EDBB4342DB39F4B1790C4410229F3D9230609CAD` |
+| Current Mock HAP SHA-256 | `B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4` |
+| Current Default HAP SHA-256 | `4B9C2744CAF860FCD6AFAE63066CAAF2595DC0780047541146AF78171C0503A0` |
+| Current Store HAP SHA-256 | `A45FF01AB08A44EDE7E6BDE72B4BB18AF078BA56198F2402BC4007BA29F0DF9F` |
 
 ## Device evidence
 
@@ -121,14 +121,14 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 - Repeat the new settings search at maximum system text size and verify the
   search field, clear action, result path and reveal/hide action keep 44vp
   targets without overlap.
-- HDC currently reports only UART placeholders (`COM3`, `COM4`) after a server
-  restart, so none of the FHH device rows is passed.
+- The latest HDC target query returned `[Empty]`, so none of the FHH device rows
+  is passed.
 - Run `scripts/device-ui-stream-long-e2e.ps1` against current Mock HAP
-  `CBDAAC6954223145A2114B519652D7F6E333AE103A1AA385BF1A78FD7B5156B4`.
+  `B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4`.
   It must prove text advances in two captures, `STREAM-LONG-DONE` appears
   without relaunch, the process ID is unchanged, the reconnect banner is
-  absent, and the composer remains responsive. HDC still reports only
-  `COM3`/`COM4` UART placeholders as of 2026-11-02.
+  absent, and the composer remains responsive. HDC reported `[Empty]` as of
+  2026-11-02.
 - The current-HAP USB target is not ready. After it returns, run
   `scripts/device-ui-disclosure-e2e.ps1` against the current Mock HAP and
   verify `disclosure-process-order` in dark and light themes, at maximum system
@@ -137,7 +137,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   `second-order-detail`.
 - Rerun the 110-pair static Mock suite, subagent send flow, settings navigation
   and all disclosure matrices against current Mock HAP
-  `CBDAAC6954223145A2114B519652D7F6E333AE103A1AA385BF1A78FD7B5156B4`.
+  `B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4`.
 - Confirm the subagent composer send button becomes enabled after text entry
   and that exactly one prompt appears. The interrupted run recorded the text in
   the field while the action remained disabled.

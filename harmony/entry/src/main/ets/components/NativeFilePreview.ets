@@ -19,6 +19,7 @@ import { NativeDocumentModeSwitch } from './NativeDocumentModeSwitch';
 import { NativeCodeViewer } from './NativeCodeViewer';
 import { NativeMarkdownPreview } from './NativeMarkdownPreview';
 import { NativeHtmlPreview } from './NativeHtmlPreview';
+import { NativeDelimitedPreview } from './NativeDelimitedPreview';
 import { NativeDesign } from '../services/NativeDesign';
 import { NativeIconButton } from './NativeIconButton';
 import {
@@ -62,6 +63,7 @@ export struct NativeFilePreview {
   @State private language: string = '';
   @State private mode: string = 'code';
   @State private canToggle: boolean = false;
+  @State private canPreview: boolean = false;
   @State private lineStart: number = 1;
   @State private pdfUri: string = '';
   @State private pdfOpening: boolean = false;
@@ -137,6 +139,7 @@ export struct NativeFilePreview {
     this.language = value.language;
     this.mode = value.defaultMode;
     this.canToggle = value.canToggle;
+    this.canPreview = value.canPreview;
   }
   private basename(value: string): string {
     const parts = value.replace(/\\/g, '/').split('/');
@@ -304,7 +307,10 @@ export struct NativeFilePreview {
     const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
     const scope = this.client.cacheKey();
     try {
-      if (this.documentKind === 'pdf') {
+      if (!this.canPreview || this.documentKind === 'binary') {
+        this.loadMetadata(generation).catch((): void => {});
+        this.error = '此文件类型暂不支持预览，仍可下载';
+      } else if (this.documentKind === 'pdf') {
         await this.loadPdf(generation);
       } else if (this.documentKind === 'html') {
         await this.loadHtml(generation);
@@ -366,10 +372,6 @@ export struct NativeFilePreview {
           await NativeWorkspaceCache.saveText(
             context, scope, this.sessionId, this.path, page).catch((): void => {});
           this.enforceCacheLimit();
-          if (this.documentKind === 'unknown') {
-            this.documentKind = 'text';
-            this.mode = 'code';
-          }
         } catch (_) {
           if (generation === this.generation) this.error = '此文件仅支持下载';
         }
@@ -758,6 +760,12 @@ export struct NativeFilePreview {
         .onAreaChange((_old: Area, area: Area): void => {
           this.markdownViewportHeight = Math.max(1, Number(area.height));
         })
+    } else if (this.documentKind === 'delimited' && this.mode === 'preview') {
+      NativeDelimitedPreview({
+        source: this.text,
+        format: this.language,
+        hasMore: this.hasMore
+      }).layoutWeight(1).width('100%')
     } else {
       NativeCodeViewer({ code: this.text || (this.loading ? '' : '空文件'),
         language: this.language, startNumber: this.lineStart, identity: this.path })
@@ -793,6 +801,20 @@ export struct NativeFilePreview {
       .backgroundColor(NativeDesign.subtleSurface(this.dark))
   }
   @Builder
+  private unsupportedBody() {
+    Column({ space: 10 }) {
+      DSHIcon({
+        glyph: 'file-outline',
+        glyphSize: NativeDesign.glyphHero,
+        color: NativeDesign.textTertiary(this.dark)
+      })
+      Text(this.error || '此文件类型暂不支持预览，仍可下载')
+        .fontSize(NativeDesign.fontSection)
+        .textAlign(TextAlign.Center)
+        .fontColor(NativeDesign.textSecondary(this.dark))
+    }.layoutWeight(1).width('100%').justifyContent(FlexAlign.Center)
+  }
+  @Builder
   private body() {
     if (this.loading) {
       Column({ space: 10 }) {
@@ -801,6 +823,8 @@ export struct NativeFilePreview {
       }.layoutWeight(1).justifyContent(FlexAlign.Center)
     } else if (this.documentKind === 'pdf' && this.pdfUri) {
       this.pdfBody()
+    } else if (this.documentKind === 'binary') {
+      this.unsupportedBody()
     } else if (this.error && !this.imageMap && !this.textLoaded) {
       Column({ space: 12 }) {
         Text(this.error).fontSize(NativeDesign.fontCompact).textAlign(TextAlign.Center)

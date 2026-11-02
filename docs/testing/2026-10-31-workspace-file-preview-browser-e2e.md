@@ -3,7 +3,7 @@
 Status: pending device execution.
 
 Current Mock HAP SHA-256:
-`CBDAAC6954223145A2114B519652D7F6E333AE103A1AA385BF1A78FD7B5156B4`.
+`B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4`.
 
 Current title-row mode driver:
 `scripts/device-ui-document-mode-e2e.ps1`.

@@ -90,6 +90,9 @@ Keep these gaps explicit until a physical or emulated target proves them:
   font size: all four painted choices must stay at 32vp with a 44vp response
   region and no clipping or overlap.
 - Current-device image-lightbox interaction evidence.
+- Current-HAP workspace preview coverage: `.conf`/config/text fallback,
+  extensionless developer files, known-binary download-only fallback, CSV/TSV
+  table parsing and table/source switching, including light and dark themes.
 - Large-text onboarding, guide, detailed install page, login and inline error.
 
 Never promote a Pending or Partial row from Mock coverage, source inspection,
@@ -300,6 +303,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-01-workspace-file-persistent-cache.md](docs/specs/2026-11-01-workspace-file-persistent-cache.md)
 - Workspace file persistent cache device E2E:
   [2026-11-01-workspace-file-persistent-cache-e2e.md](docs/testing/2026-11-01-workspace-file-persistent-cache-e2e.md)
+- Workspace preview coverage requirement:
+  [2026-11-02-workspace-preview-coverage.md](docs/requirements/2026-11-02-workspace-preview-coverage.md)
+- Workspace preview coverage research:
+  [2026-11-02-workspace-preview-coverage.md](docs/research/2026-11-02-workspace-preview-coverage.md)
+- Workspace preview coverage implementation spec:
+  [2026-11-02-workspace-preview-coverage.md](docs/specs/2026-11-02-workspace-preview-coverage.md)
+- Workspace preview coverage device E2E:
+  [2026-11-02-workspace-preview-coverage-e2e.md](docs/testing/2026-11-02-workspace-preview-coverage-e2e.md)
 - Versioned plugin update requirement:
   [2026-11-01-plugin-update-workflow.md](docs/requirements/2026-11-01-plugin-update-workflow.md)
 - Versioned plugin update implementation spec:
