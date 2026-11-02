@@ -8,7 +8,7 @@
 `893177598199A3DA33BFF36BDFFF0BD64ED808D9C56D79F9C5818D3DAAAD250B`。
 
 当前 Release 候选 Mock HAP SHA-256：
-`B90B029F5AF90FC0732C000FB42499F70D574EF38DCD1997B3650E931162FBB7`。
+`6DBC521844CBF9522E45F4F9C70719846EC5EC8AD47ECDE79049D77C7A72C736`。
 
 Current-HAP status: Partial。当前候选包已修复 Mock Host 在 `pause()` 后拒绝新
 `follow()` 的竞态，并让发送按钮复用子会话输入合同；仍需在恢复 USB 连接后用
@@ -39,12 +39,14 @@ Current-HAP status: Partial。当前候选包已修复 Mock Host 在 `pause()` �
 | SUB-13 | 减少动效 | chip/抽屉直接到最终状态 | Passed | `artifacts/device-e2e/20261102-reduced-motion-1` |
 | SUB-14 | 暗色模式/大字体/横屏 | 无裁切、无不可读文本、无安全区重叠 | Partial；暗色和最大 `超大` 竖屏通过，横屏 Pending | `20261102-large-text-2/large-text-contact.jpg`（含 `20261102-large-text-1` 完成态会话） |
 | SUB-15 | 断线重连 | projection baseline 恢复模式与目录，无旧状态残留 | Pending | 需要实时 Host 断线与重连条件 |
+| SUB-16 | 根会话标题与 4 个子智能体计数 | `4 个子智能体` 与标题主行共享垂直范围，长标题先省略，chip、加载和更多操作不溢出 | Pending | 当前无可用 USB 真机；需当前 HAP 的布局 bounds 与暗色截图 |
+| SUB-17 | 从谱系打开 continuable 子会话 | 子会话使用非激活 Follow 加载历史，不出现“连接断开”，Back 返回直接父会话 | Pending | Gateway 自动契约只能证明 wire；需当前 HAP 对真实 Host 或验收 Mock Host 打开子会话 |
 
 ## 自动前置验证
 
 - Gateway 协议、模型和源码契约通过。
-- PR QA `20261102T011204Z-9c1b97b1` 通过。
+- PR QA `20261102T064134Z-9ca4aa3c` 通过。
 - default、store、mock Release HAP 均构建成功。
-- Mock 全量视觉套件 68/68 通过。
+- 前一 Mock HAP 的全量视觉套件 68/68 通过；当前候选包仍需重跑。
 
 自动结果只用于前置检查，不替代上表仍为 `Pending` 的真机场景。

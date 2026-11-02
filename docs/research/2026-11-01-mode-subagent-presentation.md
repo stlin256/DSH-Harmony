@@ -74,7 +74,8 @@ chip 只在目标为 `true` 时出现。点击调用 `commands.execute(sessionId
 }
 ```
 
-上游 Web 在打开子会话时使用非激活的 subagent address；历史页也使用相同地址。
+上游 Web 在打开根会话时使用激活 Follow；打开子会话时使用同一 subagent
+address，但 Follow 为非激活读取。历史页继续使用相同 subagent address。
 
 ## 当前 HarmonyOS 差距
 
@@ -87,7 +88,8 @@ chip 只在目标为 `true` 时出现。点击调用 `commands.execute(sessionId
 
 ## 移动端映射
 
-- 模式使用 28vp 高紧凑 chip，放在会话标题行下方；不新增常驻大栏。
+- Plan 模式使用 28vp 高紧凑 chip，放在会话标题行下方；子智能体计数 chip
+  直接放在会话标题行，不新增仅承载计数的第二状态行，也不新增常驻大栏。
 - 子代理目录使用最大 60% 视口的实色浮层。行高 44vp，树形缩进配细连接线。
 - 当前会话、运行状态和模式以文本及语义圆点表达；不依赖仅有颜色。
 - 子会话继续使用同一个聊天页面和 transcript，只替换地址与 composer 能力。

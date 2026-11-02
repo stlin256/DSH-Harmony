@@ -27,9 +27,9 @@ current HAP is installed on a ready USB target and the listed action is observed
 
 | Variant | Signed HAP | SHA-256 |
 | --- | --- | --- |
-| Mock | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` | `534C5CC09A44BDD026B999491D55C9930B8DA043741A6860689C82C586331946` |
-| Default | `harmony/entry/build/default/outputs/default/entry-default-signed.hap` | `E16675606F2E73D6C02813BCBBFE5412C0C2B46235954CAB9DD60F5568293D46` |
-| Store | `harmony/entry/build/store/outputs/store/entry-store-signed.hap` | `A65E4FC385B8FB3E68516B09EFB98525762217D782C870E70C635974BF509FC4` |
+| Mock | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` | `6DBC521844CBF9522E45F4F9C70719846EC5EC8AD47ECDE79049D77C7A72C736` |
+| Default | `harmony/entry/build/default/outputs/default/entry-default-signed.hap` | `FB33D17A9EE44300E197E8FC3FAC19D109D3C76BEBE28A78B7DDFB7783428AA6` |
+| Store | `harmony/entry/build/store/outputs/store/entry-store-signed.hap` | `9AE9D41370ED3E32127B9D0051617203B79228EEE431C9B96A85AF6A14DE6056` |
 
 Source, model, coverage and Release gates passed in PR QA
 `.artifacts/qa/20261102T063039Z-6973e1d6/report.json`. Device rows remain

@@ -68,7 +68,8 @@
 ```
 
 - WebSocket query 增加受验证的 `parentSessionId`、`parentMode`。
-- `session/follow` 使用 Address。
+- `session/follow` 使用 Address。只有普通 `session` 用户主动打开时传
+  `activate: true`；`subagent` 子历史使用同一 address 非激活读取。
 - `session/page` 使用同一 Address。
 - state/projection subscription 仍点名 child session id。
 
@@ -125,8 +126,11 @@
 
 ### 4.2 子代理 chip
 
-- 根/当前父会话的直接目录成功且非空时显示。
-- 文案为 `N 个子智能体`；有运行成员时显示 6vp accent dot。
+- 根/当前父会话的直接目录成功且非空时显示，并进入会话标题主行，位于标题列
+  与“更多操作”之间。
+- 文案为 `N 个子智能体`；有运行成员时显示 6vp accent dot。长标题先截断，chip、
+  行内 loading 和 44vp 图标触控区不得被压缩或移出标题行。
+- 目录非空本身不创建标题下方状态行；标题下方状态行只为 Plan 或 Plan 错误保留。
 - 子会话额外显示父级返回入口，不使用永久第二顶栏。
 
 ### 4.3 谱系抽屉
@@ -174,11 +178,14 @@
 - catalogue/identity/timing baseline 与 live frame。
 - 旧 seq 不覆盖新值。
 - follow/page 的普通与子代理 address wire。
+- 普通根会话 Follow 保持 `activate:true`；子智能体 Follow 对同一 address 使用
+  `activate:false`，并有真实 WebSocket 集成断言。
 - `/plan off`、subagent prompt、interrupt 的准确 args。
 - 子代理发送必须携带实际 `childSessionId`，不能依赖未定义变量或隐式字段。
 - ArkTS capability：external 不可打开、one-shot/unknown 只读、continuable 可发送。
 - 显式 null identity、父会话离线、运行中 Stop、address stack、深度/cycle guard、duration format。
-- 源码契约：普通列表过滤 child；chip 不消费任务清单。
+- 源码契约：普通列表过滤 child；chip 不消费任务清单；子智能体计数位于标题行，
+  标题下方的模式状态行只承载 Plan。
 
 ## 8. 验证门槛
 

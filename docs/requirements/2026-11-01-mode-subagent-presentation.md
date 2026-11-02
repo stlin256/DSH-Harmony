@@ -12,10 +12,15 @@ DSH Harmony 需要把新版 DSH 的 Plan 模式和子智能体谱系原生化，
 2. Plan chip 文案为“计划”。模式处于待切换状态时，按官方目标状态 `pending ? !active : active` 决定显示。
 3. 点击 Plan chip 使用官方 `/plan off` command。收到新的权威 projection 前不得乐观隐藏；失败只显示短错误。
 4. `todo_write` 任务计划 Dock 继续独立工作，不能和 Plan 模式共用状态或入口。
-5. 根会话说存在直接子智能体时显示紧凑计数 chip；成功加载的空目录不显示入口。
+5. 根会话存在直接子智能体时显示紧凑计数 chip；chip 必须与当前会话标题
+   共用标题行，不另占一条仅用于计数的状态行。长标题让位并省略，chip、加载和
+   更多操作保持稳定。成功加载的空目录不显示入口。
 6. 子代理使用受限高度抽屉呈现，支持当前子会话高亮、运行状态、可继续/一次性/未知/外部模式、加载、失败和重试。
 7. 普通侧栏会话列表继续隐藏子会话。
-8. 子会话可以打开只读或可继续的历史。`one-shot`、`unknown` 和 `external` 不提供发送；`external` 不能打开。
+8. 子会话可以打开只读或可继续的历史。子会话 Follow 使用非激活的 subagent
+   address，根会话用户主动打开仍使用激活 Follow。加载失败不得把合法的子会话
+   地址误报成普通会话连接断开。`one-shot`、`unknown` 和 `external` 不提供发送；
+   `external` 不能打开。
 9. `continuable` 以精确父会话地址继续；Host 明确报告父会话 `agentAvailable: false` 且子会话空闲时退化为只读，可用性未知时保持正常输入。发送和停止分别使用官方 `subagents/prompt` 与 `subagents/interruptByParent`。
 10. 子会话返回父会话，嵌套子代理按栈逐级返回；系统 Back 与界面 Back 使用同一路径。
 11. 动效遵循 Quiet Precision。状态 chip 和抽屉使用现有语义 token；减少动效时直接到最终状态。

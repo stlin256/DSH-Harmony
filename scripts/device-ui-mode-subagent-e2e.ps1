@@ -139,6 +139,28 @@ function Wait-Query-Node {
   throw "Layout wait failed for '$Text' after $TimeoutMilliseconds ms: $lastError"
 }
 
+function Assert-Same-HeaderRow {
+  param(
+    [object]$Title,
+    [object]$CountChip
+  )
+  $titleBounds = [regex]::Match([string]$Title.bounds,
+    '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$')
+  $chipBounds = [regex]::Match([string]$CountChip.bounds,
+    '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$')
+  if (-not $titleBounds.Success -or -not $chipBounds.Success) {
+    throw "Cannot compare header bounds: title=$($Title.bounds), chip=$($CountChip.bounds)"
+  }
+  $titleTop = [int]$titleBounds.Groups[2].Value
+  $titleBottom = [int]$titleBounds.Groups[4].Value
+  $chipTop = [int]$chipBounds.Groups[2].Value
+  $chipBottom = [int]$chipBounds.Groups[4].Value
+  $overlap = [Math]::Min($titleBottom, $chipBottom) - [Math]::Max($titleTop, $chipTop)
+  if ($overlap -le 0) {
+    throw "Subagent count is not in the conversation title row: title=$($Title.bounds), chip=$($CountChip.bounds)"
+  }
+}
+
 function Invoke-Click {
   param(
     [object]$Node,
@@ -223,7 +245,9 @@ function Return-To-ParentConversation {
 
 Launch-Fixture -Screen 'conversation' -State 'plan-subagent' -Theme 'dark'
 $plan = Wait-Query-Node 'plan-visible' '计划' 'clickable'
-$null = Wait-Query-Node 'plan-subagents' '4 个子智能体' 'clickable'
+$titleNode = Wait-Query-Node 'title-visible' '计划与子智能体' 'text'
+$subagents = Wait-Query-Node 'plan-subagents' '4 个子智能体' 'clickable'
+Assert-Same-HeaderRow $titleNode $subagents
 Capture-Screen 'plan-visible'
 Invoke-Click $plan
 $null = Wait-Query-Node 'plan-removed' '计划' 'text' 0
@@ -299,6 +323,7 @@ $manifest = [ordered]@{
   checked = [ordered]@{
     planChipRemovedOnlyAfterProjection = $true
     planFailureKeepsChipAndShowsMessage = $true
+    subagentCountSharesTitleRow = $true
     lineageShowsFourModes = $true
     externalModeIsNotOpenable = $true
     drawerBackReturnsToConversation = $true

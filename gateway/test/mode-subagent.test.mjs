@@ -146,6 +146,13 @@ test('native shell keeps mode UI separate from todo plans and hides child sessio
   assert.match(workspace, /this\.client\.planOff\(this\.selected\)/);
   assert.match(workspace,
     /this\.refreshSelectedProjection\(\);\s*this\.loadSelectedProjections\(\);/);
+  const title = workspace.indexOf('Text(this.title)');
+  const titleCount = workspace.indexOf(
+    "Text((this.subagentCatalog?.length || 0).toString() + ' 个子智能体')", title);
+  const more = workspace.indexOf("NativeIconButton({ glyph: 'ellipsis-outline'", title);
+  const planRow = workspace.indexOf(
+    'if (nativePlanTargetActive(this.planProjection) || this.planError)', title);
+  assert.ok(title >= 0 && titleCount > title && titleCount < more && more < planRow);
   assert.ok(workspace.indexOf('NativeTaskDock') !== workspace.lastIndexOf('NativeTaskDock'));
   assert.match(workspace, /NativeSubagentLineage\(\{/);
   assert.match(workspace, /subagentPath/);

@@ -924,7 +924,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       upstream.once('open', () => {
         upstream.send(JSON.stringify({ type: 'open', streamId: 'interactions', endpoint: '$events', payload: { args: {} } }));
         for (const [streamId, method, request] of [
-          ['history', 'follow', { address, activate: true, assistantStream: true, maxMessages: 24 }],
+          ['history', 'follow', { address, activate: address.kind === 'session',
+            assistantStream: true, maxMessages: 24 }],
           ['state', 'observeState', { sessionId: id }],
           ['projections', 'observeProjections', { sessionId: id }]
         ]) upstream.send(JSON.stringify({ type: 'open', streamId, endpoint: 'session/' + method, payload: { args: { request } } }));

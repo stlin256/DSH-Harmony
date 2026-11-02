@@ -3098,12 +3098,38 @@ export struct NativeWorkspace {
           LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.accentColor())
             .accessibilityText('正在加载会话')
         }
+        if ((this.subagentCatalog?.length || 0) > 0) {
+          Button({ type: ButtonType.Normal }) {
+            Row({ space: 4 }) {
+              if (this.runningSubagentCount() > 0) {
+                Text('').width(6).height(6).borderRadius(3)
+                  .backgroundColor(this.accentColor())
+              } else {
+                DSHIcon({ glyph: 'branch-outline', glyphSize: NativeDesign.glyphCompact,
+                  color: this.secondaryText() })
+              }
+              Text((this.subagentCatalog?.length || 0).toString() + ' 个子智能体')
+                .fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
+                .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+              DSHIcon({ glyph: 'chevron-down-outline', glyphSize: NativeDesign.glyphInline,
+                color: this.tertiaryText() })
+            }
+          }
+          .height(NativeDesign.compactChip)
+          .padding({ left: 8, right: 6 })
+          .borderRadius(NativeDesign.radiusChip)
+          .backgroundColor(this.fieldSurface())
+          .border({ width: 0.5, color: this.semanticBorderColor() })
+          .clip(true)
+          .accessibilityText((this.subagentCatalog?.length || 0).toString() +
+            ' 个子智能体' + (this.runningSubagentCount() > 0 ? '，正在运行' : ''))
+          .onClick((): void => { this.openLineage(); })
+        }
         NativeIconButton({ glyph: 'ellipsis-outline', label: '更多操作',
           active: this.utilityOpen, glyphSize: NativeDesign.glyphControl,
           onPressed: (): void => { this.openUtilities(); } })
       }.width('100%')
-      if (nativePlanTargetActive(this.planProjection) || this.planError ||
-        ((this.subagentCatalog?.length || 0) > 0)) {
+      if (nativePlanTargetActive(this.planProjection) || this.planError) {
         Row({ space: 6 }) {
           if (nativePlanTargetActive(this.planProjection)) {
             Button({ type: ButtonType.Normal }) {
@@ -3126,31 +3152,6 @@ export struct NativeWorkspace {
           if (this.planError) {
             Text(this.planError).fontSize(NativeDesign.fontMicro).fontColor(this.dangerText())
               .transition(NativeMotion.rowTransition())
-          }
-          Blank()
-          if ((this.subagentCatalog?.length || 0) > 0) {
-            Button({ type: ButtonType.Normal }) {
-              Row({ space: 5 }) {
-                if (this.runningSubagentCount() > 0) {
-                  Text('').width(6).height(6).borderRadius(3)
-                    .backgroundColor(this.accentColor())
-                } else {
-                  DSHIcon({ glyph: 'branch-outline', glyphSize: NativeDesign.glyphCompact, color: this.secondaryText() })
-                }
-                Text((this.subagentCatalog?.length || 0).toString() + ' 个子智能体')
-                  .fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
-                DSHIcon({ glyph: 'chevron-down-outline', glyphSize: NativeDesign.glyphInline, color: this.tertiaryText() })
-              }
-            }
-            .height(NativeDesign.compactChip)
-            .padding({ left: 9, right: 8 })
-            .borderRadius(NativeDesign.radiusChip)
-            .backgroundColor(this.fieldSurface())
-            .border({ width: 0.5, color: this.semanticBorderColor() })
-            .clip(true)
-            .accessibilityText((this.subagentCatalog?.length || 0).toString() +
-              ' 个子智能体' + (this.runningSubagentCount() > 0 ? '，正在运行' : ''))
-            .onClick((): void => { this.openLineage(); })
           }
         }.width('100%')
       }

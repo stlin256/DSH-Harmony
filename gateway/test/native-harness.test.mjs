@@ -539,7 +539,18 @@ test('native mode and subagent operations use projection, address and command co
     childSessionId: 'session',
     mode: 'continuable'
   });
+  assert.equal(follow?.payload.args.request.activate, false);
   ws.close();
+
+  openings.length = 0;
+  const root = connect();
+  await once(root, 'open');
+  for (let index = 0; index < 200 && !openings.some(row => row.endpoint === 'session/follow'); index++) {
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+  const rootFollow = openings.find(row => row.endpoint === 'session/follow');
+  assert.equal(rootFollow?.payload.args.request.activate, true);
+  root.close();
 });
 
 test('native admin operations use fixed plugin and schedule Remotes', async t => {
