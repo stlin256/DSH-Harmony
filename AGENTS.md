@@ -367,6 +367,12 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-01-visual-consistency-dock-send-e2e.md](docs/specs/2026-11-01-visual-consistency-dock-send-e2e.md)
 - Visual consistency, screenshot and Dock send E2E:
   [2026-11-01-visual-consistency-dock-send-e2e.md](docs/testing/2026-11-01-visual-consistency-dock-send-e2e.md)
+- Composer IME layout stability requirement:
+  [2026-11-02-composer-ime-layout-stability.md](docs/requirements/2026-11-02-composer-ime-layout-stability.md)
+- Composer IME layout stability implementation spec:
+  [2026-11-02-composer-ime-layout-stability.md](docs/specs/2026-11-02-composer-ime-layout-stability.md)
+- Composer IME layout stability device E2E:
+  [2026-11-02-composer-ime-layout-stability-e2e.md](docs/testing/2026-11-02-composer-ime-layout-stability-e2e.md)
 - Streaming scroll and Dock spring requirement:
   [2026-11-01-stream-scroll-dock-spring.md](docs/requirements/2026-11-01-stream-scroll-dock-spring.md)
 - Streaming scroll and Dock spring research:

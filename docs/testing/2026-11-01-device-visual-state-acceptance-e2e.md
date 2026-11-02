@@ -30,9 +30,9 @@ Implementation spec:
 | Previous Mock HAP SHA-256 | `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89` |
 | Previous Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
 | Previous Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
-| Current Mock HAP SHA-256 | `BEDD9A7AD31A4C45DA7A7E7702A2A008EACD226752A0C1DCBE680E49BE12C3EF` |
-| Current Default HAP SHA-256 | `F7044321EE18F6D6B78986ED5C44AE1842B24C5F4AAFD08F7F384BAF1A3EA5DE` |
-| Current Store HAP SHA-256 | `7AEA9D1A9F7764F3208F9FE4EA8D7AD5A1970A104A696CE866BBD60F984ECFBF` |
+| Current Mock HAP SHA-256 | `093BB55AB93FD341BAE3308ADFD24F06911EC7AB25964DB2BF528089E6DC20EA` |
+| Current Default HAP SHA-256 | `AB06FC3FD364638CA879FC58B80EC5CB31E9D382120D71D05C96B80B91A3994D` |
+| Current Store HAP SHA-256 | `FC6DFE577E74B8CB96D2CC41900D29208A83E3D21F7FD756C422B52A1996D70D` |
 
 ## Device evidence
 
@@ -65,6 +65,8 @@ Implementation spec:
   `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`
 - Current portable PR QA run: `20261102T051035Z-9cdbdc84`
   `.artifacts/qa/20261102T051035Z-9cdbdc84/report.json`
+- Keyboard IME PR QA run: `20261102T052550Z-a8ca704d`
+  `.artifacts/qa/20261102T052550Z-a8ca704d/report.json`
 
 The user's saved annotation run
 `20261101T152352Z-visual-acceptance-1` contains 32 markers across 20 source
@@ -92,6 +94,8 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-14 | Large text | Rows and controls remain readable without overlap, clipping or safe-area intrusion | Partial; portrait at maximum `超大` passed, while landscape remains Pending |
 | VSA-15 | Plan and subagent mode chips | Both chips render one continuous semantic surface without a split default-button fill | Pending current-HAP dark and light verification after moving both controls to explicit Normal capsules |
 | VSA-16 | Settings single-line options | Root navigation and single-line setting fields render as compact 44vp intrinsic rows without clipping or excess vertical space | Pending current-HAP dark, light and maximum-font verification |
+| VSA-17 | Composer IME open | Header title and chips keep their screen top; the transcript viewport and bottom Dock resize instead of the whole page translating | Pending current-HAP dark and light verification |
+| VSA-18 | Composer IME close and draft | System Back restores the exact header/composer geometry and keeps the draft | Pending current-HAP verification |
 
 ## Remaining device checks
 
@@ -116,6 +120,12 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 - Confirm the plan and subagent chips each paint one continuous surface in dark
   and light themes, including while the subagent catalog contains a running
   member.
+- Run `scripts/device-ui-ime-e2e.ps1` on the current Mock HAP. It must compare
+  the header and composer bounds before/while the IME is open, verify the resize
+  mode, type a draft, dismiss the IME, reopen it and repeat in light theme.
+- Verify the composer IME flow at maximum system text size. The current
+  `dock-send-idle` geometry and the new IME driver are not substitutes for that
+  large-text check.
 - Confirm settings root, DSH settings, storage and clear-cache single-line
   options use compact 44vp rows in dark, light and maximum system font size.
 - Verify the floating task-plan Dock in `plan-dock-overlay`: capture collapsed

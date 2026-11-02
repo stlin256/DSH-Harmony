@@ -71,6 +71,7 @@ struct Index {
   @StorageLink('requestedSession') @Watch('openNotification') private requestedSession: string = '';
 
   aboutToAppear(): void {
+    this.applyKeyboardAvoidMode();
     this.launchStartedAt = Date.now();
     this.launchPhase = NativeLaunchPhase.booting;
     this.initialize().catch((error: Error) => {
@@ -90,6 +91,7 @@ struct Index {
     if (AppStorage.get<boolean>('storeShowcase') === true) {
       this.showcase = true;
       this.uiMode = 'native';
+      this.applyKeyboardAvoidMode();
       AppStorage.setOrCreate<boolean>('nativeUserReduceMotion',
         AppStorage.get<boolean>('showcaseReduceMotion') === true);
       AppStorage.setOrCreate<boolean>('nativeReduceTransparency',
@@ -114,6 +116,7 @@ struct Index {
     const modeResolution = UiModePreference.resolve(savedMode,
       this.store.getSync(UiModePreference.MIGRATED_KEY, false) === true);
     this.uiMode = modeResolution.mode;
+    this.applyKeyboardAvoidMode();
     if (modeResolution.shouldPersist) {
       this.store.putSync(UiModePreference.MODE_KEY, modeResolution.mode);
       if (modeResolution.shouldMigrate) {
@@ -356,7 +359,7 @@ struct Index {
   }
 
   private modeChanged(): void {
-    this.getUIContext().setKeyboardAvoidMode(this.uiMode === 'native' ? KeyboardAvoidMode.RESIZE : KeyboardAvoidMode.OFFSET);
+    this.applyKeyboardAvoidMode();
     this.nativeClient.pause();
     this.authSurface = false; AppStorage.setOrCreate<boolean>('nativeAuthSurface', false); this.hideSettingsImmediately();
     this.error = '';
@@ -365,6 +368,10 @@ struct Index {
       try { this.controller.runJavaScript('window.__pocketSuspendOverview?.()').catch(() => {}); } catch (_) {}
       this.openPocketRoute();
     }
+  }
+  private applyKeyboardAvoidMode(): void {
+    this.getUIContext().setKeyboardAvoidMode(
+      this.uiMode === 'native' ? KeyboardAvoidMode.RESIZE : KeyboardAvoidMode.OFFSET);
   }
   private applyNativeTheme(): void {
     const shell = !this.ready || this.launchPhase !== NativeLaunchPhase.hidden ||

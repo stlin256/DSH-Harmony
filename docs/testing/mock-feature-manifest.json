@@ -23,6 +23,14 @@
       "e2eIds": ["MF-03"]
     },
     {
+      "id": "composer.ime-layout-stability",
+      "screens": ["conversation"],
+      "states": ["dock-send-idle"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-ime-e2e.ps1"],
+      "e2eIds": ["IME-01", "IME-02", "IME-03", "IME-04", "IME-05"],
+      "requiresInteraction": true
+    },
+    {
       "id": "transcript.streaming",
       "screens": ["conversation"],
       "states": ["streaming"],

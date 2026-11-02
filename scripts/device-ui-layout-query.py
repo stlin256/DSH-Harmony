@@ -300,6 +300,7 @@ def main() -> int:
         "count": match_count,
         "x": x,
         "y": y,
+        "bounds": target.get("attributes", {}).get("bounds", ""),
         "checked": checked,
         "background": background,
     }))

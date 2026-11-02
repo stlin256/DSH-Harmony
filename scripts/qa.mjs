@@ -40,6 +40,13 @@ const FAST_STEPS = Object.freeze([
     cwd: '.',
   },
   {
+    id: 'keyboard-avoidance',
+    label: 'Keyboard avoidance source contract',
+    command: process.execPath,
+    args: ['scripts/verify-keyboard-avoidance.mjs'],
+    cwd: '.',
+  },
+  {
     id: 'product-variants',
     label: 'Product variant contracts',
     command: process.execPath,

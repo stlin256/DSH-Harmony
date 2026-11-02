@@ -22,10 +22,11 @@ test('QA profiles select the required checks in deterministic order', () => {
     'diff-check',
     'protocol-lock',
     'mock-coverage',
+    'keyboard-avoidance',
     'product-variants',
     'publication-working-tree',
   ]);
-  assert.deepEqual(fast[4].args, [
+  assert.deepEqual(fast[5].args, [
     'scripts/check-publication.mjs',
     '--working-tree',
   ]);
@@ -109,8 +110,8 @@ test('QA writes per-step logs and an aggregate report', async (t) => {
 
   assert.equal(report.status, 'passed');
   assert.equal(report.exitCode, 0);
-  assert.equal(calls.length, 5);
-  assert.equal(report.steps.length, 5);
+  assert.equal(calls.length, 6);
+  assert.equal(report.steps.length, 6);
   assert.equal(report.steps[0].stdout, 'diff-check.stdout.log');
   assert.equal(report.steps[0].stderr, 'diff-check.stderr.log');
 
@@ -151,10 +152,10 @@ test('QA continues after failure and returns a failing report', async (t) => {
 
   assert.equal(report.status, 'failed');
   assert.equal(report.exitCode, 1);
-  assert.equal(calls.length, 5);
+  assert.equal(calls.length, 6);
   assert.equal(report.steps[1].status, 'failed');
   assert.equal(report.steps[1].exitCode, 7);
-  assert.equal(report.steps[4].status, 'passed');
+  assert.equal(report.steps[5].status, 'passed');
   assert.equal(
     await readFile(
       join(root, '.artifacts', 'qa', 'fail-run', 'protocol-lock.stderr.log'),
@@ -186,7 +187,7 @@ test('QA records command launch errors as failures', async (t) => {
 
   assert.equal(report.status, 'failed');
   assert.equal(report.steps[0].status, 'failed');
-  assert.equal(calls.length, 5);
+  assert.equal(calls.length, 6);
   assert.match(
     await readFile(
       join(root, '.artifacts', 'qa', 'error-run', 'diff-check.stderr.log'),
