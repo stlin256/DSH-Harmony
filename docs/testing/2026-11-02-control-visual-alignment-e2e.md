@@ -19,14 +19,14 @@ Previous Default HAP SHA-256:
 Previous Store HAP SHA-256:
 `BB63226FB42895102D5566D7017F83CB6EC115F376639AF6FC76919FA42B87AC`.
 
-Current Mock HAP SHA-256:
-`B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4`.
+Device-qualified Mock HAP SHA-256:
+`F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD`.
 
-Current Default HAP SHA-256:
-`4B9C2744CAF860FCD6AFAE63066CAAF2595DC0780047541146AF78171C0503A0`.
+Final Default Release SHA-256:
+`43E3466D0C878A07C673899B2B213E6348A0DC0424BA032E16C080D31D880E08`.
 
-Current Store HAP SHA-256:
-`A45FF01AB08A44EDE7E6BDE72B4BB18AF078BA56198F2402BC4007BA29F0DF9F`.
+Final Store Release SHA-256:
+`2BC7E88367F6CAD626954CDA7F9FC72FB6324702E9C6EE9AAFEFD0168DB9A6E6`.
 
 | ID | Surface | Expected result | Status |
 | --- | --- | --- | --- |
@@ -35,10 +35,10 @@ Current Store HAP SHA-256:
 | CVA-03 | Composer and bottom dock | Model, image, file, send, stop, queue and attachment controls use aligned sizes and gaps | Partial; passed on the previous HAP, current-HAP subagent send rerun pending |
 | CVA-04 | Plan and live-change surfaces | Task-plan disclosure is compact; progress, chips and file-change rows form one hierarchy without clipping | Partial; filename-first file cards and compact plan banner passed, while the current Normal-capsule chip correction requires a current-HAP capture |
 | CVA-05 | Pending interactions | Approval, question, option, pagination and submit controls align in dark and light themes | Passed; dark/light captures plus submitted interaction |
-| CVA-06 | Settings root and children | Header, compact single-line rows, fields, toggles, retry and destructive actions align across every page; DSH selector rows retain 44vp Select targets with a 60vp rhythm and visible 8vp vertical inset | Pending current-HAP dark verification after the selector-row rhythm correction; light and maximum-font reruns also Pending |
+| CVA-06 | Settings root and children | Header, compact single-line rows, fields, toggles, retry and destructive actions align across every page; DSH selector rows retain 44vp Select targets with a 60vp rhythm and visible 8vp vertical inset | Passed at API 26 default font; maximum-font remains Pending |
 | CVA-07 | About and storage | Author/repository rows, storage metric and clear-cache action use documented roles | Passed; settings driver opened both pages and returned |
 | CVA-08 | File browser | Breadcrumbs, header actions, groups and file rows share one inset and radius system | Passed; dark/light completed-browser captures |
-| CVA-09 | File preview and lightbox | One target-mode icon shares the title row with copy/download/close; load-more, retry and lightbox controls align safely | Partial; source-file preview and Back passed, while the current title-row mode action and image-lightbox visual proof remain Pending |
+| CVA-09 | File preview and lightbox | One target-mode icon occupies the former copy slot in the title row before download/close; no preview copy action is present; load-more, retry and lightbox controls align safely | Partial; source-file preview and Back passed, while the current title-row mode action and image-lightbox visual proof remain Pending |
 | CVA-10 | Plugins | Search, header action, card rows, status badges, install/update and error actions align | Passed; six final plugin states |
 | CVA-11 | Automation | Search, filters, task rows, form fields, day selector and action bars align | Passed; list, detail, editor, history and conflict states |
 | CVA-12 | Structured transcript | Process rows, tool cards, media metadata and turn-change cards use one compact disclosure language | Passed; final transcript and file-card runs |
@@ -46,8 +46,8 @@ Current Store HAP SHA-256:
 | CVA-14 | Dark theme | Borders, selected surfaces, chips and icon weights remain coherent | Passed across all affected dark captures |
 | CVA-15 | Reduced motion and transparency | Alignment survives fallback surfaces; transitions resolve without changing final geometry | Passed; 13 reduced-motion surfaces, onboarding and reduced-transparency Dock |
 | CVA-16 | API 23 fallback | Opaque surfaces preserve the same insets and control recipes | Pending; no API 23 target is available |
-| CVA-17 | Live process order | Reasoning, tool and later reasoning remain aligned in first-appearance order without changing child identity | Pending current-HAP dark and light verification; maximum-font and collapse/reopen rerun required |
-| CVA-18 | Notification level density | All four notification choices paint at 32vp inside a 44vp touch row; selected and unselected states stay aligned without clipping or overlap | Pending current-HAP dark, light and maximum-font verification |
+| CVA-17 | Live process order | Reasoning, tool and later reasoning remain aligned in first-appearance order without changing child identity | Passed for the deterministic disclosure fixture; live Host remains Pending |
+| CVA-18 | Notification level density | All four notification choices paint at 32vp inside a 44vp touch row; selected and unselected states stay aligned without clipping or overlap | Passed at API 26 default font; maximum-font remains Pending |
 
 ## Evidence
 

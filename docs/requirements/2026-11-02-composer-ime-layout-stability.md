@@ -19,6 +19,8 @@ transcript viewport and composer should adapt to the reduced height.
   relative to the screen while the IME is visible.
 - The transcript top remains stable and its viewport height decreases enough for
   the composer to remain above the IME.
+- The normal page bottom inset is 20vp. While the IME is visible, the composer
+  uses a tighter 12vp gap so it sits closer to the keyboard.
 - Dismissing the IME restores the previous header, transcript and composer
   geometry and preserves the draft.
 - A failed or unavailable keyboard transition must not be replaced with a fixed

@@ -20,11 +20,11 @@ Implementation spec:
 
 | ID | Action | Expected | Status |
 | --- | --- | --- | --- |
-| IME-01 | Launch `dock-send-idle` in dark theme and tap the composer. | Header title top stays fixed; IME opens; composer remains above the resized page. | Pending |
-| IME-02 | Enter an ASCII draft while the IME is open. | Draft appears once, composer does not cover the transcript header and no page-level upward shift occurs. | Pending |
-| IME-03 | Dismiss the IME with system Back. | Header and composer geometry restore within one pixel; draft remains. | Pending |
-| IME-04 | Reopen the IME and dismiss it again. | The same bounds and draft are preserved. | Pending |
-| IME-05 | Repeat the open/dismiss flow in light theme. | Header and composer geometry remain stable in both themes. | Pending |
+| IME-01 | Launch `dock-send-idle` in dark theme and tap the composer. | Header title top stays fixed; IME opens; composer remains above the resized page with a 12vp gap while the closed state uses the shared 20vp baseline. | Passed |
+| IME-02 | Enter an ASCII draft while the IME is open. | Draft appears once, composer does not cover the transcript header and no page-level upward shift occurs. | Passed |
+| IME-03 | Dismiss the IME with system Back. | Header and composer geometry restore within one pixel; draft remains. | Passed |
+| IME-04 | Reopen the IME and dismiss it again. | The same bounds and draft are preserved. | Passed |
+| IME-05 | Repeat the open/dismiss flow in light theme. | Header and composer geometry remain stable in both themes. | Passed |
 | IME-06 | Repeat with maximum system font size. | Header, chips and composer remain readable and do not overlap while the IME is open. | Pending |
 | IME-07 | Open a drawer or settings surface, then focus a field. | The overlay follows its own avoidance policy and does not translate the underlying conversation header. | Pending |
 | IME-08 | Resume from background with the IME previously dismissed. | Initial mode still uses `RESIZE`; no stale `OFFSET` translation appears. | Pending |
@@ -44,16 +44,17 @@ without a ready USB target and current HAP evidence.
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Source contract | Passed | `node scripts/verify-keyboard-avoidance.mjs` |
-| Mock mapping | Passed, `33/33` features and `68/68` states | `node scripts/verify-mock-coverage.mjs` |
-| PR QA | Passed | `.artifacts/qa/20261102T052550Z-a8ca704d/report.json` |
+| Mock mapping | Passed, `39/39` features, `76/76` states and `115` capture pairs | `node scripts/verify-mock-coverage.mjs` |
+| Current PR QA | Passed | final PR QA path recorded in the delivery summary |
 | Release variants | Passed | Mock, default and store HAPs built on 2026-11-02 |
-| Physical device driver | Pending | HDC reports only UART placeholders (`COM3`, `COM4`) |
+| Physical device driver | Passed for IME-01 through IME-05 | `artifacts/device-e2e-final/ime-clean/composer-layout/manifest.json` |
 
 Current HAP hashes:
 
-- Mock: `093BB55AB93FD341BAE3308ADFD24F06911EC7AB25964DB2BF528089E6DC20EA`
-- Default: `AB06FC3FD364638CA879FC58B80EC5CB31E9D382120D71D05C96B80B91A3994D`
-- Store: `FC6DFE577E74B8CB96D2CC41900D29208A83E3D21F7FD756C422B52A1996D70D`
+- Device-qualified Mock: `F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD`
+- Final default Release: `43E3466D0C878A07C673899B2B213E6348A0DC0424BA032E16C080D31D880E08`
+- Final store Release: `2BC7E88367F6CAD626954CDA7F9FC72FB6324702E9C6EE9AAFEFD0168DB9A6E6`
 
-The release builds compile with existing project-wide ArkTS warnings. No
-physical-device IME capture exists yet, so IME-01 through IME-08 remain Pending.
+The release builds compile with existing project-wide ArkTS warnings. IME-01
+through IME-05 passed on the current API 26 phone. IME-06 maximum-font and the
+separate overlay/background restore scenarios remain Pending.

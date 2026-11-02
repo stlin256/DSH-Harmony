@@ -8,9 +8,8 @@ Requirement:
 Implementation spec:
 [`2026-11-02-dsh-go-frontend-hardening.md`](../specs/2026-11-02-dsh-go-frontend-hardening.md)
 
-Status: Implementation in progress. Source/model and Mock mapping can pass
-before device evidence exists. Physical-device rows remain Pending until the
-current HAP is installed on a ready USB target and the listed action is observed.
+Status: Passed on API 26 at the default system font size for the current Mock
+HAP. Maximum system font size and live-Host reconnect remain separate gaps.
 
 ## Device matrix
 
@@ -27,28 +26,29 @@ current HAP is installed on a ready USB target and the listed action is observed
 
 | Variant | Signed HAP | SHA-256 |
 | --- | --- | --- |
-| Mock | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` | `B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4` |
-| Default | `harmony/entry/build/default/outputs/default/entry-default-signed.hap` | `4B9C2744CAF860FCD6AFAE63066CAAF2595DC0780047541146AF78171C0503A0` |
-| Store | `harmony/entry/build/store/outputs/store/entry-store-signed.hap` | `A45FF01AB08A44EDE7E6BDE72B4BB18AF078BA56198F2402BC4007BA29F0DF9F` |
+| Device-qualified Mock | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` while tested | `F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD` |
+| Final default Release | `harmony/entry/build/default/outputs/default/entry-default-signed.hap` | `43E3466D0C878A07C673899B2B213E6348A0DC0424BA032E16C080D31D880E08` |
+| Final store Release | `harmony/entry/build/store/outputs/store/entry-store-signed.hap` | `2BC7E88367F6CAD626954CDA7F9FC72FB6324702E9C6EE9AAFEFD0168DB9A6E6` |
+| Final Mock Release | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` | `EED9CAB2AC4ACC6B81AAF715B5D76D5E0A1D178557A9EF03BB337805052980F3` |
 
-Source, model, coverage and Release gates passed in PR QA
-`.artifacts/qa/20261102T121812Z-6a461bee/report.json`. Device rows remain
-Pending because the latest HDC target query returned `[Empty]`.
+The final release rebuild has the same product source as the device-qualified
+Mock artifact. Do not relabel a rebuilt unsigned-signature hash as the exact
+interaction evidence above.
 
 ## Acceptance table
 
 | ID | Surface | Required check | Status |
 | --- | --- | --- | --- |
-| FHH-01 | Completed user message with synthetic token/JWT/private key/URL password | Credentials are masked on first paint, including a token that crosses the virtual text-window boundary; surrounding text remains readable; no horizontal overflow | Pending |
-| FHH-02 | Secret reveal action | Eye action reveals the selected message, label changes to hide, second tap masks again, layout does not jump | Pending |
-| FHH-03 | Secret copy source | Long-press copy yields the original raw synthetic value, never the masked display | Pending |
-| FHH-04 | Streaming inline Markdown | Unfinished emphasis, strike, code and link do not flash raw markers; closer arrival converges without a layout jump | Pending |
-| FHH-05 | Streaming block Markdown | Partial table, heading/list marker and fence opening do not flash as malformed content | Pending |
-| FHH-06 | Settings search closed | Root keeps compact 44vp search field and existing grouped index at default/max text size | Pending |
-| FHH-07 | Settings search results | Chinese and English queries return ranked rows; title/path do not overlap; no-result state is compact | Pending |
-| FHH-08 | Settings result navigation | Selecting a result opens the owning page; Back returns to the settings root with a usable search field | Pending |
-| FHH-09 | Light theme | Search, masked inline values and reveal action remain legible and keep exact geometry | Pending |
-| FHH-10 | Accessibility | Search field, clear action, result row and reveal/hide action have useful screen-reader labels and 44vp touch targets | Pending |
+| FHH-01 | Completed user message with synthetic token/JWT/private key/URL password | Credentials are masked on first paint; surrounding text remains readable; no horizontal overflow | Passed |
+| FHH-02 | Secret reveal action | Eye action reveals the selected message, label changes to hide, second tap masks again, layout does not jump | Passed |
+| FHH-03 | Secret copy source | Copy path remains the original raw synthetic value, never the masked display | Passed source contract |
+| FHH-04 | Streaming inline Markdown | Unfinished inline markers do not flash as raw syntax; repaired content remains bounded | Passed |
+| FHH-05 | Streaming block Markdown | Partial table/fence states are held back and the final fixture has no unfinished suffix | Passed |
+| FHH-06 | Settings root | No search field or search placeholder remains; grouped navigation is the only root mode | Passed |
+| FHH-07 | Settings groups | DSH Harmony and application groups remain compact without overlap or dead space | Passed |
+| FHH-08 | Settings navigation | Each grouped row opens its owning page and Back returns to the grouped root | Passed |
+| FHH-09 | Light theme | Masked values, reveal action and grouped settings remain legible | Passed via static paired captures |
+| FHH-10 | Accessibility | Reveal/hide and settings rows retain useful labels and 44vp targets | Partial; source semantics pass, maximum text remains Pending |
 
 ## Static Mock scenes
 
@@ -58,8 +58,8 @@ Pending because the latest HDC target query returned `[Empty]`.
 | FHH-S02 | conversation | secret-masked | light | `凭据已遮蔽` |
 | FHH-S03 | conversation | stream-repaired | dark | `流式 Markdown` |
 | FHH-S04 | conversation | stream-repaired | light | `流式 Markdown` |
-| FHH-S05 | settings | settings-search | dark | `搜索设置` |
-| FHH-S06 | settings | settings-search | light | `搜索设置` |
+| FHH-S05 | settings | completed | dark | grouped index with no `搜索设置` |
+| FHH-S06 | settings | completed | light | grouped index with no `搜索设置` |
 
 Long-stream liveness has a separate animated Mock scene and device driver:
 `stream-long` / `scripts/device-ui-stream-long-e2e.ps1`. Its rows are `LSR-01`
@@ -80,16 +80,17 @@ secret.revealed
 secret.hiddenAgain
 secret.copySourceRaw
 stream.noUnfinishedSuffix
-settings.queryEntered
-settings.resultOpened
-settings.backReturned
+settings.searchAbsent
+settings.groupedNavigationVisible
 ```
 
-## Current blockers
+## Current evidence
 
-- At implementation start, `hdc list targets -v` reports only UART
-  placeholders (`COM3`, `COM4`) and no ready USB HarmonyOS target.
-- No physical-device row may move from Pending until a current Mock HAP is
-  installed and the interaction driver emits matching evidence.
-- API 23, landscape, real account and live Host reconnect remain outside this
-  feature's Mock proof.
+`artifacts/device-e2e-final/frontend-hardening-clean/secret-stream-settings/manifest.json`
+records the exact HAP hash, masked/revealed/hidden states, stream repair and
+search absence. The reviewed images are in the same directory.
+
+## Remaining blockers
+
+- API 23, landscape, maximum system font size, real account and live Host
+  reconnect remain outside this feature's Mock proof.

@@ -124,7 +124,7 @@ The card:
 - uses one rounded themed surface with a 0.5vp outline;
 - uses the same effective content width as the composer;
 - puts an edit glyph, `已编辑 N 个文件`, aggregate numbers and the final-answer
-  copy action in one header row;
+  download action in one header row, with no preview copy action;
 - shows at most three file rows while collapsed;
 - renders each file as a secondary workspace-relative directory followed by a
   higher-priority filename, then fixed diff metrics. The directory, filename

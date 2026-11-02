@@ -61,38 +61,46 @@ or real transcript content in source, tests, docs, logs or commits.
 
 ## Device Verification Ledger
 
-Keep these gaps explicit until a physical or emulated target proves them:
+API 26 physical-device evidence is current for Mock HAP SHA-256
+`F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD`.
 
-- Current-HAP rerun of the static Mock suite, subagent send, settings navigation
-  and all four disclosure matrices after the composer-state correction.
-- Current-HAP subagent count in the conversation title row with a long title,
-  plus opening a child conversation without a false connection-lost state.
-- Current-HAP SVG/Markdown preview/source action in the file title row: one
-  icon, no second toolbar row, correct target-mode glyph and preserved reading
-  height in dark, light and maximum system font size.
-- Current-HAP live process timeline order (`reasoning -> tool -> reasoning`) in
-  dark, light, maximum system font size and collapse/reopen, using
-  `disclosure-process-order` and `scripts/device-ui-disclosure-e2e.ps1`.
-- Current-HAP secret mask first paint, reveal/hide, raw-copy source, long
-  virtual-window boundary, settings search navigation and system Back.
-- Floating task-plan Dock collapsed and expanded overlay geometry, unchanged
-  transcript List bounds, outside-surface scrolling, light/dark themes,
-  reduced motion and maximum system font size.
+- Full static Mock suite: 115/115 captured scenes passed. Review contact sheets
+  live under `artifacts/device-e2e-final/mock-suite-clean/contact-sheets-audit/`.
+- Subagent/title-row/navigation and child send:
+  `artifacts/device-e2e-final/mode-subagent-clean/plan-lineage/manifest.json`.
+- Settings density, notification geometry, storage content and preference
+  persistence:
+  `artifacts/device-e2e-final/settings-clean/appearance-persistence/manifest.json`.
+- Secret masking/reveal, stream repair and search absence:
+  `artifacts/device-e2e-final/frontend-hardening-clean/secret-stream-settings/manifest.json`.
+- Approval/question controls:
+  `artifacts/device-e2e-final/interaction-clean/approval-question/manifest.json`.
+- Turn-change card expansion, file preview and Back:
+  `artifacts/device-e2e-final/turn-change-clean/completed-card/manifest.json`.
+- 31-state disclosure expansion matrix:
+  `artifacts/device-e2e-final/disclosure-dark-clean/disclosure-expansion-matrix/manifest.json`.
+- Long-stream liveness, stable process, final marker and responsive composer:
+  `artifacts/device-e2e-final/stream-long-final/stream-long-liveness/manifest.json`.
+- Floating plan Dock overlay, transcript spacer and outside-surface scrolling:
+  `artifacts/device-e2e-final/task-dock-clean/floating-overlay/manifest.json`.
+- Conversation scrollbar physical edge:
+  `artifacts/device-e2e-final/conversation-chrome-clean/scrollbar-edge/manifest.json`.
+- Final default Release installation/launch smoke:
+  `artifacts/device-e2e-final/release-smoke/manifest.json`.
+
+Keep these environment-bound gaps explicit until a matching target proves them:
+
 - API 23 opaque-material fallback.
-- Portrait and landscape layouts under maximum system font size.
+- Final-clean-HAP maximum system font size and landscape layouts.
 - Saved-session restore, expired-session recovery and logout/relaunch with a
   real account exchange.
 - Provider reconnect and session-switch restoration with a live Host stream.
-- Long-stream liveness with the current HAP: `stream-long` must advance in at
-  least two captures, show `STREAM-LONG-DONE` without relaunch, keep the same
-  process ID and leave the composer responsive.
-- Current-HAP notification level density in dark, light and maximum system
-  font size: all four painted choices must stay at 32vp with a 44vp response
-  region and no clipping or overlap.
+- Real Host long-stream cadence and Gateway backpressure recovery.
 - Current-device image-lightbox interaction evidence.
-- Current-HAP workspace preview coverage: `.conf`/config/text fallback,
-  extensionless developer files, known-binary download-only fallback, CSV/TSV
-  table parsing and table/source switching, including light and dark themes.
+- Workspace preview formats not present in the current fixtures, including
+  JPEG/WebP/GIF/BMP/HEIC/ICO and the full extensionless-file matrix.
+- Reduced-motion task Dock rerun if a final-clean-HAP artifact is required
+  separately from the tested Mock HAP.
 - Large-text onboarding, guide, detailed install page, login and inline error.
 
 Never promote a Pending or Partial row from Mock coverage, source inspection,

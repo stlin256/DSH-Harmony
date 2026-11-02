@@ -69,7 +69,9 @@ continues to own the intrinsic size.
 
 The `NativeTurnChangePill` row has an explicit compact height and no conflicting
 minimum height. The inner composer keeps its natural height. The dock's only
-bottom inset is the existing `ceil(safeBottom * 1.2) + 8`.
+bottom inset is
+`NativeDesign.navigationBarMinInset`, where `nativeSafeBottom` is never lower
+than 20vp. With the IME visible the composer switches to the dedicated 12vp gap.
 
 ## 4. Runtime regression guard
 
@@ -100,6 +102,8 @@ normal launches and requires the literal fixture flag.
 
 Conversation captures also run `scripts/device-ui-layout-assert.py`. The command
 must find the composer `TextArea` and model selector within the display bounds.
+The layout audit also rejects visible non-scrollable interactive controls whose
+   bottom edge enters the final 20vp above the display edge.
 The assertion log is stored with each conversation capture as
 `layout-assert.txt`; a failed assertion makes the script fail.
 

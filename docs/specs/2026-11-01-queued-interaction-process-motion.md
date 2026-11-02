@@ -35,14 +35,18 @@
 1. Refactor `NativeInteraction` into a compact themed card.
 2. Approval shows a warning strip, localized/formatted reason, tool subject,
    outline reject and primary allow-once actions.
-3. Questions show one question at a time with `1 / N` paging. Single select uses
-   a numbered row; multi-select uses a checkbox. Custom input is a rounded DSH
-   surface and single-select custom input clears the selected option.
+3. Questions show one question at a time with one `1 / N` indicator in the lower
+   paging row. Single select uses a numbered row; multi-select uses a checkbox.
+   Custom input is a rounded DSH surface, vertically centers placeholder/content,
+   and single-select custom input clears the selected option. The header does not
+   repeat the sequence.
 4. Skip records an empty answer and advances/submits. The final primary action
    submits all answers. Missing answers navigate to the first incomplete item.
-5. Apply `nativeStructuredText` only when a field is a complete JSON object or
+5. Skip and submit use 32vp-high controls with 11fp labels. The Composer has no
+   queue/steer selector; sending reads the Host `busyEnter` setting.
+6. Apply `nativeStructuredText` only when a field is a complete JSON object or
    array; flatten it to readable `key: value` text. Never display the wire JSON.
-6. Remove the user-facing delegate/“交给其他程序处理” button. Keep protocol
+7. Remove the user-facing delegate/“交给其他程序处理” button. Keep protocol
    delegate handling for lifecycle use.
 
 ## 4. Process insertion

@@ -18,6 +18,12 @@ phone is offline.
   exposing request JSON. Question details and option copy must remain readable.
 - Question choices, custom answers, paging and actions must use the DSH Harmony
   compact neutral/blue control language.
+- The question header shows its category with compact top inset and no duplicate
+  top-right sequence. `1 / N` appears once in the lower-left paging row.
+- The custom-answer placeholder is vertically centered. Skip and submit use
+  32vp-high controls with 11fp labels.
+- The Composer never shows a queue/steer selector. Sending defaults to queue;
+  the settings `busyEnter` value is the only mode switch.
 - The user-facing “交给其他程序处理” action must be removed. Delegation remains
   an internal lifecycle fallback only.
 - A newly created process group or a newly added direct operation inside the

@@ -7,9 +7,9 @@ available, but the current HAP has not run on a USB Ready device.
 
 | Artifact | SHA-256 |
 | --- | --- |
-| Current Mock HAP | `B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4` |
-| Current Default HAP | `4B9C2744CAF860FCD6AFAE63066CAAF2595DC0780047541146AF78171C0503A0` |
-| Current Store HAP | `A45FF01AB08A44EDE7E6BDE72B4BB18AF078BA56198F2402BC4007BA29F0DF9F` |
+| Device-qualified Mock HAP | `F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD` |
+| Final default Release | `43E3466D0C878A07C673899B2B213E6348A0DC0424BA032E16C080D31D880E08` |
+| Final store Release | `2BC7E88367F6CAD626954CDA7F9FC72FB6324702E9C6EE9AAFEFD0168DB9A6E6` |
 
 Requirement:
 [`2026-11-02-live-process-stream-order.md`](../requirements/2026-11-02-live-process-stream-order.md)
@@ -22,8 +22,8 @@ Implementation spec:
 | LPSO-01 | Live delta order | A reasoning -> tool -> reasoning stream renders in that order before settlement | Pending current-HAP verification |
 | LPSO-02 | Reconnect snapshot | A reconnecting active stream restores reasoning/tool order from `streamParts` | Pending current-HAP or deterministic gateway verification |
 | LPSO-03 | Cache restore | Relaunching with an in-progress cached turn preserves the same order | Pending current-HAP verification |
-| LPSO-04 | Mock disclosure order | Opening `disclosure-process-order` shows first reasoning above the tool and second reasoning below it | Pending current-HAP dark verification |
-| LPSO-05 | Collapse and reopen | The process group collapses and reopens without changing child identity or order | Pending current-HAP verification |
+| LPSO-04 | Mock disclosure order | Opening `disclosure-process-order` shows first reasoning above the tool and second reasoning below it | Passed; Y bounds recorded 730 < 845 < 960 |
+| LPSO-05 | Collapse and reopen | The process group collapses and reopens without changing child identity or order | Passed; identical reopened order |
 
 ## Evidence requirements
 

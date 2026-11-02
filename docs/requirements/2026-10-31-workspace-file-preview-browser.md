@@ -15,6 +15,9 @@
   Preview mode shows the code glyph to switch to source; source mode shows the
   eye glyph to restore rendering. The icon keeps the shared 44vp hit target and
   36vp visual container. Reduced motion affects only the content transition.
+- File preview never exposes a copy-path or copy-file action. The mode switch
+  occupies the former copy slot and is present only when both preview and source
+  modes are supported.
 - Every supported image and code file is viewable. Supported image formats are
   decoded through the platform image decoder. Code and text use a selectable
   source reader with a fixed-width line-number gutter and syntax highlighting

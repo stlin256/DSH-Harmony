@@ -22,7 +22,9 @@ single-page, width-fitted reader. The reader supports the platform's PDF zoom,
 drag and scroll gestures without handing the document to another application.
 
 The file title row owns a compact loading indicator while the PDF is parsed.
-The shared top copy/download/close toolbar remains visible over the document.
+The shared top download/close toolbar remains visible over the document. The
+single mode action appears only when source switching is supported; file
+preview never exposes a copy action.
 Parse failures stay inside the native reader with a compact retry action.
 Leaving the preview releases the PDF controller and removes the app-private
 materialization.

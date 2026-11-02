@@ -117,20 +117,25 @@
 
 ## 4. UI
 
-### 4.1 Plan chip
+### 4.1 Plan 退出动作
 
-- 仅 authoritative target active 时显示。
-- 文案“计划”；14-20 rank 图标；高度 28vp；胶囊边线。
-- 点击调用 `/plan off`，期间禁用并保留 chip。
-- 成功后由 projection 移除；失败显示“退出计划模式失败”，2 秒后自动清理。
+- 标题区、标题下方和任务计划 Dock 前方都不显示 Plan chip。
+- 仅 authoritative target active 时，在右上角“更多操作”菜单中显示“退出计划模式”。
+- 选择后调用 `/plan off`；菜单关闭，收到权威 inactive projection 前保留本地
+  Plan 状态。
+- 成功后再次打开菜单不再显示该动作；失败在标题下方显示
+  “退出计划模式失败”，2 秒后自动清理。
 
 ### 4.2 子代理 chip
 
 - 根/当前父会话的直接目录成功且非空时显示，并进入会话标题主行，位于标题列
   与“更多操作”之间。
-- 文案为 `N 个子智能体`；有运行成员时显示 6vp accent dot。长标题先截断，chip、
-  行内 loading 和 44vp 图标触控区不得被压缩或移出标题行。
-- 目录非空本身不创建标题下方状态行；标题下方状态行只为 Plan 或 Plan 错误保留。
+- 视觉只显示 `branch-outline` 与 `N`，不显示“个子智能体”长文案、运行圆点或
+  下拉箭头。运行成员存在时，图标和数字使用 accent 色；否则使用 secondary 色。
+- 视觉高度 28vp、圆角 `radiusChip`，左右 padding 合计不超过 14vp；完整语义
+  `N 个子智能体[，正在运行]` 写入 accessibility text。
+- 长标题先截断，chip、行内 loading 和 44vp 图标触控区不得被压缩或移出标题行。
+- 目录非空本身不创建标题下方状态行；标题下方只允许出现短暂 Plan 错误文本。
 - 子会话额外显示父级返回入口，不使用永久第二顶栏。
 
 ### 4.3 谱系抽屉
@@ -193,3 +198,15 @@
 - default Release 构建
 - store Release 构建
 - 设备在线后再执行 E2E 表中的实机项
+
+## 9. 全局底部安全区
+
+- `NativeDesign.navigationBarMinInset` 固定为 20vp，是原生底部安全区的权威下限。
+- `WindowAppearance.refreshSafeArea()` 发布
+  `nativeSafeBottom = max(20, systemGestureBottom)`；窗口尚未就绪和读取异常时同样
+  发布 20vp，禁止回退为 0。
+- 所有已有 `@StorageLink('nativeSafeBottom')` 的页面、抽屉、浮层、预览、灯箱和
+  Dock 自动继承该下限。任何新增底部表面必须消费同一 token，不得自行写 0 或
+  小于 20vp 的安全区。
+- `NativeBottomConversationDock` 在未弹出输入法时直接使用 20vp 页面安全区；
+  输入法可见时改用 12vp 紧凑间隙，使发送控件更贴近输入法。

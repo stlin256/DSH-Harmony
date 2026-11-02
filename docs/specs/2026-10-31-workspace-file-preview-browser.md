@@ -73,15 +73,29 @@ image.
 ## Mode switch and views
 
 `NativeDocumentModeSwitch` is one `NativeIconButton` placed in
-`NativeFilePreview`'s 52vp title toolbar, before copy/download/close. It never
+`NativeFilePreview`'s 52vp title toolbar, in the former copy position before
+download/close. The mode action is omitted unless both preview and source are
+supported. File preview has no copy-path action. It never
 creates a second row. The button keeps a 44vp interaction target and 36vp visual
 container. Preview mode presents `code-outline.svg` with the label
 `切换到源码`; source mode presents `eye-outline.svg` with the label
-`切换到渲染预览`. Tapping either icon changes only the document mode.
+`切换到渲染预览`. The single action keeps the stable layout id
+`document-mode-toggle` across both modes so device tests and accessibility
+automation do not depend on visible text. Tapping either icon changes only the
+document mode.
+
+The foreground reader title keeps the stable layout id
+`document-preview-title`. Device queries use that id instead of matching a
+filename, because the file browser underneath the preview can still expose the
+same visible filename in the accessibility tree.
+
+The source surface keeps the stable layout id `document-code-viewer`; this is
+the foreground-mode assertion for syntax-highlighted files whose individual
+source tokens are not projected as independent accessibility text.
 
 The icon is neutral shell chrome rather than a persistent selected state; the
 rendered content or source body communicates the active mode. This keeps the
-toolbar visually consistent with copy, download and close while maximizing
+toolbar visually consistent with download and close while maximizing
 vertical reading space.
 
 SVG, Markdown, HTML, CSV and TSV begin with `mode = preview`. A mode change is

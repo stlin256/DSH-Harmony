@@ -2,12 +2,10 @@
 
 Date opened: 2026-11-02
 
-Status: Partial. The standard dark, light, reduced-transparency and
-reduced-motion matrices passed 26/26 on Mock HAP
-`BA8A8F8B516735A32D3C5A9B36BBD6B002BFE96D0806F6B016186AB78CE43039`.
-The subsequent composer-state fix produced a new Release candidate and requires
-a final current-HAP rerun. The USB device disappeared during that rerun and has
-not yet returned to HDC. Landscape and API 23 remain explicitly pending.
+Status: Passed for the current dark expansion matrix. The current Mock HAP
+passed all 31/31 disclosure states, with every expanded capture visually
+reviewed. Light/reduced-material matrices from the prior source-equivalent HAP
+remain supplementary; API 23 and landscape remain explicitly pending.
 
 Requirement:
 [`2026-11-02-disclosure-expansion-matrix.md`](../requirements/2026-11-02-disclosure-expansion-matrix.md)
@@ -31,7 +29,7 @@ Implementation spec:
 | DXM-01 | Task plan | Header opens and closes; body scrolls within the compact plan surface | Passed |
 | DXM-02 | Process container | Header opens and closes; operation rows remain visible and stable | Passed |
 | DXM-03 | Reasoning operation | Reasoning body replaces the collapsed preview without clipping | Passed |
-| DXM-04 | Structured read | Line-numbered code renders with the expected source line | Passed |
+| DXM-04 | Structured read | One-line line-numbered code uses a compact vertically centered viewer with no 64vp empty container | Passed |
 | DXM-05 | Structured search | Path and matching line render without losing the file name | Passed |
 | DXM-06 | Terminal result | Command, working directory, exit status and output remain readable | Passed |
 | DXM-07 | Long Diff | The hidden middle line appears only after expansion and remains within the scroll container | Passed |
@@ -55,11 +53,11 @@ Implementation spec:
 | DXM-25 | Malformed structured result | Invalid structured metadata falls back to readable raw output without a blank body | Passed |
 | DXM-26 | Empty structured result | Successful tool with no displayable body renders an explicit empty-result row | Passed |
 | DXM-27 | Oversized plugin result | Oversized view is bounded, reports truncation and does not overflow the disclosure | Passed |
-| DXM-28 | Fetched page | URL, HTTP status and fetched body remain readable | Pending current-HAP rerun |
-| DXM-29 | Job lifecycle | Status, detail and call identity remain bounded | Pending current-HAP rerun |
-| DXM-30 | Read image | Authoritative dimensions render without a blank body | Pending current-HAP rerun |
-| DXM-31 | Slash command | Command result uses the structured command body | Pending current-HAP rerun |
-| DXM-32 | Live process order | Reasoning, tool and later reasoning render in first-appearance order and survive collapse/reopen | Pending current-HAP verification |
+| DXM-28 | Fetched page | URL, HTTP status and fetched body remain readable | Passed |
+| DXM-29 | Job lifecycle | Status, detail and call identity remain bounded | Passed |
+| DXM-30 | Read image | Authoritative dimensions render without a blank body | Passed |
+| DXM-31 | Slash command | Command result uses the structured command body | Passed |
+| DXM-32 | Live process order | Reasoning, tool and later reasoning render in first-appearance order and survive collapse/reopen | Passed for the deterministic disclosure fixture |
 
 ## Evidence
 
@@ -91,25 +89,22 @@ Previous source-equivalent evidence:
   `BA8A8F8B516735A32D3C5A9B36BBD6B002BFE96D0806F6B016186AB78CE43039`.
 - PR QA: `.artifacts/qa/20261102T004436Z-02ef9668/report.json`.
 
-## Current-HAP final gate
+## Current-HAP evidence
 
-The current Release candidates below include the shared composer send-state
-correction. They are not yet device-qualified until the full static suite,
-subagent interaction driver, settings driver and disclosure matrices are rerun
-against this exact Mock HAP:
-
-- Mock: `B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4`
-- Default: `4B9C2744CAF860FCD6AFAE63066CAAF2595DC0780047541146AF78171C0503A0`
-- Store: `A45FF01AB08A44EDE7E6BDE72B4BB18AF078BA56198F2402BC4007BA29F0DF9F`
-
-The latest portable PR QA is
-`.artifacts/qa/20261102T121812Z-6a461bee/report.json` (Passed).
-
-The interrupted run recorded a disabled subagent send button after text entry.
-The new HAP resumes Mock Host follow after `pause()` and centralizes the
-composer send eligibility contract. The device driver now waits for an enabled
-right-side composer action instead of clicking a disabled visual target.
-Device proof is Pending until the physical send flow passes on the current HAP.
+- Device-qualified Mock HAP:
+  `F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD`.
+- Dark matrix: 31/31 states passed.
+  `artifacts/device-e2e-final/disclosure-dark-clean/disclosure-expansion-matrix/manifest.json`
+- Expanded contact sheets reviewed:
+  `artifacts/device-e2e-final/disclosure-dark-clean/disclosure-expansion-matrix/contact-sheets/expanded-01.jpeg`
+  and `expanded-02.jpeg`.
+- Ordered process text bounds are recorded twice, collapsed/reopened, proving
+  `first-order-detail` above `NativeTaskDock.ets` above
+  `second-order-detail`.
+- Final Release rebuild artifacts:
+  default `43E3466D0C878A07C673899B2B213E6348A0DC0424BA032E16C080D31D880E08`,
+  store `2BC7E88367F6CAD626954CDA7F9FC72FB6324702E9C6EE9AAFEFD0168DB9A6E6`,
+  mock `EED9CAB2AC4ACC6B81AAF715B5D76D5E0A1D178557A9EF03BB337805052980F3`.
 
 Maximum-font and API 23 evidence remain environment-bound. They are not
 inferred from Mock mapping or the current portrait API 26 matrix.

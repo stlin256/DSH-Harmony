@@ -38,11 +38,11 @@
 - `NAV06` 会话操作顺序：置顶/取消置顶 → 重命名 → 创建分支 → 归档/恢复 → 复制会话 ID。归档会话不提供置顶；模型、队列不塞入此菜单。
 - `NAV06a` 标题区utilities复制完整服务端Markdown，不仅复制已加载窗口；日志经Host授权export route生成ZIP，可选择是否包含后代，手机使用系统保存选择器。忙碌时禁用对应操作，复制/下载失败分别反馈。
 - `NAV07` 更多视图按官方视图注册顺序、固定偏好和可用宽度决定可见标签，聊天固定；默认溢出菜单列出其余视图与当前勾选，以及可用的插件浏览/创建入口。owner虽提供固定回调，官方默认菜单不消费它，不添加臆测的固定按钮。只有一个视图时隐藏视图栏；没有原生实现的视图记录为待移植，不伪造菜单项。
-- `NAV08` 子智能体计数入口位于会话标题主行；Plan 模式 chip 位于其下方紧凑状态行。只有 Plan 时由状态行承载，子智能体计数本身不创建第二状态行，也不形成第二条常驻顶栏。子智能体抽屉、聊天页面和系统 Back 共用同一导航栈；子会话逐级返回直接父会话，抽屉打开时 Back 只关闭抽屉。
+- `NAV08` 子智能体计数入口位于会话标题主行。标题区和任务计划 Dock 前方不显示独立 Plan chip；Plan 退出动作放在右上角“更多操作”菜单。子智能体计数本身不创建第二状态行，也不形成第二条常驻顶栏。子智能体抽屉、聊天页面和系统 Back 共用同一导航栈；子会话逐级返回直接父会话，抽屉打开时 Back 只关闭抽屉。
 
 ### MODE：Plan 与子智能体
 
-- `MODE01` Plan 只读取 authority `plan` projection。显示目标是 `pending ? !active : active`；进入或待切换时显示“计划”，点击用 `commands/execute(sessionId, '/plan off', [])`。收到权威 inactive projection 前不乐观隐藏，失败保留状态并短暂显示“退出计划模式失败”。
+- `MODE01` Plan 只读取 authority `plan` projection。显示目标是 `pending ? !active : active`；进入或待切换时在“更多操作”菜单显示“退出计划模式”，选择后用 `commands/execute(sessionId, '/plan off', [])`。收到权威 inactive projection 前不乐观隐藏，失败保留状态并短暂显示“退出计划模式失败”。
 - `MODE02` Plan 模式与 `todo_write` 任务 Dock 分属不同生命周期。不得从任务清单、回复文字或本地开关推导 Plan 状态，也不得把任务 Dock 当作 Plan 入口。
 - `MODE03` 会话的直接 `subagentCatalog` 决定子智能体计数和运行点，不从普通 workspace 列表或 id 猜成员。计数与标题共用主行，长标题先省略；`external` 只显示为不可进入的叶子；`one-shot` 与 `unknown` 可读历史但不能发送。
 - `MODE04` 子智能体 Follow 和 page 使用 `{ kind: 'subagent', parentSessionId, childSessionId, mode }`。根会话主动打开使用 `activate:true`；合法子会话使用同一 address 非激活 Follow，避免把子历史读取当成根会话激活。Projection/state subscription 仍点名 child id；普通根列表继续过滤 `origin: 'subagent'`。
@@ -114,9 +114,9 @@
 - `INPUT01` 输入区保留官方语义草稿：文本、引用、命令、文件/目录/会话 reference 和有序附件。普通换行与提交、IME 组合输入、可编辑/忙碌态分离。
 - `INPUT02` 模型/推理选择属于输入区；显示当前 Host 选择。catalog 按Session预取并缓存，点击后在输入区上方弹出紧凑气泡，先呈现缓存再后台刷新；关闭气泡不得切换或隐藏聊天页面。
 - `INPUT03` Idle 普通提交与 running 时 queue/steer 的路径不同。Queue 不是自动重复发送。运行且无可发送草稿时显示 Stop，停止请求不代表任务已经结束。
-- `INPUT03a` `ui-conversation.busyEnter` Host偏好为queue（默认）/steer；主发送与Enter一致，Ctrl/Cmd+Enter选相反模式。手机显式发送优先，IME候选确认不触发提交。
+- `INPUT03a` `ui-conversation.busyEnter` Host偏好为queue（默认）/steer；主发送与Enter一致，Ctrl/Cmd+Enter选相反模式。手机输入区不得显示常驻 queue/steer 切换控件，模式只能从设置修改；手机显式发送优先，IME候选确认不触发提交。
 - `INPUT04` 本地提交立即创建有 rpcId 的 pending echo，以日志/Inbox 结果对账后移交正式记录。网络结果不明确时保留草稿和状态，不创建新 ID 自动重发。
-- `INPUT05` Queue以持久item ID编辑、移除、立即steer；只有全部content均为text的记录允许编辑，混合附件记录禁用编辑，不能转成纯文本覆盖。排队消息在输入区队列Dock管理，不藏进会话菜单。
+- `INPUT05` Queue以持久item ID编辑、移除、立即steer；只有全部content均为text的记录允许编辑，混合附件记录禁用编辑，不能转成纯文本覆盖。排队消息在输入区队列Dock管理，不藏进会话菜单。默认发送继续排队；只有设置中的 `busyEnter` 能改为立即。
 - `INPUT06` 选择的图片和文件进入同一条有序横向附件栏；图片64vp，文件240×64vp，手机可横滑。上传、进度、失败重试、Host拒绝与移除各有状态。
 - `INPUT07` 消息单图最长边240vp、保持比例；多附件64vp方图与文件卡同排、保留顺序。预览打开原图，系统返回/关闭归还焦点。
 - `INPUT08` Slash commands、引用和计划/权限等入口按官方注册的能力和顺序显示。不得暴露服务器未提供的空入口。
@@ -150,7 +150,7 @@
 - `VIS02` 中性背景、描边、正文与次级文本语义、DeepSeek强调蓝；错误红/等待黄只表达相应状态。按钮正常/按压/禁用/忙碌/焦点都定义。
 - `VIS03` 动效100/200/300ms及官方缓动映射ArkUI；导航、菜单、过程展开、切换、发送回显连续，不给每次stream刷新加位移动画。遵从系统/本地减少动效。
 - `VIS03a` 过程折叠使用官方专用时序：淡出70ms、关闭延迟50ms+高度110ms，与锚点补偿同一时钟完成，不统一套200ms或再追加一次滚动。
-- `VIS04` 状态栏可见，内容处于顶部安全区；底部手势区与页面同色，输入区位于键盘与底部安全区上方，不加固定空白。布局随旋转、分屏、字体尺寸更新。
+- `VIS04` 状态栏可见，内容处于顶部安全区；所有原生页面使用 20vp 底部安全避让。输入区位于键盘上方时使用 12vp 紧凑间隙，比未弹键盘时更近；不加页面级固定空白。布局随旋转、分屏、字体尺寸更新。
 - `VIS05` 手机上 hover 操作有可触达替代，图标有无障碍名称，触控目标与文字尺寸可独立，后台时不持续运行装饰动画。
 
 ## 7. 其他内置模块的原生目标

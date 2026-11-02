@@ -2,7 +2,8 @@
 
 Date opened: 2026-11-02
 
-Status: Active
+Status: implemented and API 26 device-verified; maximum-font and live-Host
+checks remain environment-bound.
 
 ## User requirement
 
@@ -24,7 +25,7 @@ The highest-risk remaining gaps are:
 | --- | --- | --- | --- |
 | P0 | Credential display in sent user text | A message can visibly expose a provider key, token, JWT, private key block or URL password. Long-press copies raw text correctly, but display has no mask or reveal control. | Mask only in rendered sent text. Copy, edit, queued input and model input keep the raw value. Offer an explicit reveal/hide action on completed messages. |
 | P0 | Unfinished streaming Markdown | `NativeTextContent` parses each partial text value directly. An unfinished emphasis marker, link, code span or table delimiter can flash as raw syntax before its closer arrives. | Repair only the unfinished tail before parsing. The completed value must converge to the same visual result without content jumps. |
-| P1 | Settings discovery | Settings root is a static seven-row index. Users must know which page contains a preference. | Add a compact, normalized Chinese/English search over stable page and row entries. Results navigate to the owning page. |
+| P1 | Settings discovery | A prior search prototype added a second navigation mode and extra visual density to settings. | The user explicitly removed settings search. Keep the compact grouped settings index only, with no search field, result state or dead placeholder. |
 | P1 | Native coverage truth | `docs/NATIVE-COVERAGE.md` still describes many implemented native surfaces as compatibility-only. | Reconcile status with current source and tests. Keep unimplemented behavior explicit rather than presenting 100% equivalence. |
 | P1 | Large component ownership | `NativeWorkspace.ets` and `NativeSettings.ets` mix transport, state projection, navigation and view code. | First extract pure, testable models. Do not perform a risky decorative file split without behavior tests. |
 | P2 | DSH UI form family | The native DSH UI card handles display-oriented blocks but not the complete form/input family available in DSH Go. | Track as follow-up. Do not add write-capable remote forms without protocol, validation, retry and confirmation coverage. |
@@ -65,19 +66,16 @@ The highest-risk remaining gaps are:
 5. Repair is pure and deterministic, has no network access and never changes
    stored text.
 
-### Settings search
+### Settings discovery
 
-1. Settings root has one compact search field using the standard 44vp row
-   geometry and page inset.
-2. Search normalizes case, whitespace, full-width ASCII and ideographic space.
-3. Entries include stable IDs, page IDs, Chinese/English titles, descriptions,
-   synonyms and parent-path terms.
-4. Ranking prefers exact title, title prefix, title substring, exact synonym,
-   synonym substring and path match, in that order.
-5. Results are capped and ordered deterministically. Selecting a result opens
-   its owning settings page.
-6. Empty query restores the existing grouped settings index. No result shows a
-   compact empty state with a clear action.
+1. Settings root shows grouped navigation only; there is no search field,
+   search icon, result list, query state or empty-search placeholder.
+2. DSH Harmony and application groups remain directly scannable with the
+   standard page inset and compact row geometry.
+3. Every grouped row opens its owning page. Back returns to the same grouped
+   root without restoring a removed search surface.
+4. Settings child pages keep visible spacing between adjacent option rows and
+   do not compress controls into one continuous block.
 
 ### Coverage and architecture
 
@@ -105,9 +103,9 @@ The highest-risk remaining gaps are:
 - Pure-model tests cover mask formats, masking boundaries, copy-source
   preservation, streaming repair convergence and settings ranking.
 - Deterministic Mock states cover masked messages, repaired streaming content
-  and settings search results.
-- Interaction drivers cover reveal/hide, settings query/result navigation and
-  Back.
+  and the grouped settings root.
+- Interaction drivers cover reveal/hide, grouped settings navigation, explicit
+  search absence and Back.
 - `node scripts/verify-mock-coverage.mjs` passes.
 - `node scripts/qa.mjs pr` passes.
 - `mock`, `default` and `store` release variants build after shared ArkUI

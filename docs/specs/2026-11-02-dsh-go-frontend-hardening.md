@@ -70,59 +70,21 @@ Rules:
 - Cut an unfinished image, HTML tag or marker that has no content yet.
 - Appending the real closer must produce the equivalent completed visual state.
 
-### 1.3 Settings index
+### 1.3 Settings root
 
-Create `harmony/entry/src/main/ets/services/NativeSettingsIndex.ets`.
+Do not create a settings search index. Remove
+`harmony/entry/src/main/ets/services/NativeSettingsIndex.ets` and render only
+the grouped settings root.
 
-```text
-NativeSettingsEntry
-  id: string
-  page: string
-  title: string
-  detail: string
-  synonyms: string[]
-  path: string
-  rank: number
+Rules:
 
-NativeSettingsHit
-  entry: NativeSettingsEntry
-  score: number
-  matchedSynonym: string
-```
-
-Pure API:
-
-```text
-nativeNormalizeSettingsQuery(value: string): string
-nativeSettingsEntries(): NativeSettingsEntry[]
-nativeSearchSettings(query: string, limit?: number): NativeSettingsHit[]
-```
-
-Ranking:
-
-| Match | Score |
-| --- | ---: |
-| exact title | 100 |
-| title prefix | 80 |
-| title contains | 60 |
-| exact synonym | 50 |
-| synonym contains | 40 |
-| path/detail contains | 20 |
-
-Add the entry's small frequency rank as a tiebreaker without allowing it to
-overcome a stronger match class. Ties preserve declared index order. Limit
-defaults to 20.
-
-Initial entries:
-
-- DSH settings: chat transcript, process display, folded replies, busy input.
-- Appearance: dark, light, system, reduced motion, reduced transparency.
-- Notifications: approval, failure, completion, connection, push, test.
-- Cards: widget privacy and task names.
-- Storage: cache pool, clear cache.
-- Connection: server, account, login, logout.
-- About: version, project, licenses.
-- Row-level synonyms for the visible preferences on those pages.
+- no search field, search icon, query state, ranked result model or result
+  navigation;
+- no empty placeholder where the removed search field used to be;
+- grouped DSH Harmony and application rows retain their stable page identity;
+- selecting a group row opens the owning page and Back returns to the grouped
+  root;
+- route state must not recreate the removed search feature.
 
 ## 2. Production UI
 
@@ -164,30 +126,19 @@ Modify `NativeMessageView.ets`.
 - Pass `streaming: this.runningReasoning` for reasoning text.
 - Do not add item entrance animation.
 
-### 2.3 Settings search
+### 2.3 Settings root
 
 Modify `NativeSettings.ets`.
 
-- Import the pure settings index.
-- Add `settingsQuery: string`.
-- Place a search field below the root header, before the grouped list.
-- Search field:
-  - 44vp height;
-  - field background;
-  - 16vp page inset via the existing content column;
-  - leading search glyph;
-  - one clear icon action when non-empty;
-  - screen-reader label `搜索设置`.
-- Non-empty query replaces grouped navigation with ranked results.
-- Result row:
-  - 44vp minimum;
-  - title on the left;
-  - page path/detail on the right, single line and ellipsized;
-  - opens the result page and clears the query.
-- Empty results show one compact line and a clear action.
-- Preserve current row heights, divider inset, radius and surface colors.
-- In Mock state `settings-search`, initialize query `通知` so screenshot evidence
-  is deterministic.
+- Remove the `NativeSettingsIndex` import, query state, search builders and
+  conditional result branch.
+- Render the grouped root immediately below the header without an empty row.
+- Keep the standard page inset, row radius, dividers and compact control
+  geometry.
+- Keep visible vertical separation between DSH selector rows and notification
+  level groups; controls must not appear glued together.
+- Remove the storage summary line containing an upper limit and current account
+  total while preserving cache categories, refresh and clear-cache actions.
 
 ## 3. Mock and interaction coverage
 
@@ -195,7 +146,6 @@ Add `NativeUiFixture.states`:
 
 - `secret-masked`
 - `stream-repaired`
-- `settings-search`
 
 Mock content:
 
@@ -204,23 +154,23 @@ Mock content:
 - `stream-repaired`: running assistant message ending in unfinished emphasis,
   link, code and a partial table. The static frame must not expose raw syntax
   that the repair contract removes.
-- `settings-search`: settings root opened with query `通知`, showing ranked
-  results.
+- `completed` settings root: grouped navigation only, with no search field or
+  result state.
 
 Add one interaction driver
 `scripts/device-ui-frontend-hardening-e2e.ps1` covering:
 
 1. Secret default mask, reveal, hide and raw-copy source contract.
 2. Streaming repair scene marker and absence of unfinished raw suffix.
-3. Settings search input, query results, result navigation and Back.
+3. Settings grouped navigation, explicit search absence and Back.
 
-Register the three states and actions in
+Register the mask, streaming and grouped-settings actions in
 `docs/testing/mock-feature-manifest.json`.
 
 ## 4. Documentation
 
 - Add this hardening E2E table to the repository index in `AGENTS.md`.
-- Add the secret/stream/search rules to the authoritative design-system
+- Add the secret/stream/grouped-settings rules to the authoritative design-system
   document.
 - Reconcile `docs/NATIVE-COVERAGE.md` with actual native surfaces. Use
   `Native`, `Partial`, `Compatibility` and `Pending verification` accurately.
@@ -240,15 +190,15 @@ Pure model tests in `gateway/test/native-models.test.mjs`:
 - streaming repair for emphasis, strike, code, links, images, tags, headings,
   lists, fences and tables;
 - append/convergence behavior;
-- settings normalization, ranking, stable tie order, result limit and
-  Chinese/English synonyms.
+- settings source contracts assert that no search index, field or result branch
+  remains.
 
 Source-contract tests:
 
 - production passes `streaming` from message state;
 - copy uses raw message text;
 - reveal action is available only when secrets exist;
-- settings search uses the pure index and opens result pages.
+- settings exposes only the grouped root and cannot recreate search state.
 
 ## 6. Commands and gates
 

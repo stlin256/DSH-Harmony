@@ -55,7 +55,11 @@ Implementation:
 ## Composer Navigation Inset
 
 - Apply the extra inset to the conversation composer container only.
-- Bottom inset is `ceil(safeBottom * 1.2) + 8vp`.
+- The idle composer bottom inset is the shared
+  `NativeDesign.navigationBarMinInset` value of 20vp.
+  `nativeSafeBottom` itself is clamped to at least 20vp before any surface uses
+  it. While the IME is visible, the composer uses the dedicated 12vp IME inset
+  instead of the normal bottom-safe calculation.
 - Do not add another global page inset and do not move the transcript or top
   chrome.
 - Reduced motion has no effect because this is layout spacing, not animation.

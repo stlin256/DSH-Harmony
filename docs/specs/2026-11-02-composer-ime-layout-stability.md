@@ -42,6 +42,8 @@ With the IME open:
 - the conversation header title and action row retain their top bounds;
 - the transcript Stack begins at the same offset below the header;
 - the bottom composer Dock remains fully visible above the IME;
+- the IME-visible Dock uses a 12vp bottom gap; when the IME is hidden it returns
+  to the shared 20vp page-safe baseline;
 - only the transcript `layoutWeight(1)` area contracts;
 - no header, chip, drawer scrim or page surface is shifted as a unit.
 

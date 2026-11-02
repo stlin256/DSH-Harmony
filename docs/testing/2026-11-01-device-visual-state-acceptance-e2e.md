@@ -4,12 +4,11 @@ Date opened: 2026-11-01
 
 Device verification date: 2026-11-02
 
-Status: Partial. The previous source-equivalent Mock HAP passed the complete
-visual suite and affected interaction drivers on the physical phone. After a
-composer-state correction, the current Release candidates require a final
-current-HAP device rerun. The USB device disappeared during that run and has
-not yet returned to HDC. API 23, a real account session, landscape, reconnect
-conditions and additional visual proof remain explicitly pending.
+Status: Partial. The current API 26 Mock HAP passed the complete 115/115 visual
+suite and all affected interaction drivers on the physical phone. API 23,
+maximum-font and landscape runs on the final release rebuild, real account
+exchange, live Host reconnect, the full preview-format matrix and current-device
+image-lightbox interaction remain explicitly pending.
 
 Requirement:
 [`2026-11-01-device-visual-state-acceptance.md`](../requirements/2026-11-01-device-visual-state-acceptance.md)
@@ -30,27 +29,40 @@ Implementation spec:
 | Previous Mock HAP SHA-256 | `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89` |
 | Previous Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
 | Previous Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
-| Current Mock HAP SHA-256 | `B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4` |
-| Current Default HAP SHA-256 | `4B9C2744CAF860FCD6AFAE63066CAAF2595DC0780047541146AF78171C0503A0` |
-| Current Store HAP SHA-256 | `A45FF01AB08A44EDE7E6BDE72B4BB18AF078BA56198F2402BC4007BA29F0DF9F` |
+| Device-qualified Mock HAP SHA-256 | `F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD` |
+| Final Default Release SHA-256 | `43E3466D0C878A07C673899B2B213E6348A0DC0424BA032E16C080D31D880E08` |
+| Final Store Release SHA-256 | `2BC7E88367F6CAD626954CDA7F9FC72FB6324702E9C6EE9AAFEFD0168DB9A6E6` |
+| Final Mock Release SHA-256 | `EED9CAB2AC4ACC6B81AAF715B5D76D5E0A1D178557A9EF03BB337805052980F3` |
 
 ## Device evidence
 
-- Complete Mock visual suite: 68/68 scenes passed.
-  `artifacts/device-ui-mock/20261102-device-visual-final/suite-summary.json`
-- Review contact sheets covering all 68 final captures:
-  `artifacts/device-ui-mock/20261102-device-visual-final/visual-contact-1.jpg`
-  through `visual-contact-4.jpg`.
+- Complete Mock visual suite: 115/115 scenes passed.
+  `artifacts/device-e2e-final/mock-suite-clean/suite-summary.json`
+- Review contact sheets covering all 115 final captures:
+  `artifacts/device-e2e-final/mock-suite-clean/contact-sheets-audit/visual-01.jpeg`
+  through `visual-08.jpeg`.
 - Dock send, queue, material and failure interaction:
-  `artifacts/device-e2e/20261102-device-dock-final/send-and-queue/manifest.json`
+  `artifacts/device-e2e-final/dock-clean/send-and-queue/manifest.json`
 - Approval and question interaction:
-  `artifacts/device-e2e/20261102-device-interaction-final/approval-question/manifest.json`
+  `artifacts/device-e2e-final/interaction-clean/approval-question/manifest.json`
 - Turn-change expansion, file preview and system Back:
-  `artifacts/device-e2e/20261102-device-turn-change-final/completed-card/manifest.json`
+  `artifacts/device-e2e-final/turn-change-clean/completed-card/manifest.json`
 - Plan/subagent lineage, child return and continuable composer:
-  `artifacts/device-e2e/20261102-device-mode-subagent-final/plan-lineage/manifest.json`
+  `artifacts/device-e2e-final/mode-subagent-clean/plan-lineage/manifest.json`
 - Settings appearance persistence:
-  `artifacts/device-e2e/20261102-device-settings-final/appearance-persistence/manifest.json`
+  `artifacts/device-e2e-final/settings-clean/appearance-persistence/manifest.json`
+- Disclosure expansion matrix:
+  `artifacts/device-e2e-final/disclosure-dark-clean/disclosure-expansion-matrix/manifest.json`
+- Floating task Dock:
+  `artifacts/device-e2e-final/task-dock-clean/floating-overlay/manifest.json`
+- Conversation scrollbar edge:
+  `artifacts/device-e2e-final/conversation-chrome-clean/scrollbar-edge/manifest.json`
+- Long stream:
+  `artifacts/device-e2e-final/stream-long-final/stream-long-liveness/manifest.json`
+- IME open/draft/close:
+  `artifacts/device-e2e-final/ime-clean/composer-layout/manifest.json`
+- Document preview/source and coverage fallbacks:
+  `artifacts/device-e2e-final/document-mode-clean/document-mode/manifest.json`
 - Reduced motion across 13 representative surfaces:
   `artifacts/device-e2e/20261102-reduced-motion-1`
 - Reduced-motion onboarding, guide, detailed install page and Back:
@@ -84,13 +96,13 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 
 | ID | Surface | Required device check | Status |
 | --- | --- | --- | --- |
-| VSA-01 | Floating task-plan Dock | Dark-theme Dock overlays the transcript from the top, does not reserve layout height, expands over messages and leaves gestures outside its surface scrollable | Pending current-HAP verification; previous evidence covered the superseded in-flow layout |
-| VSA-02 | Plan-mode header chip | Active chip is one filled capsule with no rectangular highlight or detached surface | Passed; final dark and light captures plus `plan-visible` interaction |
+| VSA-01 | Floating task-plan Dock | Dark-theme Dock overlays the transcript from the top, does not reserve layout height, expands over messages and leaves gestures outside its surface scrollable | Passed; dark/light collapsed/expanded geometry and outside-surface swipe |
+| VSA-02 | Plan exit action | The header has no standalone Plan chip; active mode exposes “退出计划模式” in the overflow menu until authority reports inactive | Passed; `plan-visible`, `plan-removed` and `plan-error-after` |
 | VSA-03 | Turn changed-file cards | Filename is the primary line, workspace-relative directory is secondary, fixed metrics remain visible and no horizontal overflow occurs | Passed; dark/light captures and `completed-card` layout assertions |
 | VSA-04 | Turn changed-file card expansion | Four files expand and collapse without changing row identity; preview opens and Back returns to the expanded card | Passed; `20261102-device-turn-change-final` |
 | VSA-05 | Conversation Dock ordering | Live change row stays above queued input; queue, attachments and composer remain reachable | Passed; `20261102-device-dock-final` |
 | VSA-06 | Conversation Dock material | Elevated material spans the horizontal bleed and falls back under reduced transparency | Partial; passed on API 26, while API 23 fallback remains Pending |
-| VSA-07 | Composer compact controls | Image, attachment, send, stop, queue and subagent controls keep compact geometry without overlap | Partial; geometry passed on the previous HAP, current subagent send-state rerun pending |
+| VSA-07 | Composer compact controls | Image, attachment, send, stop, queue and subagent controls keep compact geometry without overlap | Passed on API 26; subagent send and IME flows verified |
 | VSA-08 | Automation conflict and task rows | Conflict, action, task metadata and chips stay compact and readable | Passed; final dark/light and maximum-font captures |
 | VSA-09 | Plugin management rows | Action rows and status hierarchy remain readable without path-driven overflow | Passed; final dark/light and maximum-font captures |
 | VSA-10 | Pending interaction cards | Approval and question cards use compact controls; custom answer, pagination and submit do not overlap | Passed; static dark/light plus submitted interaction |
@@ -98,81 +110,34 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-12 | Subagent lineage and composer | Capsule, external read-only row, read-only modes, continuable composer and system Back remain usable | Partial; previous HAP passed, current HAP disabled after text entry and is awaiting rerun |
 | VSA-13 | Reduced motion | Affected disclosures, Dock transitions and onboarding resolve directly to the final state | Passed; 13 representative surfaces plus onboarding frames |
 | VSA-14 | Large text | Rows and controls remain readable without overlap, clipping or safe-area intrusion | Partial; portrait at maximum `超大` passed, while landscape remains Pending |
-| VSA-15 | Plan and subagent mode chips | Both chips render one continuous semantic surface without a split default-button fill | Pending current-HAP dark and light verification after moving both controls to explicit Normal capsules |
-| VSA-16 | Settings single-line options | Root navigation and single-line setting fields render as compact 44vp intrinsic rows without clipping or excess vertical space | Pending current-HAP dark, light and maximum-font verification |
-| VSA-17 | Composer IME open | Header title and chips keep their screen top; the transcript viewport and bottom Dock resize instead of the whole page translating | Pending current-HAP dark and light verification |
-| VSA-18 | Composer IME close and draft | System Back restores the exact header/composer geometry and keeps the draft | Pending current-HAP verification |
-| VSA-19 | DSH settings selector rhythm | `工作步骤展示`, `过程收起时机`, `收起后显示回复` and `运行时发送` retain 44vp Select targets inside 60vp rows with visible vertical spacing and no divider touching the controls | Pending current-HAP dark verification; light and maximum-font reruns also Pending |
-| VSA-20 | Live process order | Reasoning, tool and later reasoning render in first-appearance order; collapse/reopen preserves child identity and order | Pending current-HAP dark and light verification; maximum-font and device run required |
-| VSA-21 | Long-stream liveness | `stream-long` advances across two captures, shows `STREAM-LONG-DONE` without relaunch, keeps the same process ID and leaves the composer responsive | Pending current-HAP verification; HDC currently exposes no ready USB target |
-| VSA-22 | Subagent count in title row | `N 个子智能体` shares the title row, long titles truncate first, and loading/more actions remain inside their 44vp targets without overflow | Pending current-HAP dark, light and maximum-font verification; HDC currently exposes no ready USB target |
-| VSA-23 | Child conversation load | Opening a continuable child follows the subagent address without activation, renders its history and does not show a false connection-lost state | Pending current-HAP live or fixture interaction; gateway integration is not device evidence |
-| VSA-24 | Document preview/source toggle | SVG, Markdown and HTML expose one title-row icon action instead of a second toolbar row; the glyph names the target mode and toggling preserves header height and reading space | Pending current-HAP dark, light and maximum-font verification |
+| VSA-15 | Plan and subagent mode chips | Both chips render one continuous semantic surface without a split default-button fill | Passed; current dark/light Mock captures and pressed state |
+| VSA-16 | Settings single-line options | Root navigation and single-line setting fields render as compact 44vp intrinsic rows without clipping or excess vertical space | Passed at API 26 default font; maximum font remains Pending |
+| VSA-17 | Composer IME open | Header title and chips keep their screen top; the transcript viewport and bottom Dock resize instead of the whole page translating | Passed; dark/light bounds comparison |
+| VSA-18 | Composer IME close and draft | System Back restores the exact header/composer geometry and keeps the draft | Passed |
+| VSA-19 | DSH settings selector rhythm | `工作步骤展示`, `过程收起时机`, `收起后显示回复` and `运行时发送` retain 44vp Select targets inside 60vp rows with visible vertical spacing and no divider touching the controls | Passed; recorded 55/55/88px row gaps, minimum 54px |
+| VSA-20 | Live process order | Reasoning, tool and later reasoning render in first-appearance order; collapse/reopen preserves child identity and order | Passed for `disclosure-process-order`; live Host order remains Pending |
+| VSA-21 | Long-stream liveness | `stream-long` advances across two captures, shows `STREAM-LONG-DONE` without relaunch, keeps the same process ID and leaves the composer responsive | Passed |
+| VSA-22 | Subagent count in title row | A single branch glyph plus numeric count shares the title row with no long label or chevron; long titles truncate first and loading/more actions remain inside their 44vp targets without overflow | Passed; 4 and 128 counts verified |
+| VSA-23 | Child conversation load | Opening a continuable child follows the subagent address without activation, renders its history and does not show a false connection-lost state | Passed with current fixture interaction and child send |
+| VSA-24 | Document preview/source toggle | SVG, Markdown and HTML expose one title-row icon action instead of a second toolbar row; the glyph names the target mode and toggling preserves header height and reading space | Passed for SVG; Markdown/HTML maximum-font evidence remains Pending |
+| VSA-25 | Global bottom navigation inset | Every native page, drawer, overlay, preview, lightbox and composer keeps interactive controls at least 20vp above the display edge in all covered themes and states; an IME-raised composer uses a 12vp gap | Passed for the current API 26 default-font Mock matrix; API 23, maximum font and landscape remain Pending |
+| VSA-26 | Conversation scrollbar edge | The transcript scroll container reaches the physical right edge while body text keeps its page inset; a swipe moves content and preserves the process | Passed |
 
 ## Remaining device checks
 
-- Run `scripts/device-ui-frontend-hardening-e2e.ps1` against the current Mock
-  HAP once a ready USB target appears. It must verify the default masked
-  credential message, reveal/hide, raw-copy source contract, repaired streaming
-  Markdown, settings search, result navigation and system Back.
-- Capture dark and light screenshots for `secret-masked`, `stream-repaired` and
-  `settings-search` from the current HAP. The new rows are FHH-01 through
-  FHH-10 in `docs/testing/2026-11-02-dsh-go-frontend-hardening-e2e.md`.
-- Repeat the new settings search at maximum system text size and verify the
-  search field, clear action, result path and reveal/hide action keep 44vp
-  targets without overlap.
-- The latest HDC target query returned `[Empty]`, so none of the FHH device rows
-  is passed.
-- Run `scripts/device-ui-stream-long-e2e.ps1` against current Mock HAP
-  `B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4`.
-  It must prove text advances in two captures, `STREAM-LONG-DONE` appears
-  without relaunch, the process ID is unchanged, the reconnect banner is
-  absent, and the composer remains responsive. HDC reported `[Empty]` as of
-  2026-11-02.
-- The current-HAP USB target is not ready. After it returns, run
-  `scripts/device-ui-disclosure-e2e.ps1` against the current Mock HAP and
-  verify `disclosure-process-order` in dark and light themes, at maximum system
-  font size, and through both collapse/reopen paths. The driver must compare the
-  visible Y bounds for `first-order-detail`, `NativeTaskDock.ets` and
-  `second-order-detail`.
-- Rerun the 110-pair static Mock suite, subagent send flow, settings navigation
-  and all disclosure matrices against current Mock HAP
-  `B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4`.
-- Confirm the subagent composer send button becomes enabled after text entry
-  and that exactly one prompt appears. The interrupted run recorded the text in
-  the field while the action remained disabled.
-- Confirm the plan and subagent chips each paint one continuous surface in dark
-  and light themes, including while the subagent catalog contains a running
-  member.
-- Confirm the subagent count occupies the conversation title row, not a second
-  status row, with a long title in dark, light and maximum system font size.
-- Open a continuable child from the lineage drawer on the current HAP and verify
-  the history loads without “连接断开”; repeat from nested child to parent.
-- Open the SVG preview fixture and verify the preview/source action is one icon
-  inside the 52vp title row, with no reserved mode row. Toggle both directions
-  in dark, light and maximum system font size.
-- Run `scripts/device-ui-ime-e2e.ps1` on the current Mock HAP. It must compare
-  the header and composer bounds before/while the IME is open, verify the resize
-  mode, type a draft, dismiss the IME, reopen it and repeat in light theme.
-- Verify the composer IME flow at maximum system text size. The current
-  `dock-send-idle` geometry and the new IME driver are not substitutes for that
-  large-text check.
-- Confirm settings root, DSH settings, storage and clear-cache single-line
-  options use compact 44vp rows in dark, light and maximum system font size.
-- Run `scripts/device-ui-settings-e2e.ps1` on the current Mock HAP and verify
-  the four DSH Select bounds have visible vertical gaps. Capture the dark DSH
-  settings page and repeat in light theme and at maximum system font size.
-- Verify the floating task-plan Dock in `plan-dock-overlay`: capture collapsed
-  and expanded layouts, prove the transcript List top/height are unchanged,
-  swipe outside the Dock surface, and repeat in light, dark, reduced motion and
-  maximum system font size. Current HDC target inventory is empty.
 - API 23 material fallback requires a physical or emulated API 23 target.
 - Valid saved-session restore, expired-session recovery and logout/relaunch need
   a real account exchange and must not be inferred from Mock fixtures.
-- Landscape layout requires a controlled rotation run.
-- Provider reconnect and session-switch restoration require a live Host stream.
+- Final-clean-HAP maximum-font and landscape layouts require controlled runs.
+- Provider reconnect, real-Host long-stream cadence and session-switch
+  restoration require a live Host stream.
+- Current-device image-lightbox interaction still requires the target device.
+- JPEG/WebP/GIF/BMP/HEIC/ICO and the full extensionless-file preview matrix
+  remain outside the current deterministic fixtures.
 - Large-text onboarding/login must be repeated before claiming that complete
   launch flow at maximum system font size.
+- Reduced-motion task Dock can be rerun when a final-clean-HAP artifact must be
+  qualified independently from the tested Mock HAP.
 
-These checks remain `Pending`; source tests and the current API 26 portrait
-device run are not substitutes for them.
+These environment-bound checks remain `Pending`; source tests and the current
+API 26 portrait default-font device run are not substitutes for them.

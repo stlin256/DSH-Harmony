@@ -1,9 +1,11 @@
 # Workspace file preview and read-only browser E2E
 
-Status: pending device execution.
+Status: Partial. The current API 26 Mock HAP passed SVG title-row mode toggling,
+config/source fallback, CSV/TSV table/source switching and binary fallback.
+Other formats and save/browser-history interactions remain Pending.
 
-Current Mock HAP SHA-256:
-`B76B79DFA915E7C15999E96E85C38F2DC7DB6EBF8402BD28E6F89105808D10A4`.
+Device-qualified Mock HAP SHA-256:
+`F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD`.
 
 Current title-row mode driver:
 `scripts/device-ui-document-mode-e2e.ps1`.
@@ -13,15 +15,15 @@ Current title-row mode driver:
 | PREVIEW-01 | Open a PNG larger than one 2 MiB window from a chat file reference | The complete image renders; no repeated reconnect or unsupported-workspace message appears | Pending — sub-2 MiB workspace-browser PNG verified |
 | PREVIEW-02 | Open JPEG, WebP, GIF, BMP, HEIC and ICO files supported by the device | Each opens as an image with the same reader toolbar and top download control | Pending |
 | PREVIEW-03 | Open SVG from chat and workspace browser | Rendered preview appears by default; source XML is not shown | Pass — workspace-browser preview verified on device |
-| PREVIEW-04 | Toggle the single SVG mode icon from preview to code and back | The title-toolbar code icon reveals highlighted source and real line numbers; the eye icon restores the image; the toolbar does not change height | Pending |
-| PREVIEW-04C | Inspect SVG title toolbar layout | One 44vp mode action shares the title row with copy/download/close; no `预览/代码` two-half switch or extra mode row is present | Pending |
+| PREVIEW-04 | Toggle the single SVG mode icon from preview to code and back | The title-toolbar code icon reveals highlighted source and real line numbers; the eye icon restores the image; the toolbar does not change height | Passed |
+| PREVIEW-04C | Inspect SVG title toolbar layout | The stable-id `document-mode-toggle` is one 44vp mode action occupying the former copy slot before download/close; no copy-path action, `预览/代码` two-half switch or extra mode row is present | Passed |
 | PREVIEW-04A | In the workspace browser, open PNG and JPG files when the platform omits the custom byte-window header | Stat and streamed size still complete the window; the image renders without a transport error | Pass — PNG verified; JPG fixture absent |
 | PREVIEW-04B | Open an image whose size is exactly one 2 MiB window and an empty file through the same transport | The exact-boundary image reaches EOF without an extra empty-window failure; the empty file remains a non-image file with download available | Pending |
 | PREVIEW-05 | Open Markdown from chat and workspace browser | Rendered headings, links, quotes, tables and fenced code appear by default | Pending |
 | PREVIEW-06 | Toggle Markdown preview/code and load more source | Code mode remains active, line numbers continue from the response offset, and preview restores after paging | Pending |
 | PREVIEW-07 | Open code files in several mapped languages | Source is readable, horizontally scrollable, highlighted where supported, and has aligned line numbers | Pending |
 | PREVIEW-08 | Long-press/select code text | Native selection and copy work without triggering mode changes | Pending |
-| PREVIEW-09 | Open an unsupported binary | The reader shows a short unsupported-preview error and keeps download available | Pending |
+| PREVIEW-09 | Open an unsupported binary | The reader shows a short unsupported-preview error and keeps download available | Passed |
 | PREVIEW-10 | Scroll a long code file, close it, then open a short code file | The short file starts at line 1 at the top instead of retaining the previous vertical offset | Pass — short-file top alignment verified on device |
 | PREVIEW-11 | Open code mode on a gesture-navigation device | The reader leaves visible clearance above the system navigation area | Pass — bottom reader clearance verified on device |
 | PREVIEW-12 | Pan horizontally from an empty row below a short file, then stop | The full-height text region accepts the pan; the bottom thumb appears only while moving and fades out without covering source text | Pass — manual device verification after HDC visual checks |
@@ -36,3 +38,9 @@ Current title-row mode driver:
 | NAV-01 | Press system Back with a browser-opened file preview, then again in the browser | The preview closes first, then the browser closes, without leaving chat | Pending |
 | A11Y-01 | Enable reduced motion, then toggle SVG/Markdown mode | Content resolves directly to the final state without movement; the single icon action remains operable | Pending |
 | THEME-01 | Repeat SVG/Markdown mode, browser rows and download controls in light and dark modes | Target-mode glyphs, code colors and borders remain legible with no duplicate controls or black SVG artifacts | Pending |
+
+Current evidence:
+`artifacts/device-e2e-final/document-mode-clean/document-mode/manifest.json`.
+It records the single title-row action, absent copy action, SVG preview/source,
+config code fallback, CSV/TSV projection, malformed CSV recovery and binary
+download-only fallback.
