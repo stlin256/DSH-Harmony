@@ -20,13 +20,13 @@ Previous Store HAP SHA-256:
 `BB63226FB42895102D5566D7017F83CB6EC115F376639AF6FC76919FA42B87AC`.
 
 Current Mock HAP SHA-256:
-`6DBC521844CBF9522E45F4F9C70719846EC5EC8AD47ECDE79049D77C7A72C736`.
+`CBDAAC6954223145A2114B519652D7F6E333AE103A1AA385BF1A78FD7B5156B4`.
 
 Current Default HAP SHA-256:
-`FB33D17A9EE44300E197E8FC3FAC19D109D3C76BEBE28A78B7DDFB7783428AA6`.
+`12A50B4138BFE8BA3B6792C493B13B8948BC6349AFF09F27309A4717229C3878`.
 
 Current Store HAP SHA-256:
-`9AE9D41370ED3E32127B9D0051617203B79228EEE431C9B96A85AF6A14DE6056`.
+`906B262EABDD48793AD33632EDBB4342DB39F4B1790C4410229F3D9230609CAD`.
 
 | ID | Surface | Expected result | Status |
 | --- | --- | --- | --- |
@@ -38,7 +38,7 @@ Current Store HAP SHA-256:
 | CVA-06 | Settings root and children | Header, compact single-line rows, fields, toggles, retry and destructive actions align across every page; DSH selector rows retain 44vp Select targets with a 60vp rhythm and visible 8vp vertical inset | Pending current-HAP dark verification after the selector-row rhythm correction; light and maximum-font reruns also Pending |
 | CVA-07 | About and storage | Author/repository rows, storage metric and clear-cache action use documented roles | Passed; settings driver opened both pages and returned |
 | CVA-08 | File browser | Breadcrumbs, header actions, groups and file rows share one inset and radius system | Passed; dark/light completed-browser captures |
-| CVA-09 | File preview and lightbox | Header controls, mode switch, load-more, close/download and retry states align safely | Partial; source-file preview and Back passed, while current-device image-lightbox visual proof remains Pending |
+| CVA-09 | File preview and lightbox | One target-mode icon shares the title row with copy/download/close; load-more, retry and lightbox controls align safely | Partial; source-file preview and Back passed, while the current title-row mode action and image-lightbox visual proof remain Pending |
 | CVA-10 | Plugins | Search, header action, card rows, status badges, install/update and error actions align | Passed; six final plugin states |
 | CVA-11 | Automation | Search, filters, task rows, form fields, day selector and action bars align | Passed; list, detail, editor, history and conflict states |
 | CVA-12 | Structured transcript | Process rows, tool cards, media metadata and turn-change cards use one compact disclosure language | Passed; final transcript and file-card runs |
@@ -73,7 +73,7 @@ Current Store HAP SHA-256:
 - PR QA:
   previous `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`; current
   notification-density run
-  `.artifacts/qa/20261102T063039Z-6973e1d6/report.json`.
+  `.artifacts/qa/20261102T070115Z-d2ee8eb8/report.json`.
 
 ## Notification level density evidence
 

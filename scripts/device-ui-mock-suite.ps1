@@ -86,6 +86,8 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'sidebar'; State = 'completed'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'browser'; State = 'completed'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'browser'; State = 'completed'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'preview'; State = 'document-preview'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'preview'; State = 'document-preview'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'settings'; State = 'settings-search'; Theme = 'dark' },
@@ -183,6 +185,7 @@ function Get-ExpectedMarker {
     'process/completed' { return '更新了计划' }
     'sidebar/completed' { return '置顶' }
     'browser/completed' { return '工作区根目录' }
+    'preview/document-preview' { return 'diagram.svg' }
     'settings/completed' { return '外观与动效' }
     'settings/settings-search' { return '搜索设置' }
     'plugins/plugins-list' { return 'Workspace Tools' }

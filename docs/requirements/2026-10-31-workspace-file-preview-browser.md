@@ -10,10 +10,11 @@
   source-code mode with line numbers.
 - Markdown opens in rendered preview mode by default and can switch to a
   highlighted source-code mode with line numbers.
-- The SVG and Markdown mode switch is a compact rectangular sliding control.
-  The preview half uses an eye glyph and the source half uses the existing code
-  glyph. The active half has a solid DSH neutral/blue highlight and the moving
-  block uses the shared micro-motion token. Reduced motion resolves instantly.
+- The SVG, Markdown and HTML preview/source switch is one icon action inside the
+  preview title toolbar. It does not reserve a second row below the title.
+  Preview mode shows the code glyph to switch to source; source mode shows the
+  eye glyph to restore rendering. The icon keeps the shared 44vp hit target and
+  36vp visual container. Reduced motion affects only the content transition.
 - Every supported image and code file is viewable. Supported image formats are
   decoded through the platform image decoder. Code and text use a selectable
   source reader with a fixed-width line-number gutter and syntax highlighting
@@ -49,8 +50,9 @@
 ## Acceptance criteria
 
 - A valid PNG and a valid SVG both render inside the native file reader.
-- SVG starts in preview mode; tapping the code half reveals source and real line
-  numbers; tapping the eye half restores the rendered SVG.
+- SVG starts in preview mode; tapping the single code icon in the title toolbar
+  reveals source and real line numbers; tapping the eye icon restores the
+  rendered SVG without adding or collapsing a second toolbar row.
 - Markdown starts in preview mode; code mode preserves line numbers across
   additional text pages, and preview restores headings, links, tables, quotes
   and fenced code blocks.

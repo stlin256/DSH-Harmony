@@ -53,6 +53,13 @@ DeepSeek Harness 的鸿蒙原生客户端。
 - 分级通知与桌面卡片
 - 亮色、暗色与跟随系统
 `;
+const SHOWCASE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+<!-- DSH_SOURCE_MARKER -->
+<rect width="640" height="360" rx="24" fill="#151517"/>
+<circle cx="116" cy="112" r="54" fill="#3964FE"/>
+<path d="M204 88h264M204 132h196M204 176h228" stroke="#F6F7F9" stroke-width="16" stroke-linecap="round"/>
+</svg>
+`;
 
 class ShowcaseFileDiff {
   path: string = '';
@@ -1187,14 +1194,17 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   }
 
   async findWorkspaceFile(_id: string, name: string): Promise<string> {
-    return name === 'README.md' ? 'README.md' : '';
+    if (name === 'README.md') return 'README.md';
+    if (name === 'diagram.svg') return 'docs/diagram.svg';
+    return '';
   }
 
   async statFile(id: string, path: string): Promise<NativeFileStat> {
     const value = new NativeFileStat();
     value.absolutePath = path;
     value.version = id + ':v1';
-    value.bytes = path.endsWith('README.md') ? SHOWCASE_README.length : 420;
+    value.bytes = path.endsWith('README.md') ? SHOWCASE_README.length :
+      path.endsWith('diagram.svg') ? SHOWCASE_SVG.length : 420;
     return value;
   }
 
@@ -1202,7 +1212,8 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     const value = new NativeFilePage();
     value.absolutePath = path;
     value.version = id + ':v1';
-    value.text = path.endsWith('README.md') ? SHOWCASE_README : '{\n  "name": "dsh-harmony"\n}\n';
+    value.text = path.endsWith('README.md') ? SHOWCASE_README :
+      path.endsWith('diagram.svg') ? SHOWCASE_SVG : '{\n  "name": "dsh-harmony"\n}\n';
     value.lines = value.text.split('\n').length;
     value.offset = offset;
     value.eof = true;
@@ -1212,7 +1223,8 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   async readFileBytes(id: string, path: string, _baseFile: string = '',
     offset: number = 0, length: number = 262144, _expectedVersion: string = '',
     _expectedBytes: number = -1): Promise<NativeFileBytes> {
-    const source = path.endsWith('README.md') ? SHOWCASE_README : '{\n  "name": "dsh-harmony"\n}\n';
+    const source = path.endsWith('README.md') ? SHOWCASE_README :
+      path.endsWith('diagram.svg') ? SHOWCASE_SVG : '{\n  "name": "dsh-harmony"\n}\n';
     const bytes = StoreShowcaseClient.utf8(source);
     const value = new NativeFileBytes();
     value.protocol = 1;

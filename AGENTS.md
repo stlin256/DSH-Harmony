@@ -67,6 +67,9 @@ Keep these gaps explicit until a physical or emulated target proves them:
   and all four disclosure matrices after the composer-state correction.
 - Current-HAP subagent count in the conversation title row with a long title,
   plus opening a child conversation without a false connection-lost state.
+- Current-HAP SVG/Markdown preview/source action in the file title row: one
+  icon, no second toolbar row, correct target-mode glyph and preserved reading
+  height in dark, light and maximum system font size.
 - Current-HAP live process timeline order (`reasoning -> tool -> reasoning`) in
   dark, light, maximum system font size and collapse/reopen, using
   `disclosure-process-order` and `scripts/device-ui-disclosure-e2e.ps1`.

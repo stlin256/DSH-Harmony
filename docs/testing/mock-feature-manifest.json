@@ -191,6 +191,14 @@
       "e2eIds": ["MF-22"]
     },
     {
+      "id": "surface.file-preview-mode",
+      "screens": ["preview"],
+      "states": ["document-preview"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
+      "e2eIds": ["PREVIEW-04", "PREVIEW-04C"],
+      "requiresInteraction": true
+    },
+    {
       "id": "surface.settings",
       "screens": ["settings"],
       "states": ["completed"],

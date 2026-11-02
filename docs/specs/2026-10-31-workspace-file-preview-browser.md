@@ -66,16 +66,21 @@ binary/unsupported preview rather than evidence that the file is an image.
 
 ## Mode switch and views
 
-`NativeDocumentModeSwitch` is a 76vp by 32vp rounded rectangle. A 34vp inner
-highlight translates between its two halves with the `micro` motion token.
-Preview uses a locally packaged `eye-outline.svg`; code reuses
-`code-outline.svg`. Both glyphs are tinted through `DSHIcon`, preserving theme
-adaptation. Active and inactive colors remain distinguishable in light and dark
-modes.
+`NativeDocumentModeSwitch` is one `NativeIconButton` placed in
+`NativeFilePreview`'s 52vp title toolbar, before copy/download/close. It never
+creates a second row. The button keeps a 44vp interaction target and 36vp visual
+container. Preview mode presents `code-outline.svg` with the label
+`切换到源码`; source mode presents `eye-outline.svg` with the label
+`切换到渲染预览`. Tapping either icon changes only the document mode.
 
-SVG and Markdown begin with `mode = preview`. A mode change is local UI state
-and survives additional-page loads. Images and ordinary code files do not show
-the switch because they have only one meaningful mode.
+The icon is neutral shell chrome rather than a persistent selected state; the
+rendered content or source body communicates the active mode. This keeps the
+toolbar visually consistent with copy, download and close while maximizing
+vertical reading space.
+
+SVG, Markdown and HTML begin with `mode = preview`. A mode change is local UI
+state and survives additional-page loads. Images, PDF and ordinary code files do
+not show the switch because they have only one meaningful mode.
 
 `NativeCodeViewer` renders a two-column source surface. The gutter column and
 the horizontally scrollable code column share a fixed 22vp line rhythm. Each

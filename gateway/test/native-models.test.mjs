@@ -211,6 +211,7 @@ test('semantic motion tokens resolve directly when motion is disabled', () => {
 test('UI fixture launch parameters are bounded and expose explicit running states', () => {
   const { NativeUiFixture } = load('NativeUiFixture', {});
   assert.equal(NativeUiFixture.screen('conversation'), 'conversation');
+  assert.equal(NativeUiFixture.screen('preview'), 'preview');
   assert.equal(NativeUiFixture.screen('unknown'), 'conversation');
   assert.equal(NativeUiFixture.state('live-change'), 'live-change');
   assert.equal(NativeUiFixture.state('attachments'), 'attachments');
@@ -218,6 +219,7 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.equal(NativeUiFixture.state('secret-masked'), 'secret-masked');
   assert.equal(NativeUiFixture.state('stream-repaired'), 'stream-repaired');
   assert.equal(NativeUiFixture.state('settings-search'), 'settings-search');
+  assert.equal(NativeUiFixture.state('document-preview'), 'document-preview');
   assert.equal(NativeUiFixture.state('long-history'), 'long-history');
   assert.equal(NativeUiFixture.state('dock-send-idle'), 'dock-send-idle');
   assert.equal(NativeUiFixture.state('dock-queue-pending'), 'dock-queue-pending');
@@ -2049,6 +2051,38 @@ test('workspace document model distinguishes previewable images, SVG and Markdow
   assert.equal(document.nativeDocumentDescriptor('src/main.ets').language, 'arkts');
   assert.equal(document.nativeDocumentDescriptor('LICENSE').kind, 'unknown');
   assert.equal(document.nativeDocumentExtension('archive.tar.gz'), 'gz');
+});
+
+test('document preview/source mode uses one title-row icon action', () => {
+  const preview = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeFilePreview.ets', import.meta.url), 'utf8');
+  const mode = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeDocumentModeSwitch.ets', import.meta.url), 'utf8');
+  const mockScript = readFileSync(new URL(
+    '../../scripts/device-ui-mock.ps1', import.meta.url), 'utf8');
+  const mockSuite = readFileSync(new URL(
+    '../../scripts/device-ui-mock-suite.ps1', import.meta.url), 'utf8');
+  const headerStart = preview.indexOf('private header()');
+  const headerEnd = preview.indexOf('private imageBody()', headerStart);
+  const header = preview.slice(headerStart, headerEnd);
+  const screenSet = mockScript.match(/\[ValidateSet\(([\s\S]*?)\)\]\s*\[string\]\$Screen/);
+  const stateSet = mockScript.match(/\[ValidateSet\(([\s\S]*?)\)\]\s*\[string\]\$State/);
+  assert.ok(screenSet && screenSet[1].includes("'preview'"));
+  assert.ok(stateSet && stateSet[1].includes("'document-preview'"));
+  assert.match(mockSuite,
+    /Screen = 'preview'; State = 'document-preview'/);
+  assert.match(header, /private header\(\) \{\s*Row\(\{ space: 4 \}\)/);
+  assert.equal((header.match(/NativeDocumentModeSwitch/g) || []).length, 1);
+  const modePosition = header.indexOf('NativeDocumentModeSwitch');
+  const copyPosition = header.indexOf("glyph: 'copy-outline'");
+  assert.ok(modePosition >= 0 && modePosition < copyPosition);
+  assert.doesNotMatch(header, /Row\(\) \{\s*NativeDocumentModeSwitch/);
+  assert.match(mode, /NativeIconButton\(\{/);
+  assert.match(mode,
+    /glyph: this\.mode === 'preview' \? 'code-outline' : 'eye-outline'/);
+  assert.match(mode,
+    /label: this\.mode === 'preview' \? '切换到源码' : '切换到渲染预览'/);
+  assert.doesNotMatch(mode, /modeButton|NativeDesign\.hitTarget \* 2|translate\(/);
 });
 
 test('browser history stores only compact paths at arbitrary depth', () => {

@@ -30,9 +30,9 @@ Implementation spec:
 | Previous Mock HAP SHA-256 | `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89` |
 | Previous Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
 | Previous Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
-| Current Mock HAP SHA-256 | `6DBC521844CBF9522E45F4F9C70719846EC5EC8AD47ECDE79049D77C7A72C736` |
-| Current Default HAP SHA-256 | `FB33D17A9EE44300E197E8FC3FAC19D109D3C76BEBE28A78B7DDFB7783428AA6` |
-| Current Store HAP SHA-256 | `9AE9D41370ED3E32127B9D0051617203B79228EEE431C9B96A85AF6A14DE6056` |
+| Current Mock HAP SHA-256 | `CBDAAC6954223145A2114B519652D7F6E333AE103A1AA385BF1A78FD7B5156B4` |
+| Current Default HAP SHA-256 | `12A50B4138BFE8BA3B6792C493B13B8948BC6349AFF09F27309A4717229C3878` |
+| Current Store HAP SHA-256 | `906B262EABDD48793AD33632EDBB4342DB39F4B1790C4410229F3D9230609CAD` |
 
 ## Device evidence
 
@@ -69,8 +69,8 @@ Implementation spec:
   `.artifacts/qa/20261102T052550Z-a8ca704d/report.json`
 - Live process ordering PR QA run: `20261102T054907Z-09edfb22`
   `.artifacts/qa/20261102T054907Z-09edfb22/report.json`
-- Notification density and long-stream PR QA run: `20261102T063039Z-6973e1d6`
-  `.artifacts/qa/20261102T063039Z-6973e1d6/report.json`
+- Notification density and long-stream PR QA run: `20261102T070115Z-d2ee8eb8`
+  `.artifacts/qa/20261102T070115Z-d2ee8eb8/report.json`
 - Subagent title-row and child-follow PR QA run: `20261102T064134Z-9ca4aa3c`
   `.artifacts/qa/20261102T064134Z-9ca4aa3c/report.json`
 
@@ -107,6 +107,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-21 | Long-stream liveness | `stream-long` advances across two captures, shows `STREAM-LONG-DONE` without relaunch, keeps the same process ID and leaves the composer responsive | Pending current-HAP verification; HDC currently exposes no ready USB target |
 | VSA-22 | Subagent count in title row | `N 个子智能体` shares the title row, long titles truncate first, and loading/more actions remain inside their 44vp targets without overflow | Pending current-HAP dark, light and maximum-font verification; HDC currently exposes no ready USB target |
 | VSA-23 | Child conversation load | Opening a continuable child follows the subagent address without activation, renders its history and does not show a false connection-lost state | Pending current-HAP live or fixture interaction; gateway integration is not device evidence |
+| VSA-24 | Document preview/source toggle | SVG, Markdown and HTML expose one title-row icon action instead of a second toolbar row; the glyph names the target mode and toggling preserves header height and reading space | Pending current-HAP dark, light and maximum-font verification |
 
 ## Remaining device checks
 
@@ -123,7 +124,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 - HDC currently reports only UART placeholders (`COM3`, `COM4`) after a server
   restart, so none of the FHH device rows is passed.
 - Run `scripts/device-ui-stream-long-e2e.ps1` against current Mock HAP
-  `6DBC521844CBF9522E45F4F9C70719846EC5EC8AD47ECDE79049D77C7A72C736`.
+  `CBDAAC6954223145A2114B519652D7F6E333AE103A1AA385BF1A78FD7B5156B4`.
   It must prove text advances in two captures, `STREAM-LONG-DONE` appears
   without relaunch, the process ID is unchanged, the reconnect banner is
   absent, and the composer remains responsive. HDC still reports only
@@ -134,9 +135,9 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   font size, and through both collapse/reopen paths. The driver must compare the
   visible Y bounds for `first-order-detail`, `NativeTaskDock.ets` and
   `second-order-detail`.
-- Rerun the 106-pair static Mock suite, subagent send flow, settings navigation
+- Rerun the 110-pair static Mock suite, subagent send flow, settings navigation
   and all disclosure matrices against current Mock HAP
-  `6DBC521844CBF9522E45F4F9C70719846EC5EC8AD47ECDE79049D77C7A72C736`.
+  `CBDAAC6954223145A2114B519652D7F6E333AE103A1AA385BF1A78FD7B5156B4`.
 - Confirm the subagent composer send button becomes enabled after text entry
   and that exactly one prompt appears. The interrupted run recorded the text in
   the field while the action remained disabled.
@@ -147,6 +148,9 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   status row, with a long title in dark, light and maximum system font size.
 - Open a continuable child from the lineage drawer on the current HAP and verify
   the history loads without “连接断开”; repeat from nested child to parent.
+- Open the SVG preview fixture and verify the preview/source action is one icon
+  inside the 52vp title row, with no reserved mode row. Toggle both directions
+  in dark, light and maximum system font size.
 - Run `scripts/device-ui-ime-e2e.ps1` on the current Mock HAP. It must compare
   the header and composer bounds before/while the IME is open, verify the resize
   mode, type a draft, dismiss the IME, reopen it and repeat in light theme.

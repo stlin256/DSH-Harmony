@@ -2,7 +2,7 @@ param(
   [string]$DevEcoHome = '',
   [string]$Device = '',
   [string]$HapPath = '',
-  [ValidateSet('conversation', 'process', 'disclosure', 'sidebar', 'browser', 'settings', 'lineage', 'subagent',
+  [ValidateSet('conversation', 'process', 'disclosure', 'sidebar', 'browser', 'preview', 'settings', 'lineage', 'subagent',
     'plugins', 'automation', 'more')]
   [string]$Screen = 'conversation',
   [ValidateSet(
@@ -14,6 +14,7 @@ param(
     'secret-masked',
     'stream-repaired',
     'settings-search',
+    'document-preview',
     'empty',
     'long-history',
     'dock-send-idle',

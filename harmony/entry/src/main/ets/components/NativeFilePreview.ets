@@ -679,52 +679,47 @@ export struct NativeFilePreview {
 
   @Builder
   private header() {
-    Column({ space: 5 }) {
-      Row({ space: 4 }) {
-        Column({ space: 1 }) {
-          Row({ space: 6 }) {
-            Text(this.title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
-              .fontColor(NativeDesign.textPrimary(this.dark))
-            if (this.loading || this.previewBusy || this.pdfOpening) {
-              LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
-                .color(NativeDesign.accent(this.dark))
-                .accessibilityText('正在加载文件')
-            }
-          }.width('100%')
-          if (this.lineLabel || this.bytesLabel) {
-            Text([this.lineLabel, this.bytesLabel].filter((value: string) => !!value).join(' · '))
-              .fontSize(NativeDesign.fontMicro).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-              .fontColor(NativeDesign.textTertiary(this.dark))
+    Row({ space: 4 }) {
+      Column({ space: 1 }) {
+        Row({ space: 6 }) {
+          Text(this.title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
+            .fontColor(NativeDesign.textPrimary(this.dark))
+          if (this.loading || this.previewBusy || this.pdfOpening) {
+            LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
+              .color(NativeDesign.accent(this.dark))
+              .accessibilityText('正在加载文件')
           }
-        }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        NativeIconButton({
-          glyph: 'copy-outline', label: '复制文件路径', glyphSize: NativeDesign.glyphControl,
-          onPressed: (): void => { this.copy(); }
-        })
-        if (this.downloading) {
-          Stack({ alignContent: Alignment.Center }) {
-            LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(NativeDesign.accent(this.dark))
-          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
-        } else {
-          NativeIconButton({
-            glyph: 'download-outline', label: '下载文件', glyphSize: NativeDesign.glyphControl,
-            onPressed: (): void => { this.download(); }
-          })
+        }.width('100%')
+        if (this.lineLabel || this.bytesLabel) {
+          Text([this.lineLabel, this.bytesLabel].filter((value: string) => !!value).join(' · '))
+            .fontSize(NativeDesign.fontMicro).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+            .fontColor(NativeDesign.textTertiary(this.dark))
         }
-        NativeIconButton({
-          glyph: 'close-outline', label: '关闭预览', tone: 'primary', glyphSize: NativeDesign.glyphControl,
-          onPressed: (): void => { this.onClose(); }
-        })
-      }.width('100%').height(NativeDesign.headerHeight)
+      }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       if (this.canToggle) {
-        Row() {
-          NativeDocumentModeSwitch({ mode: this.mode,
-            onMode: (value: string): void => { this.changeMode(value); } })
-          Blank()
-        }.width('100%').height(NativeDesign.compactControl)
+        NativeDocumentModeSwitch({ mode: this.mode,
+          onMode: (value: string): void => { this.changeMode(value); } })
       }
-    }.width('100%')
+      NativeIconButton({
+        glyph: 'copy-outline', label: '复制文件路径', glyphSize: NativeDesign.glyphControl,
+        onPressed: (): void => { this.copy(); }
+      })
+      if (this.downloading) {
+        Stack({ alignContent: Alignment.Center }) {
+          LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(NativeDesign.accent(this.dark))
+        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+      } else {
+        NativeIconButton({
+          glyph: 'download-outline', label: '下载文件', glyphSize: NativeDesign.glyphControl,
+          onPressed: (): void => { this.download(); }
+        })
+      }
+      NativeIconButton({
+        glyph: 'close-outline', label: '关闭预览', tone: 'primary', glyphSize: NativeDesign.glyphControl,
+        onPressed: (): void => { this.onClose(); }
+      })
+    }.width('100%').height(NativeDesign.headerHeight)
   }
   @Builder
   private imageBody() {

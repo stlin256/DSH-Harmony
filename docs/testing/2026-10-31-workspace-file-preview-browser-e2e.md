@@ -2,12 +2,19 @@
 
 Status: pending device execution.
 
+Current Mock HAP SHA-256:
+`CBDAAC6954223145A2114B519652D7F6E333AE103A1AA385BF1A78FD7B5156B4`.
+
+Current title-row mode driver:
+`scripts/device-ui-document-mode-e2e.ps1`.
+
 | ID | Scenario | Expected evidence | Status |
 | --- | --- | --- | --- |
 | PREVIEW-01 | Open a PNG larger than one 2 MiB window from a chat file reference | The complete image renders; no repeated reconnect or unsupported-workspace message appears | Pending — sub-2 MiB workspace-browser PNG verified |
 | PREVIEW-02 | Open JPEG, WebP, GIF, BMP, HEIC and ICO files supported by the device | Each opens as an image with the same reader toolbar and top download control | Pending |
 | PREVIEW-03 | Open SVG from chat and workspace browser | Rendered preview appears by default; source XML is not shown | Pass — workspace-browser preview verified on device |
-| PREVIEW-04 | Toggle the SVG mode control from preview to code and back | Highlight block slides; code view shows highlighted source and real line numbers; preview restores the image | Pending — preview half verified |
+| PREVIEW-04 | Toggle the single SVG mode icon from preview to code and back | The title-toolbar code icon reveals highlighted source and real line numbers; the eye icon restores the image; the toolbar does not change height | Pending |
+| PREVIEW-04C | Inspect SVG title toolbar layout | One 44vp mode action shares the title row with copy/download/close; no `预览/代码` two-half switch or extra mode row is present | Pending |
 | PREVIEW-04A | In the workspace browser, open PNG and JPG files when the platform omits the custom byte-window header | Stat and streamed size still complete the window; the image renders without a transport error | Pass — PNG verified; JPG fixture absent |
 | PREVIEW-04B | Open an image whose size is exactly one 2 MiB window and an empty file through the same transport | The exact-boundary image reaches EOF without an extra empty-window failure; the empty file remains a non-image file with download available | Pending |
 | PREVIEW-05 | Open Markdown from chat and workspace browser | Rendered headings, links, quotes, tables and fenced code appear by default | Pending |
@@ -27,5 +34,5 @@ Status: pending device execution.
 | BROWSER-05 | Tap a regular file row download control | The file is saved and the nested reader does not open | Pending |
 | BROWSER-06 | Tap the remaining row area | The normal preview opens | Pending |
 | NAV-01 | Press system Back with a browser-opened file preview, then again in the browser | The preview closes first, then the browser closes, without leaving chat | Pending |
-| A11Y-01 | Enable reduced motion, then toggle SVG/Markdown mode | Highlight and content resolve directly to the final state without movement | Pending |
-| THEME-01 | Repeat SVG/Markdown mode, browser rows and download controls in light and dark modes | Glyphs, selected highlight, code colors and borders remain legible with no black SVG artifacts | Pending |
+| A11Y-01 | Enable reduced motion, then toggle SVG/Markdown mode | Content resolves directly to the final state without movement; the single icon action remains operable | Pending |
+| THEME-01 | Repeat SVG/Markdown mode, browser rows and download controls in light and dark modes | Target-mode glyphs, code colors and borders remain legible with no duplicate controls or black SVG artifacts | Pending |

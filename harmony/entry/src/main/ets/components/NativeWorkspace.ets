@@ -698,6 +698,18 @@ export struct NativeWorkspace {
         this.fileViewOpen = true;
         this.navigationChanged();
       }, 700);
+    } else if (showcaseScreen === 'preview') {
+      setTimeout((): void => {
+        if (!this.mounted) return;
+        const request = new NativeFileViewRequest();
+        request.kind = 'file';
+        request.sessionId = 'showcase-release';
+        request.path = 'docs/diagram.svg';
+        request.previewOnly = true;
+        this.fileView = request;
+        this.fileViewOpen = true;
+        this.navigationChanged();
+      }, 700);
     } else if (showcaseScreen === 'lineage') {
       setTimeout((): void => {
         if (this.mounted) this.openLineage();
