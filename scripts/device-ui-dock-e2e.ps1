@@ -32,6 +32,7 @@ if (-not $Device) {
 }
 
 $queryScript = Join-Path $PSScriptRoot 'device-ui-layout-query.py'
+$bottomAssertScript = Join-Path $PSScriptRoot 'device-ui-bottom-dock-assert.py'
 $mockScript = Join-Path $PSScriptRoot 'device-ui-mock.ps1'
 $bundle = 'io.github.stlin256.dshharmony'
 
@@ -265,6 +266,16 @@ $null = Query-Node $errorLayout $errorToken 'text' 1
 $null = Query-Node $errorLayout '发送中…' 'text' 0
 Capture-Screen 'send-error'
 
+$bottomRaw = & python $bottomAssertScript `
+  --quiet $quietLayout `
+  --elevated $elevatedLayout `
+  --queue $authoritativeLayout `
+  --error $errorLayout 2>&1
+if ($LASTEXITCODE -ne 0) {
+  throw "Bottom Dock spacer assertion failed: $($bottomRaw -join [Environment]::NewLine)"
+}
+$bottomGeometry = ($bottomRaw -join '') | ConvertFrom-Json
+
 $processId = ((& $hdc -t $Device shell "pidof $bundle") -join ' ').Trim()
 if (-not $processId) {
   throw 'The application process exited during Dock send E2E.'
@@ -274,6 +285,8 @@ $manifest = [ordered]@{
   generatedAt = (Get-Date).ToUniversalTime().ToString('o')
   device = $Device
   processId = $processId
+  hapSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath `
+    (Join-Path $repo 'harmony\entry\build\mock\outputs\mock\entry-mock-signed.hap')).Hash
   result = 'Passed'
   settledFixtureState = $authoritativeFixtureState
   checked = [ordered]@{
@@ -287,8 +300,10 @@ $manifest = [ordered]@{
     reducedTransparencyRetainsLayout = $true
     failedSendKeepsDraftAndShowsError = $true
     failedSendDoesNotCreateFalseSuccess = $true
+    extraBottomDockOwnsMatchingTranscriptSpacer = $true
     processAliveAfterAllFlows = $true
   }
+  bottomSpacerGeometry = $bottomGeometry
   evidence = [ordered]@{
     idleScreenshot = 'idle-settled.jpeg'
     idleLayout = 'idle-settled.json'

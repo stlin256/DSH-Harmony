@@ -56,8 +56,9 @@
       "id": "transcript.long-history",
       "screens": ["conversation"],
       "states": ["long-history"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-06"]
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-conversation-chrome-e2e.ps1"],
+      "e2eIds": ["MF-06", "CHROME-01", "CHROME-02"],
+      "requiresInteraction": true
     },
     {
       "id": "dock.idle-send",
@@ -140,9 +141,9 @@
     {
       "id": "mode.plan-and-lineage",
       "screens": ["conversation", "lineage"],
-      "states": ["plan-subagent", "plan-off-error"],
+      "states": ["plan-subagent", "plan-subagent-long-count", "plan-off-error"],
       "drivers": ["device-ui-mock-suite.ps1", "device-ui-mode-subagent-e2e.ps1"],
-      "e2eIds": ["MF-16"],
+      "e2eIds": ["MF-16", "SUB-19", "SUB-20", "SUB-21"],
       "requiresInteraction": true
     },
     {
@@ -317,14 +318,6 @@
       "states": ["stream-repaired"],
       "drivers": ["device-ui-mock-suite.ps1", "device-ui-frontend-hardening-e2e.ps1"],
       "e2eIds": ["FHH-04", "FHH-05"],
-      "requiresInteraction": true
-    },
-    {
-      "id": "settings.search",
-      "screens": ["settings"],
-      "states": ["settings-search"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-frontend-hardening-e2e.ps1"],
-      "e2eIds": ["FHH-06", "FHH-07", "FHH-08"],
       "requiresInteraction": true
     }
   ]

@@ -304,6 +304,10 @@ export function scanWorkingTree({
     try {
       buffer = readFileSync(path.join(root, file));
     } catch (error) {
+      // Deleted tracked files still appear in the cached index. Their absence
+      // is the intended working-tree state; committed content is checked by
+      // the history scanner instead.
+      if (error.code === 'ENOENT') continue;
       failures.push(
         `${file}: working-tree file could not be read ` +
         `(${error.code || error.message})`,

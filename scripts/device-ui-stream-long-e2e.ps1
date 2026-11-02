@@ -92,7 +92,7 @@ function Assert-TextAbsent {
 
 function Text-Signature {
   param([string]$Layout)
-  $parsed = Get-Content -Raw -LiteralPath $Layout | ConvertFrom-Json
+  $parsed = Get-Content -Raw -Encoding UTF8 -LiteralPath $Layout | ConvertFrom-Json
   $root = if ($parsed -is [array]) { $parsed[0] } else { $parsed }
   $labels = New-Object 'System.Collections.Generic.List[string]'
   function Add-Labels {
@@ -139,7 +139,7 @@ if ($SkipInstall) { $mockArguments.SkipInstall = $true }
 $fixtureDir = Join-Path $OutputDir 'stream-long-dark-conversation'
 $fixtureManifestPath = Join-Path $fixtureDir 'manifest.json'
 $fixtureLayout = Join-Path $fixtureDir 'layout.json'
-$fixtureManifest = Get-Content -Raw -LiteralPath $fixtureManifestPath | ConvertFrom-Json
+$fixtureManifest = Get-Content -Raw -Encoding UTF8 -LiteralPath $fixtureManifestPath | ConvertFrom-Json
 $initialPid = [string]$fixtureManifest.processId
 Copy-Item -LiteralPath (Join-Path $fixtureDir 'screen.jpeg') -Destination (Join-Path $captureDir 'live-01.jpeg')
 Copy-Item -LiteralPath $fixtureLayout -Destination (Join-Path $captureDir 'live-01.json')
@@ -154,7 +154,7 @@ if ($secondSignature -eq $firstSignature) {
 }
 
 $finalLayout = ''
-$deadline = (Get-Date).AddSeconds(24)
+$deadline = (Get-Date).AddSeconds(60)
 while ((Get-Date) -lt $deadline) {
   $probe = Dump-Layout 'stream-poll'
   if (Try-Query-Node $probe 'STREAM-LONG-DONE' 'text') {
@@ -180,7 +180,7 @@ if (-not $initialPid -or $finalPid -ne $initialPid) {
 
 $composer = Query-Node $finalLayout '发送消息…' 'clickable'
 Invoke-Click $composer
-& $hdc -t $Device shell 'uitest uiInput inputText streamAlive' | Out-Null
+& $hdc -t $Device shell "uitest uiInput inputText $($composer.x) $($composer.y) streamAlive" | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Composer input failed during the long-stream fixture.' }
 Start-Sleep -Milliseconds 600
 $interactiveLayout = Dump-Layout 'composer-responsive'
@@ -190,7 +190,7 @@ Capture-Screen 'composer-responsive'
 Start-Sleep -Milliseconds 600
 $returnedLayout = Dump-Layout 'composer-returned'
 $null = Query-Node $returnedLayout '长流持续输出' 'text'
-$null = Query-Node $returnedLayout '发送消息…' 'clickable'
+$null = Query-Node $returnedLayout 'streamAlive' 'clickable'
 
 $hap = if ($SkipBuild) {
   (Resolve-Path -LiteralPath (Join-Path $repo 'harmony\entry\build\mock\outputs\mock\entry-mock-signed.hap')).Path

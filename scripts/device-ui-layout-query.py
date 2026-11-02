@@ -85,6 +85,10 @@ def main() -> int:
         help="UTF-8 text encoded as hexadecimal; avoids shell code-page failures",
     )
     text_group.add_argument(
+        "--find-id",
+        help="match a stable layout id",
+    )
+    text_group.add_argument(
         "--rightmost-clickable-below",
         nargs=2,
         type=int,
@@ -97,6 +101,11 @@ def main() -> int:
         type=float,
         metavar=("X", "Y", "RADIUS"),
         help="select the rightmost enabled clickable node near an anchor row",
+    )
+    text_group.add_argument(
+        "--assert-bottom-safe",
+        action="store_true",
+        help="assert visible non-scrollable interactive controls stay above the bottom inset",
     )
     parser.add_argument(
         "--container-text-hex",
@@ -118,6 +127,12 @@ def main() -> int:
     )
     parser.add_argument("--minimum-y", type=int)
     parser.add_argument("--maximum-y", type=int)
+    parser.add_argument(
+        "--bottom-safe-px",
+        type=int,
+        default=0,
+        help="pixel inset used by --assert-bottom-safe",
+    )
     args = parser.parse_args()
 
     find_text = None
@@ -128,6 +143,52 @@ def main() -> int:
     parsed = json.loads(args.layout.read_text(encoding="utf-8"))
     root = parsed[0] if isinstance(parsed, list) else parsed
     root_bounds = parse_bounds(root["attributes"]["bounds"])
+    if args.assert_bottom_safe:
+        if args.bottom_safe_px <= 0:
+            print("--bottom-safe-px must be positive", file=sys.stderr)
+            return 1
+        interactive_containers = {
+            "root", "Navigation", "NavBar", "NavBarContent", "NavigationContent",
+            "Column", "Row", "Stack", "__Common__",
+        }
+        violations = []
+
+        def scan(node: dict[str, Any], scrollable_ancestor: bool = False) -> None:
+            attributes = node.get("attributes", {})
+            if not effectively_visible(attributes, root_bounds):
+                return
+            current_scrollable = scrollable_ancestor or attributes.get("scrollable") == "true"
+            bounds = parse_bounds(attributes["bounds"])
+            if (
+                attributes.get("clickable") == "true"
+                and attributes.get("type") not in interactive_containers
+                and not current_scrollable
+                and bounds[3] > root_bounds[3] - args.bottom_safe_px
+            ):
+                violations.append({
+                    "type": attributes.get("type", ""),
+                    "bounds": attributes.get("bounds", ""),
+                    "label": label(node),
+                    "layoutId": attributes.get("id", ""),
+                    "accessibilityId": attributes.get("accessibilityId", ""),
+                    "distanceToEdgePx": root_bounds[3] - bounds[3],
+                })
+            for child in node.get("children", []):
+                scan(child, current_scrollable)
+
+        scan(root)
+        if violations:
+            print(json.dumps({
+                "bottomSafePx": args.bottom_safe_px,
+                "violations": violations,
+            }, ensure_ascii=False))
+            return 1
+        print(json.dumps({
+            "bottomSafePx": args.bottom_safe_px,
+            "violations": [],
+        }))
+        return 0
+
     matches: list[tuple[dict[str, Any], list[dict[str, Any]]]] = []
     container_matches: list[tuple[dict[str, Any], list[dict[str, Any]]]] = []
     for node, ancestors in walk(root):
@@ -140,7 +201,10 @@ def main() -> int:
         if args.maximum_y is not None and candidate_y > args.maximum_y:
             continue
         candidate_label = label(node)
-        if find_text is not None:
+        if args.find_id is not None:
+            if str(attributes.get("id", "")) == args.find_id:
+                matches.append((node, ancestors))
+        elif find_text is not None:
             matches_text = (
                 candidate_label == find_text
                 if args.exact_text
@@ -199,7 +263,7 @@ def main() -> int:
         candidates.sort(key=lambda candidate: (candidate[0], candidate[1]))
         _, _, node, ancestors = candidates[0]
         matches = [(node, ancestors)]
-    elif args.container_text_hex:
+    elif args.container_text_hex and find_text is not None:
         if not container_matches:
             print(
                 f"visible container text not found: "
@@ -226,14 +290,14 @@ def main() -> int:
     match_count = len(matches)
     if args.expect_count is not None and match_count != args.expect_count:
         print(
-            f"visible text count mismatch for {find_text}: "
+            f"visible node count mismatch for {find_text or args.find_id}: "
             f"expected {args.expect_count}, got {match_count}",
             file=sys.stderr,
         )
         return 1
     if not matches and args.expect_count == 0:
         print(json.dumps({
-            "text": find_text,
+            "text": find_text or args.find_id,
             "count": 0,
             "x": None,
             "y": None,
@@ -242,7 +306,7 @@ def main() -> int:
         }))
         return 0
     if not matches:
-        print(f"visible text not found: {find_text}", file=sys.stderr)
+        print(f"visible node not found: {find_text or args.find_id}", file=sys.stderr)
         return 1
     node, ancestors = matches[0]
     target = node
@@ -296,11 +360,12 @@ def main() -> int:
         return 1
 
     print(json.dumps({
-        "text": find_text,
+        "text": find_text or args.find_id,
         "count": match_count,
         "x": x,
         "y": y,
         "bounds": target.get("attributes", {}).get("bounds", ""),
+        "id": target.get("attributes", {}).get("id", ""),
         "checked": checked,
         "background": background,
     }))

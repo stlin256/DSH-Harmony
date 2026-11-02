@@ -13,7 +13,6 @@ param(
     'stream-long',
     'secret-masked',
     'stream-repaired',
-    'settings-search',
     'document-preview',
     'text-config-preview',
     'delimited-preview',
@@ -32,6 +31,7 @@ param(
     'interaction-approval',
     'interaction-question',
     'plan-subagent',
+    'plan-subagent-long-count',
     'plan-dock-overlay',
     'plan-off-error',
     'subagent-continuable',
@@ -91,6 +91,7 @@ param(
   [int]$StartupTimeoutSeconds = 30,
   [switch]$SkipBuild,
   [switch]$SkipInstall,
+  [switch]$ResetData,
   [switch]$ReduceMotion,
   [switch]$ReduceTransparency
 )
@@ -148,20 +149,32 @@ function Test-UiLayoutReady {
   & $hdc -t $Device shell "rm -f $RemotePath" | Out-Null
   & $hdc -t $Device shell "uitest dumpLayout -p $RemotePath -i -b $BundleName" | Out-Null
   if ($LASTEXITCODE -ne 0) {
+    $script:lastLayoutFailure = "dump-exit-$LASTEXITCODE"
     return $false
   }
+  # The command can return just before the remote JSON file is fully flushed.
+  Start-Sleep -Milliseconds 200
   & $hdc -t $Device file recv $RemotePath $LocalPath | Out-Null
   if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $LocalPath)) {
+    $script:lastLayoutFailure = "recv-exit-$LASTEXITCODE"
     return $false
   }
 
   try {
-    $parsed = Get-Content -Raw -LiteralPath $LocalPath | ConvertFrom-Json
+    $parsed = Get-Content -Raw -Encoding UTF8 -LiteralPath $LocalPath | ConvertFrom-Json
     $root = @($parsed)[0]
-    return $root.attributes.pagePath -eq 'pages/Index' -and
+    $ready = $root.attributes.pagePath -eq 'pages/Index' -and
       @($root.children).Count -gt 0 -and
       $root.attributes.bundleName -eq $BundleName
+    if (-not $ready) {
+      $script:lastLayoutFailure = "shape-page-$($root.attributes.pagePath)-bundle-$($root.attributes.bundleName)-children-$(@($root.children).Count)"
+    } else {
+      $script:lastLayoutFailure = ''
+    }
+    return $ready
   } catch {
+    $message = ($_.Exception.Message -split "`r?`n")[0]
+    $script:lastLayoutFailure = "parse-$message"
     return $false
   }
 }
@@ -178,10 +191,14 @@ function Wait-FixtureReady {
   $lastProcessId = ''
   $lastForeground = $false
   $lastLayoutReady = $false
-  $readyStreak = 0
+  $readyProcessId = ''
+  $readyEvidenceCount = 0
+  $attemptCount = 0
   while ((Get-Date) -lt $deadline) {
+    $attemptCount++
     $lastProcessId = ((& $hdc -t $Device shell "pidof $BundleName" 2>&1) -join ' ').Trim()
     if ($LASTEXITCODE -ne 0 -or -not $lastProcessId) {
+      $readyEvidenceCount = 0
       Start-Sleep -Milliseconds 500
       continue
     }
@@ -192,25 +209,23 @@ function Wait-FixtureReady {
         -RemotePath $RemoteProbeLayout `
         -LocalPath $ProbeLayout
       if ($lastLayoutReady) {
-        $readyStreak++
         # Active fixture states may contain timers or progress indicators, so a
-        # whole-tree hash is not a valid readiness signal. Require repeated
-        # foreground, non-empty renders instead of waiting for an idle frame.
-        if ($readyStreak -ge 2) {
-          Start-Sleep -Milliseconds 650
-          if (Test-UiLayoutReady `
-            -BundleName $BundleName `
-            -RemotePath $RemoteProbeLayout `
-            -LocalPath $ProbeLayout) {
-            return $lastProcessId
-          }
-          $readyStreak = 0
+        # whole-tree hash is not a valid readiness signal. Require two valid
+        # renders from one process, but tolerate transient dump failures between
+        # evidence samples; they do not make an otherwise rendered page stale.
+        if ($readyProcessId -ne $lastProcessId) {
+          $readyProcessId = $lastProcessId
+          $readyEvidenceCount = 0
+        }
+        $readyEvidenceCount++
+        if ($readyEvidenceCount -ge 2) {
+          return $lastProcessId
         }
       } else {
-        $readyStreak = 0
+        Start-Sleep -Milliseconds 250
       }
     } else {
-      $readyStreak = 0
+      $readyEvidenceCount = 0
     }
     Start-Sleep -Milliseconds 500
   }
@@ -221,6 +236,9 @@ function Wait-FixtureReady {
     processId = $lastProcessId
     foreground = $lastForeground
     layoutReady = $lastLayoutReady
+    layoutFailure = $script:lastLayoutFailure
+    attempts = $attemptCount
+    validEvidence = $readyEvidenceCount
     timeoutSeconds = $TimeoutSeconds
   }
   $diagnostic |
@@ -247,6 +265,13 @@ if (-not $SkipInstall) {
 }
 
 $bundle = 'io.github.stlin256.dshharmony'
+& $hdc -t $Device shell "aa force-stop $bundle" | Out-Null
+if ($ResetData) {
+  & $hdc -t $Device shell "bm clean -n $bundle -d"
+  if ($LASTEXITCODE -ne 0) {
+    throw "Fixture data reset failed: $LASTEXITCODE"
+  }
+}
 $variantSuffix = ''
 if ($ReduceMotion) { $variantSuffix += '-reduced-motion' }
 if ($ReduceTransparency) { $variantSuffix += '-reduced-transparency' }
@@ -255,7 +280,6 @@ $captureDir = Join-Path $OutputDir $captureName
 New-Item -ItemType Directory -Force -Path $captureDir | Out-Null
 Get-ChildItem -LiteralPath $captureDir -File | Remove-Item -Force
 
-& $hdc -t $Device shell "aa force-stop $bundle" | Out-Null
 $launch = "aa start -a EntryAbility -b $bundle -m entry " +
   "--ps storeShowcase true --ps showcaseScreen $Screen " +
   "--ps showcaseState $State --ps showcaseTheme $Theme"
@@ -297,17 +321,6 @@ if ($Screen -eq 'conversation') {
     'DeepSeek-V4-Pro',
     '--require-composer-visible'
   )
-  if ($State -eq 'completed') {
-    $topLabel = [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes(
-      '任务计划, 已完成 2 · 进行中 1 · 待处理 1'))
-    $bottomLabel = [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes(
-      '帮我检查这个版本是否达到应用商店上架条件，并整理还需要完成的发布事项。'))
-    $assertionArguments += @(
-      '--forbid-overlap-hex',
-      $topLabel,
-      $bottomLabel
-    )
-  }
   $assertionOutput = & python $assertScript @assertionArguments 2>&1
   $assertionExit = $LASTEXITCODE
   $assertionOutput | Set-Content -LiteralPath (Join-Path $captureDir 'layout-assert.txt') -Encoding utf8

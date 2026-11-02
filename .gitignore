@@ -17,6 +17,7 @@ gateway/data/
 .artifacts/
 artifacts/qa/
 artifacts/device-e2e/
+artifacts/device-e2e-final/
 artifacts/device-ui-*/
 artifacts/device-native-default-*
 artifacts/dsh-current-normal.*

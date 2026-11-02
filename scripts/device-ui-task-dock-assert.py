@@ -88,6 +88,15 @@ def largest_list(
     )
 
 
+def first_list_item(
+    list_node: dict[str, Any],
+) -> dict[str, Any]:
+    for child in list_node.get("children", []):
+        if child.get("attributes", {}).get("type") == "ListItem":
+            return child
+    raise ValueError("visible transcript List has no first ListItem")
+
+
 def clickable_row(
     node: dict[str, Any],
     ancestors: list[dict[str, Any]],
@@ -165,11 +174,19 @@ def main() -> int:
         collapsed_dock = node_bounds(collapsed_row)
         collapsed_list_node, _ = largest_list(collapsed_nodes)
         collapsed_list = node_bounds(collapsed_list_node)
+        collapsed_spacer = node_bounds(first_list_item(collapsed_list_node))
 
         if abs(collapsed_dock[1] - collapsed_list[1]) > 4:
             raise ValueError(
                 "collapsed Dock is not anchored at the transcript top: "
                 f"dock={collapsed_dock}, list={collapsed_list}"
+            )
+        if (abs(collapsed_spacer[1] - collapsed_list[1]) > 4 or
+                abs(collapsed_spacer[3] - collapsed_dock[3]) > 4):
+            raise ValueError(
+                "collapsed transcript spacer does not match the Dock height: "
+                f"spacer={collapsed_spacer}, dock={collapsed_dock}, "
+                f"list={collapsed_list}"
             )
 
         expanded_header = exact_nodes(expanded_nodes, "任务计划")
@@ -187,6 +204,7 @@ def main() -> int:
         expanded_dock = node_bounds(expanded_group)
         expanded_list_node, _ = largest_list(expanded_nodes)
         expanded_list = node_bounds(expanded_list_node)
+        expanded_spacer = node_bounds(first_list_item(expanded_list_node))
 
         if abs(expanded_dock[1] - collapsed_dock[1]) > 2:
             raise ValueError(
@@ -201,17 +219,31 @@ def main() -> int:
         assert_same_list("expanded vs collapsed", collapsed_list, expanded_list)
         if expanded_dock[3] <= expanded_list[1]:
             raise ValueError("expanded Dock does not overlap the transcript List")
+        if (abs(expanded_spacer[1] - expanded_list[1]) > 4 or
+                abs(expanded_spacer[3] - expanded_dock[3]) > 4):
+            raise ValueError(
+                "expanded transcript spacer does not match the Dock height: "
+                f"spacer={expanded_spacer}, dock={expanded_dock}, "
+                f"list={expanded_list}"
+            )
+        collapsed_spacer_height = collapsed_spacer[3] - collapsed_spacer[1]
+        expanded_spacer_height = expanded_spacer[3] - expanded_spacer[1]
+        if expanded_spacer_height <= collapsed_spacer_height + 20:
+            raise ValueError(
+                "top spacer did not grow with the expanded Dock: "
+                f"{collapsed_spacer} -> {expanded_spacer}"
+            )
 
         left, top, right, bottom = expanded_list
         width = max(1, right - left)
         height = max(1, bottom - top)
         scroll_x = (left + right) // 2
-        scroll_start_y = top + int(height * 0.42)
-        scroll_end_y = top + int(height * 0.68)
+        scroll_start_y = top + int(height * 0.68)
+        scroll_end_y = top + int(height * 0.42)
         if scroll_start_y <= expanded_dock[3] + 24:
-            scroll_start_y = min(bottom - 48, expanded_dock[3] + 72)
-            scroll_end_y = min(bottom - 16, scroll_start_y + max(120, height // 5))
-        if scroll_end_y <= scroll_start_y:
+            scroll_start_y = min(bottom - 16, expanded_dock[3] + max(120, height // 5))
+            scroll_end_y = min(scroll_start_y - 120, expanded_dock[3] + 72)
+        if scroll_end_y >= scroll_start_y:
             raise ValueError("transcript List is too short for an outside-Dock swipe")
 
         if args.scrolled:
@@ -227,7 +259,9 @@ def main() -> int:
 
         print(json.dumps({
             "collapsedDock": collapsed_dock,
+            "collapsedSpacer": collapsed_spacer,
             "expandedDock": expanded_dock,
+            "expandedSpacer": expanded_spacer,
             "transcriptList": expanded_list,
             "scroll": {
                 "x": scroll_x,

@@ -113,6 +113,48 @@ function Query-Node {
   return (($raw -join '') | ConvertFrom-Json)
 }
 
+function Query-Node-ById {
+  param(
+    [string]$Layout,
+    [string]$Id,
+    [ValidateSet('text', 'clickable')]
+    [string]$Target = 'clickable',
+    [int]$ExpectCount = 1
+  )
+  $raw = & python $queryScript `
+    $Layout `
+    --find-id $Id `
+    --target $Target `
+    --expect-count $ExpectCount 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Layout id query failed for '$Id': $($raw -join [Environment]::NewLine)"
+  }
+  return (($raw -join '') | ConvertFrom-Json)
+}
+
+function Get-Bounds {
+  param([string]$Value)
+  if ($Value -notmatch '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$') {
+    throw "Invalid bounds: $Value"
+  }
+  return @{
+    left = [int]$Matches[1]
+    top = [int]$Matches[2]
+    right = [int]$Matches[3]
+    bottom = [int]$Matches[4]
+  }
+}
+
+function Assert-CompactQuestionAction {
+  param([object]$Node, [string]$Name)
+  $bounds = Get-Bounds $Node.bounds
+  $height = $bounds.bottom - $bounds.top
+  # HBN-AL80 reports 32vp as 108px; this still rejects the previous 36vp control.
+  if ($height -gt 112) {
+    throw "$Name is not compact: height=$height bounds=$($Node.bounds)"
+  }
+}
+
 function Invoke-Click {
   param([object]$Node)
   if ($null -eq $Node.x -or $null -eq $Node.y) {
@@ -136,12 +178,42 @@ $null = Query-Node $approvalAfter '等待审批' 'text' 0
 
 Launch-Fixture -State 'interaction-question' -Theme 'light'
 $question = Dump-Layout 'question-before'
-$null = Query-Node $question '界面偏好' 'text'
+$questionHeader = Query-Node $question '界面偏好' 'text'
+$questionTitle = Query-Node $question '哪一种底部 Dock 的反馈更清晰？' 'text'
+$questionCard = Query-Node-ById $question 'question-card' 'text'
+$questionHeaderRow = Query-Node-ById $question 'question-header-row' 'text'
+$null = Query-Node $question '1 / 1' 'text' 1
+$null = Query-Node $question '排队' 'clickable' 0
+$null = Query-Node $question '接管' 'clickable' 0
+$answer = Query-Node-ById $question 'question-custom-answer' 'text'
+$answerPlaceholder = Query-Node $question '自定义回答' 'text'
+$answerBounds = Get-Bounds $answer.bounds
+$placeholderBounds = Get-Bounds $answerPlaceholder.bounds
+$cardBounds = Get-Bounds $questionCard.bounds
+$headerRowBounds = Get-Bounds $questionHeaderRow.bounds
+$headerBounds = Get-Bounds $questionHeader.bounds
+$titleBounds = Get-Bounds $questionTitle.bounds
+if ($headerBounds.top - $cardBounds.top -lt 6) {
+  throw "Question header lacks its top inset: card=$($questionCard.bounds), header=$($questionHeader.bounds)"
+}
+if ($titleBounds.top - $headerRowBounds.bottom -gt 30) {
+  throw "Question title is too far from its header: header=$($questionHeaderRow.bounds), title=$($questionTitle.bounds)"
+}
+$answerCenter = ($answerBounds.top + $answerBounds.bottom) / 2
+$placeholderCenter = ($placeholderBounds.top + $placeholderBounds.bottom) / 2
+if ([Math]::Abs($answerCenter - $placeholderCenter) -gt 9) {
+  throw "Custom-answer placeholder is not vertically centered: input=$($answer.bounds), placeholder=$($answerPlaceholder.bounds)"
+}
+$skip = Query-Node-ById $question 'question-skip'
+$submitBefore = Query-Node-ById $question 'question-submit'
+Assert-CompactQuestionAction $skip 'Skip'
+Assert-CompactQuestionAction $submitBefore 'Submit'
 $choice = Query-Node $question '渐变毛玻璃' 'clickable'
 Capture-Screen 'question-before'
 Invoke-Click $choice
 $selected = Dump-Layout 'question-selected'
-$submit = Query-Node $selected '提交' 'clickable'
+$submit = Query-Node-ById $selected 'question-submit'
+Assert-CompactQuestionAction $submit 'Submit'
 Capture-Screen 'question-selected'
 Invoke-Click $submit
 $questionAfter = Dump-Layout 'question-after'
@@ -163,6 +235,11 @@ $manifest = [ordered]@{
     approvalSubmittedWithoutNetwork = $true
     approvalCardDismissed = $true
     questionCardRendered = $true
+    questionHeaderHasTopInset = $true
+    questionSequenceRenderedOnce = $true
+    questionComposerModeSelectorAbsent = $true
+    customAnswerPlaceholderCentered = $true
+    questionActionsCompact = $true
     questionOptionSelected = $true
     questionSubmittedWithoutNetwork = $true
     questionCardDismissed = $true

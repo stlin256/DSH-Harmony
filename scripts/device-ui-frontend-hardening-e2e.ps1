@@ -40,14 +40,14 @@ function Text-Hex {
 
 function Open-Fixture {
   param(
-    [ValidateSet('secret-masked', 'stream-repaired', 'settings-search')]
+    [ValidateSet('secret-masked', 'stream-repaired', 'completed')]
     [string]$State,
     [string]$Theme = 'dark'
   )
   $arguments = @{
     DevEcoHome = $DevEcoHome
     Device = $Device
-    Screen = if ($State -eq 'settings-search') { 'settings' } else { 'conversation' }
+    Screen = if ($State -eq 'completed') { 'settings' } else { 'conversation' }
     State = $State
     Theme = $Theme
     OutputDir = $OutputDir
@@ -130,7 +130,7 @@ $secretHiddenAgain = Dump-Layout 'secret-hidden-again'
 $null = Query-Node $secretHiddenAgain '显示凭据'
 Assert-TextAbsent $secretHiddenAgain $syntheticToken
 
-$messageSource = Get-Content -Raw -LiteralPath (
+$messageSource = Get-Content -Raw -Encoding UTF8 -LiteralPath (
   Join-Path $repo 'harmony\entry\src\main\ets\components\NativeMessageView.ets')
 $copyUsesRawSource =
   $messageSource -match 'private copyMessage\(\)[\s\S]{0,180}rawMessageText\(\)'
@@ -144,31 +144,12 @@ Assert-TextAbsent $streamRepaired '| --- | --'
 Assert-TextAbsent $streamRepaired 'https://example.invalid/doc'
 Capture-Screen 'stream-repaired'
 
-# Settings search: seeded results, clear, bilingual query, navigation and Back.
-Open-Fixture -State 'settings-search' -Theme 'dark'
-$settingsSearch = Dump-Layout 'settings-search'
-$null = Query-Node $settingsSearch '搜索设置'
-$null = Query-Node $settingsSearch '通知'
-Capture-Screen 'settings-search'
-$clearSearch = Query-Node $settingsSearch '清除设置搜索'
-Invoke-Click $clearSearch
-$settingsCleared = Dump-Layout 'settings-search-cleared'
-$searchField = Query-Node $settingsCleared '搜索设置'
-Invoke-Click $searchField
-& $hdc -t $Device shell 'uitest uiInput inputText dark' | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'Settings search text input failed' }
-Start-Sleep -Milliseconds 750
-$settingsDark = Dump-Layout 'settings-search-dark'
-$themeResult = Query-Node $settingsDark '主题'
-Capture-Screen 'settings-search-dark'
-Invoke-Click $themeResult
-$appearance = Dump-Layout 'settings-result-opened'
-$null = Query-Node $appearance '外观与动效' 'text'
-Capture-Screen 'settings-result-opened'
-& $hdc -t $Device shell 'uitest uiInput keyEvent Back' | Out-Null
-Start-Sleep -Milliseconds 750
-$settingsBack = Dump-Layout 'settings-back-returned'
-$null = Query-Node $settingsBack '搜索设置'
+# Settings root: search is intentionally absent; grouped navigation remains.
+Open-Fixture -State 'completed' -Theme 'dark'
+$settingsRoot = Dump-Layout 'settings-root'
+Assert-TextAbsent $settingsRoot '搜索设置'
+$null = Query-Node $settingsRoot '通知'
+Capture-Screen 'settings-root'
 
 $hap = Join-Path $repo 'harmony\entry\build\mock\outputs\mock\entry-mock-signed.hap'
 $manifest = [ordered]@{
@@ -186,9 +167,8 @@ $manifest = [ordered]@{
     noUnfinishedSuffix = $true
   }
   settings = [ordered]@{
-    queryEntered = $true
-    resultOpened = $true
-    backReturned = $true
+    searchAbsent = $true
+    groupedNavigationVisible = $true
   }
 }
 if (-not $copyUsesRawSource) { throw 'Message copy no longer uses the raw source value.' }

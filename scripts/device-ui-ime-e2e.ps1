@@ -68,7 +68,7 @@ function Dump-Layout {
   [OutputType([string])]
   $remote = "/data/local/tmp/dsh-ime-$Name.json"
   $local = Join-Path $captureDir "$Name.json"
-  & $hdc -t $Device shell "uitest dumpLayout -p $remote -i -b $bundle" | Out-Null
+  & $hdc -t $Device shell "uitest dumpLayout -p $remote -m true" | Out-Null
   if ($LASTEXITCODE -ne 0) {
     throw "Layout dump failed: $Name"
   }
@@ -108,6 +108,24 @@ function Query-Node {
     --expect-count $ExpectCount 2>&1
   if ($LASTEXITCODE -ne 0) {
     throw "Layout query failed for '$Text': $($raw -join [Environment]::NewLine)"
+  }
+  return (($raw -join '') | ConvertFrom-Json)
+}
+
+function Query-Node-ById {
+  param(
+    [string]$Layout,
+    [string]$Id,
+    [ValidateSet('text', 'clickable', 'checkable')]
+    [string]$Target = 'text',
+    [int]$ExpectCount = 1
+  )
+  $raw = & python $queryScript $Layout `
+    --find-id $Id `
+    --target $Target `
+    --expect-count $ExpectCount 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Layout id query failed for '$Id': $($raw -join [Environment]::NewLine)"
   }
   return (($raw -join '') | ConvertFrom-Json)
 }
@@ -167,17 +185,21 @@ function Open-Ime {
   $deadline = [DateTime]::UtcNow.AddMilliseconds(6000)
   $lastError = ''
   do {
-    $layout = Dump-Layout "$Name-open"
-    $composer = Query-Node $layout '发送消息…' 'text'
-    $composerBounds = Get-Bounds $composer.bounds
-    $initialBounds = Get-Bounds $InitialComposer.bounds
-    if ($composerBounds.top -lt ($initialBounds.top - 80)) {
-      return @{
-        layout = $layout
-        composer = $composer
+    try {
+      $layout = Dump-Layout "$Name-open"
+      $composer = Query-Node $layout '发送消息…' 'text'
+      $composerBounds = Get-Bounds $composer.bounds
+      $initialBounds = Get-Bounds $InitialComposer.bounds
+      if ($composerBounds.top -lt ($initialBounds.top - 80)) {
+        return @{
+          layout = $layout
+          composer = $composer
+        }
       }
+      $lastError = "Composer did not move above the IME: $($InitialComposer.bounds) -> $($composer.bounds)"
+    } catch {
+      $lastError = $_.Exception.Message
     }
-    $lastError = "Composer did not move above the IME: $($InitialComposer.bounds) -> $($composer.bounds)"
     Start-Sleep -Milliseconds 250
   } while ([DateTime]::UtcNow -lt $deadline)
   throw "IME did not open or resize the composer: $lastError"
@@ -200,6 +222,52 @@ function Invoke-Click {
   Start-Sleep -Milliseconds 300
 }
 
+function Get-RootBounds {
+  param([string]$Layout)
+  $content = Get-Content -LiteralPath $Layout -Raw -Encoding UTF8
+  $parsed = $content | ConvertFrom-Json
+
+  function Find-AppRoot {
+    param([object]$Node)
+    if ($null -eq $Node) {
+      return $null
+    }
+    $attributes = $Node.attributes
+    if ($attributes.type -eq 'root' -and $attributes.bundleName -eq $bundle -and
+      $attributes.abilityName -eq 'EntryAbility') {
+      return $Node
+    }
+    foreach ($child in @($Node.children)) {
+      $found = Find-AppRoot $child
+      if ($null -ne $found) {
+        return $found
+      }
+    }
+    return $null
+  }
+
+  $root = Find-AppRoot $parsed
+  if ($null -eq $root) {
+    throw "App window root not found in merged layout: $Layout"
+  }
+  return Get-Bounds $root.attributes.bounds
+}
+
+function Assert-ImeSendGap {
+  param(
+    [string]$Layout,
+    [object]$Send,
+    [int]$MaximumPixels
+  )
+  $rootBounds = Get-RootBounds $Layout
+  $sendBounds = Get-Bounds $Send.bounds
+  $gap = $rootBounds.bottom - $sendBounds.bottom
+  if ($gap -lt 0 -or $gap -gt $MaximumPixels) {
+    throw "Composer send control has an invalid IME gap: gap=$gap send=$($Send.bounds) root=$($rootBounds.left),$($rootBounds.top),$($rootBounds.right),$($rootBounds.bottom)"
+  }
+  return $gap
+}
+
 $bundle = 'io.github.stlin256.dshharmony'
 
 $firstTheme = $true
@@ -209,18 +277,23 @@ foreach ($theme in @('dark', 'light')) {
   $initialLayout = Dump-Layout "$theme-initial"
   $initialTitle = Query-Node $initialLayout 'Dock 空闲与发送' 'text'
   $initialComposer = Query-Node $initialLayout '发送消息…' 'text'
+  $initialSend = Query-Node-ById $initialLayout 'composer-send' 'text'
+  $initialGap = Assert-ImeSendGap $initialLayout $initialSend 96
 
   Invoke-Click $initialComposer
   $opened = Open-Ime "$theme-ime" $initialComposer
   $openedTitle = Query-Node $opened.layout 'Dock 空闲与发送' 'text'
   Assert-HeaderStable $initialTitle $openedTitle
+  $openedSend = Query-Node-ById $opened.layout 'composer-send' 'text'
+  $openedGap = Assert-ImeSendGap $opened.layout $openedSend 66
+  if ($openedGap -ge $initialGap) {
+    throw "IME did not tighten the composer gap: closed=$initialGap open=$openedGap"
+  }
 
-  $openedContent = Get-Content -LiteralPath $opened.layout -Raw
-  $openedRoot = @($openedContent | ConvertFrom-Json)[0]
-  $rootBounds = Get-Bounds $openedRoot.attributes.bounds
+  $rootBounds = Get-RootBounds $opened.layout
   $openComposerBounds = Get-Bounds $opened.composer.bounds
   if ($openComposerBounds.bottom -gt $rootBounds.bottom) {
-    throw "Composer extends below the resized page: $($opened.composer.bounds) > $($openedRoot.attributes.bounds)"
+    throw "Composer extends below the resized page: $($opened.composer.bounds) > $rootBounds"
   }
   Capture-Screen "$theme-ime-open"
 
@@ -240,6 +313,11 @@ foreach ($theme in @('dark', 'light')) {
     Query-Node $closedLayout 'ime_layout_probe' 'text'
   } else {
     Query-Node $closedLayout '发送消息…' 'text'
+  }
+  $closedSend = Query-Node-ById $closedLayout 'composer-send' 'text'
+  $closedGap = Assert-ImeSendGap $closedLayout $closedSend 96
+  if ($closedGap -le $openedGap) {
+    throw "Composer gap did not restore after IME close: open=$openedGap closed=$closedGap"
   }
   Assert-HeaderStable $initialTitle $closedTitle
   $closedComposerBounds = Get-Bounds $closedComposer.bounds
@@ -262,11 +340,15 @@ $manifest = [ordered]@{
   generatedAt = (Get-Date).ToUniversalTime().ToString('o')
   device = $Device
   processId = $processId
+  hapSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath `
+    (Join-Path $repo 'harmony\entry\build\mock\outputs\mock\entry-mock-signed.hap')).Hash
   result = 'Passed'
   checked = [ordered]@{
     initialNativeModeUsesResize = $true
     headerTopStableWhileImeOpen = $true
     composerRemainsInsideResizedPage = $true
+    imeSendGapTightened = $true
+    idleSafeGapRestored = $true
     headerAndComposerGeometryRestore = $true
     draftSurvivesImeClose = $true
     lightAndDarkHeaderStable = $true

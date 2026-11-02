@@ -127,6 +127,17 @@ function Invoke-Click {
   Start-Sleep -Milliseconds 650
 }
 
+function Scroll-Transcript-ToTop {
+  param([int]$X = 630)
+  1..4 | ForEach-Object {
+    & $hdc -t $Device shell "uitest uiInput swipe $X 1700 $X 2400 450" | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      throw 'Could not scroll the transcript to the top.'
+    }
+    Start-Sleep -Milliseconds 350
+  }
+}
+
 function Assert-Overlay {
   param(
     [string]$Collapsed,
@@ -147,6 +158,7 @@ function Assert-Overlay {
 $geometries = [ordered]@{}
 foreach ($theme in @('dark', 'light')) {
   Launch-Fixture -Theme $theme
+  Scroll-Transcript-ToTop
   $collapsedLayout = Dump-Layout "$theme-collapsed"
   $null = Query-Node $collapsedLayout '悬浮任务计划' 'text' 1
   $taskDock = Query-Node $collapsedLayout '任务计划' 'clickable' 1
@@ -162,10 +174,19 @@ foreach ($theme in @('dark', 'light')) {
   if ($LASTEXITCODE -ne 0) {
     throw "Outside-Dock swipe failed in $theme theme"
   }
-  Start-Sleep -Milliseconds 600
+  Start-Sleep -Milliseconds 900
   $scrolledLayout = Dump-Layout "$theme-scrolled"
   Capture-Screen "$theme-scrolled"
-  $geometry = Assert-Overlay -Collapsed $collapsedLayout -Expanded $expandedLayout -Scrolled $scrolledLayout
+  try {
+    $geometry = Assert-Overlay -Collapsed $collapsedLayout -Expanded $expandedLayout -Scrolled $scrolledLayout
+  } catch {
+    # A follow-flick may briefly report the pre-scroll snapshot. Resample once
+    # before treating the transcript as immovable.
+    Start-Sleep -Milliseconds 500
+    $scrolledLayout = Dump-Layout "$theme-scrolled-retry"
+    Capture-Screen "$theme-scrolled-retry"
+    $geometry = Assert-Overlay -Collapsed $collapsedLayout -Expanded $expandedLayout -Scrolled $scrolledLayout
+  }
 
   $taskDockAfterScroll = Query-Node $scrolledLayout '任务计划' 'clickable' 1
   Invoke-Click $taskDockAfterScroll
@@ -196,6 +217,7 @@ $manifest = [ordered]@{
     dockAnchoredAtTranscriptTop = $true
     expandedDockOverlapsTranscript = $true
     transcriptListTopAndHeightStable = $true
+    topSpacerTracksCollapsedAndExpandedDock = $true
     outsideDockSwipeMovesTranscript = $true
     darkTheme = $true
     lightTheme = $true

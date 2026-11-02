@@ -138,6 +138,22 @@ function Query-Node {
   return (($raw -join '') | ConvertFrom-Json)
 }
 
+function Query-Node-ById {
+  param(
+    [string]$Layout,
+    [string]$Id,
+    [ValidateSet('text', 'clickable', 'checkable')]
+    [string]$Target = 'text',
+    [int]$ExpectCount = 1
+  )
+  $raw = & python $queryScript $Layout --find-id $Id --target $Target `
+    --expect-count $ExpectCount 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Layout id query failed for '$Id': $($raw -join [Environment]::NewLine)"
+  }
+  return (($raw -join '') | ConvertFrom-Json)
+}
+
 function Wait-Query-Node {
   param(
     [string]$Name,
@@ -520,6 +536,20 @@ foreach ($scenario in $scenarios) {
       Invoke-Diff-Control $scenario.State $scenario.DiffPath
     }
     $null = Wait-Query-Node "$($scenario.State)-expanded" $scenario.Expanded 'text' 1 $false
+    if ($scenario.State -eq 'disclosure-process-read') {
+      $expandedLayout = Dump-Layout "$($scenario.State)-expanded-layout"
+      $viewer = Query-Node-ById $expandedLayout 'document-code-viewer' 'text' 1
+      $boundsMatch = [regex]::Match([string]$viewer.bounds,
+        '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$')
+      if (-not $boundsMatch.Success) {
+        throw "Cannot read compact read-viewer bounds: $($viewer.bounds)"
+      }
+      $viewerHeight = [int]$boundsMatch.Groups[4].Value -
+        [int]$boundsMatch.Groups[2].Value
+      if ($viewerHeight -gt 140) {
+        throw "Single-line read viewer is too tall: ${viewerHeight}px"
+      }
+    }
     Capture-Screen "$($scenario.State)-expanded"
 
     if ($scenario.PSObject.Properties.Name -contains 'DiffControl' -and
@@ -644,6 +674,8 @@ $manifest = [ordered]@{
   device = $Device
   processId = $processId
   variant = 'mock'
+  hapSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath `
+    (Join-Path $repo 'harmony\entry\build\mock\outputs\mock\entry-mock-signed.hap')).Hash
   theme = $Theme
   reduceMotion = [bool]$ReduceMotion
   reduceTransparency = [bool]$ReduceTransparency
@@ -655,6 +687,7 @@ $manifest = [ordered]@{
     expandedStateClicked = $true
     expandedOnlyContentAsserted = if ($failedCount -eq 0) { $true } else { $false }
     collapseAndReopenCovered = if ($failedCount -eq 0) { $true } else { $false }
+    singleLineReadViewerIsCompact = $failedCount -eq 0
     sidebarMoreCovered = $moreResult -eq 'Passed'
     systemBackClosedDrawer = $moreResult -eq 'Passed'
     workspaceGroupCovered = $groupResult -eq 'Passed'

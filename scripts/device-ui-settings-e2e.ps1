@@ -113,6 +113,20 @@ function Query-Node {
   return (($raw -join '') | ConvertFrom-Json)
 }
 
+function Assert-Text-Absent {
+  param(
+    [string]$Layout,
+    [string]$Text
+  )
+  $raw = & python $queryScript $Layout `
+    --find-text-hex (Text-Hex $Text) `
+    --target text `
+    --expect-count 0 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Unexpected text '$Text': $($raw -join [Environment]::NewLine)"
+  }
+}
+
 function Invoke-Click {
   param([object]$Node)
   & $hdc -t $Device shell "uitest uiInput click $($Node.x) $($Node.y)" | Out-Null
@@ -147,6 +161,7 @@ function Parse-Bounds {
 }
 
 $settingsRoot = Dump-Layout 'settings-root'
+Assert-Text-Absent $settingsRoot '搜索设置'
 $appearance = Query-Node $settingsRoot $appearanceText
 Invoke-Click $appearance
 $appearanceBefore = Dump-Layout 'appearance-before'
@@ -220,6 +235,10 @@ foreach ($page in $pages) {
   Invoke-Click $row
   $detail = Dump-Layout "$($page.Name)-page"
   $null = Query-Node $detail (Text-Hex $page.Expected) 'text'
+  if ($page.Name -eq 'storage') {
+    Assert-Text-Absent $detail '上限'
+    Assert-Text-Absent $detail '当前账户'
+  }
   if ($page.Name -eq 'dsh') {
     $null = Query-Node $detail (Text-Hex 'v0.3.7') 'text'
     $selectorValues = @('详细', '完成时', '全部回复', '排队')
@@ -237,7 +256,9 @@ foreach ($page in $pages) {
       $previous = $selectorBounds[$index - 1]
       $current = $selectorBounds[$index]
       $gap = $current.geometry.top - $previous.geometry.bottom
-      $minimumGap = [Math]::Max(1, [int]($previous.geometry.height * 0.6))
+      # A 44vp Select keeps 8vp above and below inside the 60vp row rhythm.
+      $minimumGap = [Math]::Max(1,
+        [int][Math]::Round($previous.geometry.height * 16 / 44))
       if ($gap -lt $minimumGap) {
         throw (
           "DSH selector rows are too close: {0} to {1} gap {2}px, expected at least {3}px" -f
@@ -322,6 +343,8 @@ foreach ($page in $pages) {
 $manifest = [ordered]@{
   generatedAt = (Get-Date).ToUniversalTime().ToString('o')
   device = $Device
+  hapSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath `
+    (Join-Path $repo 'harmony\entry\build\mock\outputs\mock\entry-mock-signed.hap')).Hash
   result = 'Passed'
   checked = [ordered]@{
     rowTapToggledReduceMotion = $true

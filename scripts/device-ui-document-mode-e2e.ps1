@@ -115,6 +115,25 @@ function Query-Node {
   return (($raw -join '') | ConvertFrom-Json)
 }
 
+function Query-Node-ById {
+  param(
+    [string]$Layout,
+    [string]$Id,
+    [ValidateSet('text', 'clickable', 'checkable')]
+    [string]$Target = 'clickable',
+    [int]$ExpectCount = 1
+  )
+  $raw = & python $queryScript `
+    $Layout `
+    --find-id $Id `
+    --target $Target `
+    --expect-count $ExpectCount 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Layout id query failed for '$Id': $($raw -join [Environment]::NewLine)"
+  }
+  return (($raw -join '') | ConvertFrom-Json)
+}
+
 function Wait-Query-Node {
   param(
     [string]$Name,
@@ -140,6 +159,60 @@ function Wait-Query-Node {
   throw "Layout wait failed for '$Text' after $TimeoutMilliseconds ms: $lastError"
 }
 
+function Wait-Query-Node-ById {
+  param(
+    [string]$Name,
+    [string]$Id,
+    [ValidateSet('text', 'clickable', 'checkable')]
+    [string]$Target = 'clickable',
+    [int]$ExpectCount = 1,
+    [int]$TimeoutMilliseconds = 6000
+  )
+  $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMilliseconds)
+  $lastError = ''
+  $attempt = 0
+  do {
+    $attempt++
+    try {
+      $layout = Dump-Layout "$Name-$attempt"
+      return (Query-Node-ById $layout $Id $Target $ExpectCount)
+    } catch {
+      $lastError = $_.Exception.Message
+      Start-Sleep -Milliseconds 250
+    }
+  } while ([DateTime]::UtcNow -lt $deadline)
+  throw "Layout id wait failed for '$Id' after $TimeoutMilliseconds ms: $lastError"
+}
+
+function Wait-Revealed-Table-Cell {
+  param(
+    [string]$Name,
+    [string]$AnchorText,
+    [string]$TargetText
+  )
+  $anchor = Wait-Query-Node "$Name-anchor" $AnchorText 'text'
+  $bounds = [regex]::Match([string]$anchor.bounds,
+    '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$')
+  if (-not $bounds.Success) {
+    throw "Cannot read table anchor bounds: $($anchor.bounds)"
+  }
+  $swipeY = ([int]$bounds.Groups[2].Value + [int]$bounds.Groups[4].Value) / 2
+  for ($attempt = 0; $attempt -lt 5; $attempt++) {
+    $layout = Dump-Layout "$Name-$attempt"
+    try {
+      return (Query-Node $layout $TargetText 'text' 1)
+    } catch {
+      $lastError = $_.Exception.Message
+    }
+    & $hdc -t $Device shell "uitest uiInput swipe 1100 $swipeY 180 $swipeY 600" | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      throw 'Horizontal table swipe failed.'
+    }
+    Start-Sleep -Milliseconds 500
+  }
+  throw "Could not reveal '$TargetText' by horizontal table scrolling: $lastError"
+}
+
 function Assert-Same-HeaderRow {
   param(
     [object]$Title,
@@ -162,6 +235,29 @@ function Assert-Same-HeaderRow {
   }
 }
 
+function Assert-ActionOrder {
+  param(
+    [object]$Mode,
+    [object]$Download,
+    [object]$Close
+  )
+  $modeBounds = [regex]::Match([string]$Mode.bounds,
+    '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$')
+  $downloadBounds = [regex]::Match([string]$Download.bounds,
+    '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$')
+  $closeBounds = [regex]::Match([string]$Close.bounds,
+    '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$')
+  if (-not $modeBounds.Success -or -not $downloadBounds.Success -or -not $closeBounds.Success) {
+    throw "Cannot compare preview action order: mode=$($Mode.bounds), download=$($Download.bounds), close=$($Close.bounds)"
+  }
+  $modeX = ([int]$modeBounds.Groups[1].Value + [int]$modeBounds.Groups[3].Value) / 2
+  $downloadX = ([int]$downloadBounds.Groups[1].Value + [int]$downloadBounds.Groups[3].Value) / 2
+  $closeX = ([int]$closeBounds.Groups[1].Value + [int]$closeBounds.Groups[3].Value) / 2
+  if (-not ($modeX -lt $downloadX -and $downloadX -lt $closeX)) {
+    throw "Preview actions are not ordered mode -> download -> close: $($Mode.bounds), $($Download.bounds), $($Close.bounds)"
+  }
+}
+
 function Invoke-Click {
   param([object]$Node)
   if ($null -eq $Node.x -or $null -eq $Node.y) {
@@ -177,69 +273,77 @@ function Invoke-Click {
 Launch-Fixture -State 'document-preview'
 $HapPath = (Resolve-Path -LiteralPath $HapPath).Path
 $hapSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $HapPath).Hash
-$title = Wait-Query-Node 'preview-default' 'diagram.svg' 'text'
-$sourceAction = Wait-Query-Node 'preview-source-action' '切换到源码' 'clickable'
+$title = Wait-Query-Node-ById 'preview-default' 'document-preview-title' 'text'
+$sourceAction = Wait-Query-Node-ById 'preview-source-action' 'document-mode-toggle'
 $previewLayout = Dump-Layout 'preview-default-layout'
 $null = Query-Node $previewLayout '预览' 'text' 0
 $null = Query-Node $previewLayout '代码' 'text' 0
+$null = Query-Node $previewLayout '复制文件路径' 'clickable' 0
+$previewDownload = Query-Node-ById $previewLayout 'document-download'
+$previewClose = Query-Node-ById $previewLayout 'document-close'
 Assert-Same-HeaderRow $title $sourceAction
+Assert-ActionOrder $sourceAction $previewDownload $previewClose
 Capture-Screen 'preview-default'
 
 Invoke-Click $sourceAction
 $sourceMarker = Wait-Query-Node 'source-mode' '<!-- DSH_SOURCE_MARKER -->' 'text'
-$previewAction = Wait-Query-Node 'source-preview-action' '切换到渲染预览' 'clickable'
+$previewAction = Wait-Query-Node-ById 'source-preview-action' 'document-mode-toggle'
 Assert-Same-HeaderRow $title $previewAction
 Capture-Screen 'source-mode'
 
 Invoke-Click $previewAction
-$restoredAction = Wait-Query-Node 'preview-restored' '切换到源码' 'clickable'
+$restoredAction = Wait-Query-Node-ById 'preview-restored' 'document-mode-toggle'
 $restoredLayout = Dump-Layout 'preview-restored-layout'
 $null = Query-Node $restoredLayout '<!-- DSH_SOURCE_MARKER -->' 'text' 0
 Assert-Same-HeaderRow $title $restoredAction
 Capture-Screen 'preview-restored'
 
 Launch-Fixture -State 'text-config-preview'
-$configTitle = Wait-Query-Node 'config-title' 'app.conf' 'text'
-$configMarker = Wait-Query-Node 'config-marker' 'DSH_CONFIG_MARKER' 'text'
-$configSourceAction = Wait-Query-Node 'config-source-action' '切换到源码' 'clickable'
-Assert-Same-HeaderRow $configTitle $configSourceAction
+$configTitle = Wait-Query-Node-ById 'config-title' 'document-preview-title' 'text'
+$configViewer = Wait-Query-Node-ById 'config-viewer' 'document-code-viewer' 'text'
+$configLayout = Dump-Layout 'config-layout'
+$null = Query-Node-ById $configLayout 'document-mode-toggle' 'clickable' 0
+$null = Query-Node $configLayout '复制文件路径' 'clickable' 0
 Capture-Screen 'config-preview'
 
 Launch-Fixture -State 'delimited-preview'
-$delimitedTitle = Wait-Query-Node 'delimited-title' 'users.csv' 'text'
-$tableMarker = Wait-Query-Node 'delimited-table-marker' 'DSH_TABLE_MARKER' 'text'
+$delimitedTitle = Wait-Query-Node-ById 'delimited-title' 'document-preview-title' 'text'
+$tableMarker = Wait-Revealed-Table-Cell 'delimited-table-marker' 'Alpha' 'DSH_TABLE_MARKER'
 $literalTable = Wait-Query-Node 'delimited-literal-table' '**literal value**' 'text'
-$delimitedSourceAction = Wait-Query-Node 'delimited-source-action' '切换到源码' 'clickable'
+$delimitedSourceAction = Wait-Query-Node-ById 'delimited-source-action' 'document-mode-toggle'
 Assert-Same-HeaderRow $delimitedTitle $delimitedSourceAction
-Capture-Screen 'delimited-table'
+Capture-Screen 'delimited-table-wide'
 
 Invoke-Click $delimitedSourceAction
-$delimitedPreviewAction = Wait-Query-Node 'delimited-preview-action' '切换到渲染预览' 'clickable'
+$delimitedPreviewAction = Wait-Query-Node-ById 'delimited-preview-action' 'document-mode-toggle'
 $delimitedSourceLayout = Dump-Layout 'delimited-source-layout'
-$null = Query-Node $delimitedSourceLayout '**literal value**' 'text' 0
+$null = Query-Node-ById $delimitedSourceLayout 'document-code-viewer' 'text' 1
+$null = Query-Node $delimitedSourceLayout '行' 'text' 0
 Capture-Screen 'delimited-source'
 
 Invoke-Click $delimitedPreviewAction
-$restoredTableMarker = Wait-Query-Node 'delimited-restored-marker' 'DSH_TABLE_MARKER' 'text'
+$restoredTable = Wait-Query-Node 'delimited-restored-table' 'Alpha' 'text'
 Capture-Screen 'delimited-restored'
 
 Launch-Fixture -State 'tsv-preview'
-$tsvTitle = Wait-Query-Node 'tsv-title' 'report.tsv' 'text'
-$tsvMarker = Wait-Query-Node 'tsv-marker' 'DSH_TSV_MARKER' 'text'
-$tsvSourceAction = Wait-Query-Node 'tsv-source-action' '切换到源码' 'clickable'
+$tsvTitle = Wait-Query-Node-ById 'tsv-title' 'document-preview-title' 'text'
+$tsvMarker = Wait-Revealed-Table-Cell 'tsv-marker' 'Alpha' 'DSH_TSV_MARKER'
+$tsvSourceAction = Wait-Query-Node-ById 'tsv-source-action' 'document-mode-toggle'
 Assert-Same-HeaderRow $tsvTitle $tsvSourceAction
-Capture-Screen 'tsv-table'
+Capture-Screen 'tsv-table-wide'
 
 Launch-Fixture -State 'delimited-error-preview'
-$delimitedErrorTitle = Wait-Query-Node 'delimited-error-title' 'malformed.csv' 'text'
+$delimitedErrorTitle = Wait-Query-Node-ById 'delimited-error-title' 'document-preview-title' 'text'
 $delimitedError = Wait-Query-Node 'delimited-error-message' '表格包含未闭合的引号' 'text'
-$delimitedErrorAction = Wait-Query-Node 'delimited-error-source-action' '切换到源码' 'clickable'
+$delimitedErrorAction = Wait-Query-Node-ById 'delimited-error-source-action' 'document-mode-toggle'
 Assert-Same-HeaderRow $delimitedErrorTitle $delimitedErrorAction
 Capture-Screen 'delimited-error'
 
 Launch-Fixture -State 'binary-preview'
-$binaryTitle = Wait-Query-Node 'binary-title' 'archive.zip' 'text'
+$binaryTitle = Wait-Query-Node-ById 'binary-title' 'document-preview-title' 'text'
 $binaryMessage = Wait-Query-Node 'binary-message' '此文件类型暂不支持预览，仍可下载' 'text'
+$binaryLayout = Dump-Layout 'binary-layout'
+$null = Query-Node $binaryLayout '复制文件路径' 'clickable' 0
 Capture-Screen 'binary-preview'
 
 $processId = ((& $hdc -t $Device shell "pidof $bundle") -join ' ').Trim()
@@ -257,12 +361,14 @@ $manifest = [ordered]@{
   result = 'Passed'
   checked = [ordered]@{
     modeActionSharesTitleRow = $true
+    modeActionOccupiesFormerCopySlot = $true
+    previewCopyActionAbsent = $true
     legacyModeLabelsAbsent = $true
     sourceModeShowsSource = $true
     previewModeRestoresRendering = $true
     sourceMarkerAbsentAfterRestore = $true
-    configMarkerRendered = $true
-    configModeActionSharesTitleRow = $true
+    configCodeViewerRendered = $true
+    plainConfigHasNoModeToggle = $true
     csvTableRenderedByDefault = $true
     csvLiteralCellNotMarkdown = $true
     csvSourceModeActionSharesTitleRow = $true

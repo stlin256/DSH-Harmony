@@ -67,6 +67,8 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-question'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'plan-subagent'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'plan-subagent'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'plan-subagent-long-count'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'plan-subagent-long-count'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'plan-dock-overlay'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'plan-dock-overlay'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'plan-off-error'; Theme = 'dark' },
@@ -95,8 +97,6 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'preview'; State = 'binary-preview'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'light' },
-  [pscustomobject]@{ Screen = 'settings'; State = 'settings-search'; Theme = 'dark' },
-  [pscustomobject]@{ Screen = 'settings'; State = 'settings-search'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-list'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-list'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-empty'; Theme = 'light' },
@@ -180,9 +180,10 @@ function Get-ExpectedMarker {
     'conversation/interaction-approval' { return '等待审批' }
     'conversation/interaction-question' { return '问题卡样式检查' }
     'conversation/plan-subagent' { return '计划与子智能体' }
+    'conversation/plan-subagent-long-count' { return '计划与子智能体标题很长' }
     'conversation/plan-dock-overlay' { return '悬浮任务计划' }
     'conversation/plan-off-error' { return '计划退出失败' }
-    'lineage/plan-subagent' { return '4 个子智能体' }
+    'lineage/plan-subagent' { return '可继续检查' }
     'subagent/subagent-continuable' { return '可继续子会话' }
     'subagent/subagent-one-shot' { return '一次性子会话' }
     'subagent/subagent-unknown' { return '未知模式子会话' }
@@ -197,7 +198,6 @@ function Get-ExpectedMarker {
     'preview/delimited-error-preview' { return 'malformed.csv' }
     'preview/binary-preview' { return 'archive.zip' }
     'settings/completed' { return '外观与动效' }
-    'settings/settings-search' { return '搜索设置' }
     'plugins/plugins-list' { return 'Workspace Tools' }
     'plugins/plugins-empty' { return '还没有可显示的插件' }
     'plugins/plugins-error' { return '插件服务暂不可用' }
@@ -263,6 +263,18 @@ function Assert-LayoutMarker {
   }
 }
 
+function Assert-LayoutBottomSafe {
+  param(
+    [string]$LayoutPath
+  )
+  $output = & python $queryScript $LayoutPath `
+    --assert-bottom-safe `
+    --bottom-safe-px 60 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Bottom safe-area assertion failed: $($output -join [Environment]::NewLine)"
+  }
+}
+
 foreach ($scenario in $scenarios) {
   $startedAt = Get-Date
   $arguments = @{
@@ -305,6 +317,7 @@ foreach ($scenario in $scenarios) {
     Assert-LayoutMarker `
       -LayoutPath (Join-Path $captureDir 'layout.json') `
       -Marker (Get-ExpectedMarker -Screen $scenario.Screen -State $scenario.State)
+    Assert-LayoutBottomSafe -LayoutPath (Join-Path $captureDir 'layout.json')
     if ($scenario.Screen -in @('plugins', 'automation')) {
       Assert-LayoutMarker `
         -LayoutPath (Join-Path $captureDir 'layout.json') `
