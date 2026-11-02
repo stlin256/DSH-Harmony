@@ -27,6 +27,7 @@ No physical device was accessed during this pass.
 | Page inset | Native surfaces mix 10/12/14/16/18vp | Titles, rows and controls do not align at screen edges |
 | Icon controls | Some icon-only actions are smaller than the 44vp hit target | Visual density competes with touch correctness |
 | Status language | Spinner size and retry placement vary inside otherwise equivalent rows | Busy and error states look like different systems |
+| Notification levels | Four choice fills use the full 44vp compact-row height | The repeated matrix dominates the settings page and reads like primary actions |
 
 ## Conclusions
 
@@ -46,4 +47,7 @@ No physical device was accessed during this pass.
 - Map repeated small radii to badge, compact, control, row, chip and group roles.
 - Convert direct control heights in audited buttons, fields and rows to the
   semantic control scale.
+- Treat notification level choices as segmented dense controls: keep the
+  32vp visual fill and extend its response region to 44vp rather than enlarging
+  the painted surface.
 - Keep media dimensions explicit and document why they are exceptions.

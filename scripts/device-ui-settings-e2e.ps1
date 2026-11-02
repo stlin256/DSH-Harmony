@@ -205,6 +205,7 @@ Start-Sleep -Milliseconds 750
 
 $pageResults = [System.Collections.Generic.List[object]]::new()
 $selectorSpacingResults = [System.Collections.Generic.List[object]]::new()
+$notificationLevelBounds = [System.Collections.Generic.List[object]]::new()
 $pages = @(
   [pscustomobject]@{ Name = 'dsh'; Label = 'DSH 设置'; Expected = '插件版本' },
   [pscustomobject]@{ Name = 'notifications'; Label = '通知'; Expected = '通知级别' },
@@ -256,6 +257,26 @@ foreach ($page in $pages) {
   }
   $interaction = 'opened-and-returned'
   if ($page.Name -eq 'notifications') {
+    foreach ($value in @('关闭', '静默', '标准', '醒目')) {
+      $choice = Query-Node `
+        $detail `
+        (Text-Hex $value) `
+        'clickable' `
+        '' `
+        (Text-Hex '任务完成')
+      $notificationLevelBounds.Add([pscustomobject]@{
+        value = $value
+        bounds = $choice.bounds
+        geometry = Parse-Bounds $choice.bounds
+      })
+    }
+    $referenceChoice = $notificationLevelBounds[0].geometry
+    foreach ($choice in $notificationLevelBounds) {
+      if ([Math]::Abs($choice.geometry.height - $referenceChoice.height) -gt 1 -or
+          [Math]::Abs($choice.geometry.width - $referenceChoice.width) -gt 1) {
+        throw "Notification level controls do not share one compact geometry: $($choice.value)"
+      }
+    }
     $prominent = Query-Node `
       $detail `
       (Text-Hex '醒目') `
@@ -308,11 +329,13 @@ $manifest = [ordered]@{
     stateSurvivedSettingsBackAndReopen = $true
     pluginVersionVisible = $true
     dshSelectorRowsHaveVerticalGaps = ($selectorSpacingResults.Count -eq 3)
+    notificationLevelControlsShareCompactGeometry = ($notificationLevelBounds.Count -eq 4)
     themeSwitchedToLightAndBack = $true
     notificationLevelAndMonitorUpdated = $true
     cardTaskNameToggleUpdated = $true
   }
   dshSelectorSpacing = $selectorSpacingResults
+  notificationLevelBounds = $notificationLevelBounds
   settingsPages = $pageResults
   captures = @(
     'appearance-before.jpeg',

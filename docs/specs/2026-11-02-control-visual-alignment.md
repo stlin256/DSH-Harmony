@@ -50,6 +50,8 @@ No product component may add a new local number for an audited control role.
   options, 44vp icon controls, one field radius and one destructive-action
   recipe. Rows that embed a 44vp `Select` use the 60vp rhythm with 8vp top and
   bottom padding; the select itself MUST NOT be reduced to create room.
+  Notification level choices use a 32vp painted button with a 44vp response
+  region, equal `layoutWeight(1)` widths and a 4vp inter-control gap.
 - Files: 52vp header, 44vp icon controls, 28vp breadcrumb chips, 48vp file rows.
 - Plugins/automation: 52vp header, 48vp primary actions, 36vp inline controls,
   60vp two-line cards and one status-badge recipe.
@@ -72,6 +74,9 @@ No product component may add a new local number for an audited control role.
 - `gateway/test/control-alignment.test.mjs` checks token presence, forbidden
   near-duplicate literals, high-risk component migration and the launch sheet
   clearance contract.
+- `gateway/test/visual-acceptance-contracts.test.mjs` verifies that notification
+  levels paint at `compactControl`, expose a `hitTarget` response region and
+  remain inside a 44vp option row.
 - Existing design, visual-acceptance, Mock and model tests remain green.
 - `node scripts/verify-mock-coverage.mjs` remains 100%.
 - PR QA and all three Release builds pass.

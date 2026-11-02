@@ -20,13 +20,13 @@ Previous Store HAP SHA-256:
 `BB63226FB42895102D5566D7017F83CB6EC115F376639AF6FC76919FA42B87AC`.
 
 Current Mock HAP SHA-256:
-`74B23BFCF1D9DE63EFD0210FE2F02B52A8DAA98B8D05338F4245BE30162F7DDB`.
+`534C5CC09A44BDD026B999491D55C9930B8DA043741A6860689C82C586331946`.
 
 Current Default HAP SHA-256:
-`381A1CB3D0AE0ABE4770C2775CC629BAD3131E8D711545BE1154742283FF3408`.
+`E16675606F2E73D6C02813BCBBFE5412C0C2B46235954CAB9DD60F5568293D46`.
 
 Current Store HAP SHA-256:
-`1F51840CBC8D2543D364AD0EF9C2544DDEF428DB3EECE7376DAD080199950620`.
+`A65E4FC385B8FB3E68516B09EFB98525762217D782C870E70C635974BF509FC4`.
 
 | ID | Surface | Expected result | Status |
 | --- | --- | --- | --- |
@@ -47,6 +47,7 @@ Current Store HAP SHA-256:
 | CVA-15 | Reduced motion and transparency | Alignment survives fallback surfaces; transitions resolve without changing final geometry | Passed; 13 reduced-motion surfaces, onboarding and reduced-transparency Dock |
 | CVA-16 | API 23 fallback | Opaque surfaces preserve the same insets and control recipes | Pending; no API 23 target is available |
 | CVA-17 | Live process order | Reasoning, tool and later reasoning remain aligned in first-appearance order without changing child identity | Pending current-HAP dark and light verification; maximum-font and collapse/reopen rerun required |
+| CVA-18 | Notification level density | All four notification choices paint at 32vp inside a 44vp touch row; selected and unselected states stay aligned without clipping or overlap | Pending current-HAP dark, light and maximum-font verification |
 
 ## Evidence
 
@@ -71,4 +72,15 @@ Current Store HAP SHA-256:
   `artifacts/device-e2e/20261102-launch-2`.
 - PR QA:
   previous `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`; current
-  long-stream run `.artifacts/qa/20261102T061552Z-b0060234/report.json`.
+  notification-density run
+  `.artifacts/qa/20261102T063039Z-6973e1d6/report.json`.
+
+## Notification level density evidence
+
+- Run `scripts/device-ui-settings-e2e.ps1` and open `设置 > 通知`.
+- Capture dark and light `notifications-page` screenshots.
+- Repeat at maximum system text size.
+- Record the four choice bounds and confirm equal heights, equal widths within
+  one pixel, no text clipping and no overlap with the category label.
+- Confirm the 44vp touch region still changes the intended category without
+  changing neighboring rows.

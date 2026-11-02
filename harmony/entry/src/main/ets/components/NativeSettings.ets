@@ -910,7 +910,8 @@ export struct NativeSettings {
 
   @Builder
   private notificationLevelButton(category: string, levelValue: string, label: string) {
-    Button(label, { type: ButtonType.Normal }).layoutWeight(1).height(NativeDesign.hitTarget)
+    Button(label, { type: ButtonType.Normal }).layoutWeight(1).height(NativeDesign.compactControl)
+      .responseRegion({ x: 0, y: -6, width: '100%', height: NativeDesign.hitTarget })
       .fontSize(NativeDesign.fontMicro).borderRadius(NativeDesign.radiusControl)
       .backgroundColor(this.notificationValue(category) === levelValue ? NativeDesign.accentStrong(this.dark) :
         NativeDesign.field(this.dark))
@@ -936,7 +937,7 @@ export struct NativeSettings {
         this.notificationLevelButton(category, 'quiet', '静默')
         this.notificationLevelButton(category, 'standard', '标准')
         this.notificationLevelButton(category, 'prominent', '醒目')
-      }.width('100%')
+      }.width('100%').height(NativeDesign.hitTarget).alignItems(VerticalAlign.Center)
     }.width('100%').padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset, top: 10, bottom: 10 })
   }
 

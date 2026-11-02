@@ -81,6 +81,9 @@ Keep these gaps explicit until a physical or emulated target proves them:
 - Long-stream liveness with the current HAP: `stream-long` must advance in at
   least two captures, show `STREAM-LONG-DONE` without relaunch, keep the same
   process ID and leave the composer responsive.
+- Current-HAP notification level density in dark, light and maximum system
+  font size: all four painted choices must stay at 32vp with a 44vp response
+  region and no clipping or overlap.
 - Current-device image-lightbox interaction evidence.
 - Large-text onboarding, guide, detailed install page, login and inline error.
 

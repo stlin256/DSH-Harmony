@@ -53,11 +53,14 @@ The compatibility-mode DSH web page remains an upstream visual exception.
 8. `设置 > DSH 设置` selector rows MUST keep the 44vp Select touch target while
    using a 60vp row rhythm and 8vp vertical inset. Dividers MUST sit at the row
    boundary with visible breathing room, not against the Select surface.
-9. Busy, loading, empty and error states MUST preserve the same control inset,
+9. Notification level choices MUST use the 32vp dense-control visual recipe
+   instead of four full-height 44vp fills. Their effective touch region remains
+   44vp, with equal-width labels, stable selected surfaces and no overlap.
+10. Busy, loading, empty and error states MUST preserve the same control inset,
    label hierarchy and recovery action placement as their idle state.
-10. Visual alignment MUST apply in light and dark themes, large text, narrow
+11. Visual alignment MUST apply in light and dark themes, large text, narrow
    layout, reduced motion, reduced transparency and API 23 fallbacks.
-11. Source contracts and Mock mapping MUST cover every migrated control family.
+12. Source contracts and Mock mapping MUST cover every migrated control family.
     A static pass is not physical-device evidence.
 
 ## Non-goals

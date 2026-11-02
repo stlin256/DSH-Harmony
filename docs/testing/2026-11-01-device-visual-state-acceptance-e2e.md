@@ -30,9 +30,9 @@ Implementation spec:
 | Previous Mock HAP SHA-256 | `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89` |
 | Previous Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
 | Previous Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
-| Current Mock HAP SHA-256 | `74B23BFCF1D9DE63EFD0210FE2F02B52A8DAA98B8D05338F4245BE30162F7DDB` |
-| Current Default HAP SHA-256 | `381A1CB3D0AE0ABE4770C2775CC629BAD3131E8D711545BE1154742283FF3408` |
-| Current Store HAP SHA-256 | `1F51840CBC8D2543D364AD0EF9C2544DDEF428DB3EECE7376DAD080199950620` |
+| Current Mock HAP SHA-256 | `534C5CC09A44BDD026B999491D55C9930B8DA043741A6860689C82C586331946` |
+| Current Default HAP SHA-256 | `E16675606F2E73D6C02813BCBBFE5412C0C2B46235954CAB9DD60F5568293D46` |
+| Current Store HAP SHA-256 | `A65E4FC385B8FB3E68516B09EFB98525762217D782C870E70C635974BF509FC4` |
 
 ## Device evidence
 
@@ -69,8 +69,8 @@ Implementation spec:
   `.artifacts/qa/20261102T052550Z-a8ca704d/report.json`
 - Live process ordering PR QA run: `20261102T054907Z-09edfb22`
   `.artifacts/qa/20261102T054907Z-09edfb22/report.json`
-- Long-stream render liveness PR QA run: `20261102T061552Z-b0060234`
-  `.artifacts/qa/20261102T061552Z-b0060234/report.json`
+- Notification density and long-stream PR QA run: `20261102T063039Z-6973e1d6`
+  `.artifacts/qa/20261102T063039Z-6973e1d6/report.json`
 
 The user's saved annotation run
 `20261101T152352Z-visual-acceptance-1` contains 32 markers across 20 source
@@ -119,7 +119,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 - HDC currently reports only UART placeholders (`COM3`, `COM4`) after a server
   restart, so none of the FHH device rows is passed.
 - Run `scripts/device-ui-stream-long-e2e.ps1` against current Mock HAP
-  `74B23BFCF1D9DE63EFD0210FE2F02B52A8DAA98B8D05338F4245BE30162F7DDB`.
+  `534C5CC09A44BDD026B999491D55C9930B8DA043741A6860689C82C586331946`.
   It must prove text advances in two captures, `STREAM-LONG-DONE` appears
   without relaunch, the process ID is unchanged, the reconnect banner is
   absent, and the composer remains responsive. HDC still reports only
@@ -132,7 +132,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   `second-order-detail`.
 - Rerun the 106-pair static Mock suite, subagent send flow, settings navigation
   and all disclosure matrices against current Mock HAP
-  `74B23BFCF1D9DE63EFD0210FE2F02B52A8DAA98B8D05338F4245BE30162F7DDB`.
+  `534C5CC09A44BDD026B999491D55C9930B8DA043741A6860689C82C586331946`.
 - Confirm the subagent composer send button becomes enabled after text entry
   and that exactly one prompt appears. The interrupted run recorded the text in
   the field while the action remained disabled.

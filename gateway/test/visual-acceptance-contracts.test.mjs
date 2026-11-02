@@ -13,6 +13,16 @@ test('compact visual controls use semantic dimensions', () => {
   assert.match(design, /compactControl: number = 32/);
   assert.match(design, /compactChip: number = 28/);
 
+  const settings = readComponent('NativeSettings.ets');
+  assert.match(
+    settings,
+    /Button\(label[\s\S]{0,120}height\(NativeDesign\.compactControl\)[\s\S]{0,140}responseRegion\(\{ x: 0, y: -6, width: '100%', height: NativeDesign\.hitTarget \}\)/,
+  );
+  assert.match(
+    settings,
+    /Row\(\{ space: 4 \}\)[\s\S]{0,420}height\(NativeDesign\.hitTarget\)\.alignItems\(VerticalAlign\.Center\)/,
+  );
+
   for (const component of ['NativeAutomationSurface.ets', 'NativePluginsSurface.ets']) {
     const source = readComponent(component);
     assert.match(source, /Button\(actionLabel[\s\S]{0,120}height\(NativeDesign\.compactHitTarget\)/);
