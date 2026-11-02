@@ -374,30 +374,75 @@ export function normalizedHistory(records) {
     .map(record => ({ seq: record.event.seq, raw: JSON.stringify(record.event) })), trimmed: false, replacements: (records || []).map(record => record.event?.surfaceOp)
     .filter(op => op?.op === 'replace').map(op => ({ start: op.startSeq, end: op.endSeq })) };
 }
+function appendTextStreamPart(parts, kind, value) {
+  const text = fullText(value);
+  if (!text) return;
+  const last = parts[parts.length - 1];
+  if (last?.kind === kind) {
+    last.text += text;
+    return;
+  }
+  parts.push({ kind, text });
+}
+function appendToolStreamPart(parts, update) {
+  if (!update?.callId) return;
+  const existing = parts.find(part => part.kind === 'tool' && part.callId === update.callId);
+  if (existing) {
+    if (update.name && !existing.name) existing.name = update.name;
+    return;
+  }
+  parts.push({ kind: 'tool', callId: update.callId, name: update.name || '' });
+}
 export function compactText(stream) {
   let text = '', reasoning = '';
   const toolUpdates = [];
+  const streamParts = [];
   for (const record of Array.isArray(stream) ? stream : []) {
     if (record?.type === 'text-chunks' && stringRun(record.texts)) {
-      text += record.texts.join('');
+      const value = record.texts.join('');
+      text += value;
+      appendTextStreamPart(streamParts, 'text', value);
     }
     if (record?.type === 'reasoning-chunks' && stringRun(record.texts)) {
-      reasoning += record.texts.join('');
+      const value = record.texts.join('');
+      reasoning += value;
+      appendTextStreamPart(streamParts, 'reasoning', value);
     }
     if (record?.type === 'tool-call-chunks' && stringRun(record.args)) {
-      toolUpdates.push({
+      const update = {
         callId: record.id,
         name: fullText(record.name),
         argsDelta: record.args.join(''),
         arguments: '',
         replace: false,
-      });
+      };
+      toolUpdates.push(update);
+      appendToolStreamPart(streamParts, update);
     }
-    if (record?.type === 'chunk' && record.chunk?.type === 'text-delta') text += record.chunk.text;
-    if (record?.type === 'chunk' && record.chunk?.type === 'reasoning-delta') reasoning += record.chunk.text;
-    if (record?.type === 'chunk') { const update = toolUpdate(record.chunk); if (update) toolUpdates.push(update); }
+    if (record?.type === 'chunk' && record.chunk?.type === 'text-delta') {
+      const value = fullText(record.chunk.text);
+      text += value;
+      appendTextStreamPart(streamParts, 'text', value);
+    }
+    if (record?.type === 'chunk' && record.chunk?.type === 'reasoning-delta') {
+      const value = fullText(record.chunk.text);
+      reasoning += value;
+      appendTextStreamPart(streamParts, 'reasoning', value);
+    }
+    if (record?.type === 'chunk') {
+      const update = toolUpdate(record.chunk);
+      if (update) {
+        toolUpdates.push(update);
+        appendToolStreamPart(streamParts, update);
+      }
+    }
   }
-  return { text: fullText(text), reasoning: fullText(reasoning), ...(toolUpdates.length ? { toolUpdates } : {}) };
+  return {
+    text: fullText(text),
+    reasoning: fullText(reasoning),
+    ...(toolUpdates.length ? { toolUpdates } : {}),
+    ...(streamParts.length ? { streamParts } : {}),
+  };
 }
 function toolUpdate(chunk) {
   if (chunk?.type === 'tool-call-delta') return { callId: String(chunk.id), name: fullText(chunk.name), argsDelta: fullText(chunk.argumentsDelta), arguments: '', replace: false };
@@ -465,10 +510,17 @@ export function normalizeFollow(frame) {
         turn: item.turn, step: item.step };
     }
     if (item.type === 'chunk' && Number.isSafeInteger(item.index) && item.index >= 0) {
+      const update = toolUpdate(item.chunk);
+      const text = item.chunk?.type === 'text-delta' ? fullText(item.chunk.text) : '';
+      const reasoning = item.chunk?.type === 'reasoning-delta' ? fullText(item.chunk.text) : '';
+      const streamParts = [];
+      if (text) streamParts.push({ kind: 'text', text });
+      if (reasoning) streamParts.push({ kind: 'reasoning', text: reasoning });
+      if (update) appendToolStreamPart(streamParts, update);
       return { type: 'delta', attemptId: item.attemptId, revision: item.revision, index: item.index,
-      text: item.chunk?.type === 'text-delta' ? fullText(item.chunk.text) : '',
-      reasoning: item.chunk?.type === 'reasoning-delta' ? fullText(item.chunk.text) : '',
-      ...(toolUpdate(item.chunk) ? { toolUpdates: [toolUpdate(item.chunk)] } : {}) };
+        text, reasoning,
+        ...(update ? { toolUpdates: [update] } : {}),
+        ...(streamParts.length ? { streamParts } : {}) };
     }
     if (item.type === 'end' && Number.isSafeInteger(item.index) && item.index >= 0) {
       const outcomeKind = item.outcome?.kind;

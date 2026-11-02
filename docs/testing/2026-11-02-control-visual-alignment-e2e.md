@@ -20,13 +20,13 @@ Previous Store HAP SHA-256:
 `BB63226FB42895102D5566D7017F83CB6EC115F376639AF6FC76919FA42B87AC`.
 
 Current Mock HAP SHA-256:
-`29B12064EDB31454D702BA81681F3CEE7EBE95EA3D031824BDCB7A4E17FAEAB5`.
+`2C39478C519C9D29C08031A596A001862F078240B26D918B28F5058F1D57F781`.
 
 Current Default HAP SHA-256:
-`B30469743804B1010EEF5E3F7CF74161138888A726A7A249508D7181DC06E542`.
+`AD2127415A83DAB218D20F382B05BA2824E6DE65975CD38FE49D269E574FA881`.
 
 Current Store HAP SHA-256:
-`82BE9926ACB06C5370D8ECB537A1EF12939AE528BEE579E0D0B8C4AFDAB5FC12`.
+`58E2D2E7DAC259DF53501416E8A4F571372A756533F53CDB11583BBF3D206034`.
 
 | ID | Surface | Expected result | Status |
 | --- | --- | --- | --- |
@@ -46,6 +46,7 @@ Current Store HAP SHA-256:
 | CVA-14 | Dark theme | Borders, selected surfaces, chips and icon weights remain coherent | Passed across all affected dark captures |
 | CVA-15 | Reduced motion and transparency | Alignment survives fallback surfaces; transitions resolve without changing final geometry | Passed; 13 reduced-motion surfaces, onboarding and reduced-transparency Dock |
 | CVA-16 | API 23 fallback | Opaque surfaces preserve the same insets and control recipes | Pending; no API 23 target is available |
+| CVA-17 | Live process order | Reasoning, tool and later reasoning remain aligned in first-appearance order without changing child identity | Pending current-HAP dark and light verification; maximum-font and collapse/reopen rerun required |
 
 ## Evidence
 
@@ -70,4 +71,5 @@ Current Store HAP SHA-256:
   `artifacts/device-e2e/20261102-launch-2`.
 - PR QA:
   previous `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`; current
-  selector-rhythm run `.artifacts/qa/20261102T053410Z-8f4a02be/report.json`.
+  selector-rhythm run `.artifacts/qa/20261102T053410Z-8f4a02be/report.json`;
+  live-process run `.artifacts/qa/20261102T054907Z-09edfb22/report.json`.

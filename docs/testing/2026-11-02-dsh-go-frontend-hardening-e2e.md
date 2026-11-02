@@ -27,12 +27,12 @@ current HAP is installed on a ready USB target and the listed action is observed
 
 | Variant | Signed HAP | SHA-256 |
 | --- | --- | --- |
-| Mock | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` | `BEDD9A7AD31A4C45DA7A7E7702A2A008EACD226752A0C1DCBE680E49BE12C3EF` |
-| Default | `harmony/entry/build/default/outputs/default/entry-default-signed.hap` | `F7044321EE18F6D6B78986ED5C44AE1842B24C5F4AAFD08F7F384BAF1A3EA5DE` |
-| Store | `harmony/entry/build/store/outputs/store/entry-store-signed.hap` | `7AEA9D1A9F7764F3208F9FE4EA8D7AD5A1970A104A696CE866BBD60F984ECFBF` |
+| Mock | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` | `2C39478C519C9D29C08031A596A001862F078240B26D918B28F5058F1D57F781` |
+| Default | `harmony/entry/build/default/outputs/default/entry-default-signed.hap` | `AD2127415A83DAB218D20F382B05BA2824E6DE65975CD38FE49D269E574FA881` |
+| Store | `harmony/entry/build/store/outputs/store/entry-store-signed.hap` | `58E2D2E7DAC259DF53501416E8A4F571372A756533F53CDB11583BBF3D206034` |
 
 Source, model, coverage and Release gates passed in PR QA
-`.artifacts/qa/20261102T051035Z-9cdbdc84/report.json`. Device rows remain
+`.artifacts/qa/20261102T054907Z-09edfb22/report.json`. Device rows remain
 Pending because HDC currently reports only UART placeholders `COM3` and `COM4`.
 
 ## Acceptance table

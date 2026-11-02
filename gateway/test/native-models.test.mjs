@@ -2535,6 +2535,56 @@ test('streamed tool argument fragments settle once and never become assistant pl
   assert.equal(model.streamTools.length,0);
 });
 
+test('live stream timeline keeps reasoning above later tools and survives cache restore', () => {
+  const types = load('NativeSessionModel', {});
+  const { NativeSessionModel } = types;
+  const model = new NativeSessionModel();
+  model.apply({ type: 'snapshot', cursor: 1, messages: [], revision: 0, nextIndex: 0 });
+  model.apply({ type: 'start', attemptId: 'attempt', revision: 1, nextIndex: 0,
+    startedAfterSeq: 1, turn: 1, step: 1 });
+  for (const [revision,index,chunk] of [
+    [2,0,{type:'reasoning-delta',text:'先检查结构'}],
+    [3,1,{type:'tool-call-delta',id:'call-read',name:'read',argumentsDelta:'{"path":"a.ts"}'}],
+    [4,2,{type:'reasoning-delta',text:'再汇总结论'}],
+  ]) {
+    model.apply(normalizeFollow({ type:'assistant-stream', frame:{
+      type:'chunk', attemptId:'attempt', revision, index, chunk
+    }}));
+  }
+  assert.deepEqual(Array.from(model.streamParts, part => part.kind),
+    ['reasoning', 'tool', 'reasoning']);
+  assert.deepEqual(Array.from(model.streamParts.filter(part => part.kind === 'reasoning'),
+    part => part.text), ['先检查结构', '再汇总结论']);
+
+  const restored = new NativeSessionModel();
+  restored.restore(JSON.parse(JSON.stringify(model.capture())));
+  assert.deepEqual(Array.from(restored.streamParts, part => part.kind),
+    ['reasoning', 'tool', 'reasoning']);
+
+  const { nativeTranscript } = load('NativeTranscript', {'./NativeSessionModel': types});
+  const rows = nativeTranscript(restored.messages, true, restored.streamTools,
+    restored.streamReasoning, '', '', restored.streamParts);
+  const process = rows.find(row => row.role === 'process');
+  assert.deepEqual(Array.from(process.children, child => child.role),
+    ['reasoning', 'tool', 'reasoning']);
+  assert.equal(process.children[0].reasoning, '先检查结构');
+  assert.equal(process.children[1].callId, 'call-read');
+  assert.equal(process.children[2].reasoning, '再汇总结论');
+
+  const legacyCache = JSON.parse(JSON.stringify(model.capture()));
+  delete legacyCache.streamParts;
+  const legacyRestored = new NativeSessionModel();
+  legacyRestored.restore(legacyCache);
+  assert.equal(legacyRestored.streamParts.length, 0);
+  const legacyRows = nativeTranscript(legacyRestored.messages, true,
+    legacyRestored.streamTools, legacyRestored.streamReasoning,
+    legacyRestored.streamText, '', []);
+  const legacyProcess = legacyRows.find(row => row.role === 'process');
+  assert.deepEqual(Array.from(legacyProcess.children, child => child.role),
+    ['tool', 'reasoning']);
+  assert.equal(legacyProcess.children[0].callId, 'call-read');
+});
+
 test('native transport shares only gateway cookies, disables redirects and never retries prompts', async () => {
   const calls = [], configured = [];
   let code = 200, made = 0, streamBody = '{}';

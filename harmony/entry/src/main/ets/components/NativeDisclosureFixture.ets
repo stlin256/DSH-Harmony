@@ -70,6 +70,23 @@ function disclosureProcess(operation: NativeMessage): NativeMessage {
   return group;
 }
 
+function disclosureOrderedProcess(): NativeMessage {
+  const group = disclosureMessage('process:ordered', 'process', '');
+  group.label = '工作过程';
+  group.detail = '思考、读取、思考';
+  group.closed = true;
+  group.children = [
+    disclosureOperation('order-thought-a', '思考过程', 'first-order-detail',
+      'reasoning', '', '', '先检查结构'),
+    disclosureOperation('order-read', '已读取文件', 'NativeTaskDock.ets',
+      'tool', 'read', '{"path":"harmony/entry/src/main/ets/components/NativeTaskDock.ets"}',
+      'const disclosureValue = 42;'),
+    disclosureOperation('order-thought-b', '思考过程', 'second-order-detail',
+      'reasoning', '', '', '再汇总结论')
+  ];
+  return group;
+}
+
 function disclosurePlan(): NativePlanDocument {
   const document = new NativePlanDocument();
   document.parsed = true;
@@ -176,6 +193,7 @@ function disclosureReadImageProcess(): NativeMessage {
 }
 
 function disclosureProcessMessage(state: string): NativeMessage {
+  if (state === 'disclosure-process-order') return disclosureOrderedProcess();
   if (state === 'disclosure-process-reasoning') {
     return disclosureProcess(disclosureOperation('reasoning', '思考过程',
       '核对展开边界', 'reasoning', '', '', '先核对标题与正文的边界。\n推理正文只在展开后显示。'));

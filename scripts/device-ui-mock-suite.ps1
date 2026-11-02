@@ -130,6 +130,7 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-question'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-plugin'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-plan'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-order'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-reasoning'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-legacy-tool'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-diff'; Theme = 'dark' },
@@ -218,6 +219,7 @@ function Get-ExpectedMarker {
     'disclosure/disclosure-process-question' { return 'disclosure-process-question' }
     'disclosure/disclosure-process-plugin' { return 'disclosure-process-plugin' }
     'disclosure/disclosure-process-plan' { return 'disclosure-process-plan' }
+    'disclosure/disclosure-process-order' { return 'disclosure-process-order' }
     'disclosure/disclosure-reasoning' { return 'disclosure-reasoning' }
     'disclosure/disclosure-legacy-tool' { return 'disclosure-legacy-tool' }
     'disclosure/disclosure-diff' { return 'disclosure-diff' }

@@ -70,7 +70,7 @@
 - `CHAT01a` context中工具增删通知依照上游 visibility 的例外显示；不能把全部非user来源一刀切删除。通知唤醒严格由claim判断，普通非人工输入不能升级为通知。
 - `CHAT02` Inbox 领取批次决定普通 User、steering 与通知唤醒的区别。首个过程证据前的开场输入在过程控件上方；之后的可见输入留在原位并阻止整轮折叠。
 - `CHAT03` `schedule`、`tool-jobs`、插件更新、目标/agent/团队/子任务/webhook 的有效轮次触发通知独立显示、默认收起；它们不是普通系统上下文，也不代表执行成功。
-- `CHAT04` Assistant 内容按原始块顺序呈现。只有非空白推理生成推理行；工具协议块不显示为 Assistant 占位正文。图片与回复同样构成回复边界。
+- `CHAT04` Assistant 内容按原始块顺序呈现，运行中的 assistant stream 也按 reasoning/tool 块首次出现顺序投影；不得把聚合 reasoning 固定追加到工具行之后。只有非空白推理生成推理行；工具协议块不显示为 Assistant 占位正文。图片与回复同样构成回复边界。
 - `CHAT05` 同一 turn 相邻过程组成一个组；Step 或工具类别改变不拆组。回复、steering、轮次独立节点等真实边界拆组。隐藏节点既不入组也不拆组。
 - `CHAT06` 工具以 `callId` 配对 preparing/start/result，以 `parentCallId`/`subCallId`/`rootCallId` 还原 PTC。准备态不可展开，参数结束不代表已执行。生命周期变化不替换调用身份。
 - `CHAT07` 已完成轮次按官方资格折叠过程：失败、停止、过程后交错输入不整轮折叠；正常结束即使没有最终答案也可折叠。起点未加载时不得编造耗时。

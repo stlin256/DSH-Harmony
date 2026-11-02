@@ -28,7 +28,7 @@ export class NativeUiFixture {
     'disclosure-process-read-image', 'disclosure-process-command',
     'disclosure-process-present', 'disclosure-process-image',
     'disclosure-process-question', 'disclosure-process-plugin',
-    'disclosure-process-plan',
+    'disclosure-process-plan', 'disclosure-process-order',
     'disclosure-reasoning', 'disclosure-legacy-tool', 'disclosure-diff',
     'disclosure-background-notice', 'disclosure-queue',
     'disclosure-sidebar-more', 'disclosure-sidebar-group'

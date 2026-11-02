@@ -234,6 +234,7 @@
         "disclosure-process-subagent", "disclosure-process-present",
         "disclosure-process-image", "disclosure-process-question",
         "disclosure-process-plugin", "disclosure-process-plan",
+        "disclosure-process-order",
         "disclosure-reasoning", "disclosure-legacy-tool", "disclosure-diff",
         "disclosure-background-notice", "disclosure-queue",
         "disclosure-sidebar-more", "disclosure-sidebar-group"],
@@ -243,7 +244,7 @@
         "DXM-12", "DXM-13", "DXM-14", "DXM-15", "DXM-16", "DXM-17",
         "DXM-18", "DXM-19", "DXM-20", "DXM-21", "DXM-22", "DXM-23",
         "DXM-24", "DXM-25", "DXM-26", "DXM-27", "DXM-28", "DXM-29",
-        "DXM-30", "DXM-31"],
+        "DXM-30", "DXM-31", "DXM-32"],
       "requiresInteraction": true
     },
     {

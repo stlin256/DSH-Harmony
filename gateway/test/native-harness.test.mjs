@@ -862,7 +862,8 @@ test('normalization respects history replacements and produces native code block
   assert.equal(history.messages.length,1);assert.equal(history.messages[0].text,'new');
   assert.equal(richBlocks('text\n```js\nconst x=1;\n```')[1].kind,'code');
   assert.deepEqual(normalizeFollow({type:'assistant-stream',frame:{type:'chunk',revision:1,attemptId:'a',index:1,chunk:{type:'reasoning-delta',text:'thinking'}}}),
-    {type:'delta',attemptId:'a',revision:1,index:1,text:'',reasoning:'thinking'});
+    {type:'delta',attemptId:'a',revision:1,index:1,text:'',reasoning:'thinking',
+      streamParts:[{kind:'reasoning',text:'thinking'}]});
   assert.equal(normalizeFollow({type:'assistant-stream',frame:{
     type:'chunk',attemptId:'a',index:1,chunk:{type:'text-delta',text:'missing revision'}
   }}),null);

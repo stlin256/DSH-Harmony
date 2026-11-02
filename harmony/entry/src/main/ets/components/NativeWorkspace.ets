@@ -2117,7 +2117,7 @@ export struct NativeWorkspace {
       this.textProjectionCacheHit = false;
       return nativeTranscript(this.model.messages, this.model.running,
         this.model.streamTools, this.model.streamReasoning, this.model.streamText,
-        workspaceRoot);
+        workspaceRoot, this.model.streamParts);
     }
     if (this.transcriptBaseSource !== this.model.messages ||
         this.transcriptBaseRoot !== workspaceRoot) {

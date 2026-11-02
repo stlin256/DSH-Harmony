@@ -67,6 +67,7 @@ param(
     'disclosure-process-question',
     'disclosure-process-plugin',
     'disclosure-process-plan',
+    'disclosure-process-order',
     'disclosure-reasoning',
     'disclosure-legacy-tool',
     'disclosure-diff',

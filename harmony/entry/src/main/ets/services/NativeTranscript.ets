@@ -1,4 +1,4 @@
-import { NativeMessage, NativeAssistantSegment } from './NativeSessionModel';
+import { NativeMessage, NativeAssistantSegment, NativeStreamPart } from './NativeSessionModel';
 import { NativeChatPreferences } from './NativeHostSettings';
 import { NativePlanDocument, nativePlanDiff, nativePlanDocument, nativePlanProgress } from './NativePlan';
 import { nativeToolStructured, nativeToolGroupSummary, nativeToolKind } from './NativeToolStructured';
@@ -225,7 +225,7 @@ export function nativeProcessTitle(group: NativeMessage, showDetail: boolean = t
 
 export function nativeTranscript(records: NativeMessage[], running: boolean,
   streamTools: NativeMessage[] = [], reasoning: string = '', text: string = '',
-  workspaceRoot: string = ''): NativeMessage[] {
+  workspaceRoot: string = '', streamParts: NativeStreamPart[] = []): NativeMessage[] {
   const calls: Map<string, NativeMessage> = new Map<string, NativeMessage>();
   const ordered: NativeMessage[] = [];
   const ends: Map<string, NativeMessage> = new Map<string, NativeMessage>();
@@ -296,19 +296,51 @@ export function nativeTranscript(records: NativeMessage[], running: boolean,
     }
     if (row.text.trim() || row.images.length) ordered.push(row);
   }
-  for (const preparing of streamTools) {
-    if (calls.has(preparing.callId)) continue;
-    const tool = copy(preparing); tool.args = tool.text; tool.status = 'preparing'; tool.turnKey = turnKey;
-    tool.id = 'call:' + tool.callId; calls.set(tool.callId, tool); ordered.push(tool);
+  let liveReasoningIndex = 0;
+  const representedTools: Set<string> = new Set<string>();
+  if (streamParts.length) {
+    for (const part of streamParts) {
+      if (part.kind === 'reasoning' && part.text.trim()) {
+        const thought = new NativeMessage();
+        thought.id = liveReasoningIndex === 0 ? 'live-reasoning' : 'live-reasoning:' + liveReasoningIndex;
+        thought.role = 'reasoning'; thought.reasoning = part.text; thought.turnKey = turnKey;
+        ordered.push(thought);
+        liveReasoningIndex++;
+        continue;
+      }
+      if (part.kind !== 'tool' || !part.callId || representedTools.has(part.callId) ||
+        calls.has(part.callId)) continue;
+      const preparing = streamTools.find((item: NativeMessage): boolean => item.callId === part.callId);
+      representedTools.add(part.callId);
+      if (!preparing) continue;
+      const tool = copy(preparing); tool.args = tool.text; tool.status = 'preparing'; tool.turnKey = turnKey;
+      tool.id = 'call:' + tool.callId; calls.set(tool.callId, tool); ordered.push(tool);
+    }
+    for (const preparing of streamTools) {
+      if (calls.has(preparing.callId) || representedTools.has(preparing.callId)) continue;
+      const tool = copy(preparing); tool.args = tool.text; tool.status = 'preparing'; tool.turnKey = turnKey;
+      tool.id = 'call:' + tool.callId; calls.set(tool.callId, tool); ordered.push(tool);
+    }
+    if (reasoning.trim() && liveReasoningIndex === 0) {
+      const thought = new NativeMessage();
+      thought.id = 'live-reasoning'; thought.role = 'reasoning'; thought.reasoning = reasoning; thought.turnKey = turnKey;
+      ordered.push(thought);
+    }
+  } else {
+    for (const preparing of streamTools) {
+      if (calls.has(preparing.callId)) continue;
+      const tool = copy(preparing); tool.args = tool.text; tool.status = 'preparing'; tool.turnKey = turnKey;
+      tool.id = 'call:' + tool.callId; calls.set(tool.callId, tool); ordered.push(tool);
+    }
+    if (reasoning.trim()) {
+      const thought = new NativeMessage(); thought.id = 'live-reasoning'; thought.role = 'reasoning'; thought.reasoning = reasoning; thought.turnKey = turnKey;
+      ordered.push(thought);
+    }
   }
   authoritativeByCall.forEach((raw: string, callId: string): void => {
     const tool = calls.get(callId);
     if (tool && tool.toolName === 'present') tool.authoritativeRaw = raw;
   });
-  if (reasoning.trim()) {
-    const thought = new NativeMessage(); thought.id = 'live-reasoning'; thought.role = 'reasoning'; thought.reasoning = reasoning; thought.turnKey = turnKey;
-    ordered.push(thought);
-  }
   if (text.trim()) {
     const reply = new NativeMessage(); reply.id = 'live-assistant'; reply.role = 'assistant'; reply.text = text; reply.turnKey = turnKey;
     ordered.push(reply);

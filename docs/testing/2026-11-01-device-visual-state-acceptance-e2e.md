@@ -30,9 +30,9 @@ Implementation spec:
 | Previous Mock HAP SHA-256 | `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89` |
 | Previous Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
 | Previous Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
-| Current Mock HAP SHA-256 | `29B12064EDB31454D702BA81681F3CEE7EBE95EA3D031824BDCB7A4E17FAEAB5` |
-| Current Default HAP SHA-256 | `B30469743804B1010EEF5E3F7CF74161138888A726A7A249508D7181DC06E542` |
-| Current Store HAP SHA-256 | `82BE9926ACB06C5370D8ECB537A1EF12939AE528BEE579E0D0B8C4AFDAB5FC12` |
+| Current Mock HAP SHA-256 | `2C39478C519C9D29C08031A596A001862F078240B26D918B28F5058F1D57F781` |
+| Current Default HAP SHA-256 | `AD2127415A83DAB218D20F382B05BA2824E6DE65975CD38FE49D269E574FA881` |
+| Current Store HAP SHA-256 | `58E2D2E7DAC259DF53501416E8A4F571372A756533F53CDB11583BBF3D206034` |
 
 ## Device evidence
 
@@ -67,6 +67,8 @@ Implementation spec:
   `.artifacts/qa/20261102T053410Z-8f4a02be/report.json`
 - Keyboard IME PR QA run: `20261102T052550Z-a8ca704d`
   `.artifacts/qa/20261102T052550Z-a8ca704d/report.json`
+- Live process ordering PR QA run: `20261102T054907Z-09edfb22`
+  `.artifacts/qa/20261102T054907Z-09edfb22/report.json`
 
 The user's saved annotation run
 `20261101T152352Z-visual-acceptance-1` contains 32 markers across 20 source
@@ -97,6 +99,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-17 | Composer IME open | Header title and chips keep their screen top; the transcript viewport and bottom Dock resize instead of the whole page translating | Pending current-HAP dark and light verification |
 | VSA-18 | Composer IME close and draft | System Back restores the exact header/composer geometry and keeps the draft | Pending current-HAP verification |
 | VSA-19 | DSH settings selector rhythm | `工作步骤展示`, `过程收起时机`, `收起后显示回复` and `运行时发送` retain 44vp Select targets inside 60vp rows with visible vertical spacing and no divider touching the controls | Pending current-HAP dark verification; light and maximum-font reruns also Pending |
+| VSA-20 | Live process order | Reasoning, tool and later reasoning render in first-appearance order; collapse/reopen preserves child identity and order | Pending current-HAP dark and light verification; maximum-font and device run required |
 
 ## Remaining device checks
 
@@ -112,9 +115,15 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   targets without overlap.
 - HDC currently reports only UART placeholders (`COM3`, `COM4`) after a server
   restart, so none of the FHH device rows is passed.
+- The current-HAP USB target is not ready. After it returns, run
+  `scripts/device-ui-disclosure-e2e.ps1` against the current Mock HAP and
+  verify `disclosure-process-order` in dark and light themes, at maximum system
+  font size, and through both collapse/reopen paths. The driver must compare the
+  visible Y bounds for `first-order-detail`, `NativeTaskDock.ets` and
+  `second-order-detail`.
 - Rerun the 106-pair static Mock suite, subagent send flow, settings navigation
   and all disclosure matrices against current Mock HAP
-  `BEDD9A7AD31A4C45DA7A7E7702A2A008EACD226752A0C1DCBE680E49BE12C3EF`.
+  `2C39478C519C9D29C08031A596A001862F078240B26D918B28F5058F1D57F781`.
 - Confirm the subagent composer send button becomes enabled after text entry
   and that exactly one prompt appears. The interrupted run recorded the text in
   the field while the action remained disabled.

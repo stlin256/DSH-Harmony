@@ -274,11 +274,18 @@ export class NativeInteractionRequest {
 }
 export class NativeReplacement { start: number = -1; end: number = -1; }
 export class NativePendingQuestion { callId: string = ''; state: string = ''; questions: NativeQuestion[] = []; }
+export class NativeStreamPart {
+  kind: string = '';
+  text: string = '';
+  callId: string = '';
+  name: string = '';
+}
 export class NativeFrame {
   code: string = ''; retryable: boolean = true;
   generation: string = '';
   journal: NativeJournalEntry[] = [];
   toolUpdates: NativeToolUpdate[] = [];
+  streamParts: NativeStreamPart[] = [];
   questions: NativePendingQuestion[] = [];
   queue: NativeQueueItem[] = [];
   queueKnown: boolean = false;
@@ -333,6 +340,7 @@ export class NativeSessionCacheRecord {
   disclosures: NativeCacheFlag[] = [];
   turnDisclosure: NativeCacheFlag[] = [];
   streamTools: NativeMessage[] = [];
+  streamParts: NativeStreamPart[] = [];
   messages: NativeMessage[] = [];
   replacements: NativeReplacement[] = [];
   historyCut: number = -1;
@@ -363,6 +371,7 @@ export class NativeSessionModel {
   lastSeq(): number { return this.cursor; }
   readonly expandedTurns: Set<string> = new Set<string>();
   streamTools: NativeMessage[] = [];
+  streamParts: NativeStreamPart[] = [];
   messages: NativeMessage[] = [];
   historyCut: number = -1;
   historyBefore: number = -1;
@@ -388,6 +397,39 @@ export class NativeSessionModel {
 
   private validCursor(value: number): boolean {
     return Number.isSafeInteger(value) && value >= -1;
+  }
+
+  private copyStreamPart(value: NativeStreamPart): NativeStreamPart {
+    const part = new NativeStreamPart();
+    if (!value) return part;
+    part.kind = value.kind === 'reasoning' || value.kind === 'tool' || value.kind === 'text' ?
+      value.kind : '';
+    part.text = typeof value.text === 'string' ? value.text : '';
+    part.callId = typeof value.callId === 'string' ? value.callId : '';
+    part.name = typeof value.name === 'string' ? value.name : '';
+    return part;
+  }
+
+  private appendStreamParts(values: NativeStreamPart[]): void {
+    for (const value of values || []) {
+      const part = this.copyStreamPart(value);
+      if (!part.kind) continue;
+      if (part.kind === 'tool') {
+        if (!part.callId) continue;
+        const existing = this.streamParts.find((item: NativeStreamPart): boolean =>
+          item.kind === 'tool' && item.callId === part.callId);
+        if (existing) {
+          if (part.name && !existing.name) existing.name = part.name;
+          continue;
+        }
+        this.streamParts.push(part);
+        continue;
+      }
+      if (!part.text) continue;
+      const last = this.streamParts[this.streamParts.length - 1];
+      if (last && last.kind === part.kind) last.text += part.text;
+      else this.streamParts.push(part);
+    }
   }
 
   private validateFrame(frame: NativeFrame): void {
@@ -447,6 +489,7 @@ export class NativeSessionModel {
       value.turnDisclosure.push(flag);
     });
     value.streamTools = this.streamTools;
+    value.streamParts = this.streamParts;
     value.messages = this.messages;
     value.replacements = this.replacements;
     value.historyCut = this.historyCut;
@@ -492,6 +535,9 @@ export class NativeSessionModel {
       if (flag && typeof flag.key === 'string' && flag.key) this.turnDisclosure.set(flag.key, flag.value === true);
     });
     this.streamTools = Array.isArray(value.streamTools) ? value.streamTools : [];
+    this.streamParts = Array.isArray(value.streamParts) ?
+      (value.streamParts as NativeStreamPart[]).map((part: NativeStreamPart): NativeStreamPart =>
+        this.copyStreamPart(part)) : [];
     this.messages = value.messages;
     this.replacements = Array.isArray(value.replacements) ? value.replacements : [];
     this.historyCut = Number.isFinite(value.historyCut) ? value.historyCut : -1;
@@ -570,7 +616,9 @@ export class NativeSessionModel {
       this.settlementAttemptId = ''; this.settlementSeq = -1; this.settlementEventType = '';
       this.streamText = frame.text || '';
       this.streamReasoning = frame.reasoning || '';
-      this.streamTools = []; this.updateTools(frame.toolUpdates);
+      this.streamTools = []; this.streamParts = [];
+      this.appendStreamParts(frame.streamParts);
+      this.updateTools(frame.toolUpdates);
     } else if (frame.type === 'state') {
       this.running = frame.running;
       this.waiting = frame.waiting;
@@ -590,7 +638,7 @@ export class NativeSessionModel {
            (frame.seq === this.settlementSeq &&
             (!this.settlementEventType || frame.message?.eventType === this.settlementEventType)))) {
         this.settlementAttemptId = ''; this.settlementSeq = -1; this.settlementEventType = '';
-        this.streamText = ''; this.streamReasoning = ''; this.streamTools = [];
+        this.streamText = ''; this.streamReasoning = ''; this.streamTools = []; this.streamParts = [];
       }
     } else if (frame.type === 'start') {
       if (!frame.attemptId || !Number.isSafeInteger(frame.revision) ||
@@ -602,7 +650,7 @@ export class NativeSessionModel {
       this.nextIndex = 0;
       this.settlementAttemptId = ''; this.settlementSeq = -1; this.settlementEventType = '';
       this.streamText = ''; this.streamReasoning = '';
-      this.streamTools = [];
+      this.streamTools = []; this.streamParts = [];
     } else if (frame.type === 'delta') {
       if (frame.attemptId !== this.attemptId) throw new Error('Stream attempt changed');
       if (!Number.isSafeInteger(frame.revision) || frame.revision !== this.streamRevision + 1 ||
@@ -613,6 +661,19 @@ export class NativeSessionModel {
       this.nextIndex++;
       this.streamText = this.streamText + (frame.text || '');
       this.streamReasoning = this.streamReasoning + (frame.reasoning || '');
+      this.appendStreamParts(frame.streamParts);
+      if (!(frame.streamParts || []).length) {
+        if (frame.reasoning) {
+          const reasoning = new NativeStreamPart();
+          reasoning.kind = 'reasoning'; reasoning.text = frame.reasoning;
+          this.appendStreamParts([reasoning]);
+        }
+        (frame.toolUpdates || []).forEach((update: NativeToolUpdate): void => {
+          const part = new NativeStreamPart();
+          part.kind = 'tool'; part.callId = update.callId; part.name = update.name;
+          this.appendStreamParts([part]);
+        });
+      }
       this.updateTools(frame.toolUpdates);
     } else if (frame.type === 'end') {
       if (frame.attemptId !== this.attemptId) throw new Error('Stream attempt changed');
@@ -638,10 +699,10 @@ export class NativeSessionModel {
           this.settlementEventType = '';
           this.streamText = '';
           this.streamReasoning = '';
-          this.streamTools = [];
+          this.streamTools = []; this.streamParts = [];
         }
       } else if (frame.outcomeKind === 'abandoned') {
-        this.streamText = ''; this.streamReasoning = ''; this.streamTools = [];
+        this.streamText = ''; this.streamReasoning = ''; this.streamTools = []; this.streamParts = [];
       }
     } else if (frame.type === 'error') throw new Error('Native stream unavailable');
   }

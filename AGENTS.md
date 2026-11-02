@@ -65,6 +65,9 @@ Keep these gaps explicit until a physical or emulated target proves them:
 
 - Current-HAP rerun of the static Mock suite, subagent send, settings navigation
   and all four disclosure matrices after the composer-state correction.
+- Current-HAP live process timeline order (`reasoning -> tool -> reasoning`) in
+  dark, light, maximum system font size and collapse/reopen, using
+  `disclosure-process-order` and `scripts/device-ui-disclosure-e2e.ps1`.
 - Current-HAP secret mask first paint, reveal/hide, raw-copy source, long
   virtual-window boundary, settings search navigation and system Back.
 - Floating task-plan Dock collapsed and expanded overlay geometry, unchanged
@@ -106,6 +109,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-02-control-visual-alignment.md](docs/specs/2026-11-02-control-visual-alignment.md)
 - Cross-surface control visual alignment device E2E:
   [2026-11-02-control-visual-alignment-e2e.md](docs/testing/2026-11-02-control-visual-alignment-e2e.md)
+- Live process stream ordering requirement:
+  [2026-11-02-live-process-stream-order.md](docs/requirements/2026-11-02-live-process-stream-order.md)
+- Live process stream ordering research:
+  [2026-11-02-live-process-stream-order.md](docs/research/2026-11-02-live-process-stream-order.md)
+- Live process stream ordering implementation spec:
+  [2026-11-02-live-process-stream-order.md](docs/specs/2026-11-02-live-process-stream-order.md)
+- Live process stream ordering device E2E:
+  [2026-11-02-live-process-stream-order-e2e.md](docs/testing/2026-11-02-live-process-stream-order-e2e.md)
 - Authoritative design system and motion baseline:
   [2026-11-01-dsh-harmony-design-system.md](docs/design/2026-11-01-dsh-harmony-design-system.md)
 - Design-system unification requirement:

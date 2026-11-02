@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
-import { normalizeFollow } from '../src/native-protocol.mjs';
+import { compactText, normalizeFollow } from '../src/native-protocol.mjs';
 
 const services = new URL('../../harmony/entry/src/main/ets/services/', import.meta.url);
 const gateway = new URL('../src/', import.meta.url);
@@ -129,6 +129,22 @@ test('protocol normalization rejects malformed snapshots before the reducer', ()
     () => new NativeSessionModel().apply({ type: 'event', seq: 7, messages: [] }),
     /Missing opening snapshot/,
   );
+});
+
+test('active stream compaction preserves first-appearance reasoning and tool order', () => {
+  const compacted = compactText([
+    { type: 'reasoning-chunks', time0: 1, index: 0, dt: [], texts: ['first '] },
+    { type: 'tool-call-chunks', time0: 2, index: 1, dt: [], id: 'call-a', name: 'read', args: ['{"path":'] },
+    { type: 'reasoning-chunks', time0: 3, index: 2, dt: [], texts: ['second'] },
+    { type: 'tool-call-chunks', time0: 4, index: 3, dt: [], id: 'call-a', name: 'read', args: ['"a"}'] },
+    { type: 'text-chunks', time0: 5, index: 4, dt: [], texts: ['done'] },
+  ]);
+  assert.equal(compacted.reasoning, 'first second');
+  assert.equal(compacted.text, 'done');
+  assert.deepEqual(compacted.streamParts.map(part => part.kind),
+    ['reasoning', 'tool', 'reasoning', 'text']);
+  assert.equal(compacted.streamParts.filter(part => part.kind === 'tool').length, 1);
+  assert.equal(compacted.streamParts[1].callId, 'call-a');
 });
 
 test('committed assistant end requires a durable sequence and never clears partial output', () => {

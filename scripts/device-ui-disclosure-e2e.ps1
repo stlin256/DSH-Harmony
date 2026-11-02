@@ -166,6 +166,34 @@ function Wait-Query-Node {
   throw "Layout wait failed for '$Text' after $TimeoutMilliseconds ms: $lastError"
 }
 
+function Assert-Ordered-Texts {
+  param(
+    [string]$State,
+    [string]$Phase,
+    [string[]]$Texts
+  )
+  $layout = Dump-Layout "$State-$Phase-ordered"
+  $bounds = @()
+  foreach ($text in $Texts) {
+    $node = Query-Node $layout $text 'text' 1 $true
+    $bounds += [pscustomobject]@{
+      text = $text
+      x = $node.x
+      y = $node.y
+      bounds = $node.bounds
+    }
+  }
+  for ($index = 1; $index -lt $bounds.Count; $index++) {
+    if ($bounds[$index - 1].y -ge $bounds[$index].y) {
+      throw (
+        "Visible process order failed during ${Phase}: {0} must be above {1}" -f
+        $bounds[$index - 1].text, $bounds[$index].text
+      )
+    }
+  }
+  return $bounds
+}
+
 function Invoke-Click {
   param(
     [object]$Node,
@@ -259,6 +287,14 @@ $scenarios = @(
     Collapse = '思考过程'
     Reopen = '思考过程'
     ProcessCollapse = $true
+  },
+  [pscustomobject]@{
+    State = 'disclosure-process-order'
+    Actions = @('工作过程')
+    Expanded = 'first-order-detail'
+    OrderedTexts = @('first-order-detail', 'NativeTaskDock.ets', 'second-order-detail')
+    Collapse = '工作过程'
+    Reopen = '工作过程'
   },
   [pscustomobject]@{
     State = 'disclosure-process-read'
@@ -447,6 +483,10 @@ $scenarios = @(
 )
 
 $results = [System.Collections.Generic.List[object]]::new()
+$orderedTextSequences = [System.Collections.Generic.List[object]]::new()
+$orderedScenarioCount = @($scenarios | Where-Object {
+  $_.PSObject.Properties.Name -contains 'OrderedTexts'
+}).Count
 $failedCount = 0
 
 foreach ($scenario in $scenarios) {
@@ -466,6 +506,14 @@ foreach ($scenario in $scenarios) {
 
     foreach ($action in $scenario.Actions) {
       Invoke-Fixture-Action $scenario.State $action
+    }
+    if ($scenario.PSObject.Properties.Name -contains 'OrderedTexts') {
+      $orderedBounds = Assert-Ordered-Texts $scenario.State 'expanded' $scenario.OrderedTexts
+      $orderedTextSequences.Add([pscustomobject]@{
+        state = $scenario.State
+        phase = 'expanded'
+        texts = $orderedBounds
+      })
     }
     if ($scenario.PSObject.Properties.Name -contains 'DiffControl' -and
         $scenario.DiffControl) {
@@ -491,6 +539,14 @@ foreach ($scenario in $scenarios) {
     }
     $null = Wait-Query-Node "$($scenario.State)-reopened" $scenario.Expanded 'text' 1 $false
     Capture-Screen "$($scenario.State)-reopened"
+    if ($scenario.PSObject.Properties.Name -contains 'OrderedTexts') {
+      $reopenedBounds = Assert-Ordered-Texts $scenario.State 'reopened' $scenario.OrderedTexts
+      $orderedTextSequences.Add([pscustomobject]@{
+        state = $scenario.State
+        phase = 'reopened'
+        texts = $reopenedBounds
+      })
+    }
 
     if ($scenario.PSObject.Properties.Name -contains 'ProcessCollapse' -and
         $scenario.ProcessCollapse) {
@@ -602,8 +658,11 @@ $manifest = [ordered]@{
     sidebarMoreCovered = $moreResult -eq 'Passed'
     systemBackClosedDrawer = $moreResult -eq 'Passed'
     workspaceGroupCovered = $groupResult -eq 'Passed'
+    liveProcessOrderCovered = $orderedScenarioCount -gt 0 -and
+      $orderedTextSequences.Count -eq ($orderedScenarioCount * 2)
     processAliveAfterAllFlows = [bool]$processId
   }
+  orderedTextSequences = $orderedTextSequences
 }
 $manifest |
   ConvertTo-Json -Depth 6 |
