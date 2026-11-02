@@ -229,6 +229,30 @@
         "DXM-24", "DXM-25", "DXM-26", "DXM-27", "DXM-28", "DXM-29",
         "DXM-30", "DXM-31"],
       "requiresInteraction": true
+    },
+    {
+      "id": "security.secret-mask",
+      "screens": ["conversation"],
+      "states": ["secret-masked"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-frontend-hardening-e2e.ps1"],
+      "e2eIds": ["FHH-01", "FHH-02", "FHH-03"],
+      "requiresInteraction": true
+    },
+    {
+      "id": "transcript.stream-repair",
+      "screens": ["conversation"],
+      "states": ["stream-repaired"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-frontend-hardening-e2e.ps1"],
+      "e2eIds": ["FHH-04", "FHH-05"],
+      "requiresInteraction": true
+    },
+    {
+      "id": "settings.search",
+      "screens": ["settings"],
+      "states": ["settings-search"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-frontend-hardening-e2e.ps1"],
+      "e2eIds": ["FHH-06", "FHH-07", "FHH-08"],
+      "requiresInteraction": true
     }
   ]
 }

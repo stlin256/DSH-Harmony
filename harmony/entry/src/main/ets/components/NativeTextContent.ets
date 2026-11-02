@@ -7,11 +7,15 @@ import { NativeHarnessClient } from '../services/NativeHarnessClient';
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeDesign } from '../services/NativeDesign';
 import { NativeIconButton } from './NativeIconButton';
+import { nativeRepairStreamingMarkdown } from '../services/NativeStreamMarkdown';
+import { nativeSecretSpans } from '../services/NativeSecretMask';
 
 /** Full text is retained. Very long bodies open a virtualised native reader. */
 @Component
 export struct NativeTextContent {
   @Prop @Watch('changed') text: string = '';
+  @Prop @Watch('changed') streaming: boolean = false;
+  @Prop @Watch('changed') maskSecrets: boolean = false;
   @Prop monospace: boolean = false;
   client: NativeHarnessClient = new NativeHarnessClient('');
   sessionId: string = '';
@@ -23,22 +27,27 @@ export struct NativeTextContent {
   @State private reading: boolean = false;
   @State private copied: boolean = false;
   @State private table: NativeMarkdownTable | null = null;
+  @State private renderedText: string = '';
   private source: NativeTextSource = new NativeTextSource();
   aboutToAppear(): void { this.changed(); }
   private changed(): void {
-    this.source.set(this.text);
-    this.table = this.monospace ? null : nativeMarkdownTable(this.text);
+    this.renderedText = this.streaming ? nativeRepairStreamingMarkdown(this.text) : this.text;
+    this.source.set(this.renderedText,
+      this.maskSecrets ? nativeSecretSpans(this.renderedText) : []);
+    this.table = this.monospace ? null : nativeMarkdownTable(this.renderedText);
   }
   @Builder
   private body(value: string) {
     if (!this.monospace && this.table) {
-      NativeTable({ table: this.table, client: this.client, sessionId: this.sessionId })
+      NativeTable({ table: this.table, maskSecrets: this.maskSecrets,
+        client: this.client, sessionId: this.sessionId })
     } else if (this.monospace) {
       Text(value).width('100%').fontSize(NativeDesign.fontSection).lineHeight('22fp')
         .fontFamily('Noto Sans Mono, monospace').copyOption(CopyOptions.InApp)
         .fontColor(NativeDesign.textPrimary(this.dark))
     } else {
-      NativeInlineText({ text: value, client: this.client, sessionId: this.sessionId })
+      NativeInlineText({ text: value, maskSecrets: this.maskSecrets,
+        client: this.client, sessionId: this.sessionId })
     }
   }
   @Builder
@@ -75,8 +84,8 @@ export struct NativeTextContent {
   }
   build() {
     Column({ space: 8 }) {
-      this.body(this.text.length > 8192 ? this.source.getData(0) : this.text)
-      if (this.text.length > 8192) {
+      this.body(this.renderedText.length > 8192 ? this.source.getData(0) : this.renderedText)
+      if (this.renderedText.length > 8192) {
         Button('阅读全文 · ' + this.text.length + ' 字符', { type: ButtonType.Normal })
           .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
           .borderRadius(NativeDesign.radiusControl)

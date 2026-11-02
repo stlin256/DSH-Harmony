@@ -5,6 +5,7 @@ export class NativeUiFixture {
   ];
   static readonly states: string[] = [
     'completed', 'live-change', 'attachments', 'streaming', 'empty', 'long-history',
+    'secret-masked', 'stream-repaired', 'settings-search',
     'dock-send-idle', 'dock-queue-pending', 'dock-queue-authoritative',
     'dock-queue-many', 'dock-send-error', 'dock-material-quiet',
     'dock-material-elevated', 'interaction-approval', 'interaction-question',

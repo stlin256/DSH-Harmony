@@ -13,6 +13,10 @@ import { NativeDshUiCard } from './NativeDshUiCard';
 import { NativeMotion } from '../services/NativeMotion';
 import { NativeDesign } from '../services/NativeDesign';
 import { nativeDshUiReplyLabel } from '../services/NativeDshUi';
+import {
+  nativeMaskSecrets,
+  nativeSecretSpans
+} from '../services/NativeSecretMask';
 
 @Component
 export struct NativeMessageView {
@@ -29,13 +33,14 @@ export struct NativeMessageView {
   @StorageLink('nativeDark') private dark: boolean = false;
   @State private reasoningOpen: boolean = false;
   @State private toolOpen: boolean = false;
+  @State private secretsRevealed: boolean = false;
   aboutToAppear(): void {
     this.reasoningOpen = this.disclosures.get(this.message.turnKey + '|' + this.message.id) === true;
     this.toolOpen = this.message.currentTurn || this.message.flat;
   }
 
   private copyMessage(): void {
-    const text = this.message.text || this.message.blocks.map((block: NativeTextBlock) => block.text).join('\n');
+    const text = this.rawMessageText();
     if (!text) return;
     pasteboard.getSystemPasteboard().setData(pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text))
       .then((): void => {
@@ -45,6 +50,26 @@ export struct NativeMessageView {
 
   private hasCopyableText(): boolean {
     return this.message.role === 'user' && (!!this.message.text || this.message.blocks.length > 0);
+  }
+
+  private rawMessageText(): string {
+    return this.message.text || this.message.blocks.map((block: NativeTextBlock) => block.text).join('\n');
+  }
+
+  private visibleText(value: string): string {
+    if (this.message.role !== 'user' || this.secretsRevealed) return value;
+    return nativeMaskSecrets(value);
+  }
+
+  private maskSecrets(): boolean {
+    return this.message.role === 'user' && !this.secretsRevealed;
+  }
+
+  private hasSecrets(): boolean {
+    if (this.message.role !== 'user') return false;
+    if (nativeSecretSpans(this.message.text).length) return true;
+    return this.message.blocks.some((block: NativeTextBlock): boolean =>
+      nativeSecretSpans(block.text).length > 0);
   }
 
   private dshUiReplyLabel(): string {
@@ -81,7 +106,8 @@ export struct NativeMessageView {
           .onClick(() => { this.animate(() => { this.reasoningOpen = !this.reasoningOpen;
             this.disclosures.set(this.message.turnKey + '|' + this.message.id, this.reasoningOpen); }); })
         if (this.reasoningOpen) {
-          NativeTextContent({ text: this.message.reasoning, client: this.client, sessionId: this.sessionId })
+          NativeTextContent({ text: this.message.reasoning, streaming: this.runningReasoning,
+            client: this.client, sessionId: this.sessionId })
         }
       }
       if (this.message.role === 'tool') {
@@ -109,7 +135,11 @@ export struct NativeMessageView {
           .padding({ left: 10, right: NativeDesign.rowInset, top: 6, bottom: 6 })
           .borderRadius(NativeDesign.radiusChip).backgroundColor(NativeDesign.accentSurface(this.dark))
       } else if (this.message.role !== 'tool' || this.toolOpen) {
-        if (!this.message.blocks.length && this.message.text) { NativeTextContent({ text: this.message.text, client: this.client, sessionId: this.sessionId }) }
+        if (!this.message.blocks.length && this.message.text) {
+          NativeTextContent({ text: this.message.text, maskSecrets: this.maskSecrets(),
+            streaming: this.message.runningTurn,
+            client: this.client, sessionId: this.sessionId })
+        }
         ForEach(this.message.blocks, (block: NativeTextBlock) => {
           if (block.kind === 'code') {
             if ((block.language || '').trim().toLowerCase() === 'dsh-ui') {
@@ -119,21 +149,40 @@ export struct NativeMessageView {
                 onReply: this.onDshUiReply
               })
             } else {
-              NativeCodeBlock({ code: block.text, language: block.language })
+              NativeCodeBlock({ code: this.visibleText(block.text), language: block.language })
             }
           } else if (block.kind === 'heading') {
             NativeInlineText({ text: block.text, textSize: 18, lineHeight: '28fp',
-              baseWeight: FontWeight.Medium, client: this.client, sessionId: this.sessionId })
+              baseWeight: FontWeight.Medium, maskSecrets: this.maskSecrets(),
+              client: this.client, sessionId: this.sessionId })
           } else if (block.kind === 'quote') {
             Column() {
               NativeInlineText({ text: block.text, textSize: 13, muted: true,
-                client: this.client, sessionId: this.sessionId })
+                maskSecrets: this.maskSecrets(), client: this.client, sessionId: this.sessionId })
             }.padding(NativeDesign.spaceM).borderRadius(NativeDesign.radiusRow)
               .backgroundColor(NativeDesign.field(this.dark))
           } else {
-            NativeTextContent({ text: block.text, client: this.client, sessionId: this.sessionId })
+            NativeTextContent({ text: block.text, maskSecrets: this.maskSecrets(),
+              streaming: this.message.runningTurn,
+              client: this.client, sessionId: this.sessionId })
           }
         }, (_block: NativeTextBlock, index: number) => index.toString())
+      }
+      if (this.message.role === 'user' && !this.dshUiReplyLabel() &&
+        !this.message.runningTurn && this.hasSecrets()) {
+        Button({ type: ButtonType.Normal }) {
+          Row({ space: 6 }) {
+            DSHIcon({ glyph: this.secretsRevealed ? 'check-outline' : 'eye-outline',
+              glyphSize: NativeDesign.glyphCompact,
+              color: NativeDesign.textSecondary(this.dark) })
+            Text(this.secretsRevealed ? '隐藏凭据' : '显示凭据')
+              .fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
+              .fontColor(NativeDesign.textSecondary(this.dark))
+          }
+        }.height(NativeDesign.hitTarget).padding({ left: 4, right: 8 })
+          .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
+          .accessibilityText(this.secretsRevealed ? '隐藏凭据，当前已显示原文' : '显示凭据，当前已遮蔽')
+          .onClick((): void => { this.secretsRevealed = !this.secretsRevealed; })
       }
       if (this.message.images?.length) {
         if (this.message.role === 'user') {
@@ -170,7 +219,8 @@ export struct NativeMessageView {
       .backgroundColor((this.message.role === 'user' && !this.dshUiReplyLabel()) ||
         this.message.role === 'tool' ? NativeDesign.field(this.dark) : Color.Transparent)
       .borderRadius(NativeDesign.radiusGroup)
-      .accessibilityText(this.hasCopyableText() ? '消息，长按复制' : '')
+      .accessibilityText(this.hasCopyableText() ?
+        (this.hasSecrets() && !this.secretsRevealed ? '消息，凭据已遮蔽，长按复制原文' : '消息，长按复制') : '')
       .gesture(
         LongPressGesture({ repeat: false })
           .onAction((): void => {

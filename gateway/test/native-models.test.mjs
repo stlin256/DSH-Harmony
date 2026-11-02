@@ -215,6 +215,9 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.equal(NativeUiFixture.state('live-change'), 'live-change');
   assert.equal(NativeUiFixture.state('attachments'), 'attachments');
   assert.equal(NativeUiFixture.state('streaming'), 'streaming');
+  assert.equal(NativeUiFixture.state('secret-masked'), 'secret-masked');
+  assert.equal(NativeUiFixture.state('stream-repaired'), 'stream-repaired');
+  assert.equal(NativeUiFixture.state('settings-search'), 'settings-search');
   assert.equal(NativeUiFixture.state('long-history'), 'long-history');
   assert.equal(NativeUiFixture.state('dock-send-idle'), 'dock-send-idle');
   assert.equal(NativeUiFixture.state('dock-queue-pending'), 'dock-queue-pending');
@@ -2862,11 +2865,16 @@ test('sent-image lightbox exposes the shared download and close actions', () => 
 
 test('virtual native text windows reconstruct complete Unicode without splitting surrogate pairs', () => {
   const { NativeTextSource } = load('NativeTextSource', {});
+  const { nativeSecretSpans } = load('NativeSecretMask', {});
   const source = new NativeTextSource();
   const text = 'x'.repeat(4095) + '😀' + '正文😀'.repeat(100000);
-  source.set(text);
+  const token = ['sk-', 'demo', '0123456789ABCDEFGHIJ'].join('');
+  const withSecret = 'x'.repeat(4087) + ' ' + token + text;
+  source.set(withSecret, nativeSecretSpans(withSecret));
   const parts = Array.from({length:source.totalCount()}, (_,index)=>source.getData(index));
-  assert.equal(parts.join(''),text);
+  assert.equal(parts.join(''),withSecret);
+  assert.ok(parts.some(part=>part.includes(token)),
+    'a protected credential must not straddle render windows');
   assert.ok(parts.every(part=>!/^\p{Surrogate}/u.test(part)&&!/\p{Surrogate}$/u.test(part)));
 });
 test('older pages cannot resurrect history removed by a newer replacement', () => {
@@ -2954,4 +2962,134 @@ test('text-only stream projection patches the live answer without rebuilding his
   const patched = nativeUpdateLiveAssistant(updated.concat([live]), 'new');
   assert.equal(patched.at(-1).text, 'new');
   assert.equal(live.text, 'old', 'tail patch must not mutate the rendered source row');
+});
+
+test('display-only secret masking covers synthetic provider credentials and preserves raw copy source', () => {
+  const { nativeSecretSpans, nativeMaskSecrets, nativeHasSecrets } = load('NativeSecretMask', {});
+  const syntheticToken = ['sk-', 'demo', '0123456789ABCDEFGHIJ'].join('');
+  const pem = [
+    '-----BEGIN DEMO PRIVATE KEY-----',
+    'SYNTHETICBODY1234567890',
+    '-----END DEMO PRIVATE KEY-----'
+  ].join('\n');
+  const raw = [
+    'token ' + syntheticToken,
+    'google AIza' + 'A'.repeat(35),
+    'github ghp_' + 'B'.repeat(36),
+    'jwt eyJdemoHeader123.eyJdemoPayload456.eyJdemoSignature789',
+    'url https://demo-user:DemoPassword123@example.invalid/path',
+    pem
+  ].join('\n');
+  const spans = nativeSecretSpans(raw);
+  const masked = nativeMaskSecrets(raw, spans);
+  assert.equal(raw.includes(syntheticToken), true);
+  assert.equal(masked.includes(syntheticToken), false);
+  assert.equal(masked.includes('DemoPassword123'), false);
+  assert.equal(masked.includes('SYNTHETICBODY1234567890'), false);
+  assert.match(masked, /sk-demo0\*+/);
+  assert.match(masked, /-----BEGIN DEMO PRIVATE KEY-----/);
+  assert.match(masked, /-----END DEMO PRIVATE KEY-----/);
+  assert.equal(masked.length, raw.length, 'ASCII masks preserve offsets and length');
+  assert.deepEqual([...new Set(spans.map(row => row.kind))].sort(),
+    ['jwt', 'privateKey', 'token', 'urlPassword']);
+  assert.equal(nativeHasSecrets(raw), true);
+});
+
+test('secret masking ignores ordinary assignments and enforces token boundaries', () => {
+  const { nativeSecretSpans, nativeMaskSecrets } = load('NativeSecretMask', {});
+  for (const value of [
+    'password=ordinary text',
+    'apiKey=not-a-provider-token',
+    'sk-short',
+    ['x', 'sk-', 'demo', '0123456789ABCDEFGHIJ'].join(''),
+    'https://example.invalid/no-credentials',
+    'ordinary prose with * and _'
+  ]) {
+    assert.equal(nativeSecretSpans(value).length, 0, value);
+    assert.equal(nativeMaskSecrets(value), value);
+  }
+  const unicode = '说明 https://用户:秘密密码123@example.invalid/path 后的文字';
+  const masked = nativeMaskSecrets(unicode);
+  assert.equal(masked.includes('秘密密码123'), false);
+  assert.match(masked, /说明 https:\/\/用户:\*+@example\.invalid\/path 后的文字/);
+});
+
+test('masked inline runs protect credential geometry from Markdown parsing', () => {
+  const { nativeInlineMarkdownMasked } = load('NativeInlineMarkdown', {});
+  const token = ['sk-', 'demo', '0123456789ABCDEFGHIJ'].join('');
+  const runs = nativeInlineMarkdownMasked('说明 **' + token + '** 已发送');
+  const masked = runs.find(row => row.secret);
+  assert.ok(masked);
+  assert.equal(masked.bold, true, 'surrounding emphasis remains intact');
+  assert.match(masked.text, /^sk-demo0\*+$/);
+  assert.equal(JSON.stringify(runs).includes(token), false);
+  assert.equal(nativeInlineMarkdownMasked('普通 **强调**').map(row => row.text).join(''), '普通 强调');
+});
+
+test('streaming Markdown repair closes inline syntax, hides partial tables and converges', () => {
+  const { nativeRepairStreamingMarkdown } = load('NativeStreamMarkdown', {});
+  assert.equal(nativeRepairStreamingMarkdown('hello **stream'),
+    'hello **stream**');
+  assert.equal(nativeRepairStreamingMarkdown('hello **stream**'),
+    'hello **stream**');
+  assert.equal(nativeRepairStreamingMarkdown('~~gone'), '~~gone~~');
+  assert.equal(nativeRepairStreamingMarkdown('code `value'), 'code `value`');
+  assert.equal(nativeRepairStreamingMarkdown('link [doc](https://exa'),
+    'link [doc](#)');
+  assert.equal(nativeRepairStreamingMarkdown('image ![alt](https://exa'),
+    'image');
+  assert.equal(nativeRepairStreamingMarkdown('hello <sp'), 'hello');
+  assert.equal(nativeRepairStreamingMarkdown('tail **'), 'tail');
+  assert.equal(nativeRepairStreamingMarkdown('#'), '');
+  assert.equal(nativeRepairStreamingMarkdown('```typescript'), '');
+  assert.equal(nativeRepairStreamingMarkdown('```typescript\nconst x = 1;'),
+    '```typescript\nconst x = 1;');
+  assert.equal(nativeRepairStreamingMarkdown(
+    '流式 Markdown\n\n| 状态 | 结果 |\n| --- | --'), '流式 Markdown');
+  assert.equal(nativeRepairStreamingMarkdown(
+    '流式 Markdown\n\n| 状态 | 结果 |\n| --- | --- |\n| 完成 | 是 |'),
+  '流式 Markdown\n\n| 状态 | 结果 |\n| --- | --- |\n| 完成 | 是 |');
+});
+
+test('settings index normalizes full-width text and ranks title before synonym and path', () => {
+  const {
+    nativeNormalizeSettingsQuery,
+    nativeSearchSettings
+  } = load('NativeSettingsIndex', {});
+  assert.equal(nativeNormalizeSettingsQuery('  ＡＰＩ　Key  '), 'apikey');
+  const notification = nativeSearchSettings('通知');
+  assert.equal(notification[0].entry.id, 'notifications');
+  assert.ok(notification.some(hit => hit.entry.id === 'notifications.approval'));
+  const transparency = nativeSearchSettings('透明');
+  assert.equal(transparency[0].entry.title, '减少透明效果');
+  const material = nativeSearchSettings('material');
+  assert.equal(material[0].entry.id, 'appearance.transparency');
+  assert.equal(material[0].matchedSynonym, 'material');
+  const dark = nativeSearchSettings('dark');
+  assert.equal(dark[0].entry.id, 'appearance.theme');
+  const cache = nativeSearchSettings('cache');
+  assert.equal(cache[0].entry.id, 'storage');
+  assert.ok(nativeSearchSettings('storage', 1).length === 1);
+  assert.equal(nativeSearchSettings('   ').length, 0);
+});
+
+test('frontend hardening source wires masking, stream repair and settings search into production', () => {
+  const message = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeMessageView.ets', import.meta.url), 'utf8');
+  const text = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeTextContent.ets', import.meta.url), 'utf8');
+  const textSource = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/services/NativeTextSource.ets', import.meta.url), 'utf8');
+  const settings = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeSettings.ets', import.meta.url), 'utf8');
+  assert.match(message, /copyMessage\(\).*?rawMessageText\(\)/s);
+  assert.match(message, /text: this\.message\.text, maskSecrets: this\.maskSecrets\(\)/);
+  assert.match(message, /secretsRevealed \? '隐藏凭据' : '显示凭据'/);
+  assert.match(text, /nativeRepairStreamingMarkdown\(this\.text\)/);
+  assert.match(text, /maskSecrets: this\.maskSecrets/);
+  assert.match(text, /nativeSecretSpans\(this\.renderedText\)/);
+  assert.match(textSource, /protectedRanges: NativeSecretSpan\[\]/);
+  assert.match(text, /pasteboard\.createData\(pasteboard\.MIMETYPE_TEXT_PLAIN, this\.text\)/);
+  assert.match(settings, /nativeSearchSettings\(this\.settingsQuery\)/);
+  assert.match(settings, /this\.openPage\(hit\.entry\.page\)/);
 });

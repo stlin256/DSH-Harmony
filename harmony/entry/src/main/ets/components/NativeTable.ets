@@ -6,6 +6,7 @@ import { NativeDesign } from '../services/NativeDesign';
 @Component
 export struct NativeTable {
   @Prop table: NativeMarkdownTable = new NativeMarkdownTable();
+  @Prop maskSecrets: boolean = false;
   client: NativeHarnessClient = new NativeHarnessClient('');
   sessionId: string = '';
   @StorageLink('nativeDark') private dark: boolean = false;
@@ -14,7 +15,7 @@ export struct NativeTable {
   private cell(value: string, header: boolean, align: string) {
     Column() {
       NativeInlineText({ text: value, textSize: 12, muted: !header, alignment: align,
-        client: this.client, sessionId: this.sessionId })
+        maskSecrets: this.maskSecrets, client: this.client, sessionId: this.sessionId })
     }.width(148).padding({ left: 10, right: 10, top: 8, bottom: 8 }).alignItems(HorizontalAlign.Start)
       .backgroundColor(header ? NativeDesign.field(this.dark) : Color.Transparent)
   }

@@ -3238,6 +3238,7 @@ export struct NativeWorkspace {
                   client: this.client,
                   sessionId: this.selected,
                   message: message,
+                  runningReasoning: message.runningTurn,
                   onCompatibility: this.onCompatibility,
                   dshUiCanReply: nativeDshUiCanReply(this.visibleRows, message.id,
                     this.running, this.waiting),

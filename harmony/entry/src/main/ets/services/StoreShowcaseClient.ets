@@ -284,6 +284,25 @@ function showcaseStreamingMessages(): NativeMessage[] {
   return rows;
 }
 
+function showcaseSecretMessages(): NativeMessage[] {
+  const rows: NativeMessage[] = [];
+  rows.push(message('user-secret-masked', 'user', 1, 9, 1,
+    '请检查这些合成凭据是否只在显示层遮蔽：\n' +
+    ['sk-', 'demo', '0123456789ABCDEFGHIJ'].join('') + '\n' +
+    'eyJdemoHeader123.eyJdemoPayload456.eyJdemoSignature789\n' +
+    'https://demo-user:DemoPassword123@example.invalid/path\n' +
+    '-----BEGIN DEMO PRIVATE KEY-----\n' +
+    'SYNTHETICBODY1234567890\n' +
+    '-----END DEMO PRIVATE KEY-----'));
+  rows.push(message('assistant-secret-masked', 'assistant', 2, 9, 2,
+    '凭据已遮蔽。长按复制、重试和模型输入仍会使用原文。'));
+  const end = message('turn-secret-masked-end', 'turn', 3, 9, 2, '');
+  end.eventType = 'turn/end';
+  end.outcome = 'completed';
+  rows.push(end);
+  return rows;
+}
+
 function showcaseLongHistoryMessages(): NativeMessage[] {
   const rows: NativeMessage[] = [];
   for (let index = 0; index < 40; index++) {
@@ -299,6 +318,7 @@ function showcaseLongHistoryMessages(): NativeMessage[] {
 }
 
 function showcaseMessagesFor(state: string): NativeMessage[] {
+  if (state === 'secret-masked') return showcaseSecretMessages();
   if (state === 'dock-send-idle' || state === 'dock-send-error' ||
       state === 'dock-material-quiet' || state === 'interaction-approval' ||
       state === 'interaction-question') return showcaseDockMessages();
@@ -306,7 +326,7 @@ function showcaseMessagesFor(state: string): NativeMessage[] {
   if (state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
       state === 'dock-material-elevated') return showcaseLiveChangeMessages();
   if (state === 'live-change') return showcaseLiveChangeMessages();
-  if (state === 'streaming') return showcaseStreamingMessages();
+  if (state === 'streaming' || state === 'stream-repaired') return showcaseStreamingMessages();
   if (state === 'empty') return [];
   if (state === 'long-history') return showcaseLongHistoryMessages();
   if (state === 'attachments') return showcaseLiveChangeMessages();
@@ -495,6 +515,9 @@ function showcaseProjectionJson(state: string, sessionId: string, planRemoved: b
 function showcaseSessions(state: string = 'completed', planRemoved: boolean = false): NativeSession[] {
   const firstTitle = state === 'live-change' ? '底部 Dock 运行态' :
     state === 'streaming' ? '流式输出与标题更新' :
+    state === 'stream-repaired' ? '流式 Markdown' :
+    state === 'secret-masked' ? '凭据显示与复制来源' :
+    state === 'settings-search' ? '设置搜索与结果' :
     state === 'dock-send-idle' || state === 'dock-material-quiet' ? 'Dock 空闲与发送' :
     state === 'dock-send-error' ? '发送失败与重试' :
     state === 'dock-queue-pending' ? '发送中与队列确认' :
@@ -528,7 +551,8 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
     value.cwd = row[2];
     value.blank = row[3] === 'true';
     value.running = (state === 'live-change' || state === 'attachments' ||
-      state === 'streaming' || state === 'empty' || state === 'dock-queue-pending' ||
+      state === 'streaming' || state === 'stream-repaired' ||
+      state === 'empty' || state === 'dock-queue-pending' ||
       state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
       state === 'dock-material-elevated' || state === 'interaction-approval' ||
       state === 'interaction-question') &&
@@ -644,7 +668,10 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     record.waiting = false;
     record.queue = initial.queue;
     record.streamText = this.fixtureState === 'streaming' ?
-      '正在输出完整的流式回答，内容会按显示帧更新而不会阻塞底部工具栏。' : '';
+      '正在输出完整的流式回答，内容会按显示帧更新而不会阻塞底部工具栏。' :
+      this.fixtureState === 'stream-repaired' ?
+        '流式 Markdown 已完成一半，正在整理 **重点** 与 [文档](https://example.invalid/doc' +
+        '\n\n| 状态 | 结果 |\n| --- | --' : '';
     record.streamReasoning = this.fixtureState === 'streaming' ?
       '先检查传输状态，再确认工作过程与底部 Dock 的布局。' : '';
     model.restore(record);

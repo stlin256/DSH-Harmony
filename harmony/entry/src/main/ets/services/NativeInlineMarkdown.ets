@@ -1,3 +1,5 @@
+import { NativeSecretSpan, nativeSecretSpans } from './NativeSecretMask';
+
 /** Styled runs for ArkUI Text. Malformed markup stays readable and code is literal. */
 export class NativeInlineRun {
   text: string = '';
@@ -8,6 +10,7 @@ export class NativeInlineRun {
   href: string = '';
   isImage: boolean = false;
   alt: string = '';
+  secret: boolean = false;
 }
 
 /**
@@ -37,16 +40,55 @@ function run(text: string, style: NativeInlineRun): NativeInlineRun {
   const value = new NativeInlineRun();
   value.text = text; value.bold = style.bold; value.italic = style.italic;
   value.code = style.code; value.strike = style.strike; value.href = style.href;
-  value.isImage = style.isImage; value.alt = style.alt;
+  value.isImage = style.isImage; value.alt = style.alt; value.secret = style.secret;
   return value;
 }
 
-function scan(source: string, style: NativeInlineRun, depth: number): NativeInlineRun[] {
-  if (depth > 6) return [run(source, style)];
+function secretAt(spans: NativeSecretSpan[], offset: number): NativeSecretSpan | null {
+  for (let index = 0; index < spans.length; index++) {
+    if (spans[index].start === offset) return spans[index];
+  }
+  return null;
+}
+
+function plainSecretRuns(source: string, style: NativeInlineRun,
+  spans: NativeSecretSpan[], baseOffset: number): NativeInlineRun[] {
   const rows: NativeInlineRun[] = [];
   let plain = '';
   let index = 0;
   while (index < source.length) {
+    const secret = secretAt(spans, baseOffset + index);
+    if (secret && secret.end <= baseOffset + source.length) {
+      if (plain) { rows.push(run(plain, style)); plain = ''; }
+      const masked = run(secret.masked, style);
+      masked.secret = true;
+      rows.push(masked);
+      index += secret.end - secret.start;
+      continue;
+    }
+    plain += source.charAt(index);
+    index++;
+  }
+  if (plain) rows.push(run(plain, style));
+  return rows;
+}
+
+function scan(source: string, style: NativeInlineRun, depth: number,
+  spans: NativeSecretSpan[] = [], baseOffset: number = 0): NativeInlineRun[] {
+  if (depth > 6) return plainSecretRuns(source, style, spans, baseOffset);
+  const rows: NativeInlineRun[] = [];
+  let plain = '';
+  let index = 0;
+  while (index < source.length) {
+    const secret = secretAt(spans, baseOffset + index);
+    if (secret && secret.end <= baseOffset + source.length) {
+      if (plain) { rows.push(run(plain, style)); plain = ''; }
+      const masked = run(secret.masked, style);
+      masked.secret = true;
+      rows.push(masked);
+      index += secret.end - secret.start;
+      continue;
+    }
     const ch = source.charAt(index);
     if (ch === '\\' && index + 1 < source.length && '\\`*_{}[]()#+-.!~>'.includes(source.charAt(index + 1))) {
       plain += source.charAt(index + 1); index += 2; continue;
@@ -82,7 +124,8 @@ function scan(source: string, style: NativeInlineRun, depth: number): NativeInli
             linked.href = target.startsWith('<') && target.endsWith('>') ? target.slice(1, -1) : target;
             linked.isImage = ch === '!';
             linked.alt = source.slice(labelStart, close) || '图片';
-            rows.push(...scan(source.slice(labelStart, close) || '图片', linked, depth + 1));
+            rows.push(...scan(source.slice(labelStart, close) || '图片', linked, depth + 1,
+              spans, baseOffset + labelStart));
             index = cursor + 1; continue;
           }
         }
@@ -98,7 +141,8 @@ function scan(source: string, style: NativeInlineRun, depth: number): NativeInli
         if (marker === '~~') nested.strike = true;
         else if (marker === '*') nested.italic = true;
         else nested.bold = true;
-        rows.push(...scan(source.slice(index + marker.length, end), nested, depth + 1));
+        rows.push(...scan(source.slice(index + marker.length, end), nested, depth + 1,
+          spans, baseOffset + index + marker.length));
         index = end + marker.length; continue;
       }
     }
@@ -106,6 +150,12 @@ function scan(source: string, style: NativeInlineRun, depth: number): NativeInli
   }
   if (plain) rows.push(run(plain, style));
   return rows;
+}
+
+export function nativeInlineMarkdownMasked(source: string): NativeInlineRun[] {
+  const spans = nativeSecretSpans(source);
+  if (!spans.length) return nativeInlineMarkdown(source);
+  return scan(source, new NativeInlineRun(), 0, spans, 0);
 }
 
 export function nativeInlineMarkdown(source: string): NativeInlineRun[] {

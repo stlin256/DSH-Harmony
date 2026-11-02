@@ -65,6 +65,8 @@ Keep these gaps explicit until a physical or emulated target proves them:
 
 - Current-HAP rerun of the static Mock suite, subagent send, settings navigation
   and all four disclosure matrices after the composer-state correction.
+- Current-HAP secret mask first paint, reveal/hide, raw-copy source, long
+  virtual-window boundary, settings search navigation and system Back.
 - API 23 opaque-material fallback.
 - Portrait and landscape layouts under maximum system font size.
 - Saved-session restore, expired-session recovery and logout/relaunch with a
@@ -85,6 +87,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-01-device-visual-state-acceptance.md](docs/specs/2026-11-01-device-visual-state-acceptance.md)
 - Physical-device visual acceptance and pending verification ledger:
   [2026-11-01-device-visual-state-acceptance-e2e.md](docs/testing/2026-11-01-device-visual-state-acceptance-e2e.md)
+- DSH Go-inspired frontend hardening requirement:
+  [2026-11-02-dsh-go-frontend-hardening.md](docs/requirements/2026-11-02-dsh-go-frontend-hardening.md)
+- DSH Go frontend learning research:
+  [2026-11-02-dsh-go-frontend-learnings.md](docs/research/2026-11-02-dsh-go-frontend-learnings.md)
+- DSH Go-inspired frontend hardening implementation spec:
+  [2026-11-02-dsh-go-frontend-hardening.md](docs/specs/2026-11-02-dsh-go-frontend-hardening.md)
+- DSH Go-inspired frontend hardening device E2E:
+  [2026-11-02-dsh-go-frontend-hardening-e2e.md](docs/testing/2026-11-02-dsh-go-frontend-hardening-e2e.md)
 - Cross-surface control visual alignment requirement:
   [2026-11-02-control-visual-alignment.md](docs/requirements/2026-11-02-control-visual-alignment.md)
 - Cross-surface control visual alignment research:

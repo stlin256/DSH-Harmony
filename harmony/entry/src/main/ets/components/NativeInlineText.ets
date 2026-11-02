@@ -4,6 +4,7 @@ import { drawing } from '@kit.ArkGraphics2D';
 import {
   nativeInlineExternalLink,
   nativeInlineMarkdown,
+  nativeInlineMarkdownMasked,
   NativeInlineRun
 } from '../services/NativeInlineMarkdown';
 import { NativeHarnessClient } from '../services/NativeHarnessClient';
@@ -22,6 +23,7 @@ export struct NativeInlineText {
   @Prop alignment: string = 'left';
   @Prop lineHeight: string = '22fp';
   @Prop baseWeight: FontWeight = FontWeight.Normal;
+  @Prop @Watch('changed') maskSecrets: boolean = false;
   client: NativeHarnessClient = new NativeHarnessClient('');
   sessionId: string = '';
   @StorageLink('nativeDark') private dark: boolean = false;
@@ -48,7 +50,9 @@ export struct NativeInlineText {
       AppStorage.setOrCreate<string>('nativeFileViewPendingRequest', '');
     }
   }
-  private changed(): void { this.runs = nativeInlineMarkdown(this.text); }
+  private changed(): void {
+    this.runs = this.maskSecrets ? nativeInlineMarkdownMasked(this.text) : nativeInlineMarkdown(this.text);
+  }
   private runColor(run: NativeInlineRun): ResourceColor {
     if (run.href) return NativeDesign.accent(this.dark);
     if (this.muted) return NativeDesign.textSecondary(this.dark);
@@ -184,7 +188,7 @@ export struct NativeInlineText {
         Span(run.text).fontSize(run.code ? this.textSize - 1 : this.textSize)
           .fontWeight(run.bold ? FontWeight.Medium : this.baseWeight)
           .fontStyle(run.italic ? FontStyle.Italic : FontStyle.Normal)
-          .fontFamily(run.code ? 'Noto Sans Mono, monospace' : 'HarmonyOS Sans')
+          .fontFamily(run.code || run.secret ? 'Noto Sans Mono, monospace' : 'HarmonyOS Sans')
           .fontColor(this.runColor(run)).textBackgroundStyle(this.runBackground(run))
           .decoration({ type: run.strike ? TextDecorationType.LineThrough : run.href ? TextDecorationType.Underline : TextDecorationType.None })
           .onClick((): void => {

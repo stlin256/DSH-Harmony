@@ -39,6 +39,10 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'conversation'; State = 'attachments'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'streaming'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'streaming'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'secret-masked'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'secret-masked'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'stream-repaired'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'stream-repaired'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'empty'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'empty'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'long-history'; Theme = 'light' },
@@ -81,6 +85,8 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'browser'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'settings'; State = 'settings-search'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'settings'; State = 'settings-search'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-list'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-list'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-empty'; Theme = 'light' },
@@ -149,6 +155,8 @@ function Get-ExpectedMarker {
     'conversation/live-change' { return '底部 Dock 运行态' }
     'conversation/attachments' { return '附件与实时变更 Dock' }
     'conversation/streaming' { return '流式输出与标题更新' }
+    'conversation/secret-masked' { return '凭据已遮蔽' }
+    'conversation/stream-repaired' { return '流式 Markdown' }
     'conversation/empty' { return '空运行态' }
     'conversation/long-history' { return '长会话与连续预取' }
     'conversation/dock-send-idle' { return 'Dock 空闲与发送' }
@@ -170,6 +178,7 @@ function Get-ExpectedMarker {
     'sidebar/completed' { return '置顶' }
     'browser/completed' { return '工作区根目录' }
     'settings/completed' { return '外观与动效' }
+    'settings/settings-search' { return '搜索设置' }
     'plugins/plugins-list' { return 'Workspace Tools' }
     'plugins/plugins-empty' { return '还没有可显示的插件' }
     'plugins/plugins-error' { return '插件服务暂不可用' }

@@ -30,9 +30,9 @@ Implementation spec:
 | Previous Mock HAP SHA-256 | `893177598199A3DA33BFF36BDFFF0BD64ED808D9C56D79F9C5818D3DAAAD250B` |
 | Previous Default HAP SHA-256 | `7F9173B44580975674EA9C1953C89AFB7635D13E1DA7031C9658259C4BBA1986` |
 | Previous Store HAP SHA-256 | `BB63226FB42895102D5566D7017F83CB6EC115F376639AF6FC76919FA42B87AC` |
-| Current Mock HAP SHA-256 | `64D739AF27E9855AF0B13E80D3320EEA5E450DDECA643CA5BBE215781EDEDF2B` |
-| Current Default HAP SHA-256 | `61E83E9DDFEA4F4CAB1271ACF4594E2255A1008CD96250B5B0C71049DDCFD3E5` |
-| Current Store HAP SHA-256 | `0A4076CB9836FF0965536AF1286ADC95A76FFDC1D017AB593371909D36242244` |
+| Current Mock HAP SHA-256 | `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89` |
+| Current Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
+| Current Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
 
 ## Device evidence
 
@@ -63,8 +63,8 @@ Implementation spec:
   `artifacts/device-e2e/20261102-launch-2`
 - Previous PR QA run: `20261101T192208Z-eefbe49f`
   `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`
-- Current portable PR QA run: `20261102T012235Z-7195b93e`
-  `.artifacts/qa/20261102T012235Z-7195b93e/report.json`
+- Current portable PR QA run: `20261102T015713Z-2cd32021`
+  `.artifacts/qa/20261102T015713Z-2cd32021/report.json`
 
 The user's saved annotation run
 `20261101T152352Z-visual-acceptance-1` contains 32 markers across 20 source
@@ -95,9 +95,21 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 
 ## Remaining device checks
 
-- Rerun the 98-scene static Mock suite, subagent send flow, settings navigation
+- Run `scripts/device-ui-frontend-hardening-e2e.ps1` against the current Mock
+  HAP once a ready USB target appears. It must verify the default masked
+  credential message, reveal/hide, raw-copy source contract, repaired streaming
+  Markdown, settings search, result navigation and system Back.
+- Capture dark and light screenshots for `secret-masked`, `stream-repaired` and
+  `settings-search` from the current HAP. The new rows are FHH-01 through
+  FHH-10 in `docs/testing/2026-11-02-dsh-go-frontend-hardening-e2e.md`.
+- Repeat the new settings search at maximum system text size and verify the
+  search field, clear action, result path and reveal/hide action keep 44vp
+  targets without overlap.
+- HDC currently reports only UART placeholders (`COM3`, `COM4`) after a server
+  restart, so none of the FHH device rows is passed.
+- Rerun the 104-pair static Mock suite, subagent send flow, settings navigation
   and all disclosure matrices against current Mock HAP
-  `64D739AF27E9855AF0B13E80D3320EEA5E450DDECA643CA5BBE215781EDEDF2B`.
+  `39781D29D1AB9083E63AFFFF52391964D19F1436633FA80036A360912F019D89`.
 - Confirm the subagent composer send button becomes enabled after text entry
   and that exactly one prompt appears. The interrupted run recorded the text in
   the field while the action remained disabled.
