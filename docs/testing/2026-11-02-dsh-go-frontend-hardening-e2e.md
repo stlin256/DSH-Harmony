@@ -27,12 +27,12 @@ current HAP is installed on a ready USB target and the listed action is observed
 
 | Variant | Signed HAP | SHA-256 |
 | --- | --- | --- |
-| Mock | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` | `2C39478C519C9D29C08031A596A001862F078240B26D918B28F5058F1D57F781` |
-| Default | `harmony/entry/build/default/outputs/default/entry-default-signed.hap` | `AD2127415A83DAB218D20F382B05BA2824E6DE65975CD38FE49D269E574FA881` |
-| Store | `harmony/entry/build/store/outputs/store/entry-store-signed.hap` | `58E2D2E7DAC259DF53501416E8A4F571372A756533F53CDB11583BBF3D206034` |
+| Mock | `harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap` | `74B23BFCF1D9DE63EFD0210FE2F02B52A8DAA98B8D05338F4245BE30162F7DDB` |
+| Default | `harmony/entry/build/default/outputs/default/entry-default-signed.hap` | `381A1CB3D0AE0ABE4770C2775CC629BAD3131E8D711545BE1154742283FF3408` |
+| Store | `harmony/entry/build/store/outputs/store/entry-store-signed.hap` | `1F51840CBC8D2543D364AD0EF9C2544DDEF428DB3EECE7376DAD080199950620` |
 
 Source, model, coverage and Release gates passed in PR QA
-`.artifacts/qa/20261102T054907Z-09edfb22/report.json`. Device rows remain
+`.artifacts/qa/20261102T061552Z-b0060234/report.json`. Device rows remain
 Pending because HDC currently reports only UART placeholders `COM3` and `COM4`.
 
 ## Acceptance table
@@ -60,6 +60,11 @@ Pending because HDC currently reports only UART placeholders `COM3` and `COM4`.
 | FHH-S04 | conversation | stream-repaired | light | `流式 Markdown` |
 | FHH-S05 | settings | settings-search | dark | `搜索设置` |
 | FHH-S06 | settings | settings-search | light | `搜索设置` |
+
+Long-stream liveness has a separate animated Mock scene and device driver:
+`stream-long` / `scripts/device-ui-stream-long-e2e.ps1`. Its rows are `LSR-01`
+through `LSR-04` in
+[`2026-11-02-long-stream-render-liveness-e2e.md`](2026-11-02-long-stream-render-liveness-e2e.md).
 
 ## Interaction manifest
 

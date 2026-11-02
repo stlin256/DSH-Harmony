@@ -4,6 +4,11 @@ Date: 2026-11-01
 
 Status: accepted for implementation.
 
+Follow-up 2026-11-02: while frames continue to arrive, the App must also keep
+publishing text. A fast transport cannot compensate for unbounded per-paint
+Markdown work. See
+[`2026-11-02-long-stream-render-liveness.md`](2026-11-02-long-stream-render-liveness.md).
+
 ## User-visible problem
 
 Native chat can show part of an assistant response and then stop updating while

@@ -39,6 +39,7 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'conversation'; State = 'attachments'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'streaming'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'streaming'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'stream-long'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'secret-masked'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'secret-masked'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'stream-repaired'; Theme = 'dark' },
@@ -158,6 +159,7 @@ function Get-ExpectedMarker {
     'conversation/live-change' { return '底部 Dock 运行态' }
     'conversation/attachments' { return '附件与实时变更 Dock' }
     'conversation/streaming' { return '流式输出与标题更新' }
+    'conversation/stream-long' { return '长流持续输出' }
     'conversation/secret-masked' { return '凭据已遮蔽' }
     'conversation/stream-repaired' { return '流式 Markdown' }
     'conversation/empty' { return '空运行态' }

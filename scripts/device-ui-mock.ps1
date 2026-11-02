@@ -10,6 +10,7 @@ param(
     'live-change',
     'attachments',
     'streaming',
+    'stream-long',
     'secret-masked',
     'stream-repaired',
     'settings-search',

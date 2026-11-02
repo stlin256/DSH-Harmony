@@ -8,7 +8,8 @@ import { NativeFrame, NativeJournalEntry, NativeMessage, NativeSession, NativeSe
   NativeFileViewRequest, NativeQueueBlock, NativeQueueFile, NativeQueueItem, nativeWorkspaceRows,
   nativeToolsParent, nativeWorkspaceDragOrder, nativeBackToBottomAvailable,
   nativeBackToBottomHasNewContent, nativeProcessStructureChange,
-  nativeAssistantProgressKey, nativeStreamHealthRepairReason } from '../services/NativeSessionModel';
+  nativeAssistantProgressKey, nativeAssistantProgressAdvanced,
+  nativeDeliveryMismatchResolved, nativeStreamHealthRepairReason } from '../services/NativeSessionModel';
 import { NativeListSource } from '../services/NativeListSource';
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeTextContent } from './NativeTextContent';
@@ -301,6 +302,7 @@ export struct NativeWorkspace {
   private followActivityAt: number = 0;
   private assistantProgressAt: number = 0;
   private followProgressKey: string = '';
+  private followReducerKey: string = '';
   private deliveryMismatchKey: string = '';
   private deliveryMismatchAt: number = 0;
   private followConnectionGeneration: string = '';
@@ -942,13 +944,14 @@ export struct NativeWorkspace {
       frame.nextIndex, frame.cursor);
     const reducerKey = nativeAssistantProgressKey(this.model.activityAttemptId(),
       this.model.activityRevision(), this.model.activityNextIndex(), this.model.activityCursor());
-    if (gatewayKey && gatewayKey !== this.followProgressKey) {
+    if (nativeAssistantProgressAdvanced(this.followProgressKey, gatewayKey)) {
       this.followProgressKey = gatewayKey;
       this.assistantProgressAt = now;
     } else if (!gatewayKey) {
-      this.assistantProgressAt = now;
+      this.followProgressKey = '';
     }
-    if (this.followRunning && !this.followWaiting && gatewayKey !== reducerKey) {
+    if (this.followRunning && !this.followWaiting && gatewayKey.length > 0 &&
+      gatewayKey !== reducerKey) {
       if (this.deliveryMismatchAt <= 0) this.deliveryMismatchAt = now;
       this.deliveryMismatchKey = gatewayKey;
     } else {
@@ -968,12 +971,15 @@ export struct NativeWorkspace {
     const attemptId = this.model.activityAttemptId();
     const reducerKey = nativeAssistantProgressKey(attemptId, this.model.activityRevision(),
       this.model.activityNextIndex(), this.model.activityCursor());
-    if (attemptId) this.assistantProgressAt = now;
-    if (!attemptId) {
-      this.followAttemptId = '';
+    if (nativeAssistantProgressAdvanced(this.followReducerKey, reducerKey)) {
+      this.followReducerKey = reducerKey;
       this.assistantProgressAt = now;
     }
-    if (reducerKey && (reducerKey === this.followProgressKey || this.deliveryMismatchAt > 0)) {
+    if (!attemptId) {
+      this.followAttemptId = '';
+      this.followReducerKey = '';
+    }
+    if (nativeDeliveryMismatchResolved(this.deliveryMismatchKey, reducerKey)) {
       this.deliveryMismatchKey = '';
       this.deliveryMismatchAt = 0;
     }
@@ -1793,6 +1799,7 @@ export struct NativeWorkspace {
     this.followActivityAt = Date.now();
     this.assistantProgressAt = 0;
     this.followProgressKey = '';
+    this.followReducerKey = '';
     this.deliveryMismatchKey = '';
     this.deliveryMismatchAt = 0;
     this.followConnectionGeneration = '';

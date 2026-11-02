@@ -79,6 +79,7 @@ test('live text patching is limited to the final assistant row', () => {
     live
   ], 'new');
   assert.equal(patched.at(-1).text, 'new');
+  assert.equal(patched.at(-1).runningTurn, true);
   assert.equal(live.text, 'old');
 
   const stale = nativeUpdateLiveAssistant([
@@ -98,4 +99,51 @@ test('native workspace invalidates text-only patching on structural or tool fram
     /this\.streamTextPatchDirty = frame\.text\.length > 0[\s\S]{0,220}!\(frame\.toolUpdates \|\| \[\]\)\.length/);
   assert.match(workspace,
     /if \(tailOnlyTextUpdate\)[\s\S]{0,180}this\.source\.setTail\(visible, 2\)[\s\S]{0,180}this\.source\.set\(visible/);
+});
+
+test('long streaming text is buffered into stable blocks with a bounded tail', () => {
+  const { NativeStreamingMarkdownBuffer } = load('NativeStreamingMarkdown', {});
+  const buffer = new NativeStreamingMarkdownBuffer();
+  const source = Array.from({ length: 160 }, (_, index) =>
+    `段落 ${index}: **流式内容** 与 [文档](https://example.invalid/${index})\n\n`).join('') +
+    '尚未结束的 **尾部';
+  let update;
+  for (let end = 0; end < source.length; end += 7) {
+    update = buffer.update(source.slice(0, Math.min(source.length, end + 7)));
+  }
+  update = buffer.update(source);
+  const blocks = buffer.getBlocks();
+  assert.ok(buffer.blockCount() > 100);
+  assert.equal(blocks.join('') + update.tail, source);
+  assert.ok(update.tail.length < 256, 'finished paragraphs must not remain in the active tail');
+  assert.ok(buffer.scannedCharacters <= source.length + 7,
+    'append updates must scan each completed source line once');
+});
+
+test('streaming buffer does not split fenced code or possible tables', () => {
+  const { NativeStreamingMarkdownBuffer } = load('NativeStreamingMarkdown', {});
+  const fenceBuffer = new NativeStreamingMarkdownBuffer();
+  const fence = '```typescript\n' + 'const value = "stream";\n'.repeat(300);
+  const fenceUpdate = fenceBuffer.update(fence);
+  assert.equal(fenceBuffer.blockCount(), 0);
+  assert.equal(fenceUpdate.tailInFence, true);
+  assert.equal(fenceUpdate.tail, fence);
+
+  const tableBuffer = new NativeStreamingMarkdownBuffer();
+  const table = '| A | B |\n| --- | --- |\n' +
+    Array.from({ length: 240 }, (_, index) => `| ${index} | value |\n`).join('');
+  const tableUpdate = tableBuffer.update(table);
+  assert.equal(tableBuffer.blockCount(), 0);
+  assert.equal(tableUpdate.tail, table);
+});
+
+test('streaming buffer resets coherently when the source is replaced', () => {
+  const { NativeStreamingMarkdownBuffer } = load('NativeStreamingMarkdown', {});
+  const buffer = new NativeStreamingMarkdownBuffer();
+  buffer.update('first paragraph\n\nsecond');
+  assert.equal(buffer.blockCount(), 1);
+  const reset = buffer.update('replacement');
+  assert.equal(reset.reset, true);
+  assert.equal(buffer.blockCount(), 0);
+  assert.equal(reset.tail, 'replacement');
 });

@@ -50,6 +50,11 @@ export function nativeHeartbeatPayload(generation, active, stateKnown, running, 
   };
 }
 
+export function nativeDeliveryDrainReady(paused, bufferedAmount, lowWater, upstreamOpen) {
+  return paused === true && Number.isFinite(bufferedAmount) &&
+    bufferedAmount <= lowWater && upstreamOpen === true;
+}
+
 function nonNegativeInteger(value) {
   return Number.isSafeInteger(value) && value >= 0;
 }
@@ -850,9 +855,14 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           connection.running, connection.waiting));
       }, timing.intervalMs);
       heartbeat.unref();
-      const sendHighWater = 256 * 1024;
-      const sendLowWater = 64 * 1024;
+      const sendHighWater = 128 * 1024;
+      const sendLowWater = 32 * 1024;
       let upstreamPausedForDelivery = false;
+      const resumeDelivery = () => {
+        if (!upstreamPausedForDelivery) return;
+        upstreamPausedForDelivery = false;
+        if (upstream.readyState === WebSocket.OPEN) upstream.resume();
+      };
       const send = value => {
         if (client.readyState !== WebSocket.OPEN) return Promise.resolve();
         const text = Buffer.from(JSON.stringify(value));
@@ -874,12 +884,9 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
                 reject(error);
                 return;
               }
-              if (upstreamPausedForDelivery &&
-                  (client.bufferedAmount || 0) <= sendLowWater &&
-                  upstream.readyState === WebSocket.OPEN) {
-                upstreamPausedForDelivery = false;
-                upstream.resume();
-              }
+              if (nativeDeliveryDrainReady(upstreamPausedForDelivery,
+                client.bufferedAmount || 0, sendLowWater,
+                upstream.readyState === WebSocket.OPEN)) resumeDelivery();
               resolve();
             }
           )));
@@ -888,6 +895,12 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           .catch(() => { client.close(1011, 'Delivery interrupted'); })
           .then(() => undefined);
       };
+      const deliveryDrain = setInterval(() => {
+        if (nativeDeliveryDrainReady(upstreamPausedForDelivery,
+          client.bufferedAmount || 0, sendLowWater,
+          upstream.readyState === WebSocket.OPEN)) resumeDelivery();
+      }, 250);
+      deliveryDrain.unref();
       const publishState = patch => {
         if (patch.running !== undefined) {
           connection.running = patch.running === true;
@@ -1110,7 +1123,13 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         }
       });
       client.on('message', () => client.close(1008, 'Read-only channel'));
-      client.once('close', () => { clearInterval(heartbeat); connections.delete(connectionId); for (const pending of connection.pending.values()) clearTimeout(pending.timer); upstream.terminate(); });
+      client.once('close', () => {
+        clearInterval(heartbeat);
+        clearInterval(deliveryDrain);
+        connections.delete(connectionId);
+        for (const pending of connection.pending.values()) clearTimeout(pending.timer);
+        upstream.terminate();
+      });
       client.on('error', () => upstream.terminate());
       upstream.on('error', () => { send({ type: 'error', message: '实时连接失败，请检查连接或切换兼容模式' }); client.close(1011); });
       upstream.once('close', () => { if (client.readyState === WebSocket.OPEN) client.close(1012); });

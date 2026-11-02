@@ -142,3 +142,11 @@ must not log transcript content, tool arguments or credentials.
 This changes shared ArkUI code, so both `default` and `store` Release variants
 must build. Device E2E remains pending until evidence is captured.
 
+## 8. Long-stream follow-up
+
+The 2026-11-02 physical-device report showed that transport health alone is not
+enough to prevent a visual freeze. Incremental Markdown block rendering,
+explicit live-row state, reducer-tuple progress accounting and Gateway drain
+fallback are specified in
+[`2026-11-02-long-stream-render-liveness.md`](2026-11-02-long-stream-render-liveness.md).
+

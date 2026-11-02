@@ -38,6 +38,14 @@
       "e2eIds": ["MF-04"]
     },
     {
+      "id": "transcript.stream-long-liveness",
+      "screens": ["conversation"],
+      "states": ["stream-long"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-stream-long-e2e.ps1"],
+      "e2eIds": ["LSR-01", "LSR-02", "LSR-03", "LSR-04"],
+      "requiresInteraction": true
+    },
+    {
       "id": "conversation.empty",
       "screens": ["conversation"],
       "states": ["empty"],

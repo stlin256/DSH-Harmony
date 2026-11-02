@@ -726,6 +726,14 @@ export function nativeAssistantProgressKey(attemptId: string, revision: number,
   return attemptId + '\n' + revision + '\n' + nextIndex + '\n' + cursor;
 }
 
+export function nativeAssistantProgressAdvanced(previous: string, current: string): boolean {
+  return current.length > 0 && current !== previous;
+}
+
+export function nativeDeliveryMismatchResolved(expected: string, current: string): boolean {
+  return expected.length > 0 && expected === current;
+}
+
 export function nativeStreamHealthRepairReason(now: number, linkActivityAt: number,
   assistantProgressAt: number, deliveryMismatchAt: number, opened: boolean,
   backgrounded: boolean, stateKnown: boolean, running: boolean, waiting: boolean,

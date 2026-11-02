@@ -7,7 +7,12 @@ import WebSocket, { WebSocketServer } from 'ws';
 import { openStore } from '../src/store.mjs';
 import { createApp } from '../src/app.mjs';
 import { normalizeFollow, normalizeProjectionTitle, normalizedHistory, richBlocks, normalizeRecord } from '../src/native-protocol.mjs';
-import { changedFilesSummary, nativeHeartbeatPayload, nativeHeartbeatPolicy } from '../src/native-harness.mjs';
+import {
+  changedFilesSummary,
+  nativeDeliveryDrainReady,
+  nativeHeartbeatPayload,
+  nativeHeartbeatPolicy
+} from '../src/native-harness.mjs';
 
 const origin = 'https://dsh.example.com';
 
@@ -34,6 +39,14 @@ test('native heartbeat carries generation-bound progress and authoritative run s
   assert.equal(nativeHeartbeatPayload('generation-a', {
     cursor: -1, attemptId: '', nextIndex: 0, revision: 0
   }, false, true, true).stateKnown, false);
+});
+
+test('native delivery drain requires pause, low buffer and an open upstream', () => {
+  assert.equal(nativeDeliveryDrainReady(true, 32 * 1024, 32 * 1024, true), true);
+  assert.equal(nativeDeliveryDrainReady(false, 0, 32 * 1024, true), false);
+  assert.equal(nativeDeliveryDrainReady(true, 32 * 1024 + 1, 32 * 1024, true), false);
+  assert.equal(nativeDeliveryDrainReady(true, 0, 32 * 1024, false), false);
+  assert.equal(nativeDeliveryDrainReady(true, Number.NaN, 32 * 1024, true), false);
 });
 
 test('native live closes a generation when assistant revision data is incomplete', async t => {

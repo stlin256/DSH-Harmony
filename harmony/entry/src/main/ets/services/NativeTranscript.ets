@@ -132,6 +132,7 @@ export function nativeUpdateLiveAssistant(rows: NativeMessage[], text: string): 
   const next = copy(row);
   next.text = text;
   next.blocks = [];
+  next.runningTurn = true;
   const updated = rows.slice();
   updated[index] = next;
   return updated;
@@ -149,6 +150,7 @@ export function nativeWithLiveText(rows: NativeMessage[], text: string): NativeM
   reply.id = 'live-assistant';
   reply.role = 'assistant';
   reply.text = text;
+  reply.runningTurn = true;
   for (let index = rows.length - 1; index >= 0; index--) {
     if (rows[index].turnKey) { reply.turnKey = rows[index].turnKey; break; }
   }
@@ -342,7 +344,8 @@ export function nativeTranscript(records: NativeMessage[], running: boolean,
     if (tool && tool.toolName === 'present') tool.authoritativeRaw = raw;
   });
   if (text.trim()) {
-    const reply = new NativeMessage(); reply.id = 'live-assistant'; reply.role = 'assistant'; reply.text = text; reply.turnKey = turnKey;
+    const reply = new NativeMessage(); reply.id = 'live-assistant'; reply.role = 'assistant';
+    reply.text = text; reply.turnKey = turnKey; reply.runningTurn = running;
     ordered.push(reply);
   }
   let previousPlan = new NativePlanDocument();

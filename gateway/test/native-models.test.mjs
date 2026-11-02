@@ -1110,10 +1110,19 @@ test('assistant revisions remain dense from a zero snapshot baseline through a n
 test('stream health separates link, delivery and assistant progress while ignoring waits', () => {
   const {
     nativeAssistantProgressKey,
+    nativeAssistantProgressAdvanced,
+    nativeDeliveryMismatchResolved,
     nativeStreamHealthRepairReason
   } = load('NativeSessionModel', {});
   assert.equal(nativeAssistantProgressKey('', 4, 2, 8), '');
   assert.equal(nativeAssistantProgressKey('attempt', 4, 2, 8), 'attempt\n4\n2\n8');
+  assert.equal(nativeAssistantProgressAdvanced('', 'attempt\n4\n2\n8'), true);
+  assert.equal(nativeAssistantProgressAdvanced(
+    'attempt\n4\n2\n8', 'attempt\n4\n2\n8'), false);
+  assert.equal(nativeAssistantProgressAdvanced('old', ''), false);
+  assert.equal(nativeDeliveryMismatchResolved('gateway-tuple', 'gateway-tuple'), true);
+  assert.equal(nativeDeliveryMismatchResolved('gateway-tuple', 'older-tuple'), false);
+  assert.equal(nativeDeliveryMismatchResolved('', ''), false);
   assert.equal(nativeStreamHealthRepairReason(20001, 1, 15000, 0,
     false, false, false, false, false, ''), 'link_timeout');
   assert.equal(nativeStreamHealthRepairReason(15000, 14999, 5000, 14000,
@@ -1143,6 +1152,10 @@ test('heartbeat generations are bound to one follow and repair starts remain sin
     /private touchFollow\(id: string\): void \{[\s\S]{0,180}this\.followActivityAt = Date\.now\(\);[\s\S]{0,120}this\.scheduleFollowHealth\(id\)/);
   assert.match(workspace,
     /if \(frame\.type === 'heartbeat'\) \{[\s\S]{0,120}this\.acceptHeartbeat\(id, frame\);[\s\S]{0,40}return/);
+  assert.match(workspace,
+    /nativeAssistantProgressAdvanced\(this\.followProgressKey, gatewayKey\)/);
+  assert.match(workspace,
+    /nativeDeliveryMismatchResolved\(this\.deliveryMismatchKey, reducerKey\)/);
 });
 
 test('committed settlement survives cache restoration until the durable event arrives', () => {
@@ -3015,6 +3028,7 @@ test('text-only stream projection patches the live answer without rebuilding his
   const updated = nativeWithLiveText(history, 'hello');
   assert.equal(updated.length, history.length + 1);
   assert.equal(updated.at(-1).text, 'hello');
+  assert.equal(updated.at(-1).runningTurn, true);
   assert.equal(updated.at(-1).turnKey, 'turn:1');
   assert.equal(history.length, 5000, 'durable source rows remain untouched');
   assert.equal(history.some(row => row.id === 'live-assistant'), false);
@@ -3023,6 +3037,7 @@ test('text-only stream projection patches the live answer without rebuilding his
   });
   const patched = nativeUpdateLiveAssistant(updated.concat([live]), 'new');
   assert.equal(patched.at(-1).text, 'new');
+  assert.equal(patched.at(-1).runningTurn, true);
   assert.equal(live.text, 'old', 'tail patch must not mutate the rendered source row');
 });
 
@@ -3147,7 +3162,9 @@ test('frontend hardening source wires masking, stream repair and settings search
   assert.match(message, /copyMessage\(\).*?rawMessageText\(\)/s);
   assert.match(message, /text: this\.message\.text, maskSecrets: this\.maskSecrets\(\)/);
   assert.match(message, /secretsRevealed \? '隐藏凭据' : '显示凭据'/);
-  assert.match(text, /nativeRepairStreamingMarkdown\(this\.text\)/);
+  assert.match(text, /NativeStreamingMarkdownBuffer/);
+  assert.match(text, /nativeRepairStreamingMarkdown\(update\.tail\)/);
+  assert.match(text, /this\.streamBuffer\.update\(this\.text\)/);
   assert.match(text, /maskSecrets: this\.maskSecrets/);
   assert.match(text, /nativeSecretSpans\(this\.renderedText\)/);
   assert.match(textSource, /protectedRanges: NativeSecretSpan\[\]/);

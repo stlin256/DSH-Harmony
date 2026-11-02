@@ -78,6 +78,9 @@ Keep these gaps explicit until a physical or emulated target proves them:
 - Saved-session restore, expired-session recovery and logout/relaunch with a
   real account exchange.
 - Provider reconnect and session-switch restoration with a live Host stream.
+- Long-stream liveness with the current HAP: `stream-long` must advance in at
+  least two captures, show `STREAM-LONG-DONE` without relaunch, keep the same
+  process ID and leave the composer responsive.
 - Current-device image-lightbox interaction evidence.
 - Large-text onboarding, guide, detailed install page, login and inline error.
 
@@ -400,6 +403,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-01-stream-stability.md](docs/specs/2026-11-01-stream-stability.md)
 - Stream stability device E2E:
   [2026-11-01-stream-stability-e2e.md](docs/testing/2026-11-01-stream-stability-e2e.md)
+- Long-stream render liveness requirement:
+  [2026-11-02-long-stream-render-liveness.md](docs/requirements/2026-11-02-long-stream-render-liveness.md)
+- Long-stream render liveness research:
+  [2026-11-02-long-stream-render-liveness.md](docs/research/2026-11-02-long-stream-render-liveness.md)
+- Long-stream render liveness implementation spec:
+  [2026-11-02-long-stream-render-liveness.md](docs/specs/2026-11-02-long-stream-render-liveness.md)
+- Long-stream render liveness device E2E:
+  [2026-11-02-long-stream-render-liveness-e2e.md](docs/testing/2026-11-02-long-stream-render-liveness-e2e.md)
 - Structured tool-content requirement:
   [2026-11-01-structured-tool-content.md](docs/requirements/2026-11-01-structured-tool-content.md)
 - Structured tool-content research:

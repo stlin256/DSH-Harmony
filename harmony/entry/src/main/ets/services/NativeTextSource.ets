@@ -4,6 +4,7 @@ import { NativeSecretSpan } from './NativeSecretMask';
 export class NativeTextSource implements IDataSource {
   private value: string = '';
   private listeners: DataChangeListener[] = [];
+  private protectedRanges: NativeSecretSpan[] = [];
   private readonly window: number = 4096;
   private offsets: number[] = [0];
   totalCount(): number { return Math.max(0, this.offsets.length - 1); }
@@ -20,7 +21,14 @@ export class NativeTextSource implements IDataSource {
   registerDataChangeListener(listener: DataChangeListener): void { if (!this.listeners.includes(listener)) this.listeners.push(listener); }
   unregisterDataChangeListener(listener: DataChangeListener): void { this.listeners = this.listeners.filter((item: DataChangeListener) => item !== listener); }
   set(value: string, protectedRanges: NativeSecretSpan[] = []): void {
+    if (value === this.value && protectedRanges.length === this.protectedRanges.length &&
+      protectedRanges.every((range: NativeSecretSpan, index: number): boolean => {
+        const current = this.protectedRanges[index];
+        return current.start === range.start && current.end === range.end &&
+          current.masked === range.masked;
+      })) return;
     this.value = value;
+    this.protectedRanges = protectedRanges.slice();
     const offsets: number[] = [0];
     let nominal = this.window;
     while (nominal < value.length) {

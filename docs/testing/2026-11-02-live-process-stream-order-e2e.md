@@ -7,9 +7,9 @@ available, but the current HAP has not run on a USB Ready device.
 
 | Artifact | SHA-256 |
 | --- | --- |
-| Current Mock HAP | `2C39478C519C9D29C08031A596A001862F078240B26D918B28F5058F1D57F781` |
-| Current Default HAP | `AD2127415A83DAB218D20F382B05BA2824E6DE65975CD38FE49D269E574FA881` |
-| Current Store HAP | `58E2D2E7DAC259DF53501416E8A4F571372A756533F53CDB11583BBF3D206034` |
+| Current Mock HAP | `74B23BFCF1D9DE63EFD0210FE2F02B52A8DAA98B8D05338F4245BE30162F7DDB` |
+| Current Default HAP | `381A1CB3D0AE0ABE4770C2775CC629BAD3131E8D711545BE1154742283FF3408` |
+| Current Store HAP | `1F51840CBC8D2543D364AD0EF9C2544DDEF428DB3EECE7376DAD080199950620` |
 
 Requirement:
 [`2026-11-02-live-process-stream-order.md`](../requirements/2026-11-02-live-process-stream-order.md)
@@ -36,4 +36,4 @@ Implementation spec:
   claiming complete visual coverage.
 - A source test, an older HAP or a screenshot from a different build cannot
   promote these rows to Passed.
-- Current PR QA: `.artifacts/qa/20261102T054907Z-09edfb22/report.json`.
+- Current PR QA: `.artifacts/qa/20261102T061552Z-b0060234/report.json`.

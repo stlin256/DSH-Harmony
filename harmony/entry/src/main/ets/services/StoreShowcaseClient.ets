@@ -326,11 +326,25 @@ function showcaseMessagesFor(state: string): NativeMessage[] {
   if (state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
       state === 'dock-material-elevated') return showcaseLiveChangeMessages();
   if (state === 'live-change') return showcaseLiveChangeMessages();
-  if (state === 'streaming' || state === 'stream-repaired') return showcaseStreamingMessages();
+  if (state === 'streaming' || state === 'stream-long' ||
+    state === 'stream-repaired') return showcaseStreamingMessages();
   if (state === 'empty') return [];
   if (state === 'long-history') return showcaseLongHistoryMessages();
   if (state === 'attachments') return showcaseLiveChangeMessages();
   return showcaseMessages();
+}
+
+function showcaseLongStreamText(): string {
+  let value = '## 长流实测\n\n';
+  for (let index = 0; index < 58; index++) {
+    value += '第 ' + (index + 1) +
+      ' 段：**流式更新** 持续追加，`NativeTextContent.ets` 只解析未完成尾段。' +
+      ' [说明](https://example.invalid/stream/' + index + ') 仍保持可读。\n\n';
+    if (index % 14 === 13) {
+      value += '```typescript\nconst streamFrame = ' + index + ';\n```\n\n';
+    }
+  }
+  return value + 'STREAM-LONG-DONE';
 }
 
 function showcaseQueue(state: string): NativeQueueItem[] {
@@ -516,6 +530,7 @@ function showcaseProjectionJson(state: string, sessionId: string, planRemoved: b
 function showcaseSessions(state: string = 'completed', planRemoved: boolean = false): NativeSession[] {
   const firstTitle = state === 'live-change' ? '底部 Dock 运行态' :
     state === 'streaming' ? '流式输出与标题更新' :
+    state === 'stream-long' ? '长流持续输出' :
     state === 'stream-repaired' ? '流式 Markdown' :
     state === 'secret-masked' ? '凭据显示与复制来源' :
     state === 'settings-search' ? '设置搜索与结果' :
@@ -553,7 +568,7 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
     value.cwd = row[2];
     value.blank = row[3] === 'true';
     value.running = (state === 'live-change' || state === 'attachments' ||
-      state === 'streaming' || state === 'stream-repaired' ||
+      state === 'streaming' || state === 'stream-long' || state === 'stream-repaired' ||
       state === 'empty' || state === 'dock-queue-pending' ||
       state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
       state === 'dock-material-elevated' || state === 'interaction-approval' ||
@@ -635,6 +650,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     const seedMessages = showcaseMessagesFor(this.fixtureState);
     const seedRunning = this.fixtureState === 'live-change' ||
       this.fixtureState === 'attachments' || this.fixtureState === 'streaming' ||
+      this.fixtureState === 'stream-long' ||
       this.fixtureState === 'empty' || this.fixtureState === 'dock-queue-pending' ||
       this.fixtureState === 'dock-queue-authoritative' ||
       this.fixtureState === 'dock-queue-many' ||
@@ -671,6 +687,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     record.queue = initial.queue;
     record.streamText = this.fixtureState === 'streaming' ?
       '正在输出完整的流式回答，内容会按显示帧更新而不会阻塞底部工具栏。' :
+      this.fixtureState === 'stream-long' ? '正在建立长流验收…' :
       this.fixtureState === 'stream-repaired' ?
         '流式 Markdown 已完成一半，正在整理 **重点** 与 [文档](https://example.invalid/doc' +
         '\n\n| 状态 | 结果 |\n| --- | --' : '';
@@ -751,6 +768,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     if (id === SHOWCASE_SESSION) {
       const interaction = showcaseInteractionFrame(this.fixtureState);
       if (interaction) this.emit([interaction], 90);
+      if (this.fixtureState === 'stream-long') this.startLongStream();
     }
   }
 
@@ -1269,6 +1287,49 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       frames.forEach((frame: NativeFrame): void => { this.receiver(frame); });
     }, delay);
     this.timers.push(timer);
+  }
+
+  private startLongStream(): void {
+    const source = showcaseLongStreamText();
+    let revision = 0;
+    let index = 0;
+    let offset = 0;
+    const start = new NativeFrame();
+    start.type = 'start';
+    start.attemptId = 'showcase-long-attempt';
+    start.revision = ++revision;
+    start.nextIndex = 0;
+    this.emit([start], 80);
+    const pump = (): void => {
+      const timer = setTimeout((): void => {
+        this.timers = this.timers.filter((value: number): boolean => value !== timer);
+        if (!this.receiverReady || this.paused) return;
+        const end = Math.min(source.length, offset + 8);
+        const delta = new NativeFrame();
+        delta.type = 'delta';
+        delta.attemptId = start.attemptId;
+        delta.revision = ++revision;
+        delta.index = index++;
+        delta.text = source.slice(offset, end);
+        this.receiver(delta);
+        offset = end;
+        if (offset < source.length) {
+          pump();
+          return;
+        }
+        const state = new NativeFrame();
+        state.type = 'state';
+        state.running = false;
+        state.waiting = false;
+        this.receiver(state);
+      }, 18);
+      this.timers.push(timer);
+    };
+    const initialTimer = setTimeout((): void => {
+      this.timers = this.timers.filter((value: number): boolean => value !== initialTimer);
+      if (this.receiverReady && !this.paused) pump();
+    }, 110);
+    this.timers.push(initialTimer);
   }
 
   async exportSession(_id: string, _format: string, _receive: (part: ArrayBuffer) => void): Promise<void> {

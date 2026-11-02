@@ -98,12 +98,12 @@ correction. They are not yet device-qualified until the full static suite,
 subagent interaction driver, settings driver and disclosure matrices are rerun
 against this exact Mock HAP:
 
-- Mock: `2C39478C519C9D29C08031A596A001862F078240B26D918B28F5058F1D57F781`
-- Default: `AD2127415A83DAB218D20F382B05BA2824E6DE65975CD38FE49D269E574FA881`
-- Store: `58E2D2E7DAC259DF53501416E8A4F571372A756533F53CDB11583BBF3D206034`
+- Mock: `74B23BFCF1D9DE63EFD0210FE2F02B52A8DAA98B8D05338F4245BE30162F7DDB`
+- Default: `381A1CB3D0AE0ABE4770C2775CC629BAD3131E8D711545BE1154742283FF3408`
+- Store: `1F51840CBC8D2543D364AD0EF9C2544DDEF428DB3EECE7376DAD080199950620`
 
 The latest portable PR QA is
-`.artifacts/qa/20261102T054907Z-09edfb22/report.json` (Passed).
+`.artifacts/qa/20261102T061552Z-b0060234/report.json` (Passed).
 
 The interrupted run recorded a disabled subagent send button after text entry.
 The new HAP resumes Mock Host follow after `pause()` and centralizes the

@@ -41,6 +41,9 @@ export struct NativeInlineText {
   private fileRequestSequence: number = 0;
   private mounted: boolean = false;
   private pendingFileRequest: string = '';
+  private parsed: boolean = false;
+  private parsedText: string = '';
+  private parsedMaskSecrets: boolean = false;
 
   aboutToAppear(): void { this.mounted = true; this.changed(); }
   aboutToDisappear(): void {
@@ -51,6 +54,11 @@ export struct NativeInlineText {
     }
   }
   private changed(): void {
+    if (this.parsed && this.parsedText === this.text &&
+      this.parsedMaskSecrets === this.maskSecrets) return;
+    this.parsed = true;
+    this.parsedText = this.text;
+    this.parsedMaskSecrets = this.maskSecrets;
     this.runs = this.maskSecrets ? nativeInlineMarkdownMasked(this.text) : nativeInlineMarkdown(this.text);
   }
   private runColor(run: NativeInlineRun): ResourceColor {
