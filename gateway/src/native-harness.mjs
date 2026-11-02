@@ -1074,10 +1074,13 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
             queue: frame.value?.queue
           });
           else if (frame.streamId === 'history') {
-            if (frame.value?.type === 'snapshot') clearTimeout(opening);
             const value = normalizeFollow(frame.value);
+            if (frame.value?.type === 'snapshot' && !value) {
+              throw new Error('Invalid snapshot frame');
+            }
             if (value) {
               if (value.type === 'snapshot') {
+                clearTimeout(opening);
                 active.cursor = value.cursor; active.attemptId = value.attemptId || '';
                 active.nextIndex = value.nextIndex || 0; active.revision = value.revision || 0;
               } else if (value.type === 'event') active.cursor = value.seq;

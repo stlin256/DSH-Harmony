@@ -350,6 +350,7 @@ export class NativeSessionCacheRecord {
   settlementEventType: string = '';
   nextIndex: number = 0;
   cursor: number = -1;
+  openingSnapshotApplied: boolean = false;
   collapseThrough: number = -1;
 }
 
@@ -379,6 +380,44 @@ export class NativeSessionModel {
   private settlementSeq: number = -1;
   private settlementEventType: string = '';
   private replacements: NativeReplacement[] = [];
+  private openingSnapshotApplied: boolean = false;
+
+  private validSequence(value: number): boolean {
+    return Number.isSafeInteger(value) && value >= 0;
+  }
+
+  private validCursor(value: number): boolean {
+    return Number.isSafeInteger(value) && value >= -1;
+  }
+
+  private validateFrame(frame: NativeFrame): void {
+    if (frame.type === 'snapshot') {
+      if (!this.validCursor(frame.cursor)) throw new Error('Invalid snapshot');
+      if (frame.revision !== undefined && !this.validSequence(frame.revision)) throw new Error('Invalid snapshot');
+      if (frame.nextIndex !== undefined && !this.validSequence(frame.nextIndex)) throw new Error('Invalid snapshot');
+    }
+    if (frame.type === 'end') {
+      if (frame.outcomeKind !== 'committed' && frame.outcomeKind !== 'abandoned') {
+        throw new Error('Invalid stream end');
+      }
+      if (frame.outcomeKind === 'committed' &&
+          (!this.validSequence(frame.committedSeq) ||
+           (frame.committedEventType !== 'assistant/message' &&
+            frame.committedEventType !== 'assistant/attempt'))) {
+        throw new Error('Invalid stream end');
+      }
+    }
+  }
+
+  private validateDuplicateEvent(frame: NativeFrame): void {
+    const incoming = (frame.journal || []).find((entry: NativeJournalEntry): boolean =>
+      entry.seq === frame.seq);
+    if (incoming === undefined) return;
+    const stored = this.journal.get(frame.seq);
+    if (stored !== undefined && stored !== incoming.raw) {
+      throw new Error('Conflicting durable event');
+    }
+  }
 
   settlementPending(): boolean { return this.settlementAttemptId.length > 0; }
   activityAttemptId(): string { return this.attemptId; }
@@ -425,6 +464,7 @@ export class NativeSessionModel {
     value.settlementEventType = this.settlementEventType;
     value.nextIndex = this.nextIndex;
     value.cursor = this.cursor;
+    value.openingSnapshotApplied = this.openingSnapshotApplied;
     value.collapseThrough = this.collapseThrough;
     return value;
   }
@@ -469,6 +509,7 @@ export class NativeSessionModel {
     this.settlementEventType = typeof value.settlementEventType === 'string' ? value.settlementEventType : '';
     this.nextIndex = Number.isSafeInteger(value.nextIndex) ? value.nextIndex : 0;
     this.cursor = Number.isSafeInteger(value.cursor) ? value.cursor : -1;
+    this.openingSnapshotApplied = value.openingSnapshotApplied === true || this.cursor >= 0;
     this.collapseThrough = Number.isSafeInteger(value.collapseThrough) ? value.collapseThrough : -1;
   }
 
@@ -501,9 +542,15 @@ export class NativeSessionModel {
   }
 
   apply(frame: NativeFrame): void {
+    this.validateFrame(frame);
     if (frame.type === 'event') {
-      if (!Number.isSafeInteger(frame.seq) || frame.seq <= this.cursor) return;
-      if (this.cursor >= 0 && frame.seq !== this.cursor + 1) throw new Error('Stream gap');
+      if (!Number.isSafeInteger(frame.seq)) return;
+      if (frame.seq <= this.cursor) {
+        this.validateDuplicateEvent(frame);
+        return;
+      }
+      if (!this.openingSnapshotApplied) throw new Error('Missing opening snapshot');
+      if (frame.seq !== this.cursor + 1) throw new Error('Stream gap');
     }
     (frame.journal || []).forEach((entry: NativeJournalEntry): void => { this.journal.set(entry.seq, entry.raw); });
     if (frame.type === 'snapshot') {
@@ -516,6 +563,7 @@ export class NativeSessionModel {
       if (older.length === 0) { this.hasMore = frame.hasMore === true; this.historyBefore = boundary; }
       this.historyCut = frame.cursor;
       this.cursor = frame.cursor;
+      this.openingSnapshotApplied = true;
       this.attemptId = frame.attemptId || '';
       this.streamRevision = frame.revision || 0;
       this.nextIndex = frame.nextIndex || 0;
@@ -574,12 +622,25 @@ export class NativeSessionModel {
       }
       this.streamRevision = frame.revision;
       this.attemptId = '';
-      if (frame.outcomeKind === 'committed' && Number.isSafeInteger(frame.committedSeq) &&
-          frame.committedSeq >= 0 && frame.committedSeq > this.cursor) {
-        this.settlementAttemptId = frame.attemptId;
-        this.settlementSeq = frame.committedSeq;
-        this.settlementEventType = frame.committedEventType;
-      } else {
+      if (frame.outcomeKind === 'committed') {
+        if (frame.committedSeq > this.cursor) {
+          this.settlementAttemptId = frame.attemptId;
+          this.settlementSeq = frame.committedSeq;
+          this.settlementEventType = frame.committedEventType;
+        } else {
+          const durable = this.messages.some((item: NativeMessage): boolean =>
+            item.seq === frame.committedSeq &&
+            item.role === 'assistant' &&
+            item.eventType === frame.committedEventType);
+          if (!durable) throw new Error('Committed event missing');
+          this.settlementAttemptId = '';
+          this.settlementSeq = -1;
+          this.settlementEventType = '';
+          this.streamText = '';
+          this.streamReasoning = '';
+          this.streamTools = [];
+        }
+      } else if (frame.outcomeKind === 'abandoned') {
         this.streamText = ''; this.streamReasoning = ''; this.streamTools = [];
       }
     } else if (frame.type === 'error') throw new Error('Native stream unavailable');

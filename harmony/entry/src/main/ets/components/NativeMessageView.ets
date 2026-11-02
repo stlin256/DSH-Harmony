@@ -31,7 +31,7 @@ export struct NativeMessageView {
   @State private toolOpen: boolean = false;
   aboutToAppear(): void {
     this.reasoningOpen = this.disclosures.get(this.message.turnKey + '|' + this.message.id) === true;
-    this.toolOpen = true;
+    this.toolOpen = this.message.currentTurn || this.message.flat;
   }
 
   private copyMessage(): void {
@@ -77,6 +77,7 @@ export struct NativeMessageView {
           .fontSize(NativeDesign.fontBody).borderRadius(NativeDesign.radiusCompact)
           .backgroundColor(Color.Transparent)
           .fontColor(NativeDesign.textSecondary(this.dark))
+          .accessibilityText(this.reasoningOpen ? '收起思考过程' : '展开思考过程')
           .onClick(() => { this.animate(() => { this.reasoningOpen = !this.reasoningOpen;
             this.disclosures.set(this.message.turnKey + '|' + this.message.id, this.reasoningOpen); }); })
         if (this.reasoningOpen) {
@@ -94,6 +95,7 @@ export struct NativeMessageView {
         }.height(NativeDesign.hitTarget).fontSize(NativeDesign.fontBody)
           .borderRadius(NativeDesign.radiusCompact).backgroundColor(Color.Transparent)
           .fontColor(NativeDesign.textSecondary(this.dark))
+          .accessibilityText(this.toolOpen ? '收起工具结果' : '展开工具结果')
           .onClick(() => { this.animate(() => { this.toolOpen = !this.toolOpen; }); })
       }
       if (this.dshUiReplyLabel()) {

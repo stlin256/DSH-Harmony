@@ -109,6 +109,7 @@ $expand = Query-Node $collapsed (Text-Hex '已编辑 4 个文件') 'clickable'
 Invoke-Click $expand
 $expanded = Dump-Layout 'expanded'
 $null = Query-Node $expanded (Text-Hex '收起文件') 'text'
+Start-Sleep -Milliseconds 650
 Capture-Screen 'expanded'
 
 $fileRow = Query-Node $expanded (Text-Hex 'NativeBottomConversationDock.ets') 'clickable'
@@ -127,6 +128,7 @@ $collapse = Query-Node $returned (Text-Hex '收起文件') 'clickable'
 Invoke-Click $collapse
 $collapsedAgain = Dump-Layout 'collapsed-again'
 $null = Query-Node $collapsedAgain (Text-Hex '再显示 1 个文件') 'text'
+Start-Sleep -Milliseconds 650
 Capture-Screen 'collapsed-again'
 
 $manifest = [ordered]@{

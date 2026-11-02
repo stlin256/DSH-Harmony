@@ -38,6 +38,9 @@ For non-trivial UI or state changes:
 13. Use `node scripts/qa.mjs release --evidence <manifest>` only with current,
     clean evidence. Mapping coverage, a Pending row or a stale HAP hash is never
     device proof.
+14. Keep the `Remaining device checks` section in
+    `docs/testing/2026-11-01-device-visual-state-acceptance-e2e.md` current
+    before pausing device work or claiming completion.
 
 Do not put private hosts, internal addresses, credentials, cookies, signatures,
 or real transcript content in source, tests, docs, logs or commits.
@@ -55,6 +58,23 @@ or real transcript content in source, tests, docs, logs or commits.
 - Use semantic motion tokens instead of new one-off durations.
 - API 26 materials are enhancements. API 23 must retain full function and
   hierarchy with opaque theme surfaces.
+
+## Device Verification Ledger
+
+Keep these gaps explicit until a physical or emulated target proves them:
+
+- Current-HAP rerun of the static Mock suite, subagent send, settings navigation
+  and all four disclosure matrices after the composer-state correction.
+- API 23 opaque-material fallback.
+- Portrait and landscape layouts under maximum system font size.
+- Saved-session restore, expired-session recovery and logout/relaunch with a
+  real account exchange.
+- Provider reconnect and session-switch restoration with a live Host stream.
+- Current-device image-lightbox interaction evidence.
+- Large-text onboarding, guide, detailed install page, login and inline error.
+
+Never promote a Pending or Partial row from Mock coverage, source inspection,
+static tests or a screenshot produced by an older HAP.
 
 ## Design, Spec and Evidence Index
 
@@ -225,6 +245,14 @@ or real transcript content in source, tests, docs, logs or commits.
   [2026-10-31-plan-expand-file-open-latency.md](docs/specs/2026-10-31-plan-expand-file-open-latency.md)
 - Plan expansion stability and immediate file preview E2E:
   [2026-10-31-plan-expand-file-open-latency-e2e.md](docs/testing/2026-10-31-plan-expand-file-open-latency-e2e.md)
+- Disclosure expansion visual acceptance requirement:
+  [2026-11-02-disclosure-expansion-matrix.md](docs/requirements/2026-11-02-disclosure-expansion-matrix.md)
+- Disclosure expansion coverage research:
+  [2026-11-02-disclosure-expansion-matrix.md](docs/research/2026-11-02-disclosure-expansion-matrix.md)
+- Disclosure expansion implementation spec:
+  [2026-11-02-disclosure-expansion-matrix.md](docs/specs/2026-11-02-disclosure-expansion-matrix.md)
+- Disclosure expansion device E2E:
+  [2026-11-02-disclosure-expansion-matrix-e2e.md](docs/testing/2026-11-02-disclosure-expansion-matrix-e2e.md)
 - Chat link existence requirement:
   [2026-10-31-chat-link-existence.md](docs/requirements/2026-10-31-chat-link-existence.md)
 - Chat link existence implementation spec:

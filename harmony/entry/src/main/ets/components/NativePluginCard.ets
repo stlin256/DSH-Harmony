@@ -311,7 +311,7 @@ export struct NativePluginCard {
 
   @Builder
   private blockView(block: NativePluginBlock) {
-    if (block.kind === 'metrics') {
+    if (block.kind === 'metrics' || block.kind === 'metric') {
       this.metricsBlock(block)
     } else if (block.kind === 'progress') {
       this.progressBlock(block)
@@ -356,6 +356,13 @@ export struct NativePluginCard {
             .fontWeight(FontWeight.Medium).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(NativeDesign.textSecondary(this.dark))
+          if (this.document.truncated) {
+            Text('内容已截断').fontSize(NativeDesign.fontMicro)
+              .fontColor(NativeDesign.warning(this.dark))
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .borderRadius(NativeDesign.radiusCompact)
+              .backgroundColor(NativeDesign.field(this.dark))
+          }
         }.width('100%')
         ForEach(this.document.blocks, (block: NativePluginBlock, index: number) => {
           this.blockView(block)
@@ -366,9 +373,6 @@ export struct NativePluginCard {
               color: NativeDesign.accent(this.dark) })
             Text('已回复').fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.textTertiary(this.dark))
           }.width('100%')
-        }
-        if (this.document.truncated) {
-          Text('内容已截断').fontSize(NativeDesign.fontMicro).fontColor(NativeDesign.textTertiary(this.dark))
         }
       }
     }.width('100%').alignItems(HorizontalAlign.Start)

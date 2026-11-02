@@ -16,6 +16,52 @@ function nonNegativeSafeInteger(value) {
   return Number.isSafeInteger(value) && value >= 0;
 }
 
+function cursorSafeInteger(value) {
+  return Number.isSafeInteger(value) && value >= -1;
+}
+
+function stringRun(value) {
+  return Array.isArray(value) && value.length > 0 &&
+    value.every(item => typeof item === 'string');
+}
+
+function validAssistantStream(stream) {
+  if (!Array.isArray(stream)) return false;
+  return stream.every(record => {
+    if (!record || typeof record !== 'object' || Array.isArray(record)) return false;
+    if (record.type === 'text-chunks' || record.type === 'reasoning-chunks') {
+      if (!Number.isSafeInteger(record.time0) ||
+          !nonNegativeSafeInteger(record.index) ||
+          !stringRun(record.texts) ||
+          !Array.isArray(record.dt) ||
+          record.dt.length !== record.texts.length - 1 ||
+          !record.dt.every(value => Number.isSafeInteger(value) && value >= 0)) {
+        return false;
+      }
+      return true;
+    }
+    if (record.type === 'tool-call-chunks') {
+      if (!Number.isSafeInteger(record.time0) ||
+          !nonNegativeSafeInteger(record.index) ||
+          typeof record.id !== 'string' || !record.id ||
+          (record.name !== undefined &&
+            (typeof record.name !== 'string' || !record.name)) ||
+          !stringRun(record.args) ||
+          !Array.isArray(record.dt) ||
+          record.dt.length !== record.args.length - 1 ||
+          !record.dt.every(value => Number.isSafeInteger(value) && value >= 0)) {
+        return false;
+      }
+      return true;
+    }
+    return record.type === 'chunk' &&
+      Number.isSafeInteger(record.time) &&
+      record.chunk !== null &&
+      typeof record.chunk === 'object' &&
+      !Array.isArray(record.chunk);
+  });
+}
+
 /** Normalize the complete Plan projection wire value. */
 export function normalizePlanProjection(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
@@ -332,8 +378,21 @@ export function compactText(stream) {
   let text = '', reasoning = '';
   const toolUpdates = [];
   for (const record of Array.isArray(stream) ? stream : []) {
-    if (record?.type === 'text-chunks') text += (record.texts || []).join('');
-    if (record?.type === 'reasoning-chunks') reasoning += (record.texts || []).join('');
+    if (record?.type === 'text-chunks' && stringRun(record.texts)) {
+      text += record.texts.join('');
+    }
+    if (record?.type === 'reasoning-chunks' && stringRun(record.texts)) {
+      reasoning += record.texts.join('');
+    }
+    if (record?.type === 'tool-call-chunks' && stringRun(record.args)) {
+      toolUpdates.push({
+        callId: record.id,
+        name: fullText(record.name),
+        argsDelta: record.args.join(''),
+        arguments: '',
+        replace: false,
+      });
+    }
     if (record?.type === 'chunk' && record.chunk?.type === 'text-delta') text += record.chunk.text;
     if (record?.type === 'chunk' && record.chunk?.type === 'reasoning-delta') reasoning += record.chunk.text;
     if (record?.type === 'chunk') { const update = toolUpdate(record.chunk); if (update) toolUpdates.push(update); }
@@ -347,14 +406,44 @@ function toolUpdate(chunk) {
 }
 export function normalizeFollow(frame) {
   if (frame?.type === 'snapshot') {
-    const history = normalizedHistory(frame.records);
     const active = frame.assistantStream?.activeAttempt;
-    return { type: 'snapshot', ...history, cursor: frame.cursor, hasMore: frame.hasMore === true, beforeSeq: frame.records?.[0]?.event?.seq ?? 0,
-      attemptId: active?.attemptId || '', nextIndex: active?.nextIndex || 0,
-      revision: Number.isSafeInteger(frame.assistantStream?.revision) ? frame.assistantStream.revision : 0,
-      startedAfterSeq: Number.isSafeInteger(active?.startedAfterSeq) ? active.startedAfterSeq : -1,
-      turn: Number.isSafeInteger(active?.turn) ? active.turn : -1,
-      step: Number.isSafeInteger(active?.step) ? active.step : -1,
+    if (!cursorSafeInteger(frame.cursor) ||
+        !nonNegativeSafeInteger(frame.assistantStream?.revision) ||
+        typeof frame.hasMore !== 'boolean' ||
+        !Array.isArray(frame.records) ||
+        frame.records.some(record => record?.type !== 'event' ||
+          !nonNegativeSafeInteger(record.event?.seq))) return null;
+    for (let index = 1; index < frame.records.length; index += 1) {
+      if (frame.records[index].event.seq !==
+          frame.records[index - 1].event.seq + 1) return null;
+    }
+    if (frame.records.length > 0 &&
+        frame.records[frame.records.length - 1].event.seq !== frame.cursor) {
+      return null;
+    }
+    for (const record of frame.records) {
+      const op = record.event.surfaceOp;
+      if (op && typeof op === 'object' && op.op === 'replace' &&
+          (!nonNegativeSafeInteger(op.startSeq) ||
+           !nonNegativeSafeInteger(op.endSeq) ||
+           op.startSeq > op.endSeq)) return null;
+    }
+    if (active !== undefined && active !== null) {
+      if (!active || typeof active !== 'object' || Array.isArray(active) ||
+          typeof active.attemptId !== 'string' || !active.attemptId ||
+          !cursorSafeInteger(active.startedAfterSeq) ||
+          !nonNegativeSafeInteger(active.nextIndex) ||
+          !nonNegativeSafeInteger(active.turn) ||
+          !nonNegativeSafeInteger(active.step) ||
+          !validAssistantStream(active.stream)) return null;
+    }
+    const history = normalizedHistory(frame.records);
+    return { type: 'snapshot', ...history, cursor: frame.cursor, hasMore: frame.hasMore, beforeSeq: frame.records?.[0]?.event?.seq ?? 0,
+      attemptId: active?.attemptId || '', nextIndex: active?.nextIndex ?? 0,
+      revision: frame.assistantStream.revision,
+      startedAfterSeq: active?.startedAfterSeq ?? -1,
+      turn: active?.turn ?? -1,
+      step: active?.step ?? -1,
       ...compactText(active?.stream) };
   }
   if (frame?.type === 'event') {
@@ -367,11 +456,14 @@ export function normalizeFollow(frame) {
     const item = frame.frame;
     if (!item || typeof item.attemptId !== 'string' || !item.attemptId ||
         !Number.isSafeInteger(item.revision) || item.revision < 0) return null;
-    if (item.type === 'start') return { type: 'start', attemptId: item.attemptId, nextIndex: 0,
-      revision: item.revision,
-      ...(Number.isSafeInteger(item.startedAfterSeq) ? { startedAfterSeq: item.startedAfterSeq } : {}),
-      ...(Number.isSafeInteger(item.turn) ? { turn: item.turn } : {}),
-      ...(Number.isSafeInteger(item.step) ? { step: item.step } : {}) };
+    if (item.type === 'start') {
+      if (!cursorSafeInteger(item.startedAfterSeq) ||
+          !nonNegativeSafeInteger(item.turn) ||
+          !nonNegativeSafeInteger(item.step)) return null;
+      return { type: 'start', attemptId: item.attemptId, nextIndex: 0,
+        revision: item.revision, startedAfterSeq: item.startedAfterSeq,
+        turn: item.turn, step: item.step };
+    }
     if (item.type === 'chunk' && Number.isSafeInteger(item.index) && item.index >= 0) {
       return { type: 'delta', attemptId: item.attemptId, revision: item.revision, index: item.index,
       text: item.chunk?.type === 'text-delta' ? fullText(item.chunk.text) : '',
@@ -379,10 +471,17 @@ export function normalizeFollow(frame) {
       ...(toolUpdate(item.chunk) ? { toolUpdates: [toolUpdate(item.chunk)] } : {}) };
     }
     if (item.type === 'end' && Number.isSafeInteger(item.index) && item.index >= 0) {
+      const outcomeKind = item.outcome?.kind;
+      if (!['committed', 'abandoned'].includes(outcomeKind)) return null;
+      if (outcomeKind === 'committed' && !nonNegativeSafeInteger(item.outcome?.seq)) return null;
+      if (outcomeKind === 'committed' &&
+          !['assistant/message', 'assistant/attempt'].includes(item.outcome?.eventType)) {
+        return null;
+      }
       return { type: 'end', attemptId: item.attemptId, revision: item.revision, index: item.index,
-      outcomeKind: item.outcome?.kind || '',
-      committedEventType: item.outcome?.eventType || '',
-      committedSeq: Number.isSafeInteger(item.outcome?.seq) ? item.outcome.seq : -1 };
+      outcomeKind: outcomeKind,
+      committedEventType: outcomeKind === 'committed' ? item.outcome.eventType : '',
+      committedSeq: outcomeKind === 'committed' ? item.outcome.seq : -1 };
     }
   }
   return null;

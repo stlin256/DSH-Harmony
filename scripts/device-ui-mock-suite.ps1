@@ -12,6 +12,19 @@ $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'resolve-deveco-home.ps1')
 $DevEcoHome = Resolve-DevEcoHome -ExplicitHome $DevEcoHome
+$hdc = Join-Path $DevEcoHome 'sdk\default\openharmony\toolchains\hdc.exe'
+if (-not (Test-Path -LiteralPath $hdc)) {
+  throw "HDC not found: $hdc"
+}
+if (-not $Device) {
+  $ready = @(& $hdc list targets -v | Where-Object {
+    $_ -match '\tUSB\t(?:Ready|Connected)\t' -and $_ -notmatch '\tOffline\t'
+  })
+  if ($ready.Count -eq 0) {
+    throw 'No ready USB HarmonyOS device is available; the fixture suite remains pending.'
+  }
+  $Device = ($ready[0] -split "`t")[0]
+}
 if (-not $OutputDir) {
   $OutputDir = Join-Path $repo 'artifacts\device-ui-mock'
 }
@@ -85,7 +98,37 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'automation'; State = 'automation-history'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'automation'; State = 'automation-conflict'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'more'; State = 'more-actions'; Theme = 'light' },
-  [pscustomobject]@{ Screen = 'more'; State = 'more-actions'; Theme = 'dark' }
+  [pscustomobject]@{ Screen = 'more'; State = 'more-actions'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-task-plan'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-reasoning'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-read'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-search'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-terminal'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-diff'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-nested'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-malformed'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-empty'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-oversized'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-web'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-goal'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-job'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-web-fetch'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-job-lifecycle'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-read-image'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-command'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-subagent'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-present'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-image'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-question'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-plugin'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-process-plan'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-reasoning'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-legacy-tool'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-diff'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-background-notice'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'disclosure'; State = 'disclosure-queue'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'sidebar'; State = 'disclosure-sidebar-more'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'sidebar'; State = 'disclosure-sidebar-group'; Theme = 'dark' }
 )
 
 $mockScript = Join-Path $PSScriptRoot 'device-ui-mock.ps1'
@@ -140,6 +183,36 @@ function Get-ExpectedMarker {
     'automation/automation-history' { return '投递记录' }
     'automation/automation-conflict' { return '任务已在其他设备更新' }
     'more/more-actions' { return '文件浏览' }
+    'disclosure/disclosure-task-plan' { return 'disclosure-task-plan' }
+    'disclosure/disclosure-process-reasoning' { return 'disclosure-process-reasoning' }
+    'disclosure/disclosure-process-read' { return 'disclosure-process-read' }
+    'disclosure/disclosure-process-search' { return 'disclosure-process-search' }
+    'disclosure/disclosure-process-terminal' { return 'disclosure-process-terminal' }
+    'disclosure/disclosure-process-diff' { return 'disclosure-process-diff' }
+    'disclosure/disclosure-process-nested' { return 'disclosure-process-nested' }
+    'disclosure/disclosure-process-malformed' { return 'disclosure-process-malformed' }
+    'disclosure/disclosure-process-empty' { return 'disclosure-process-empty' }
+    'disclosure/disclosure-process-oversized' { return 'disclosure-process-oversized' }
+    'disclosure/disclosure-process-web' { return 'disclosure-process-web' }
+    'disclosure/disclosure-process-goal' { return 'disclosure-process-goal' }
+    'disclosure/disclosure-process-job' { return 'disclosure-process-job' }
+    'disclosure/disclosure-process-web-fetch' { return 'disclosure-process-web-fetch' }
+    'disclosure/disclosure-process-job-lifecycle' { return 'disclosure-process-job-lifecycle' }
+    'disclosure/disclosure-process-read-image' { return 'disclosure-process-read-image' }
+    'disclosure/disclosure-process-command' { return 'disclosure-process-command' }
+    'disclosure/disclosure-process-subagent' { return 'disclosure-process-subagent' }
+    'disclosure/disclosure-process-present' { return 'disclosure-process-present' }
+    'disclosure/disclosure-process-image' { return 'disclosure-process-image' }
+    'disclosure/disclosure-process-question' { return 'disclosure-process-question' }
+    'disclosure/disclosure-process-plugin' { return 'disclosure-process-plugin' }
+    'disclosure/disclosure-process-plan' { return 'disclosure-process-plan' }
+    'disclosure/disclosure-reasoning' { return 'disclosure-reasoning' }
+    'disclosure/disclosure-legacy-tool' { return 'disclosure-legacy-tool' }
+    'disclosure/disclosure-diff' { return 'disclosure-diff' }
+    'disclosure/disclosure-background-notice' { return 'disclosure-background-notice' }
+    'disclosure/disclosure-queue' { return 'disclosure-queue' }
+    'sidebar/disclosure-sidebar-more' { return '更多' }
+    'sidebar/disclosure-sidebar-group' { return 'DSH Harmony 移动端' }
     default { return '' }
   }
 }
@@ -231,6 +304,13 @@ $summary = [ordered]@{
   generatedAt = (Get-Date).ToUniversalTime().ToString('o')
   device = $Device
   bundleName = 'io.github.stlin256.dshharmony'
+  product = 'mock'
+  hap = [ordered]@{
+    path = 'harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap'
+    sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (
+      Join-Path $repo 'harmony\entry\build\mock\outputs\mock\entry-mock-signed.hap'
+    )).Hash.ToLowerInvariant()
+  }
   scenarios = $results
 }
 $summaryPath = Join-Path $OutputDir 'suite-summary.json'

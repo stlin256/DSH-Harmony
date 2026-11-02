@@ -113,10 +113,14 @@ function stateArguments(source) {
   const sanitized = stripPowerShellComments(source);
   const argument = /(?<![\w-])-State(?:\s*:\s*|\s+)(?:'([^']+)'|"([^"]+)")/gi;
   const fixtureState = /\$[\w-]*FixtureState\s*=\s*(?:'([^']+)'|"([^"]+)")/gi;
+  const scenarioState = /(?:^|[\r\n])\s*State\s*=\s*(?:'([^']+)'|"([^"]+)")/gi;
   for (const match of sanitized.matchAll(argument)) {
     values.push(match[1] ?? match[2]);
   }
   for (const match of sanitized.matchAll(fixtureState)) {
+    values.push(match[1] ?? match[2]);
+  }
+  for (const match of sanitized.matchAll(scenarioState)) {
     values.push(match[1] ?? match[2]);
   }
   return values;
@@ -169,7 +173,7 @@ export function analyzeInteractionDriver(source) {
   return {
     hasInteractionCommand:
       /\buiInput\s+(?:click|inputText|text|keyEvent|swipe|drag|touch)\b/i.test(commands) ||
-      /(?<![\w-])(?:Invoke-(?:Click|Tap)|Send-(?:Token|Message))\b/i.test(commands),
+      /(?<![\w-])(?:Invoke-(?:Click|Tap|Control)|Send-(?:Token|Message))\b/i.test(commands),
     hasAssertionCommand:
       /(?<![\w-])Query-Node\b/i.test(commands) ||
       /\bdevice-ui-(?:layout|material)-assert\.py\b/i.test(commands) ||

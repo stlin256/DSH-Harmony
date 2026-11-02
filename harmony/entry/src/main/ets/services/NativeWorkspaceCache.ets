@@ -237,7 +237,7 @@ export class NativeWorkspaceCache {
 
   static async loadDirectory(context: common.UIAbilityContext, scope: string,
     sessionId: string, path: string): Promise<NativeWorkspaceDirectoryCacheEntry | null> {
-    await NativeWorkspaceCache.writes;
+    await NativeWorkspaceCache.writes.catch((): void => {});
     try {
       const store = await NativeWorkspaceCache.database(context);
       const result = await store.querySql(
@@ -302,7 +302,7 @@ export class NativeWorkspaceCache {
 
   static async loadText(context: common.UIAbilityContext, scope: string,
     sessionId: string, path: string): Promise<NativeWorkspaceTextCacheEntry | null> {
-    await NativeWorkspaceCache.writes;
+    await NativeWorkspaceCache.writes.catch((): void => {});
     try {
       const store = await NativeWorkspaceCache.database(context);
       const result = await store.querySql(
@@ -367,7 +367,7 @@ export class NativeWorkspaceCache {
 
   static async loadBinary(context: common.UIAbilityContext, scope: string,
     sessionId: string, path: string): Promise<NativeWorkspaceCachedBinary | null> {
-    await NativeWorkspaceCache.writes;
+    await NativeWorkspaceCache.writes.catch((): void => {});
     const scopeId = nativeWorkspaceScopeId(scope);
     let fileName = '';
     let version = '';
@@ -440,7 +440,7 @@ export class NativeWorkspaceCache {
     try {
       file = fileIo.openSync(temporary,
         fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.TRUNC);
-      fileIo.writeSync(file.fd, bytes.buffer as ArrayBuffer);
+      fileIo.writeSync(file.fd, bytes.slice().buffer as ArrayBuffer);
       fileIo.closeSync(file);
       file = null;
       fileIo.renameSync(temporary, absolute);
@@ -674,30 +674,32 @@ export class NativeWorkspaceCache {
     } finally { totalRows.close(); }
     while (total > metadataQuota) {
       const rows = await store.querySql(
-        `SELECT kind,path,bytes FROM (
-          SELECT 'directory' AS kind,path,bytes,updated_at
+        `SELECT kind,session_id,path,bytes FROM (
+          SELECT 'directory' AS kind,session_id,path,bytes,updated_at
             FROM directory_cache WHERE scope_id=?
           UNION ALL
-          SELECT 'text' AS kind,path,bytes,updated_at
+          SELECT 'text' AS kind,session_id,path,bytes,updated_at
             FROM text_cache WHERE scope_id=?
         ) ORDER BY updated_at ASC LIMIT 64`, [scopeId, scopeId]);
       const kinds: string[] = [];
+      const sessions: string[] = [];
       const paths: string[] = [];
       let removed = 0;
       try {
         while (rows.goToNextRow()) {
           kinds.push(rows.getString(0));
-          paths.push(rows.getString(1));
-          removed += rows.getLong(2);
+          sessions.push(rows.getString(1));
+          paths.push(rows.getString(2));
+          removed += rows.getLong(3);
         }
       } finally { rows.close(); }
       if (!kinds.length) break;
       for (let index = 0; index < kinds.length; index++) {
         await store.executeSql(
           kinds[index] === 'text' ?
-            'DELETE FROM text_cache WHERE scope_id=? AND path=?' :
-            'DELETE FROM directory_cache WHERE scope_id=? AND path=?',
-          [scopeId, paths[index]]);
+            'DELETE FROM text_cache WHERE scope_id=? AND session_id=? AND path=?' :
+            'DELETE FROM directory_cache WHERE scope_id=? AND session_id=? AND path=?',
+          [scopeId, sessions[index], paths[index]]);
       }
       total -= removed;
     }
@@ -713,28 +715,31 @@ export class NativeWorkspaceCache {
     } finally { totalRows.close(); }
     while (total > binaryQuota) {
       const rows = await store.querySql(
-        `SELECT path,file_name,bytes FROM binary_cache
+        `SELECT session_id,path,file_name,bytes FROM binary_cache
          WHERE scope_id=? ORDER BY updated_at ASC LIMIT 32`, [scopeId]);
+      const sessions: string[] = [];
       const paths: string[] = [];
       const files: string[] = [];
       let removed = 0;
       try {
         while (rows.goToNextRow()) {
-          paths.push(rows.getString(0));
-          files.push(rows.getString(1));
-          removed += rows.getLong(2);
+          sessions.push(rows.getString(0));
+          paths.push(rows.getString(1));
+          files.push(rows.getString(2));
+          removed += rows.getLong(3);
         }
       } finally { rows.close(); }
       if (!paths.length) break;
       for (let index = 0; index < paths.length; index++) {
         const rowsToDelete = await store.querySql(
-          'SELECT file_name FROM binary_cache WHERE scope_id=? AND path=? LIMIT 1',
-          [scopeId, paths[index]]);
+          'SELECT file_name FROM binary_cache WHERE scope_id=? AND session_id=? AND path=? LIMIT 1',
+          [scopeId, sessions[index], paths[index]]);
         try {
           if (rowsToDelete.goToFirstRow()) files[index] = rowsToDelete.getString(0);
         } finally { rowsToDelete.close(); }
-        await store.executeSql('DELETE FROM binary_cache WHERE scope_id=? AND path=?',
-          [scopeId, paths[index]]);
+        await store.executeSql(
+          'DELETE FROM binary_cache WHERE scope_id=? AND session_id=? AND path=?',
+          [scopeId, sessions[index], paths[index]]);
         try {
           const absolute = NativeWorkspaceCache.binaryDirectory(context) + '/' + files[index];
           if (fileIo.accessSync(absolute)) fileIo.unlinkSync(absolute);

@@ -101,7 +101,7 @@ test('task plan header and mode chip stay compact and clipped', () => {
   const workspace = readComponent('NativeWorkspace.ets');
   assert.match(
     workspace,
-    /if \(nativePlanTargetActive\(this\.planProjection\)\) \{\s*Button\(\{ type: ButtonType\.Capsule \}\)/,
+    /if \(nativePlanTargetActive\(this\.planProjection\)\) \{\s*Button\(\{ type: ButtonType\.Normal \}\)/,
   );
   assert.match(
     workspace,

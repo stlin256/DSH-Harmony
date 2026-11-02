@@ -277,6 +277,9 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.match(showcase, /operation === 'planOff'/);
   assert.match(showcase, /showcaseProjectionJson/);
   assert.match(showcase, /this\.childInteractions\.get\(id\)/);
+  assert.match(showcase,
+    /async follow\([\s\S]{0,220}if \(id !== SHOWCASE_SESSION && !child\) return;[\s\S]{0,80}this\.paused = false;/,
+    'a new showcase follow must resume after a prior pause');
   const workspace = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
   assert.match(workspace,
@@ -697,12 +700,27 @@ test('structured tools render command, job, editor and authoritative present rec
   const editor = fields => structured.nativeToolStructured(tool(Object.assign({
     toolName: 'str_replace_editor', phase: 'start', status: 'running'
   }, fields)));
-  assert.equal(editor({args: JSON.stringify({command: 'view', path: 'src/view.ts'})}).family, 'read');
+  const read = editor({args: JSON.stringify({command: 'view', path: 'src/view.ts'})});
+  assert.equal(read.family, 'read');
+  assert.equal(read.displayName, 'view.ts');
+  assert.equal(read.displayDirectory, 'src/');
   assert.equal(editor({args: JSON.stringify({command: 'create', path: 'src/create.ts'})}).family, 'file');
   assert.equal(editor({args: JSON.stringify({
     command: 'str_replace', path: 'src/replace.ts'
   })}).family, 'file');
   assert.equal(editor({args: JSON.stringify({command: 'insert', path: 'src/insert.ts'})}).family, 'file');
+  const search = structured.nativeToolStructured(tool({
+    toolName: 'grep',
+    args: JSON.stringify({pattern: 'headerHeight'}),
+    metaRaw: JSON.stringify({matches: [{
+      path: '/workspace/project/src/theme/layout.ts',
+      matches: [{lineNumber: 12, line: 'export const headerHeight = 52;'}]
+    }]})
+  }), '/workspace/project');
+  assert.equal(search.family, 'search');
+  assert.equal(search.search.files[0].display, 'src/theme/layout.ts');
+  assert.equal(search.search.files[0].name, 'layout.ts');
+  assert.equal(search.search.files[0].directory, 'src/theme/');
 
   const authoritative = JSON.stringify({
     turn: 3, callId: 'present-1',

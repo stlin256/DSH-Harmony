@@ -29,11 +29,14 @@ resolved no-conversation state.
 ## Dock overlap
 
 Conversation uses a `Stack` whose `List` starts at the same top edge as the
-floating `NativeConversationDock`. ArkUI List supports
-`contentStartOffset(number)` since API 11. Measuring the dock with
-`onAreaChange` gives an exact inset for either the collapsed 32-vp control or
-its expanded plan height. This avoids adding a fake row that would interact
-with lazy rendering, scroll anchoring and history prefetch.
+floating `NativeConversationDock`. Initial implementation used
+`contentStartOffset(number)`, but device evidence showed that a list initially
+scrolled to the bottom could still paint its first item beneath the dock. The
+same experiment with top List padding also failed because the bottom-anchored
+scroll position continued to place the first item under the overlay. The dock
+must be a sibling row above the transcript `Stack`; the List then owns only the
+remaining viewport. This avoids a fake lazy row while keeping visible content
+below either the collapsed 32-vp control or its expanded plan height.
 
 ## File browser navigation
 

@@ -20,6 +20,19 @@ export struct NativeDiffBlock {
     if (kind === 'gap') return NativeDesign.textTertiary(this.dark);
     return NativeDesign.textSecondary(this.dark);
   }
+  private normalizedPath(): string {
+    return (this.document.path || '变更').replace(/\\/g, '/').replace(/\/+/g, '/');
+  }
+  private fileName(): string {
+    const clean = this.normalizedPath().replace(/\/+$/, '');
+    const slash = clean.lastIndexOf('/');
+    return slash >= 0 ? clean.slice(slash + 1) : clean;
+  }
+  private directory(): string {
+    const clean = this.normalizedPath().replace(/\/+$/, '');
+    const slash = clean.lastIndexOf('/');
+    return slash >= 0 ? clean.slice(0, slash + 1) : '';
+  }
   private rowBackground(kind: string): ResourceColor {
     if (kind === 'add') return NativeDesign.successSurface(this.dark);
     if (kind === 'del') return NativeDesign.dangerSurface(this.dark);
@@ -80,15 +93,24 @@ export struct NativeDiffBlock {
   build() {
     Column({ space: 0 }) {
       Row({ space: 2 }) {
-        Text(this.document.path || '变更').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium).layoutWeight(1)
-          .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-          .fontColor(NativeDesign.accent(this.dark))
+        Column({ space: 1 }) {
+          Text(this.fileName()).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
+            .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+            .fontColor(NativeDesign.accent(this.dark))
+          if (this.directory()) {
+            Text(this.directory()).fontSize(NativeDesign.fontMicro).maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .fontFamily('Noto Sans Mono, monospace')
+              .fontColor(NativeDesign.textTertiary(this.dark))
+          }
+        }.layoutWeight(1).constraintSize({ minWidth: 0 }).alignItems(HorizontalAlign.Start)
         Button({ type: ButtonType.Normal }) {
           Text('#').fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
             .fontFamily('Noto Sans Mono, monospace')
             .fontColor(this.showLineNumbers ? NativeDesign.textPrimary(this.dark) :
               NativeDesign.textTertiary(this.dark))
-        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+        }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+          .responseRegion({ x: -4, y: -4, width: NativeDesign.hitTarget, height: NativeDesign.hitTarget })
           .padding(0).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.showLineNumbers ?
             NativeDesign.selection(this.dark) : Color.Transparent)
@@ -97,7 +119,8 @@ export struct NativeDiffBlock {
         Button({ type: ButtonType.Normal }) {
           DSHIcon({ glyph: this.copied ? 'check-outline' : 'copy-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textTertiary(this.dark) })
-        }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+        }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+          .responseRegion({ x: -4, y: -4, width: NativeDesign.hitTarget, height: NativeDesign.hitTarget })
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
           .accessibilityText(this.copied ? '已复制 Diff' : '复制 Diff').onClick(() => { this.copy(); })
         if (this.document.rows.length > 16) {
@@ -105,16 +128,18 @@ export struct NativeDiffBlock {
             DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline,
               color: NativeDesign.textTertiary(this.dark) })
               .rotate({ angle: this.expanded ? -90 : 180 })
-          }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget)
+          }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+            .responseRegion({ x: -4, y: -4, width: NativeDesign.hitTarget, height: NativeDesign.hitTarget })
             .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
             .accessibilityText(this.expanded ? '收起 Diff' : '展开 Diff').onClick(() => { this.toggle(); })
         }
-      }.height(NativeDesign.hitTarget).width('100%')
+      }.constraintSize({ minHeight: NativeDesign.hitTarget }).width('100%')
       Scroll() {
         Column({ space: 0 }) {
           ForEach(this.shownRows(), (row: NativeDiffRow) => {
             this.line(row)
-          }, (_row: NativeDiffRow, index: number) => index.toString())
+          }, (row: NativeDiffRow, index: number) => index.toString() + '|' + row.kind + '|' +
+            row.oldLine.toString() + '|' + row.newLine.toString() + '|' + row.text)
         }.alignItems(HorizontalAlign.Start).width('100%')
       }.scrollable(ScrollDirection.Horizontal).width('100%')
         .constraintSize({ maxHeight: this.expanded ? 420 : 224 })

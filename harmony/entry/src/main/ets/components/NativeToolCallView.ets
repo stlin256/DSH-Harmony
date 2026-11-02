@@ -53,6 +53,16 @@ export struct NativeToolCallView {
       this.disclosures.set(this.message.turnKey + '|' + this.message.id, this.expanded);
     });
   }
+  private hasRenderableBody(): boolean {
+    return this.diff.matched || this.message.toolName === 'todo_write' ||
+      this.structured.bodyStructured || this.message.images.length > 0 ||
+      (this.structured.showRawArguments && !!this.message.args &&
+        nativeToolArgumentsVisible(this.message)) ||
+      (this.structured.showRawOutput && !!this.message.output &&
+        nativeToolOutputVisible(this.message)) ||
+      !!this.message.error || this.message.status === 'interrupted' ||
+      this.message.children.length > 0;
+  }
   build() {
     Column({ space: 4 }) {
       if (!this.hideHeader) {
@@ -64,12 +74,10 @@ export struct NativeToolCallView {
               this.message.status === 'running' || this.message.status === 'preparing'))
               .fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
               .fontColor(NativeDesign.textSecondary(this.dark)).maxLines(1)
-            if (this.detail) {
+            if (this.detail && !this.expanded) {
               Text('·').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
               Text(this.detail).fontSize(NativeDesign.fontSection).layoutWeight(1).maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(NativeDesign.textTertiary(this.dark))
-                .opacity(this.expanded ? 0 : 1).translate({ x: this.expanded ? 4 : 0 })
-                .animation(NativeMotion.disclosureParam())
             } else {
               Blank().layoutWeight(1)
             }
@@ -94,6 +102,7 @@ export struct NativeToolCallView {
         }.height(NativeDesign.compactControl).width('100%').padding({ left: 2, right: 2 })
           .backgroundColor(Color.Transparent)
           .responseRegion({ x: 0, y: -7, width: '100%', height: NativeDesign.hitTarget })
+          .accessibilityText(this.expanded ? '收起工具详情' : '展开工具详情')
           .onClick(() => { this.toggle(); })
       }
       if (this.forceExpanded || this.expanded) {
@@ -153,6 +162,10 @@ export struct NativeToolCallView {
                 workspaceRoot: this.workspaceRoot, onOpenFile: this.onOpenFile,
                 maxExpandedHeight: this.maxExpandedHeight })
             }, (child: NativeMessage) => child.id)
+            if (!this.hasRenderableBody()) {
+              Text('工具没有返回内容').fontSize(NativeDesign.fontCompact)
+                .fontColor(NativeDesign.textTertiary(this.dark))
+            }
           }.padding({ left: 8, right: 16, top: 8, bottom: 8 }).width('100%')
             .alignItems(HorizontalAlign.Start).borderRadius(NativeDesign.radiusCompact)
             .backgroundColor(NativeDesign.field(this.dark))
@@ -196,13 +209,11 @@ struct NativeNestedToolRow {
           Text(nativeActivity(nativeToolCategory(this.message.toolName, this.message.args),
             this.message.status === 'running' || this.message.status === 'preparing'))
             .fontSize(NativeDesign.fontCaption).fontColor(NativeDesign.textSecondary(this.dark))
-          if (this.preview()) {
+          if (this.preview() && !this.expanded) {
             Text('·').fontSize(NativeDesign.fontCaption).fontColor(NativeDesign.textTertiary(this.dark))
             Text(this.preview()).fontSize(NativeDesign.fontCaption).layoutWeight(1).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textTertiary(this.dark))
-              .opacity(this.expanded ? 0 : 1)
-              .animation(NativeMotion.disclosureParam())
           } else {
             Blank().layoutWeight(1)
           }
@@ -213,7 +224,9 @@ struct NativeNestedToolRow {
         }.width('100%')
       }.height(NativeDesign.compactChip).width('100%').padding({ left: 2, right: 2 })
         .responseRegion({ x: 0, y: -8, width: '100%', height: NativeDesign.hitTarget })
-        .backgroundColor(Color.Transparent).onClick((): void => { this.toggle(); })
+        .backgroundColor(Color.Transparent)
+        .accessibilityText(this.expanded ? '收起嵌套工具详情' : '展开嵌套工具详情')
+        .onClick((): void => { this.toggle(); })
       if (this.expanded) {
         Scroll() {
           Column({ space: 5 }) {

@@ -5,7 +5,8 @@
 ## 1. 源码基线与目标
 
 - 官方仓库：[deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)。
-- 锁定 revision：`f3803c96974ad4a94195fb97e5c637e9c2a3afe3`，`0.2.2-alpha.2`；2026-10-29 核对官方 HEAD 与此一致。
+- 唯一协议基线：[protocol.lock.json](../protocol.lock.json)。
+- 锁定 canonical revision：`ce7073d51254c26cd63b22a60835b8f948deb447`；DSH package `0.2.2-alpha.2`，wire protocol v2。发布 tag `dsh-v0.2.2-alpha.2` 指向 `f3803c96974ad4a94195fb97e5c637e9c2a3afe3`，两者 package version 相同；实现与测试以 canonical revision 为准。
 - 研究分为聊天、工作区、设置与视觉三条，并补充非ui包贡献的入口及完整内置交互目录。证据见[聊天](research/upstream-chat.md)、[工作区](research/upstream-workspaces.md)、[设置与视觉](research/upstream-settings-visual.md)、[扩展交互目录](research/upstream-extended-ui.md)。源码引用均针对上述revision。
 - 用 ArkTS/ArkUI 重写官方的状态、操作、排序、内容投影与错误恢复；保留原版图标和视觉语义。适配手机的改变限于可用空间、触控、键盘、安全区和系统返回。
 - 不用原始 JSON 列表、临时网页或占位按钮冒充原生等价实现。第三方自定义页面与尚未移植的内置功能分别记录。不得把“打开兼容模式”记为完成该原生功能。

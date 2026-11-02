@@ -183,6 +183,29 @@ function Query-Rightmost-Action {
   return (($raw -join '') | ConvertFrom-Json)
 }
 
+function Wait-Rightmost-Action {
+  param(
+    [string]$Name,
+    [int]$AnchorX,
+    [int]$AnchorY,
+    [int]$TimeoutMilliseconds = 6000
+  )
+  $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMilliseconds)
+  $lastError = ''
+  $attempt = 0
+  do {
+    $attempt++
+    try {
+      $layout = Dump-Layout "$Name-$attempt"
+      return (Query-Rightmost-Action $layout $AnchorX $AnchorY)
+    } catch {
+      $lastError = $_.Exception.Message
+      Start-Sleep -Milliseconds 250
+    }
+  } while ([DateTime]::UtcNow -lt $deadline)
+  throw "Enabled composer action did not appear after $TimeoutMilliseconds ms: $lastError"
+}
+
 function Return-To-ParentConversation {
   for ($attempt = 0; $attempt -lt 3; $attempt++) {
     $layout = Dump-Layout "returned-parent-$attempt"
@@ -235,7 +258,8 @@ $composerFocused = Dump-Layout 'continuable-focused'
 $focusedComposer = Query-Node $composerFocused '发送消息…' 'text' 1
 Enter-Text $focusedComposer 'subagent_probe'
 $composerActive = Dump-Layout 'continuable-active'
-$send = Query-Rightmost-Action $composerActive $focusedComposer.x $focusedComposer.y
+$null = Query-Node $composerActive 'subagent_probe' 'text' 1
+$send = Wait-Rightmost-Action 'continuable-send-enabled' $focusedComposer.x $focusedComposer.y
 Invoke-Click $send
 $null = Wait-Query-Node 'subagent-sent' 'subagent_probe' 'text' 1
 $subagentSent = Dump-Layout 'subagent-sent'

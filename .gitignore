@@ -15,5 +15,12 @@ gateway/data/
 *.log
 .DS_Store
 .artifacts/
+artifacts/qa/
+artifacts/device-e2e/
+artifacts/device-ui-*/
+artifacts/device-native-default-*
+artifacts/dsh-current-normal.*
+/device-*.jpeg
+/$null
 dist/
 __pycache__/

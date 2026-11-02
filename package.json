@@ -1,0 +1,15 @@
+{
+  "name": "dsh-harmony",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.9.0"
+  },
+  "scripts": {
+    "qa": "node scripts/qa.mjs",
+    "qa:fast": "node scripts/qa.mjs fast",
+    "qa:pr": "node scripts/qa.mjs pr",
+    "qa:release": "node scripts/qa.mjs release",
+    "test": "node scripts/qa.mjs pr"
+  }
+}

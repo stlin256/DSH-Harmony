@@ -17,6 +17,7 @@ import { NativeSessionTools } from './NativeSessionTools';
 import { NativeModelPicker } from './NativeModelPicker';
 import { NativeMessageView } from './NativeMessageView';
 import { NativeBackgroundNoticeView } from './NativeBackgroundNoticeView';
+import { NativeDisclosureFixture } from './NativeDisclosureFixture';
 import { DSHIcon } from './DSHIcon';
 import { NativeProcessView } from './NativeProcessView';
 import {
@@ -136,6 +137,7 @@ export struct NativeWorkspace {
   @State private interactions: NativeFrame[] = [];
   @State private attachments: NativeAttachmentDraft[] = [];
   @State private imagePreviewOpen: boolean = false;
+  @State private showcaseDisclosureOpen: boolean = false;
   @State private imagePreview: NativeImagePreviewRequest = new NativeImagePreviewRequest();
   @State private fileViewOpen: boolean = false;
   @State private fileView: NativeFileViewRequest = new NativeFileViewRequest();
@@ -560,6 +562,11 @@ export struct NativeWorkspace {
     return nativeSubagentComposerEnabled(this.activeAddress, this.subagentIdentity,
       this.subagentIdentityKnown, this.currentParentAgentAvailable(), this.running);
   }
+  private composerCanSend(): boolean {
+    return this.connectionPhase === 'live' && !this.sending && !this.uncertain &&
+      this.attachmentsReady() && this.currentSubagentInputEnabled() &&
+      (this.draft.trim().length > 0 || this.attachments.length > 0);
+  }
   private currentParentAgentAvailable(): boolean | undefined {
     if (this.activeAddress.kind !== 'subagent') return true;
     return this.sessions.find((session: NativeSession): boolean =>
@@ -657,6 +664,7 @@ export struct NativeWorkspace {
     this.mounted = true;
     this.reload();
     const showcaseScreen = AppStorage.get<string>('storeShowcaseScreen') || '';
+    this.showcaseDisclosureOpen = showcaseScreen === 'disclosure';
     if (showcaseScreen === 'sidebar') {
       setTimeout((): void => {
         if (this.mounted) this.openDrawer(false);
@@ -2843,10 +2851,11 @@ export struct NativeWorkspace {
           }.width('100%').padding({ left: 10, right: 10 })
         }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.moreOpen ? this.fieldSurface() : Color.Transparent)
+          .accessibilityText(this.moreOpen ? '收起更多' : '展开更多')
           .onClick((): void => { this.toggleMore(); })
         if (this.moreOpen) {
           Column({ space: 1 }) {
-            Button({ type: ButtonType.Capsule }) {
+            Button({ type: ButtonType.Normal }) {
               Row({ space: 10 }) {
                 DSHIcon({ glyph: 'folder-outline', glyphSize: NativeDesign.glyphControl, color: this.secondaryText() })
                 Text('文件浏览').fontSize(NativeDesign.fontCompact).layoutWeight(1).fontColor(this.primaryText())
@@ -2900,7 +2909,8 @@ export struct NativeWorkspace {
           }.onClick(() => {
             if (!entry.group) this.select(entry.session.id);
             else this.toggleWorkspaceGroup(entry.workspaceId);
-          }).accessibilityText(entry.group ? entry.title :
+          }).accessibilityText(entry.group ?
+            (this.collapsedGroups.includes(entry.workspaceId) ? '展开工作区 ' : '收起工作区 ') + entry.title :
             entry.session.title + (entry.pinned ? '，已置顶' : '') +
             (entry.section === 'pinnedSession' && entry.workspaceTitle ?
               '，工作区 ' + entry.workspaceTitle : '') +
@@ -3032,11 +3042,8 @@ export struct NativeWorkspace {
           }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
             .borderRadius(NativeDesign.compactHitTarget / 2)
             .backgroundColor(NativeDesign.accentStrong(this.dark))
-            .enabled(this.connectionPhase === 'live' && !this.sending && !this.uncertain &&
-              this.attachmentsReady() && (this.draft.trim().length > 0 || this.attachments.length > 0))
-            .opacity(this.connectionPhase === 'live' && !this.sending && !this.uncertain &&
-              this.attachmentsReady() && (this.draft.trim().length > 0 || this.attachments.length > 0) ?
-              1 : 0.4)
+            .enabled(this.composerCanSend())
+            .opacity(this.composerCanSend() ? 1 : 0.4)
             .accessibilityText(this.sending ? '发送中' : '发送')
             .onClick(() => { this.followTail = true; this.send(); })
         }
@@ -3092,7 +3099,7 @@ export struct NativeWorkspace {
         ((this.subagentCatalog?.length || 0) > 0)) {
         Row({ space: 6 }) {
           if (nativePlanTargetActive(this.planProjection)) {
-            Button({ type: ButtonType.Capsule }) {
+            Button({ type: ButtonType.Normal }) {
               Row({ space: 5 }) {
                 DSHIcon({ glyph: 'plan-outline', glyphSize: NativeDesign.glyphCompact, color: this.accentColor() })
                 Text('计划').fontSize(NativeDesign.fontCaption).fontColor(this.accentColor())
@@ -3115,7 +3122,7 @@ export struct NativeWorkspace {
           }
           Blank()
           if ((this.subagentCatalog?.length || 0) > 0) {
-            Button({ type: ButtonType.Capsule }) {
+            Button({ type: ButtonType.Normal }) {
               Row({ space: 5 }) {
                 if (this.runningSubagentCount() > 0) {
                   Text('').width(6).height(6).borderRadius(3)
@@ -3570,32 +3577,37 @@ export struct NativeWorkspace {
 
   build() {
     Stack() {
-      if (this.wide) {
-        SideBarContainer(SideBarContainerType.Embed) {
-          Column() { this.sessionList() }.width('100%').height('100%')
-          Column() { this.mainSurface() }.width('100%').height('100%')
+      if (!this.showcaseDisclosureOpen) {
+        Column() {
+          if (this.wide) {
+            SideBarContainer(SideBarContainerType.Embed) {
+              Column() { this.sessionList() }.width('100%').height('100%')
+              Column() { this.mainSurface() }.width('100%').height('100%')
+            }
+            .showSideBar(true)
+            .showControlButton(false)
+            .autoHide(false)
+            .sideBarPosition(SideBarPosition.Start)
+            .sideBarWidth(248)
+            .minSideBarWidth(248)
+            .maxSideBarWidth(248)
+            .divider(null)
+            .width('100%').height('100%')
+            .onAreaChange((_old: Area, area: Area) => {
+              this.windowWidth = Number(area.width);
+              this.wide = this.windowWidth >= 760;
+              this.navigationChanged();
+            })
+          } else {
+            Column() { this.mobileShell() }.width('100%').height('100%')
+              .onAreaChange((_old: Area, area: Area) => {
+                this.windowWidth = Number(area.width);
+                this.wide = this.windowWidth >= 760;
+                this.navigationChanged();
+              })
+          }
         }
-        .showSideBar(true)
-        .showControlButton(false)
-        .autoHide(false)
-        .sideBarPosition(SideBarPosition.Start)
-        .sideBarWidth(248)
-        .minSideBarWidth(248)
-        .maxSideBarWidth(248)
-        .divider(null)
         .width('100%').height('100%')
-        .onAreaChange((_old: Area, area: Area) => {
-          this.windowWidth = Number(area.width);
-          this.wide = this.windowWidth >= 760;
-          this.navigationChanged();
-        })
-      } else {
-        Column() { this.mobileShell() }.width('100%').height('100%')
-          .onAreaChange((_old: Area, area: Area) => {
-            this.windowWidth = Number(area.width);
-            this.wide = this.windowWidth >= 760;
-            this.navigationChanged();
-          })
       }
 
       if (this.adminDestination === 'plugins') {
@@ -3649,6 +3661,11 @@ export struct NativeWorkspace {
         NativeImageLightbox({ client: this.client, sessionId: this.imagePreview.sessionId,
           attachment: this.imagePreview.attachment,
           onClose: (): void => { this.closeImagePreview(); } })
+      }
+      if (this.showcaseDisclosureOpen) {
+        NativeDisclosureFixture({
+          state: AppStorage.get<string>('storeShowcaseState') || 'disclosure-task-plan'
+        })
       }
     }.width('100%').height('100%').backgroundColor(this.baseSurface())
   }

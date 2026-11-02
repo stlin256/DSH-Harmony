@@ -228,7 +228,9 @@ export struct NativeQueueDock {
                 .animation(NativeMotion.disclosureParam())
             }.width('100%')
           }.width('100%').height(NativeDesign.compactControl).padding({ left: 8, right: 8 })
-            .backgroundColor(Color.Transparent).onClick((): void => { this.toggleCollapsed(); })
+            .backgroundColor(Color.Transparent)
+            .accessibilityText(this.expanded() ? '收起排队消息' : '展开排队消息')
+            .onClick((): void => { this.toggleCollapsed(); })
         }
         if (this.expanded()) {
           Column({ space: 4 }) {

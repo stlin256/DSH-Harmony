@@ -31,6 +31,8 @@ export class NativeStructuredSearchLine {
 export class NativeStructuredSearchFile {
   path: string = '';
   display: string = '';
+  name: string = '';
+  directory: string = '';
   matches: NativeStructuredSearchLine[] = [];
 }
 
@@ -168,6 +170,8 @@ export class NativeToolStructured {
   summaryIsCode: boolean = false;
   path: string = '';
   displayPath: string = '';
+  displayName: string = '';
+  displayDirectory: string = '';
   fields: NativeStructuredField[] = [];
   read: NativeStructuredRead = new NativeStructuredRead();
   search: NativeStructuredSearch = new NativeStructuredSearch();
@@ -413,6 +417,12 @@ function basename(path: string): string {
   return parts[parts.length - 1] || clean;
 }
 
+function parentDirectory(path: string): string {
+  const clean = path.replace(/\\/g, '/');
+  const slash = clean.lastIndexOf('/');
+  return slash >= 0 ? clean.slice(0, slash + 1) : '';
+}
+
 function normalizePath(path: string): string {
   let value = (path || '').trim().replace(/\\/g, '/');
   while (value.startsWith('./')) value = value.slice(2);
@@ -446,6 +456,8 @@ function addField(document: NativeToolStructured, label: string, value: string,
 function setPath(document: NativeToolStructured, path: string, workspaceRoot: string): void {
   document.path = normalizePath(path);
   document.displayPath = nativeStructuredDisplayPath(document.path, workspaceRoot);
+  document.displayName = basename(document.displayPath);
+  document.displayDirectory = parentDirectory(document.displayPath);
 }
 
 function utf8ByteLength(value: string): number {
@@ -1051,6 +1063,8 @@ function parseSearch(document: NativeToolStructured, tool: NativeMessage,
         const file = new NativeStructuredSearchFile();
         file.path = normalizePath(path);
         file.display = nativeStructuredDisplayPath(file.path, workspaceRoot);
+        file.name = basename(file.display);
+        file.directory = parentDirectory(file.display);
         document.search.paths.push(file);
       }
       document.search.valid = true;
@@ -1072,6 +1086,8 @@ function parseSearch(document: NativeToolStructured, tool: NativeMessage,
       const file = new NativeStructuredSearchFile();
       file.path = normalizePath(path);
       file.display = nativeStructuredDisplayPath(file.path, workspaceRoot);
+      file.name = basename(file.display);
+      file.directory = parentDirectory(file.display);
       for (const rawMatch of item['matches'] as Object[]) {
         const match = recordValue(rawMatch);
         const number = match ? integerValue(match['lineNumber'], false) : -1;

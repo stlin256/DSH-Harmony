@@ -86,13 +86,11 @@ export struct NativeProcessView {
           DSHIcon({ glyph: 'think-outline', color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphCompact })
           Text('工作过程').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
             .fontColor(NativeDesign.textSecondary(this.dark))
-          if (this.message.detail) {
+          if (this.message.detail && !this.expanded) {
             Text('·').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
             Text(this.message.detail).fontSize(NativeDesign.fontSection).layoutWeight(1).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textTertiary(this.dark))
-              .opacity(this.expanded ? 0 : 1)
-              .animation(NativeMotion.disclosureParam())
           } else {
             Blank().layoutWeight(1)
           }
@@ -103,7 +101,9 @@ export struct NativeProcessView {
         }.width('100%')
       }.height(NativeDesign.compactControl).width('100%').padding({ left: 2, right: 2 })
         .responseRegion({ x: 0, y: -7, width: '100%', height: NativeDesign.hitTarget })
-        .backgroundColor(Color.Transparent).onClick((): void => { this.toggle(); })
+        .backgroundColor(Color.Transparent)
+        .accessibilityText(this.expanded ? '收起工作过程' : '展开工作过程')
+        .onClick((): void => { this.toggle(); })
       if (this.expanded) { this.members() }
     }.width('100%').alignItems(HorizontalAlign.Start)
       .transition(this.newlyAppeared ? NativeMotion.processEntranceTransition() : TransitionEffect.IDENTITY)

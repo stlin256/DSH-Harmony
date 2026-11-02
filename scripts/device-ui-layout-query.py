@@ -41,19 +41,38 @@ def label(node: dict[str, Any]) -> str:
 def inside(root_bounds: tuple[int, int, int, int], value: str) -> bool:
     left, top, right, bottom = parse_bounds(value)
     root_left, root_top, root_right, root_bottom = root_bounds
-    return (
-        left >= root_left
-        and top >= root_top
-        and right <= root_right
-        and bottom <= root_bottom
-        and right > left
-        and bottom > top
-    )
+    visible_left = max(left, root_left)
+    visible_top = max(top, root_top)
+    visible_right = min(right, root_right)
+    visible_bottom = min(bottom, root_bottom)
+    return visible_right > visible_left and visible_bottom > visible_top
+
+
+def effectively_visible(
+    attributes: dict[str, Any],
+    root_bounds: tuple[int, int, int, int],
+) -> bool:
+    if attributes.get("visible") != "true":
+        return False
+    try:
+        opacity = float(attributes.get("opacity", "1"))
+    except (TypeError, ValueError):
+        opacity = 1.0
+    return opacity > 0.01 and inside(root_bounds, attributes.get("bounds", ""))
 
 
 def center(value: str) -> tuple[int, int]:
     left, top, right, bottom = parse_bounds(value)
     return ((left + right) // 2, (top + bottom) // 2)
+
+
+def visible_center(root_bounds: tuple[int, int, int, int], value: str) -> tuple[int, int]:
+    left, top, right, bottom = parse_bounds(value)
+    root_left, root_top, root_right, root_bottom = root_bounds
+    return (
+        (max(left, root_left) + min(right, root_right)) // 2,
+        (max(top, root_top) + min(bottom, root_bottom)) // 2,
+    )
 
 
 def main() -> int:
@@ -71,6 +90,13 @@ def main() -> int:
         type=int,
         metavar=("X", "Y"),
         help="select the first enabled clickable row below an anchor, preferring the rightmost node",
+    )
+    text_group.add_argument(
+        "--rightmost-clickable-near",
+        nargs=3,
+        type=float,
+        metavar=("X", "Y", "RADIUS"),
+        help="select the rightmost enabled clickable node near an anchor row",
     )
     parser.add_argument(
         "--container-text-hex",
@@ -90,6 +116,8 @@ def main() -> int:
         action="store_true",
         help="match the complete visible text instead of a substring",
     )
+    parser.add_argument("--minimum-y", type=int)
+    parser.add_argument("--maximum-y", type=int)
     args = parser.parse_args()
 
     find_text = None
@@ -104,9 +132,12 @@ def main() -> int:
     container_matches: list[tuple[dict[str, Any], list[dict[str, Any]]]] = []
     for node, ancestors in walk(root):
         attributes = node.get("attributes", {})
-        if attributes.get("visible") != "true":
+        if not effectively_visible(attributes, root_bounds):
             continue
-        if not inside(root_bounds, attributes.get("bounds", "")):
+        _, candidate_y = center(attributes["bounds"])
+        if args.minimum_y is not None and candidate_y < args.minimum_y:
+            continue
+        if args.maximum_y is not None and candidate_y > args.maximum_y:
             continue
         candidate_label = label(node)
         if find_text is not None:
@@ -128,16 +159,42 @@ def main() -> int:
         candidates = []
         for node, ancestors in walk(root):
             attributes = node.get("attributes", {})
-            if (attributes.get("visible") != "true" or
+            if (not effectively_visible(attributes, root_bounds) or
                     attributes.get("clickable") != "true" or
-                    attributes.get("enabled") != "true" or
-                    not inside(root_bounds, attributes.get("bounds", ""))):
+                    attributes.get("enabled") != "true"):
                 continue
             x, y = center(attributes["bounds"])
+            if args.minimum_y is not None and y < args.minimum_y:
+                continue
+            if args.maximum_y is not None and y > args.maximum_y:
+                continue
             if x > anchor_x and 0 < y - anchor_y <= 500:
                 candidates.append((y, -x, node, ancestors))
         if not candidates:
             print("no enabled clickable node found below the anchor", file=sys.stderr)
+            return 1
+        candidates.sort(key=lambda candidate: (candidate[0], candidate[1]))
+        _, _, node, ancestors = candidates[0]
+        matches = [(node, ancestors)]
+    elif args.rightmost_clickable_near:
+        anchor_x, anchor_y, radius = args.rightmost_clickable_near
+        candidates = []
+        for node, ancestors in walk(root):
+            attributes = node.get("attributes", {})
+            if (not effectively_visible(attributes, root_bounds) or
+                    attributes.get("clickable") != "true" or
+                    attributes.get("enabled") != "true"):
+                continue
+            x, y = center(attributes["bounds"])
+            if args.minimum_y is not None and y < args.minimum_y:
+                continue
+            if args.maximum_y is not None and y > args.maximum_y:
+                continue
+            delta_y = abs(y - anchor_y)
+            if x > anchor_x and delta_y <= radius:
+                candidates.append((delta_y, -x, node, ancestors))
+        if not candidates:
+            print("no enabled clickable node found near the anchor", file=sys.stderr)
             return 1
         candidates.sort(key=lambda candidate: (candidate[0], candidate[1]))
         _, _, node, ancestors = candidates[0]
@@ -155,8 +212,7 @@ def main() -> int:
             descendant_matches = [
                 (candidate, candidate_ancestors)
                 for candidate, candidate_ancestors in walk(ancestor)
-                if candidate.get("attributes", {}).get("visible") == "true"
-                and inside(root_bounds, candidate.get("attributes", {}).get("bounds", ""))
+                if effectively_visible(candidate.get("attributes", {}), root_bounds)
                 and (
                     label(candidate) == find_text
                     if args.exact_text
@@ -209,7 +265,7 @@ def main() -> int:
                     break
             if target is not node:
                 break
-    x, y = center(target["attributes"]["bounds"])
+    x, y = visible_center(root_bounds, target["attributes"]["bounds"])
 
     checked: str | None = None
     for candidate in reversed(ancestors):

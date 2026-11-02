@@ -4,23 +4,39 @@ on:
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: source-checks-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  gateway:
+  quality:
     runs-on: ubuntu-latest
+    env:
+      DSH_QA_ARTIFACT_DIR: artifacts/qa
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '24.19.0'
           cache: npm
           cache-dependency-path: gateway/package-lock.json
       - run: npm ci --ignore-scripts
         working-directory: gateway
-      - run: npm test
-        working-directory: gateway
+      - name: Pull request diff hygiene
+        if: github.event_name == 'pull_request'
+        run: git diff --check "${{ github.event.pull_request.base.sha }}...HEAD"
+      - name: Head commit whitespace hygiene
+        run: git show --check --format= HEAD
+      - run: node scripts/qa.mjs pr
       - run: npm audit --audit-level=low
         working-directory: gateway
       - run: node scripts/package-plugin.mjs
       - run: node scripts/check-publication.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/qa/
+          if-no-files-found: error
+          retention-days: 30

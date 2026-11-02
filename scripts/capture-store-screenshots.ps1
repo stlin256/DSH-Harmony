@@ -1,5 +1,5 @@
 param(
-  [string]$DevEcoHome = 'C:\Users\yjzlx\AppData\Local\Programs\Huawei\DevEcoStudio-26.0.0',
+  [string]$DevEcoHome = '',
   [string]$HapPath = '',
   [string]$Device = '',
   [string]$OutputDir = '',
@@ -10,6 +10,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'resolve-deveco-home.ps1')
+$DevEcoHome = Resolve-DevEcoHome -ExplicitHome $DevEcoHome
 if (-not $HapPath) {
   $HapPath = Join-Path $repo 'harmony\entry\build\store\outputs\store\entry-store-signed.hap'
 }

@@ -50,7 +50,8 @@ export struct NativeStructuredToolView {
   }
 
   private viewerHeight(): number {
-    return Math.max(128, Math.min(280, this.maxExpandedHeight));
+    const contentHeight = Math.max(44, this.document.read.lines.length * 22 + 20);
+    return Math.max(64, Math.min(280, this.maxExpandedHeight, contentHeight));
   }
 
   private openUrl(url: string): void {
@@ -85,14 +86,24 @@ export struct NativeStructuredToolView {
       Row({ space: 7 }) {
         DSHIcon({ glyph: 'file-outline', glyphSize: NativeDesign.glyphCompact,
           color: NativeDesign.textTertiary(this.dark) })
-        Text(this.document.displayPath || this.document.path).layoutWeight(1).fontSize(NativeDesign.fontCaption)
-          .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-          .fontFamily('Noto Sans Mono, monospace').fontColor(NativeDesign.accent(this.dark))
+        Column({ space: 1 }) {
+          Text(this.document.displayName || this.document.displayPath || this.document.path)
+            .fontSize(NativeDesign.fontCaption).maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .fontColor(NativeDesign.accent(this.dark))
+          if (this.document.displayDirectory) {
+            Text(this.document.displayDirectory).fontSize(NativeDesign.fontMicro).maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .fontFamily('Noto Sans Mono, monospace')
+              .fontColor(NativeDesign.textTertiary(this.dark))
+          }
+        }.layoutWeight(1).constraintSize({ minWidth: 0 }).alignItems(HorizontalAlign.Start)
         DSHIcon({ glyph: 'chevron-right-outline', glyphSize: NativeDesign.glyphInline,
           color: NativeDesign.textTertiary(this.dark) })
       }.width('100%')
-    }.height(NativeDesign.compactControl).width('100%').padding({ left: 4, right: 4 })
+    }.height(NativeDesign.compactHitTarget).width('100%').padding({ left: 4, right: 4 })
       .borderRadius(NativeDesign.radiusCompact).backgroundColor(NativeDesign.field(this.dark))
+      .accessibilityText('打开文件 ' + (this.document.displayPath || this.document.path))
       .onClick((): void => { this.onOpenFile(this.document.path); })
   }
 
@@ -115,14 +126,23 @@ export struct NativeStructuredToolView {
         Row({ space: 7 }) {
           DSHIcon({ glyph: 'file-outline', glyphSize: NativeDesign.glyphCompact,
             color: NativeDesign.textTertiary(this.dark) })
-          Text(file.display || file.path).layoutWeight(1).fontSize(NativeDesign.fontCaption).maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .fontFamily('Noto Sans Mono, monospace').fontColor(NativeDesign.accent(this.dark))
+          Column({ space: 1 }) {
+            Text(file.name || file.display || file.path).fontSize(NativeDesign.fontCaption)
+              .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+              .fontColor(NativeDesign.accent(this.dark))
+            if (file.directory) {
+              Text(file.directory).fontSize(NativeDesign.fontMicro).maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .fontFamily('Noto Sans Mono, monospace')
+                .fontColor(NativeDesign.textTertiary(this.dark))
+            }
+          }.layoutWeight(1).constraintSize({ minWidth: 0 }).alignItems(HorizontalAlign.Start)
           DSHIcon({ glyph: 'chevron-right-outline', glyphSize: NativeDesign.glyphInline,
             color: NativeDesign.textTertiary(this.dark) })
         }.width('100%')
-      }.height(NativeDesign.compactChip).width('100%').padding({ left: 2, right: 2 })
+      }.height(NativeDesign.compactHitTarget).width('100%').padding({ left: 2, right: 2 })
         .backgroundColor(Color.Transparent)
+        .accessibilityText('打开文件 ' + (file.display || file.path))
         .onClick((): void => { this.onOpenFile(file.path); })
       if (file.matches.length) {
         Column({ space: 3 }) {

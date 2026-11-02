@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dsh-harmony:evidence-manifest:1",
+  "title": "DSH Harmony evidence manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "generatedAt",
+    "git",
+    "upstream",
+    "scope",
+    "product",
+    "hap",
+    "device",
+    "status",
+    "steps",
+    "metrics",
+    "artifacts"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "runId": {
+      "$ref": "#/$defs/nonEmptyString"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "dirty"],
+      "properties": {
+        "commit": {
+          "$ref": "#/$defs/gitCommit"
+        },
+        "dirty": {
+          "type": "boolean"
+        }
+      }
+    },
+    "upstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "version"],
+      "properties": {
+        "commit": {
+          "$ref": "#/$defs/gitCommit"
+        },
+        "version": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["featureIds", "scenarioId"],
+      "properties": {
+        "featureIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "scenarioId": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "product": {
+      "enum": ["default", "store", "mock"]
+    },
+    "hap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256"],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/hapPath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/nullableSha256"
+        }
+      }
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["serial", "model", "api"],
+      "properties": {
+        "serial": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "model": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "api": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "abi": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "orientation": {
+          "enum": ["portrait", "landscape"]
+        }
+      }
+    },
+    "status": {
+      "$ref": "#/$defs/overallStatus"
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "contains": {
+        "type": "object",
+        "required": ["mandatory", "status"],
+        "properties": {
+          "mandatory": {
+            "const": true
+          },
+          "status": {
+            "const": "passed"
+          }
+        }
+      },
+      "minContains": 1,
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/metric"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "node": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "hvigor": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "sdk": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "failure": {
+      "$ref": "#/$defs/failure"
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "gitCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
+    },
+    "nullableSha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+    },
+    "hapPath": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/relativePath"
+        },
+        {
+          "type": "string",
+          "pattern": "\\.hap$"
+        }
+      ]
+    },
+    "overallStatus": {
+      "enum": ["passed", "failed", "pending", "blocked", "not_run"]
+    },
+    "stepStatus": {
+      "enum": ["passed", "failed", "pending", "blocked", "not_run", "skipped"]
+    },
+    "metricStatus": {
+      "enum": ["passed", "failed", "pending", "blocked", "not_run", "skipped"]
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "classification"],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "classification": {
+          "enum": ["product", "test", "infrastructure", "cancelled"]
+        }
+      }
+    },
+    "threshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operator", "value"],
+      "properties": {
+        "operator": {
+          "enum": ["lt", "lte", "eq", "gte", "gt"]
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "value", "unit", "status"],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "status": {
+          "$ref": "#/$defs/metricStatus"
+        },
+        "threshold": {
+          "$ref": "#/$defs/threshold"
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "mandatory", "assertions"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "status": {
+          "$ref": "#/$defs/stepStatus"
+        },
+        "mandatory": {
+          "type": "boolean"
+        },
+        "assertions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/metric"
+          }
+        },
+        "failure": {
+          "$ref": "#/$defs/failure"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path", "sha256"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "screenshot",
+            "layout",
+            "log",
+            "report",
+            "metrics",
+            "video",
+            "other"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/nullableSha256"
+        }
+      }
+    }
+  }
+}

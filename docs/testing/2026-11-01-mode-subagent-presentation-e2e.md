@@ -4,8 +4,15 @@
 
 设备：`HBN-AL80`，HarmonyOS `7.0.0.111` SP10C10，API `26`。
 
-Mock HAP SHA-256：
+上一轮 Mock HAP SHA-256：
 `893177598199A3DA33BFF36BDFFF0BD64ED808D9C56D79F9C5818D3DAAAD250B`。
+
+当前 Release 候选 Mock HAP SHA-256：
+`B90B029F5AF90FC0732C000FB42499F70D574EF38DCD1997B3650E931162FBB7`。
+
+Current-HAP status: Partial。当前候选包已修复 Mock Host 在 `pause()` 后拒绝新
+`follow()` 的竞态，并让发送按钮复用子会话输入合同；仍需在恢复 USB 连接后用
+当前 Mock HAP 重跑整表。
 
 当前 Mock 交互证据：
 `artifacts/device-e2e/20261102-device-mode-subagent-final/plan-lineage/manifest.json`。
@@ -24,7 +31,7 @@ Mock HAP SHA-256：
 | SUB-05 | 点击 external | 不打开，不伪造 transcript | Passed | 外部任务行显示“外部 / 不可打开” |
 | SUB-06 | 打开 one-shot | 历史可读，composer 只读 | Passed | `one-shot` 截图与 manifest |
 | SUB-07 | 打开 unknown | 历史可读，composer 只读 | Passed | `unknown` 截图与 manifest |
-| SUB-08 | 打开 continuable 并发送 queue | `subagents/prompt` 被受理，消息只出现一次 | Passed | `subagent_probe` 只出现一次 |
+| SUB-08 | 打开 continuable 并发送 queue | `subagents/prompt` 被受理，消息只出现一次 | Partial | 上一包通过；当前包复验时输入已显示但发送按钮禁用，修复后的 current-HAP 真机重跑 Pending |
 | SUB-09 | continuable 运行中 Stop | 使用 `interruptByParent`，不完全走 session/cancel | Pending | 当前 fixture 为已完成的 continuable，没有运行中 Stop 状态 |
 | SUB-10 | 子会话系统 Back | 回到直接父会话，不退出聊天 | Passed | `Return-To-ParentConversation` |
 | SUB-11 | 嵌套 child Back 多次 | 按地址栈逐级返回 | Pending | 当前只验证一层 child 到 parent |
@@ -36,7 +43,7 @@ Mock HAP SHA-256：
 ## 自动前置验证
 
 - Gateway 协议、模型和源码契约通过。
-- PR QA `20261101T192208Z-eefbe49f` 通过。
+- PR QA `20261102T011204Z-9c1b97b1` 通过。
 - default、store、mock Release HAP 均构建成功。
 - Mock 全量视觉套件 68/68 通过。
 

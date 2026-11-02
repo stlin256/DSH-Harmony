@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "scope": "Reviewed historical personal-path findings; never applied to working-tree or staged scans",
+  "entries": [
+    {
+      "object": "0e1357ab31765ac46b62443f2dd8fa8dd370b0c9",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "2e7810b479f1ce2d91a4335478c68b06905da5ac",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "3a0e3c3133445c050c5002fdf01b5e198f2c5081",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "462d7167b288b98a1f37905c80e7f6c50391b615",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "4be64dbb5d68cdec64f7bf620a47d1f7abb5893f",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "5fe4707d2b683a49f70637d6647627508ca0ef1c",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "702771b88437b9808c15017071db7ca9e1b9b190",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "7c04e43282689b77dfc4673dab37b2b4121f5f54",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "800e7aa745883db1a851b991c83c789f2b65b931",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "83cd64900bd5743a91815bdf3fff59d938c6ce91",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "8a153acab8538385b8d383cafb1785fd98a291b2",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "a441f5714598101d7687f7b469a4e51012989e95",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "afa2d4cd768ff5bdfea5b036619764718cf7210a",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "b0b6a742c17e32f2d12a9db13e9e0eeb40c0be32",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "b177eb9da4c06ffbf92937e9c4850114f3d50cb5",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "c1d4184e1247ef95522f66f6af1ac411da1eefb4",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "d5158770e42c4be805730890415ecbde27563fee",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "dcd47c95542d014720e136227de2a56bb3a350c7",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "ded969cd04458392d41fd546ff8fdad0848809be",
+      "reason": "personal filesystem path",
+      "count": 1
+    },
+    {
+      "object": "fa7b4a59806d77b25d1978773ede5603bc148a25",
+      "reason": "personal filesystem path",
+      "count": 1
+    }
+  ]
+}

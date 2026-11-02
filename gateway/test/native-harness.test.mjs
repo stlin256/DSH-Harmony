@@ -50,6 +50,20 @@ test('native live closes a generation when assistant revision data is incomplete
   assert.equal(await closed, 1011);
 });
 
+test('native live closes a generation when the opening snapshot is malformed', async t => {
+  const { connect } = await setup(t, { malformedSnapshot: true });
+  const ws = connect();
+  const closed = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(Error('malformed snapshot was not closed')), 2000);
+    ws.once('close', code => {
+      clearTimeout(timer);
+      resolve(code);
+    });
+  });
+  await once(ws, 'open');
+  assert.equal(await closed, 1011);
+});
+
 async function setup(t, options = {}) {
   const calls = [];
   const uploads = [];
@@ -281,9 +295,9 @@ async function setup(t, options = {}) {
           frame.payload.args.request.address.sessionId ||
           frame.payload.args.request.address.childSessionId, 'session');
         if(frame.endpoint==='session/follow') {
-          ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{type:'snapshot',cursor:0,hasMore:false,
+          ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{type:'snapshot',cursor:options.malformedSnapshot?-2:0,hasMore:false,
             records:[{type:'event',event:{seq:0,type:'user/message',data:{content:[{type:'text',text:options.text || 'hello'}]}}}],
-            assistantStream:{revision:0,activeAttempt:{attemptId:'attempt',nextIndex:2,stream:[{type:'text-chunks',texts:['he','l']}]}}}}));
+            assistantStream:{revision:0,activeAttempt:{attemptId:'attempt',startedAfterSeq:0,turn:0,step:0,nextIndex:2,stream:[{type:'text-chunks',time0:0,index:0,dt:[1],texts:['he','l']}]}}}}));
           ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{type:'assistant-stream',frame:{
             type:'chunk',
             ...(options.malformedAssistantFrame ? {} : { revision:1 }),
@@ -924,7 +938,7 @@ test('native history and stream preserve arbitrarily long Unicode content withou
   const history = normalizedHistory([{type:'event',event:{seq:1,type:'assistant/message',data:{message:{content:[{type:'text',text}]}}}}]);
   assert.equal(history.messages[0].text, text);
   assert.equal(history.trimmed, false);
-  const snapshot = normalizeFollow({type:'snapshot',cursor:2,hasMore:true,records:[],assistantStream:{activeAttempt:{attemptId:'a',nextIndex:1,stream:[{type:'text-chunks',texts:[text]}]}}});
+  const snapshot = normalizeFollow({type:'snapshot',cursor:2,hasMore:true,records:[],assistantStream:{revision:0,activeAttempt:{attemptId:'a',startedAfterSeq:-1,turn:0,step:0,nextIndex:1,stream:[{type:'text-chunks',time0:0,index:0,dt:[],texts:[text]}]}}});
   assert.equal(snapshot.text, text);
   const unknown = normalizedHistory([{type:'event',event:{seq:3,type:'custom/record',data:{text}}}]);
   assert.equal(unknown.messages.length, 0, 'internal protocol events are not rendered as chat messages');

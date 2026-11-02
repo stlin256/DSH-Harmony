@@ -714,7 +714,8 @@ export class StoreShowcaseClient extends NativeHarnessClient {
 
   async follow(id: string, receive: (frame: NativeFrame) => void, _ended: (reason: string) => void): Promise<void> {
     const child = this.childInteractions.get(id);
-    if ((id !== SHOWCASE_SESSION && !child) || this.paused) return;
+    if (id !== SHOWCASE_SESSION && !child) return;
+    this.paused = false;
     this.receiver = receive;
     this.receiverReady = true;
     receive(child ? child.snapshot() : this.interaction.snapshot());

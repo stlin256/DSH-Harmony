@@ -105,13 +105,11 @@ export struct NativeProcessStepView {
           Text(this.message.label || nativeOperationLead(this.message)).fontSize(NativeDesign.fontSection)
             .fontWeight(FontWeight.Medium).maxLines(1)
             .fontColor(NativeDesign.textSecondary(this.dark))
-          if (this.message.detail) {
+          if (this.message.detail && !this.expanded) {
             Text('·').fontSize(NativeDesign.fontSection).fontColor(NativeDesign.textTertiary(this.dark))
             Text(this.message.detail).fontSize(NativeDesign.fontSection).layoutWeight(1).maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor(NativeDesign.textTertiary(this.dark))
-              .opacity(this.expanded ? 0 : 1)
-              .animation(NativeMotion.disclosureParam())
           } else {
             Blank().layoutWeight(1)
           }
@@ -136,6 +134,8 @@ export struct NativeProcessStepView {
       }.height(NativeDesign.compactControl).width('100%').padding({ left: 2, right: 2 })
         .responseRegion({ x: 0, y: -7, width: '100%', height: NativeDesign.hitTarget })
         .backgroundColor(Color.Transparent).enabled(this.message.phase !== 'preparing')
+        .accessibilityText((this.expanded ? '收起' : '展开') +
+          (this.message.label || nativeOperationLead(this.message)))
         .onClick((): void => { this.toggle(); })
       if (this.expanded) { this.detail() }
     }.width('100%').alignItems(HorizontalAlign.Start)

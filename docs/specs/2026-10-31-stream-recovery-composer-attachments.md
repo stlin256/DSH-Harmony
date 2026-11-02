@@ -6,8 +6,13 @@ Status: implementation in progress; device validation pending.
 
 ## Scope and baseline
 
-This specification follows the current upstream contract at
+This specification follows the single machine-readable
+[`protocol.lock.json`](../../protocol.lock.json) baseline at
 [`deepseek-ai/deepseek-harness@ce7073d`](https://github.com/deepseek-ai/deepseek-harness/tree/ce7073d51254c26cd63b22a60835b8f948deb447).
+The locked DSH package version is `0.2.2-alpha.2` and the wire protocol v2.
+The release tag `dsh-v0.2.2-alpha.2` retains the same package version at
+revision `f3803c96974ad4a94195fb97e5c637e9c2a3afe3`; this spec tracks the
+canonical revision above.
 The new DSH-only requirement is deliberate: do not add another compatibility
 mode, protocol inferer, or fallback composer for older versions.
 

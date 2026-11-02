@@ -1,6 +1,6 @@
 export class NativeUiFixture {
   static readonly screens: string[] = [
-    'conversation', 'process', 'sidebar', 'browser', 'settings', 'lineage', 'subagent',
+    'conversation', 'process', 'disclosure', 'sidebar', 'browser', 'settings', 'lineage', 'subagent',
     'plugins', 'automation', 'more'
   ];
   static readonly states: string[] = [
@@ -14,7 +14,23 @@ export class NativeUiFixture {
     'plugins-restart', 'plugins-install-failed',
     'automation-list', 'automation-empty', 'automation-detail',
     'automation-editor', 'automation-history', 'automation-conflict',
-    'more-actions'
+    'more-actions',
+    'disclosure-task-plan',
+    'disclosure-process-reasoning', 'disclosure-process-read',
+    'disclosure-process-search', 'disclosure-process-terminal',
+    'disclosure-process-diff', 'disclosure-process-nested',
+    'disclosure-process-malformed', 'disclosure-process-empty',
+    'disclosure-process-oversized',
+    'disclosure-process-web', 'disclosure-process-goal',
+    'disclosure-process-job', 'disclosure-process-subagent',
+    'disclosure-process-web-fetch', 'disclosure-process-job-lifecycle',
+    'disclosure-process-read-image', 'disclosure-process-command',
+    'disclosure-process-present', 'disclosure-process-image',
+    'disclosure-process-question', 'disclosure-process-plugin',
+    'disclosure-process-plan',
+    'disclosure-reasoning', 'disclosure-legacy-tool', 'disclosure-diff',
+    'disclosure-background-notice', 'disclosure-queue',
+    'disclosure-sidebar-more', 'disclosure-sidebar-group'
   ];
   static readonly themes: string[] = ['light', 'dark', 'system'];
 

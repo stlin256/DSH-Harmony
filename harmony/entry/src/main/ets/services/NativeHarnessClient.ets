@@ -1,6 +1,7 @@
 import { http, webSocket } from '@kit.NetworkKit';
 import { webview } from '@kit.ArkWeb';
 import { util } from '@kit.ArkTS';
+import { cryptoFramework } from '@kit.CryptoArchitectureKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { NativeFrame, NativeSession, NativeSessionList, NativeSessionModel, NativeWorkspaceSnapshot } from './NativeSessionModel';
 import { NativeHostSettings } from './NativeHostSettings';
@@ -9,6 +10,61 @@ import { nativeFileWindowMetadata } from './NativeFileWindow';
 import { nativeResolvedWorkspaceTarget, NativeWorkspaceTarget } from './NativeWorkspaceTarget';
 import { NativeProjectionSnapshot, NativeSessionAddress, nativeSessionAddress,
   nativeSessionAddressKey } from './NativeModeSubagent';
+
+export const nativeHarnessClientRoutes: string[] = [
+  '/pocket/api/state',
+  '/pocket/api/overview',
+  '/pocket/api/logout',
+  '/pocket/api/device',
+  '/pocket/api/auth/none',
+  '/pocket/api/auth/native',
+  '/pocket/api/native/sessions',
+  '/pocket/api/native/workspaces',
+  '/pocket/api/native/changes/summary',
+  '/pocket/api/native/export',
+  '/pocket/api/native/create',
+  '/pocket/api/native/page',
+  '/pocket/api/native/file',
+  '/pocket/api/native/file/stat',
+  '/pocket/api/native/file/list',
+  '/pocket/api/native/file/bytes',
+  '/pocket/api/native/upload',
+  '/pocket/api/native/prompt',
+  '/pocket/api/native/answer',
+  '/pocket/api/native/operation',
+  '/pocket/api/native/cancel'
+];
+
+export const nativeHarnessRequestRoutes: string[] = [
+  '/pocket/api/state',
+  '/pocket/api/overview',
+  '/pocket/api/logout',
+  '/pocket/api/device',
+  '/pocket/api/auth/none',
+  '/pocket/api/auth/native',
+  '/pocket/api/native/sessions',
+  '/pocket/api/native/workspaces',
+  '/pocket/api/native/changes/summary',
+  '/pocket/api/native/create',
+  '/pocket/api/native/page',
+  '/pocket/api/native/file',
+  '/pocket/api/native/file/stat',
+  '/pocket/api/native/file/list',
+  '/pocket/api/native/file/bytes',
+  '/pocket/api/native/upload',
+  '/pocket/api/native/prompt',
+  '/pocket/api/native/answer',
+  '/pocket/api/native/operation',
+  '/pocket/api/native/cancel'
+];
+
+function nativeHarnessRequestAllowed(path: string): boolean {
+  if (!path || path.indexOf('#') >= 0 || /[\r\n]/.test(path)) return false;
+  const query = path.indexOf('?');
+  const base = query >= 0 ? path.substring(0, query) : path;
+  if (query >= 0 && base !== '/pocket/api/native/changes/summary') return false;
+  return nativeHarnessRequestRoutes.includes(base);
+}
 
 export class NativeHttpError extends Error {
   status: number;
@@ -153,12 +209,22 @@ export class NativeHarnessClient {
   /** Isolate navigation snapshots by the persisted gateway session without exposing it. */
   async prepareCacheKey(): Promise<void> {
     const value = await this.cookie();
-    let hash = 2166136261;
-    for (let index = 0; index < value.length; index++) {
-      hash ^= value.charCodeAt(index);
-      hash = Math.imul(hash, 16777619);
+    try {
+      if (!value) throw new Error('No authenticated cache identity');
+      const md = cryptoFramework.createMd('SHA256');
+      const encoder = util.TextEncoder.create();
+      await md.update({ data: encoder.encodeInto(value) });
+      const digest = await md.digest();
+      let hash = '';
+      for (let index = 0; index < digest.data.length; index++) {
+        hash += digest.data[index].toString(16).padStart(2, '0');
+      }
+      this.cacheIdentity = hash;
+    } catch (_) {
+      if (!this.cacheIdentity.startsWith('ephemeral-')) {
+        this.cacheIdentity = 'ephemeral-' + util.generateRandomUUID();
+      }
     }
-    this.cacheIdentity = value ? (hash >>> 0).toString(16) : 'anonymous';
   }
 
   private async cookie(): Promise<string> {
@@ -172,7 +238,7 @@ export class NativeHarnessClient {
 
   async request(path: string, method: http.RequestMethod = http.RequestMethod.GET, body: string = ''): Promise<string> {
     // Fixed root-owned endpoints only; no credentials in URLs or redirect hops.
-    if (!/^\/pocket\/api\/(?:state|overview|logout|device|auth\/(?:none|native)|native\/(?:sessions|workspaces|create|page|upload|file(?:\/(?:stat|list|bytes))?|prompt|cancel|operation|answer))$/.test(path)) throw new Error('Unsupported endpoint');
+    if (!nativeHarnessRequestAllowed(path)) throw new Error('Unsupported endpoint');
     const task = http.createHttp();
     try {
       const options: http.HttpRequestOptions = {
@@ -487,7 +553,7 @@ export class NativeHarnessClient {
           Origin: this.origin,
           Cookie: await this.cookie()
         },
-        extraData: data.buffer as ArrayBuffer,
+        extraData: data.slice().buffer as ArrayBuffer,
         usingCache: false, maxRedirects: 0, connectTimeout: 10000, readTimeout: 45000
       });
       await ended;

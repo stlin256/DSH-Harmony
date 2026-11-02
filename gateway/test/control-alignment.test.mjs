@@ -110,3 +110,46 @@ test('turn file rows prioritize filename and reserve fixed metrics', () => {
   assert.match(card, /constraintSize\(\{ minWidth: 0 \}\)/);
   assert.doesNotMatch(card, /Text\(this\.fileDisplayPath\(file\)\)/);
 });
+
+test('diff headers prioritize filename and reserve trailing controls', () => {
+  const diff = readComponent('NativeDiffBlock.ets');
+  const filename = diff.indexOf('Text(this.fileName())');
+  const directory = diff.indexOf('Text(this.directory())');
+  const trailing = diff.indexOf('Button({ type: ButtonType.Normal })', filename);
+  assert.ok(filename >= 0 && directory > filename && trailing > directory);
+  assert.match(diff, /constraintSize\(\{ minWidth: 0 \}\)/);
+  assert.match(diff,
+    /Text\(this\.fileName\(\)\)[\s\S]{0,180}maxLines\(1\)\.textOverflow/);
+  assert.match(diff,
+    /constraintSize\(\{ minHeight: NativeDesign\.hitTarget \}\)\.width\('100%'\)/);
+  assert.match(diff,
+    /width\(NativeDesign\.compactHitTarget\)\.height\(NativeDesign\.compactHitTarget\)[\s\S]{0,140}responseRegion\(\{ x: -4, y: -4, width: NativeDesign\.hitTarget, height: NativeDesign\.hitTarget \}\)/);
+});
+
+test('expanded disclosure headers do not leave a dangling preview separator', () => {
+  const process = readComponent('NativeProcessView.ets');
+  const step = readComponent('NativeProcessStepView.ets');
+  const tool = readComponent('NativeToolCallView.ets');
+  assert.match(process, /this\.message\.detail && !this\.expanded/);
+  assert.match(step, /this\.message\.detail && !this\.expanded/);
+  assert.match(tool, /this\.detail && !this\.expanded/);
+  assert.match(tool, /this\.preview\(\) && !this\.expanded/);
+});
+
+test('composer send state shares the subagent input contract', () => {
+  const workspace = readComponent('NativeWorkspace.ets');
+  assert.match(workspace,
+    /private composerCanSend\(\): boolean \{[\s\S]{0,260}this\.currentSubagentInputEnabled\(\)/);
+  assert.match(workspace,
+    /\.backgroundColor\(NativeDesign\.accentStrong\(this\.dark\)\)[\s\S]{0,100}\.enabled\(this\.composerCanSend\(\)\)[\s\S]{0,100}\.opacity\(this\.composerCanSend\(\) \? 1 : 0\.4\)/);
+});
+
+test('conversation mode chips avoid capsule default state fills', () => {
+  const workspace = readComponent('NativeWorkspace.ets');
+  assert.doesNotMatch(workspace,
+    /Button\(\{ type: ButtonType\.Capsule \}\)[\s\S]{0,700}(?:计划|个子智能体)/);
+  assert.match(workspace,
+    /Button\(\{ type: ButtonType\.Normal \}\)[\s\S]{0,240}Text\('计划'\)/);
+  assert.match(workspace,
+    /Button\(\{ type: ButtonType\.Normal \}\)[\s\S]{0,700}个子智能体/);
+});
