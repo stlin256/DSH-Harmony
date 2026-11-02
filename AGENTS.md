@@ -71,6 +71,9 @@ Do not present those two evidence sets as one current-HAP release claim.
 - Rapid-iteration notice, logo continuity, dark/light themes, reduced motion,
   System Back and Mock logout return:
   `artifacts/device-e2e-final/launch-notice-release/iteration-notice/manifest.json`.
+- Final default Release installation and launch smoke on the rapid-iteration
+  notice HAP (`6824EFDE78B4468D4D26D216721D54F53C3687AE2E4FEDB80DF80B768980B378`):
+  `artifacts/device-e2e-final/release-smoke-iteration-notice/manifest.json`.
 - Full static Mock suite: 115/115 captured scenes passed. Review contact sheets
   live under `artifacts/device-e2e-final/mock-suite-clean/contact-sheets-audit/`.
 - Subagent/title-row/navigation and child send:
@@ -92,7 +95,7 @@ Do not present those two evidence sets as one current-HAP release claim.
   `artifacts/device-e2e-final/task-dock-clean/floating-overlay/manifest.json`.
 - Conversation scrollbar physical edge:
   `artifacts/device-e2e-final/conversation-chrome-clean/scrollbar-edge/manifest.json`.
-- Final default Release installation/launch smoke:
+- Previous default Release installation/launch smoke:
   `artifacts/device-e2e-final/release-smoke/manifest.json`.
 
 Keep these environment-bound gaps explicit until a matching target proves them:
