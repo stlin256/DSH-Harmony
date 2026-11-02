@@ -211,7 +211,8 @@ export struct NativeInlineText {
             .colorFilter(this.externalIconFilter())
             .onClick((): void => { this.open(run); })
         }
-      }, (_run: NativeInlineRun, index: number) => index.toString())
+      }, (_run: NativeInlineRun, index: number) =>
+        index.toString() + ':' + _run.text + ':' + (_run.secret ? 'secret' : 'plain'))
     }.fontSize(this.textSize).lineHeight(this.lineHeight)
       .width('100%').wordBreak(WordBreak.BREAK_WORD)
       .textAlign(this.alignment === 'right' ? TextAlign.End : this.alignment === 'center' ? TextAlign.Center : TextAlign.Start)

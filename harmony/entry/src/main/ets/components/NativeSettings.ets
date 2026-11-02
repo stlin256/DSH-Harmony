@@ -13,10 +13,6 @@ import { DSHIcon } from './DSHIcon';
 import { NativeMotion } from '../services/NativeMotion';
 import { NativeDesign } from '../services/NativeDesign';
 import { NativeIconButton } from './NativeIconButton';
-import {
-  NativeSettingsHit,
-  nativeSearchSettings
-} from '../services/NativeSettingsIndex';
 
 class NotificationPreferences {
   version: number = 1;
@@ -99,7 +95,6 @@ export struct NativeSettings {
   @State private pending: string[] = [];
   @State private status: string = '';
   @State private error: string = '';
-  @State private settingsQuery: string = '';
   private mounted: boolean = false;
   private notificationWrites: Promise<void> = Promise.resolve();
 
@@ -137,10 +132,6 @@ export struct NativeSettings {
 
   aboutToAppear(): void {
     this.mounted = true;
-    if (AppStorage.get<boolean>('storeShowcase') === true &&
-      AppStorage.get<string>('storeShowcaseState') === 'settings-search') {
-      this.settingsQuery = '通知';
-    }
     this.hostChanged();
     this.initialize().catch(() => { this.error = '读取设置失败'; this.initializing = false; });
     this.refreshHost();
@@ -597,117 +588,30 @@ export struct NativeSettings {
   }
 
   @Builder
-  private settingsSearch() {
-    Row({ space: 8 }) {
-      DSHIcon({ glyph: 'search-outline', glyphSize: NativeDesign.glyphCompact,
-        color: this.tertiaryText() })
-      TextInput({ text: this.settingsQuery, placeholder: '搜索设置' })
-        .layoutWeight(1).height(NativeDesign.hitTarget).padding(0)
-        .fontSize(NativeDesign.fontCompact).backgroundColor(Color.Transparent)
-        .placeholderColor(this.tertiaryText()).fontColor(this.primaryText())
-        .accessibilityText('搜索设置')
-        .onChange((value: string): void => { this.settingsQuery = value; })
-      if (this.settingsQuery) {
-        NativeIconButton({
-          glyph: 'close-outline',
-          label: '清除设置搜索',
-          glyphSize: NativeDesign.glyphCompact,
-          onPressed: (): void => { this.settingsQuery = ''; }
-        })
-      }
-    }.width('100%').height(NativeDesign.hitTarget)
-      .padding({ left: NativeDesign.cardPadding })
-      .borderRadius(NativeDesign.radiusControl).backgroundColor(NativeDesign.field(this.dark))
-  }
-
-  @Builder
-  private settingsResult(hit: NativeSettingsHit) {
-    Button({ type: ButtonType.Normal }) {
-      Row({ space: 10 }) {
-        Column({ space: 2 }) {
-          Text(hit.entry.title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium)
-            .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-            .fontColor(this.primaryText())
-          if (hit.matchedSynonym) {
-            Text(hit.matchedSynonym).fontSize(NativeDesign.fontCaption).maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .fontColor(this.tertiaryText())
-          }
-        }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        Text(hit.entry.path).fontSize(NativeDesign.fontCaption).maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .constraintSize({ maxWidth: 148 }).textAlign(TextAlign.End)
-          .fontColor(this.tertiaryText())
-        DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphCompact,
-          color: this.tertiaryText() }).rotate({ angle: 180 })
-      }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
-        .padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset })
-    }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
-      .borderRadius(0).backgroundColor(Color.Transparent)
-      .accessibilityText(hit.entry.title + '，' + hit.entry.path)
-      .onClick((): void => {
-        this.settingsQuery = '';
-        this.openPage(hit.entry.page);
-      })
-  }
-
-  @Builder
-  private settingsResults() {
-    if (nativeSearchSettings(this.settingsQuery).length) {
-      Column() {
-        ForEach(nativeSearchSettings(this.settingsQuery), (hit: NativeSettingsHit, index: number) => {
-          this.settingsResult(hit)
-          if (index < nativeSearchSettings(this.settingsQuery).length - 1) {
-            Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())
-          }
-        }, (hit: NativeSettingsHit) => hit.entry.id)
-      }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true)
-        .backgroundColor(this.cardSurface())
-    } else {
-      Row({ space: 10 }) {
-        Text('没有匹配的设置').fontSize(NativeDesign.fontSection).layoutWeight(1)
-          .fontColor(this.secondaryText())
-        Button('清除', { type: ButtonType.Normal }).height(NativeDesign.hitTarget)
-          .fontSize(NativeDesign.fontSection).borderRadius(NativeDesign.radiusControl)
-          .backgroundColor(NativeDesign.field(this.dark)).fontColor(this.primaryText())
-          .onClick((): void => { this.settingsQuery = ''; })
-      }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
-        .padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset })
-        .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.cardSurface())
-    }
-  }
-
-  @Builder
   private settingsRoot() {
     Column() {
       this.rootHeader()
       Scroll() {
         Column({ space: 0 }) {
-          this.settingsSearch()
-          if (this.settingsQuery.trim()) {
-            this.sectionLabel('搜索结果')
-            this.settingsResults()
-          } else {
-            this.sectionLabel('DSH HARMONY')
-            Column() {
-              this.navigationRow('deepseek-logo', 'DSH 设置', '对话与过程展示', 'dsh')
-              Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())
-              this.navigationRow('dark-outline', '外观与动效',
-                this.themeMode === 'system' ? '跟随系统' : this.themeMode === 'dark' ? '深色' : '浅色', 'appearance')
-            }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true).backgroundColor(this.cardSurface())
-            this.sectionLabel('应用')
-            Column() {
-              this.navigationRow('plan-outline', '通知', this.pushEnabled ? '系统推送' : '按级别投递', 'notifications')
-              Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())
-              this.navigationRow('browse-outline', '桌面卡片', this.widgetDetails ? '显示任务名称' : '隐私模式', 'cards')
-              Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())
-              this.navigationRow('archive-outline', '存储管理', '缓存占用与清理', 'storage')
-              Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())
-              this.navigationRow('globe-outline', '服务与账户', '连接和登录', 'connection')
-              Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())
-              this.navigationRow('sparkle', '关于', '版本与项目信息', 'about')
-            }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true).backgroundColor(this.cardSurface())
-          }
+          this.sectionLabel('DSH HARMONY')
+          Column() {
+            this.navigationRow('deepseek-logo', 'DSH 设置', '对话与过程展示', 'dsh')
+            Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())
+            this.navigationRow('dark-outline', '外观与动效',
+              this.themeMode === 'system' ? '跟随系统' : this.themeMode === 'dark' ? '深色' : '浅色', 'appearance')
+          }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true).backgroundColor(this.cardSurface())
+          this.sectionLabel('应用')
+          Column() {
+            this.navigationRow('plan-outline', '通知', this.pushEnabled ? '系统推送' : '按级别投递', 'notifications')
+            Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())
+            this.navigationRow('browse-outline', '桌面卡片', this.widgetDetails ? '显示任务名称' : '隐私模式', 'cards')
+            Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())
+            this.navigationRow('archive-outline', '存储管理', '缓存占用与清理', 'storage')
+            Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())
+            this.navigationRow('globe-outline', '服务与账户', '连接和登录', 'connection')
+            Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())
+            this.navigationRow('sparkle', '关于', '版本与项目信息', 'about')
+          }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true).backgroundColor(this.cardSurface())
           if (this.initializing) {
             Row({ space: 8 }) {
               LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.tertiaryText())
@@ -1061,9 +965,6 @@ export struct NativeSettings {
                 Text(nativeFormatStorageBytes(this.storageUsage.poolTotal)).fontSize(NativeDesign.fontMetric)
                   .fontWeight(FontWeight.Medium).fontColor(this.primaryText())
               }
-              Text('上限 ' + nativeFormatStorageBytes(this.storageUsage.limit) +
-                ' · 当前账户 ' + nativeFormatStorageBytes(this.storageUsage.total))
-                .fontSize(NativeDesign.fontCaption).fontColor(this.tertiaryText())
             }.layoutWeight(1).alignItems(HorizontalAlign.Start)
             if (this.storageLoading && this.storageUsage.poolTotal > 0) {
               LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.tertiaryText())

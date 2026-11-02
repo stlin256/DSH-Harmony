@@ -139,6 +139,8 @@ export class NativeDesign {
   }
 
   static hitTarget: number = 44;
+  static navigationBarMinInset: number = 20;
+  static imeComposerInset: number = 12;
   static compactHitTarget: number = 36;
   static compactControl: number = 32;
   static compactChip: number = 28;

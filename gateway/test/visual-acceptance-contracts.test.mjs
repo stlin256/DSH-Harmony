@@ -100,7 +100,7 @@ test('composer and attachment surfaces remain compact without shrinking type', (
   assert.match(workspace, /if \(\(this\.subagentCatalog\?\.length \|\| 0\) > 0\) \{[\s\S]{0,1600}\.clip\(true\)/);
 });
 
-test('task plan header and mode chip stay compact and clipped', () => {
+test('task plan header and overflow plan action stay compact and clipped', () => {
   const dock = readComponent('NativeTaskDock.ets');
   assert.match(
     dock,
@@ -109,12 +109,11 @@ test('task plan header and mode chip stay compact and clipped', () => {
   assert.match(dock, /constraintSize\(\{ maxWidth: 620 \}\)\.clip\(true\)/);
 
   const workspace = readComponent('NativeWorkspace.ets');
+  assert.doesNotMatch(workspace, /Text\('计划'\)/);
   assert.match(
     workspace,
-    /if \(nativePlanTargetActive\(this\.planProjection\)\) \{\s*Button\(\{ type: ButtonType\.Normal \}\)/,
+    /nativeUtilityMenu\([\s\S]{0,220}nativePlanTargetActive\(this\.planProjection\)\)/,
   );
-  assert.match(
-    workspace,
-    /\.borderRadius\(NativeDesign\.radiusChip\)[\s\S]{0,320}\.clip\(true\)[\s\S]{0,220}\.accessibilityText\('计划模式已开启，点击关闭'\)/,
-  );
+  assert.match(workspace,
+    /else if \(id === 'planOff'\) \{\s*this\.utilityOpen = false;\s*this\.exitPlanMode\(\);/);
 });

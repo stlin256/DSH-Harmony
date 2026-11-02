@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import {
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -13,11 +14,21 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const queryScript = join(root, 'scripts', 'device-ui-layout-query.py');
 const taskDockAssertScript = join(root, 'scripts', 'device-ui-task-dock-assert.py');
+const mockFixtureScript = join(root, 'scripts', 'device-ui-mock.ps1');
 const python = process.platform === 'win32' ? 'python' : 'python3';
 
 function hex(value) {
   return Buffer.from(value, 'utf8').toString('hex');
 }
+
+test('mock fixture readiness tolerates transient layout dump failures', () => {
+  const source = readFileSync(mockFixtureScript, 'utf8');
+  assert.match(source, /Require two valid[\s\S]*renders from one process/);
+  assert.match(source, /tolerate transient dump failures/);
+  assert.match(source, /readyEvidenceCount/);
+  assert.match(source, /remote JSON file is fully flushed/);
+  assert.match(source, /Get-Content -Raw -Encoding UTF8/);
+});
 
 function query(layout, text) {
   return spawnSync(python, [
@@ -108,14 +119,25 @@ function taskDockLayout({ dockBottom, item = null, messageY = 500, listTop = 300
           type: 'List',
           visible: 'true',
         },
-        children: [{
-          attributes: {
-            bounds: `[20,${messageY}][900,${messageY + 80}]`,
-            text: 'fixture message',
-            visible: 'true',
+        children: [
+          {
+            attributes: {
+              bounds: `[20,${listTop}][900,${Math.max(listTop, dockBottom)}]`,
+              type: 'ListItem',
+              visible: 'true',
+            },
+            children: [],
           },
-          children: [],
-        }],
+          {
+            attributes: {
+              bounds: `[20,${messageY}][900,${messageY + 80}]`,
+              text: 'fixture message',
+              type: 'ListItem',
+              visible: 'true',
+            },
+            children: [],
+          },
+        ],
       },
       {
         attributes: {

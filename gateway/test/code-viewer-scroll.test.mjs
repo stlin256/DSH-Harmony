@@ -19,6 +19,12 @@ test('code viewer resets both axes when a different file reuses the reader', () 
   assert.match(preview, /identity: this\.path/);
 });
 
+test('code viewer supports a compact embedded read surface', () => {
+  assert.match(viewer, /@Prop compact: boolean = false/);
+  assert.match(viewer,
+    /this\.compact \? this\.lines\.length \* 22 \+ 8 : Math\.max\(44, this\.lines\.length \* 22 \+ 8\)/);
+});
+
 test('preview keeps compact breathing room above gesture navigation', () => {
   assert.match(preview, /bottom: 12 \+ Math\.max\(16, this\.safeBottom\)/);
 });

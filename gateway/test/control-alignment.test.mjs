@@ -163,12 +163,25 @@ test('composer send state shares the subagent input contract', () => {
     /\.backgroundColor\(NativeDesign\.accentStrong\(this\.dark\)\)[\s\S]{0,100}\.enabled\(this\.composerCanSend\(\)\)[\s\S]{0,100}\.opacity\(this\.composerCanSend\(\) \? 1 : 0\.4\)/);
 });
 
-test('conversation mode chips avoid capsule default state fills', () => {
+test('conversation header uses compact custom subagent press feedback', () => {
   const workspace = readComponent('NativeWorkspace.ets');
   assert.doesNotMatch(workspace,
     /Button\(\{ type: ButtonType\.Capsule \}\)[\s\S]{0,700}(?:计划|个子智能体)/);
+  assert.doesNotMatch(workspace, /Text\('计划'\)/);
+  assert.match(workspace, /glyph: 'branch-outline'/);
   assert.match(workspace,
-    /Button\(\{ type: ButtonType\.Normal \}\)[\s\S]{0,240}Text\('计划'\)/);
+    /\.id\('subagent-title-entry'\)[\s\S]{0,240}\.accessibilityText\([\s\S]{0,180}个子智能体/);
+  assert.match(workspace, /\.clickEffect\(null\)/);
   assert.match(workspace,
-    /Button\(\{ type: ButtonType\.Normal \}\)[\s\S]{0,700}个子智能体/);
+    /\.backgroundColor\(this\.subagentEntryPressed \? this\.selectionSurface\(\) : Color\.Transparent\)/);
+});
+
+test('native layout automation enforces the AppGallery bottom inset', () => {
+  const suite = readFileSync(new URL('../../scripts/device-ui-mock-suite.ps1', import.meta.url), 'utf8');
+  const query = readFileSync(new URL('../../scripts/device-ui-layout-query.py', import.meta.url), 'utf8');
+  assert.match(suite, /--assert-bottom-safe[\s\S]{0,120}--bottom-safe-px 60/);
+  assert.match(suite,
+    /conversation\/plan-subagent-long-count[^\n]*计划与子智能体标题很长/);
+  assert.match(query, /scrollable_ancestor/);
+  assert.match(query, /bounds\[3\] > root_bounds\[3\] - args\.bottom_safe_px/);
 });

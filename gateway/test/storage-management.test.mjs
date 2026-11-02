@@ -208,8 +208,9 @@ test('Settings exposes confirmed red storage clearing without success feedback',
   assert.match(settings, /storageBreakdownRow\('对话内容', 'conversation'\)/);
   assert.match(settings, /storageBreakdownRow\('文件浏览', 'fileBrowser'\)/);
   assert.match(settings, /Text\('缓存池'\)/);
-  assert.match(settings, /nativeFormatStorageBytes\(this\.storageUsage\.limit\)/);
   assert.match(settings, /nativeFormatStorageBytes\(this\.storageUsage\.poolTotal\)/);
+  assert.doesNotMatch(settings, /nativeFormatStorageBytes\(this\.storageUsage\.limit\)/);
+  assert.doesNotMatch(settings, /上限[\s\S]{0,80}当前账户/);
   assert.doesNotMatch(settings, /Storage[^\n]*success|缓存已清空|showToast\([\s\S]{0,80}清空/);
 });
 

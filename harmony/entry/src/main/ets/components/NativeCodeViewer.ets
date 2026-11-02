@@ -10,6 +10,7 @@ export struct NativeCodeViewer {
   @Prop @Watch('changed') language: string = '';
   @Prop @Watch('changed') startNumber: number = 1;
   @Prop @Watch('identityChanged') identity: string = '';
+  @Prop compact: boolean = false;
   @StorageLink('nativeDark') private dark: boolean = false;
   @State private lines: NativeSourceLine[] = [];
   @State private horizontalViewportWidth: number = 1;
@@ -67,7 +68,7 @@ export struct NativeCodeViewer {
     return digits * 8 + 18;
   }
   private contentHeight(): number {
-    return Math.max(44, this.lines.length * 22 + 8);
+    return this.compact ? this.lines.length * 22 + 8 : Math.max(44, this.lines.length * 22 + 8);
   }
   private horizontalLaneHeight(): number {
     return this.horizontalOverflow() ? 12 : 0;
@@ -184,6 +185,7 @@ export struct NativeCodeViewer {
         this.bottomHorizontalScrollBar()
       }
     }.width('100%').layoutWeight(1).clip(true)
+      .id('document-code-viewer')
       .onAreaChange((_old: Area, area: Area): void => {
         this.viewerHeight = Math.max(1, Number(area.height));
       })

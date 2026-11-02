@@ -142,17 +142,34 @@ test('native shell keeps mode UI separate from todo plans and hides child sessio
   const session = readFileSync(new URL('NativeSessionModel.ets', services), 'utf8');
   const showcase = readFileSync(new URL('StoreShowcaseClient.ets', services), 'utf8');
   assert.match(workspace, /nativePlanTargetActive\(this\.planProjection\)/);
-  assert.match(workspace, /Text\('计划'\)/);
+  assert.doesNotMatch(workspace, /Text\('计划'\)/);
+  assert.match(workspace,
+    /nativeUtilityMenu\([\s\S]{0,160}nativePlanTargetActive\(this\.planProjection\)\)/);
   assert.match(workspace, /this\.client\.planOff\(this\.selected\)/);
   assert.match(workspace,
     /this\.refreshSelectedProjection\(\);\s*this\.loadSelectedProjections\(\);/);
   const title = workspace.indexOf('Text(this.title)');
   const titleCount = workspace.indexOf(
-    "Text((this.subagentCatalog?.length || 0).toString() + ' 个子智能体')", title);
+    'Text((this.subagentCatalog?.length || 0).toString())', title);
   const more = workspace.indexOf("NativeIconButton({ glyph: 'ellipsis-outline'", title);
-  const planRow = workspace.indexOf(
-    'if (nativePlanTargetActive(this.planProjection) || this.planError)', title);
+  const planRow = workspace.indexOf('if (this.planError)', title);
   assert.ok(title >= 0 && titleCount > title && titleCount < more && more < planRow);
+  assert.match(workspace,
+    /glyph: 'branch-outline', glyphSize: NativeDesign\.glyphCompact/);
+  assert.doesNotMatch(workspace,
+    /Text\(\(this\.subagentCatalog\?\.length \|\| 0\)\.toString\(\) \+ ' 个子智能体'\)/);
+  assert.match(workspace,
+    /\.id\('subagent-title-entry'\)[\s\S]{0,220}\.accessibilityText\(\(this\.subagentCatalog\?\.length \|\| 0\)\.toString\(\) \+[\s\S]{0,80}' 个子智能体'/);
+  assert.match(workspace,
+    /controlId: 'workspace-subagent-back'/);
+  assert.match(workspace,
+    /controlId: 'workspace-sidebar'/);
+  assert.match(workspace,
+    /\.id\('subagent-title-capsule'\)/);
+  assert.match(workspace,
+    /const fallback = this\.firstAvailableRootSession\(\);\s*if \(fallback\) this\.select\(fallback\.id\);\s*else this\.openDrawer\(false\);/);
+  assert.match(workspace,
+    /private firstAvailableRootSession\(\): NativeSession \| null/);
   assert.ok(workspace.indexOf('NativeTaskDock') !== workspace.lastIndexOf('NativeTaskDock'));
   assert.match(workspace, /NativeSubagentLineage\(\{/);
   assert.match(workspace, /subagentPath/);
@@ -165,5 +182,7 @@ test('native shell keeps mode UI separate from todo plans and hides child sessio
     /value\.projections = new NativeSubagentProjectionValues\(\);[\s\S]{0,180}value\.projections\.plan = showcasePlanProjection\(planRemoved\)/);
   assert.match(showcase,
     /value\.projections\.subagentCatalog = showcaseNativeSubagentCatalog\(state\)/);
+  assert.match(showcase,
+    /state === 'plan-subagent-long-count' \? 128 : definitions\.length/);
   assert.match(showcase, /value\.items = showcaseSessions\(this\.fixtureState, this\.planRemoved\)/);
 });

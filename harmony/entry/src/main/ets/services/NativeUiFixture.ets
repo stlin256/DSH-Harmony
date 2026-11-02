@@ -5,13 +5,13 @@ export class NativeUiFixture {
   ];
   static readonly states: string[] = [
     'completed', 'live-change', 'attachments', 'streaming', 'stream-long', 'empty', 'long-history',
-    'secret-masked', 'stream-repaired', 'settings-search', 'document-preview',
+    'secret-masked', 'stream-repaired', 'document-preview',
     'text-config-preview', 'delimited-preview', 'tsv-preview',
     'delimited-error-preview', 'binary-preview',
     'dock-send-idle', 'dock-queue-pending', 'dock-queue-authoritative',
     'dock-queue-many', 'dock-send-error', 'dock-material-quiet',
     'dock-material-elevated', 'interaction-approval', 'interaction-question',
-    'plan-subagent', 'plan-dock-overlay', 'plan-off-error', 'subagent-continuable',
+    'plan-subagent', 'plan-subagent-long-count', 'plan-dock-overlay', 'plan-off-error', 'subagent-continuable',
     'subagent-one-shot', 'subagent-unknown', 'subagent-parent-offline',
     'plugins-list', 'plugins-empty', 'plugins-error', 'plugins-detail',
     'plugins-restart', 'plugins-install-failed',

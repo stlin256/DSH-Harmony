@@ -10,6 +10,7 @@ import { NativeDesign } from '../services/NativeDesign';
 export struct NativeBottomConversationDock {
   @BuilderParam content: () => void;
   @StorageLink('nativeSafeBottom') private safeBottom: number = 0;
+  @StorageLink('nativeImeVisible') private imeVisible: boolean = false;
   @StorageLink('nativeDark') private dark: boolean = false;
   @Prop horizontalBleed: number = 0;
   @Prop contentInset: number = 12;
@@ -58,7 +59,9 @@ export struct NativeBottomConversationDock {
         this.content()
       }.width('100%').margin({ left: -this.horizontalBleed, right: -this.horizontalBleed })
         .padding({ left: this.horizontalBleed + this.contentInset, right: this.horizontalBleed + this.contentInset,
-          top: 8, bottom: Math.ceil(this.safeBottom * 1.2) + 8 })
+          top: 8,
+          bottom: this.imeVisible ? NativeDesign.imeComposerInset :
+            NativeDesign.navigationBarMinInset })
         .animation(NativeMotion.disclosureParam())
     }.width('100%').clip(true).onAreaChange((_old: Area, area: Area): void => {
       const height = Number(area.height);

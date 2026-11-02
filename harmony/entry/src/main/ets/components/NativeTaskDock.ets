@@ -11,6 +11,7 @@ export struct NativeTaskDock {
   @Prop @Watch('sessionChanged') sessionId: string = '';
   @StorageLink('nativeDark') private dark: boolean = false;
   @State private expanded: boolean = false;
+  onHeight: (height: number) => void = (_height: number): void => {};
   private currentSession: string = '';
 
   aboutToAppear(): void {
@@ -64,5 +65,9 @@ export struct NativeTaskDock {
       .shadow({ radius: 18, color: this.dark ? '#88000000' : '#26000000',
         offsetX: 0, offsetY: 5 })
       .animation(NativeMotion.disclosureParam())
+      .onAreaChange((_old: Area, area: Area): void => {
+        const height = Math.max(0, Number(area.height));
+        if (height > 0) this.onHeight(height);
+      })
   }
 }

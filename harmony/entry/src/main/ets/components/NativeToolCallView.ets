@@ -149,7 +149,8 @@ export struct NativeToolCallView {
                   sessionId: this.sessionId
                 })
               } else {
-                NativeTextContent({ text: this.message.output, client: this.client, sessionId: this.sessionId })
+                NativeTextContent({ text: this.message.output, client: this.client,
+                  sessionId: this.sessionId, denseMonospace: this.structured.family === 'terminal' })
               }
             }
             if (this.message.error) { Text(this.message.error).fontSize(NativeDesign.fontSection)
@@ -261,7 +262,8 @@ struct NativeNestedToolRow {
                 })
               } else {
                 NativeTextContent({ text: this.message.output,
-                  client: this.client, sessionId: this.sessionId })
+                  client: this.client, sessionId: this.sessionId,
+                  denseMonospace: this.structured.family === 'terminal' })
               }
             }
           }.width('100%').padding({ right: 10 }).alignItems(HorizontalAlign.Start)

@@ -33,7 +33,13 @@ test('structured tool rows render before generic argument and output fallback', 
     /private changed\(\): void \{\s*this\.structured = nativeToolStructured/);
   assert.match(structuredView, /NativeCodeViewer\(/);
   assert.match(structuredView,
-    /this\.document\.read\.lines\.length \* 22 \+ 20[\s\S]{0,160}Math\.min\(280, this\.maxExpandedHeight, contentHeight\)/);
+    /this\.document\.read\.lines\.length \* 22 \+ 8[\s\S]{0,160}Math\.min\(280, this\.maxExpandedHeight, contentHeight\)/);
+  assert.match(structuredView, /compact: true/);
+  assert.match(structuredView, /private commandRow\(field: NativeStructuredField\)/);
+  assert.match(structuredView,
+    /Text\(field\.value\)\.width\('100%'\)\.fontSize\(NativeDesign\.fontMicro\)[\s\S]{0,100}lineHeight\('16fp'\)/);
+  assert.match(structuredView,
+    /field\.label === '命令'[\s\S]{0,80}this\.commandRow\(field\)/);
   assert.match(structuredView, /this\.onOpenFile\(file\.path\)/);
   assert.match(structuredView, /this\.openUrl\(source\.url\)/);
   assert.match(structuredView,
@@ -44,4 +50,19 @@ test('structured tool rows render before generic argument and output fallback', 
   assert.match(pluginCard, /this\.metricsBlock\(block\)/);
   assert.match(pluginCard,
     /Text\(this\.document\.title \|\| '插件卡片'\)[\s\S]{0,420}this\.document\.truncated[\s\S]{0,220}Text\('内容已截断'\)/);
+});
+
+test('terminal output uses the compact monospace text density', () => {
+  const textContent = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeTextContent.ets', import.meta.url), 'utf8');
+  const toolView = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeToolCallView.ets', import.meta.url), 'utf8');
+
+  assert.match(textContent, /@Prop denseMonospace: boolean = false/);
+  assert.match(textContent,
+    /fontSize\(this\.denseMonospace \? NativeDesign\.fontMicro : NativeDesign\.fontSection\)/);
+  assert.match(textContent,
+    /lineHeight\(this\.denseMonospace \? '16fp' : '22fp'\)/);
+  assert.match(toolView,
+    /denseMonospace: this\.structured\.family === 'terminal'/);
 });

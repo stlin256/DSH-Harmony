@@ -204,10 +204,8 @@ function disclosureProcessMessage(state: string): NativeMessage {
       '{"path":"harmony/entry/src/main/ets/components/NativeTaskDock.ets"}',
       '1: const disclosureValue = 42;',
       '{"path":"harmony/entry/src/main/ets/components/NativeTaskDock.ets","offset":1,' +
-        '"totalLines":3,"lang":"typescript","lines":[{"number":1,' +
-        '"text":"const disclosureValue = 42;"},{"number":2,' +
-        '"text":"const headerHeight = NativeDesign.compactControl;"},{"number":3,' +
-        '"text":"export struct NativeTaskDock {}"}]}'));
+        '"totalLines":1,"lang":"typescript","lines":[{"number":1,' +
+        '"text":"const disclosureValue = 42;"}]}'));
   }
   if (state === 'disclosure-process-search') {
     return disclosureProcess(disclosureOperation('search', '已搜索代码',

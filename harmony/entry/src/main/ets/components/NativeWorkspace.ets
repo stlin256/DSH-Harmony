@@ -144,6 +144,8 @@ export struct NativeWorkspace {
   @State private fileView: NativeFileViewRequest = new NativeFileViewRequest();
   @State private attaching: boolean = false;
   @State private composerHeight: number = 0;
+  @State private taskDockHeight: number = 0;
+  @State private bottomDockExtraHeight: number = 0;
   @State @Watch('navigationChanged') private toolsOpen: boolean = false;
   @State private toolsId: string = '';
   @State @Watch('navigationChanged') private modelPickerOpen: boolean = false;
@@ -159,7 +161,6 @@ export struct NativeWorkspace {
   private utilityRequests: Set<string> = new Set<string>();
   @State private menuBusy: boolean = false;
   @State private archivedUndo: string = '';
-  @State private steer: boolean = false;
   @State @Watch('navigationChanged') private newSessionOpen: boolean = false;
   @State @Watch('navigationChanged') private workspacePickerOpen: boolean = false;
   @State private workspacePickerPage: string = 'root';
@@ -202,6 +203,7 @@ export struct NativeWorkspace {
   @State private backToBottomVisible: boolean = false;
   @State private backToBottomNew: boolean = false;
   @State private backToBottomPressed: boolean = false;
+  @State private subagentEntryPressed: boolean = false;
   @State private drawerFollowing: boolean = false;
   @State private drawerTranslation: number = 0;
   @State private transcriptViewportHeight: number = 0;
@@ -366,7 +368,7 @@ export struct NativeWorkspace {
     }, 0);
   }
 
-  private preferencesChanged(): void { this.steer = this.client.hostSettings.chat().busyEnter === 'steer'; this.renderTranscript(true); }
+  private preferencesChanged(): void { this.renderTranscript(true); }
   private modelCaptionChanged(): void { this.modelCaption = this.client.modelDirectory.caption(this.selected); }
 
   private navigationChanged(): void {
@@ -826,7 +828,9 @@ export struct NativeWorkspace {
           this.select(requested);
           this.notifyWorkspaceReady(generation);
         } else {
-          this.openDrawer(false);
+          const fallback = this.firstAvailableRootSession();
+          if (fallback) this.select(fallback.id);
+          else this.openDrawer(false);
           this.notifyWorkspaceReady(generation);
         }
       } else {
@@ -1488,7 +1492,8 @@ export struct NativeWorkspace {
   }
   private utilityItems(): NativeMenuItem[] {
     return nativeUtilityMenu(this.utilityKnown, this.exportCapabilities.copyMarkdown,
-      this.exportCapabilities.downloadLog, this.copying, this.downloading);
+      this.exportCapabilities.downloadLog, this.copying, this.downloading,
+      nativePlanTargetActive(this.planProjection));
   }
   private utilityAction(id: string): void {
     if (id === 'files') {
@@ -1505,6 +1510,10 @@ export struct NativeWorkspace {
     }
     if (id === 'copy') this.copyMarkdown();
     else if (id === 'download') this.downloadLog();
+    else if (id === 'planOff') {
+      this.utilityOpen = false;
+      this.exitPlanMode();
+    }
   }
   private openUtilities(): void {
     this.modelPickerOpen = false;
@@ -1691,6 +1700,12 @@ export struct NativeWorkspace {
     const id = this.requestedSession; this.requestedSession = '';
     this.openRequestedSession(id);
   }
+  private firstAvailableRootSession(): NativeSession | null {
+    const fallback = this.sessions.find((session: NativeSession): boolean =>
+      session.blank !== true && session.origin !== 'subagent' &&
+      !this.workspaces.archivedSessionIds.includes(session.id));
+    return fallback || null;
+  }
   private async openRequestedSession(id: string): Promise<void> {
     const valid = (session: NativeSession): boolean =>
       session.id === id && session.blank !== true && session.origin !== 'subagent' &&
@@ -1700,8 +1715,14 @@ export struct NativeWorkspace {
     }
     if (!this.mounted || !this.sessions.some(valid)) {
       if (this.mounted) {
-        this.workspaceError = '会话不可用';
-        this.openDrawer(false);
+        const fallback = this.firstAvailableRootSession();
+        if (fallback) {
+          this.workspaceError = '';
+          this.select(fallback.id);
+        } else {
+          this.workspaceError = '会话不可用';
+          this.openDrawer(false);
+        }
         this.navigationChanged();
       }
       return;
@@ -2291,7 +2312,7 @@ export struct NativeWorkspace {
     if (this.sending || (!this.draft.trim() && !this.attachments.length) || !this.selected ||
         this.uncertain || !this.attachmentsReady() || !this.currentSubagentInputEnabled()) return;
     const id = this.selected; const text = this.draft; const attachmentSnapshot = this.attachments.slice();
-    const mode = this.steer ? 'steer' : 'queue';
+    const mode = this.client.hostSettings.chat().busyEnter;
     const expectQueuedEcho = this.running && mode === 'queue';
     const requestId = util.generateRandomUUID();
     if (!this.running && this.client.hostSettings.chat().collapseTiming === 'next-input') { this.model.collapseThrough = this.model.lastSeq(); this.renderTranscript(); }
@@ -2569,7 +2590,7 @@ export struct NativeWorkspace {
     try {
       const page = await this.client.page(id, historyBefore, historyCut, this.activeAddress);
       if (this.selected !== id || this.selectionGeneration !== generation || !this.mounted) return false;
-      const offset = this.hasMore ? 1 : 0;
+      const offset = this.transcriptLeadingItems();
       let anchorIndex = Math.max(0, this.firstVisible - offset);
       const anchor = this.visibleRows[anchorIndex]?.id || '';
       let top = 0;
@@ -2591,7 +2612,7 @@ export struct NativeWorkspace {
       const next = this.visibleRows.findIndex((row: NativeMessage) => row.id === anchor);
       if (next >= 0 && top !== 0) setTimeout(() => { if (!this.mounted || this.selected !== id) return;
         try {
-          this.scroller.scrollToIndex(next + (this.hasMore ? 1 : 0), false, ScrollAlign.START);
+          this.scroller.scrollToIndex(next + this.transcriptLeadingItems(), false, ScrollAlign.START);
           this.scroller.scrollBy(0, -top);
         } catch (_) {}
       }, 0);
@@ -2643,7 +2664,11 @@ export struct NativeWorkspace {
   }
   private transcriptIndex(message: NativeMessage): number {
     const index = this.visibleRows.findIndex((row: NativeMessage): boolean => row.id === message.id);
-    return index < 0 ? -1 : index + (this.hasMore ? 1 : 0);
+    return index < 0 ? -1 : index + this.transcriptLeadingItems();
+  }
+  private transcriptLeadingItems(): number {
+    const taskInset = this.taskPlan.items.length > 0 && this.taskDockHeight > 0 ? 1 : 0;
+    return taskInset + (this.hasMore ? 1 : 0);
   }
   private terminalCardNearBottom(message: NativeMessage): boolean {
     const rowIndex = this.visibleRows.findIndex((row: NativeMessage): boolean => row.id === message.id);
@@ -2681,7 +2706,7 @@ export struct NativeWorkspace {
     this.backToBottomNew = false;
     this.followTail = true;
     this.returningToBottom = true;
-    const lastIndex = this.visibleRows.length - 1 + (this.hasMore ? 1 : 0);
+    const lastIndex = this.visibleRows.length - 1 + this.transcriptLeadingItems();
     if (!NativeMotion.enabled()) {
       try { this.scroller.scrollToIndex(lastIndex, false, ScrollAlign.END); } catch (_) {}
       try { this.scroller.scrollEdge(Edge.Bottom); } catch (_) {}
@@ -3000,7 +3025,7 @@ export struct NativeWorkspace {
         .fontSize(NativeDesign.fontBody).borderRadius(0).padding({ left: 7, right: 7, top: 3, bottom: 3 })
         .backgroundColor(Color.Transparent).fontColor(this.primaryText())
         .onChange((value: string) => { this.draft = value; this.client.drafts.set(this.selected, value); })
-      Row({ space: 6 }) {
+      Row({ space: 4 }) {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 4 }) {
             Text(this.modelCaption).fontSize(NativeDesign.fontCaption).maxLines(1).constraintSize({ maxWidth: 160 })
@@ -3032,22 +3057,11 @@ export struct NativeWorkspace {
             .accessibilityText('添加文件')
             .enabled(!this.attaching && !this.sending).onClick(() => { this.attachFiles(); })
         }
-        if (this.running) {
-          Button({ type: ButtonType.Normal }) {
-            Row({ space: 5 }) {
-              DSHIcon({ glyph: this.steer ? 'paper-plane-outline' : 'queue-outline',
-                color: this.secondaryText(), glyphSize: NativeDesign.glyphCompact })
-              Text(this.steer ? '接管' : '排队').fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
-            }
-          }.height(NativeDesign.compactControl).borderRadius(NativeDesign.radiusControl)
-            .backgroundColor(Color.Transparent)
-            .accessibilityText(this.steer ? '发送模式：接管' : '发送模式：排队，点击切换')
-            .onClick(() => { this.steer = !this.steer; })
-        }
         if (this.running && !this.sending && !this.draft.trim() && !this.attachments.length) {
           Button({ type: ButtonType.Normal }) {
             DSHIcon({ glyph: 'stop-fill', color: NativeDesign.textInverse(this.dark) })
           }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+            .id('composer-stop')
             .borderRadius(NativeDesign.compactHitTarget / 2)
             .backgroundColor(NativeDesign.accentStrong(this.dark)).accessibilityText('停止任务')
             .onClick(() => {
@@ -3064,6 +3078,7 @@ export struct NativeWorkspace {
               DSHIcon({ glyph: 'send-arrow', color: NativeDesign.textInverse(this.dark) })
             }
           }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+            .id('composer-send')
             .borderRadius(NativeDesign.compactHitTarget / 2)
             .backgroundColor(NativeDesign.accentStrong(this.dark))
             .enabled(this.composerCanSend())
@@ -3073,6 +3088,7 @@ export struct NativeWorkspace {
         }
       }.width('100%')
     }.padding(6).width('100%').borderRadius(NativeDesign.radiusGroup)
+      .id('conversation-composer')
       .border({ width: 0.5, color: this.semanticBorderColor() })
       .backgroundColor(this.raisedSurface())
       .onAreaChange((_old: Area, area: Area): void => {
@@ -3087,10 +3103,12 @@ export struct NativeWorkspace {
       Row({ space: 6 }) {
         if (this.activeAddress.kind === 'subagent') {
           NativeIconButton({ glyph: 'chevron-left-outline', label: '返回父会话', tone: 'primary',
+            controlId: 'workspace-subagent-back',
             onPressed: (): void => { this.backToParentSession(); } })
         }
-        if (!this.wide) {
+        if (!this.wide && this.activeAddress.kind === 'session') {
           NativeIconButton({ glyph: 'panel-left-outline', label: '打开侧边栏', tone: 'primary',
+            controlId: 'workspace-sidebar',
             onPressed: (): void => { this.openDrawer(); } })
         }
         Column({ space: 1 }) {
@@ -3116,61 +3134,48 @@ export struct NativeWorkspace {
             .accessibilityText('正在加载会话')
         }
         if ((this.subagentCatalog?.length || 0) > 0) {
-          Button({ type: ButtonType.Normal }) {
-            Row({ space: 4 }) {
-              if (this.runningSubagentCount() > 0) {
-                Text('').width(6).height(6).borderRadius(3)
-                  .backgroundColor(this.accentColor())
-              } else {
-                DSHIcon({ glyph: 'branch-outline', glyphSize: NativeDesign.glyphCompact,
-                  color: this.secondaryText() })
-              }
-              Text((this.subagentCatalog?.length || 0).toString() + ' 个子智能体')
-                .fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
+          Row() {
+            Row({ space: 3 }) {
+              DSHIcon({ glyph: 'branch-outline', glyphSize: NativeDesign.glyphCompact,
+                color: this.runningSubagentCount() > 0 ? this.accentColor() : this.secondaryText() })
+              Text((this.subagentCatalog?.length || 0).toString())
+                .fontSize(NativeDesign.fontCaption)
+                .fontColor(this.runningSubagentCount() > 0 ? this.accentColor() : this.secondaryText())
                 .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-              DSHIcon({ glyph: 'chevron-down-outline', glyphSize: NativeDesign.glyphInline,
-                color: this.tertiaryText() })
             }
+            .height(NativeDesign.compactChip)
+            .padding({ left: 6, right: 7 })
+            .borderRadius(NativeDesign.radiusChip)
+            .backgroundColor(this.subagentEntryPressed ? this.selectionSurface() : Color.Transparent)
+            .clip(true)
+            .animation(NativeMotion.implicit('press'))
           }
-          .height(NativeDesign.compactChip)
-          .padding({ left: 8, right: 6 })
-          .borderRadius(NativeDesign.radiusChip)
-          .backgroundColor(this.fieldSurface())
-          .border({ width: 0.5, color: this.semanticBorderColor() })
-          .clip(true)
+          .id('subagent-title-capsule')
+          .id('subagent-title-entry')
+          .height(NativeDesign.hitTarget)
+          .padding({ left: 4, right: 4 })
+          .alignItems(VerticalAlign.Center)
+          .backgroundColor(Color.Transparent)
+          .clickEffect(null)
           .accessibilityText((this.subagentCatalog?.length || 0).toString() +
             ' 个子智能体' + (this.runningSubagentCount() > 0 ? '，正在运行' : ''))
-          .onClick((): void => { this.openLineage(); })
+          .onTouch((event: TouchEvent): void => {
+            this.subagentEntryPressed = event.type === TouchType.Down;
+          })
+          .onClick((): void => {
+            this.subagentEntryPressed = false;
+            this.openLineage();
+          })
         }
         NativeIconButton({ glyph: 'ellipsis-outline', label: '更多操作',
+          controlId: 'workspace-utility-more',
           active: this.utilityOpen, glyphSize: NativeDesign.glyphControl,
           onPressed: (): void => { this.openUtilities(); } })
       }.width('100%')
-      if (nativePlanTargetActive(this.planProjection) || this.planError) {
-        Row({ space: 6 }) {
-          if (nativePlanTargetActive(this.planProjection)) {
-            Button({ type: ButtonType.Normal }) {
-              Row({ space: 5 }) {
-                DSHIcon({ glyph: 'plan-outline', glyphSize: NativeDesign.glyphCompact, color: this.accentColor() })
-                Text('计划').fontSize(NativeDesign.fontCaption).fontColor(this.accentColor())
-                if (this.planLeaving) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.accentColor())
-              }
-            }
-            .height(NativeDesign.compactChip)
-            .padding({ left: 9, right: 9 })
-            .borderRadius(NativeDesign.radiusChip)
-            .backgroundColor(this.selectionSurface())
-            .border({ width: 0.5, color: this.semanticBorderColor() })
-            .clip(true)
-            .enabled(!this.planLeaving)
-            .accessibilityText('计划模式已开启，点击关闭')
-            .onClick((): void => { this.exitPlanMode(); })
-          }
-          if (this.planError) {
-            Text(this.planError).fontSize(NativeDesign.fontMicro).fontColor(this.dangerText())
-              .transition(NativeMotion.rowTransition())
-          }
-        }.width('100%')
+      if (this.planError) {
+        Text(this.planError).fontSize(NativeDesign.fontMicro).fontColor(this.dangerText())
+          .id('plan-mode-error')
+          .transition(NativeMotion.rowTransition())
       }
       if (this.connectionPhase === 'retrying') {
         Row({ space: 8 }) {
@@ -3183,6 +3188,13 @@ export struct NativeWorkspace {
       }
       Stack({ alignContent: Alignment.TopStart }) {
         List({ space: 12, scroller: this.scroller }) {
+          if (this.taskPlan.items.length && this.taskDockHeight > 0) {
+            ListItem() {
+              Row().width('100%').height(this.taskDockHeight)
+            }.height(this.taskDockHeight)
+              .transition(NativeMotion.disclosureTransition())
+              .animation(NativeMotion.disclosureParam())
+          }
           if (this.hasMore) {
             ListItem() {
               Button({ type: ButtonType.Normal }) {
@@ -3260,10 +3272,22 @@ export struct NativeWorkspace {
                     this.running, this.waiting),
                   onDshUiReply: (text: string): Promise<boolean> => this.sendDshUiReply(text)
                 })
-              }.width('100%').alignItems(VerticalAlign.Top) }
+              }.width('100%').alignItems(VerticalAlign.Top)
+                .padding({ right: NativeDesign.pageInset }) }
             }
-          }, (message: NativeMessage) => message.id)
-        }.width('100%').height('100%').clip(true).cachedCount(6)
+          // LazyForEach caches by this key, so the live row must carry its
+          // text length instead of keeping the same identity for every delta.
+          }, (message: NativeMessage) => message.id +
+            (message.runningTurn && message.role === 'assistant' ? ':' + message.text.length : ''))
+          if (this.bottomDockExtraHeight > 0) {
+            ListItem() {
+              Row().width('100%').height(this.bottomDockExtraHeight)
+            }.height(this.bottomDockExtraHeight)
+              .transition(NativeMotion.disclosureTransition())
+              .animation(NativeMotion.disclosureParam())
+          }
+        }.id('transcript-scroll').width('calc(100% + 24vp)').height('100%')
+          .padding({ right: 24 }).clip(true).cachedCount(6).scrollBar(BarState.Auto)
           .edgeEffect(NativeExperience.reducedMotion() ? EdgeEffect.None : EdgeEffect.Spring)
           .onReachStart(() => {
             if (this.userHasScrolled && this.hasMore && this.connectionPhase === 'live') this.startHistoryDrain(false);
@@ -3299,7 +3323,10 @@ export struct NativeWorkspace {
         if (this.taskPlan.items.length) {
           Column() {
             NativeConversationDock() {
-              NativeTaskDock({ document: this.taskPlan, sessionId: this.selected })
+              NativeTaskDock({ document: this.taskPlan, sessionId: this.selected,
+                onHeight: (height: number): void => {
+                  if (height !== this.taskDockHeight) this.taskDockHeight = height;
+                } })
             }
           }.width('100%')
             .hitTestBehavior(HitTestMode.Transparent)
@@ -3368,8 +3395,9 @@ export struct NativeWorkspace {
         elevated: this.liveTurnChangesVisible || this.attachments.length > 0 ||
           this.queueItems().length > 0 || this.error.length > 0
       }) {
-        Column({ space: 8 }) {
-          if (this.error) {
+        Column() {
+          Column({ space: 8 }) {
+            if (this.error) {
             Row({ space: 8 }) {
               Text('!').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Bold)
                 .fontColor(this.dangerText())
@@ -3405,7 +3433,7 @@ export struct NativeWorkspace {
               onChanged: (): void => {}
             }).transition(NativeMotion.disclosureTransition())
           }
-          if (this.attachments.length) {
+            if (this.attachments.length) {
             Row() {
               Scroll() {
                 Row({ space: 8 }) {
@@ -3461,9 +3489,14 @@ export struct NativeWorkspace {
                   }, (item: NativeAttachmentDraft) => item.id)
                 }
               }.scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off).width('100%')
-            }.width('100%').padding({ left: 8, right: 12 })
-              .transition(NativeMotion.disclosureTransition())
-          }
+              }.width('100%').padding({ left: 8, right: 12 })
+                .transition(NativeMotion.disclosureTransition())
+            }
+          }.width('100%').margin({ bottom: this.bottomDockExtraHeight > 0 ? 8 : 0 })
+            .onAreaChange((_old: Area, area: Area): void => {
+            const height = Math.max(0, Number(area.height));
+            if (height !== this.bottomDockExtraHeight) this.bottomDockExtraHeight = height;
+          })
           if (this.currentSubagentReadOnlyReason()) {
             this.subagentReadOnlyComposer()
           } else {

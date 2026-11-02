@@ -1,7 +1,6 @@
 import { common } from '@kit.AbilityKit';
 import { util } from '@kit.ArkTS';
 import { image } from '@kit.ImageKit';
-import { pasteboard } from '@kit.BasicServicesKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { pdfService, pdfViewManager, PdfView } from '@kit.PDFKit';
 import {
@@ -659,10 +658,6 @@ export struct NativeFilePreview {
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / 1024 / 1024).toFixed(1) + ' MB';
   }
-  private copy(): void {
-    pasteboard.getSystemPasteboard().setData(
-      pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, this.path)).catch((): void => {});
-  }
   private async download(): Promise<void> {
     if (this.downloading) return;
     this.downloading = true;
@@ -687,6 +682,7 @@ export struct NativeFilePreview {
           Text(this.title).fontSize(NativeDesign.fontBody).fontWeight(FontWeight.Medium).maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
             .fontColor(NativeDesign.textPrimary(this.dark))
+            .id('document-preview-title')
           if (this.loading || this.previewBusy || this.pdfOpening) {
             LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
               .color(NativeDesign.accent(this.dark))
@@ -699,14 +695,10 @@ export struct NativeFilePreview {
             .fontColor(NativeDesign.textTertiary(this.dark))
         }
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-      if (this.canToggle) {
+      if (this.canToggle && this.canPreview) {
         NativeDocumentModeSwitch({ mode: this.mode,
           onMode: (value: string): void => { this.changeMode(value); } })
       }
-      NativeIconButton({
-        glyph: 'copy-outline', label: '复制文件路径', glyphSize: NativeDesign.glyphControl,
-        onPressed: (): void => { this.copy(); }
-      })
       if (this.downloading) {
         Stack({ alignContent: Alignment.Center }) {
           LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(NativeDesign.accent(this.dark))
@@ -714,11 +706,13 @@ export struct NativeFilePreview {
       } else {
         NativeIconButton({
           glyph: 'download-outline', label: '下载文件', glyphSize: NativeDesign.glyphControl,
+          controlId: 'document-download',
           onPressed: (): void => { this.download(); }
         })
       }
       NativeIconButton({
         glyph: 'close-outline', label: '关闭预览', tone: 'primary', glyphSize: NativeDesign.glyphControl,
+        controlId: 'document-close',
         onPressed: (): void => { this.onClose(); }
       })
     }.width('100%').height(NativeDesign.headerHeight)
@@ -839,7 +833,7 @@ export struct NativeFilePreview {
           .backgroundColor(NativeDesign.selection(this.dark))
           .accessibilityText('重试').onClick((): void => { this.reload(); })
       }.layoutWeight(1).justifyContent(FlexAlign.Center)
-    } else if (this.imageMap) {
+    } else if (this.imageMap && this.mode === 'preview') {
       this.imageBody()
     } else {
       this.textBody()

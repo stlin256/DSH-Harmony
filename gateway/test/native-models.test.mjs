@@ -218,7 +218,6 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.equal(NativeUiFixture.state('streaming'), 'streaming');
   assert.equal(NativeUiFixture.state('secret-masked'), 'secret-masked');
   assert.equal(NativeUiFixture.state('stream-repaired'), 'stream-repaired');
-  assert.equal(NativeUiFixture.state('settings-search'), 'settings-search');
   assert.equal(NativeUiFixture.state('document-preview'), 'document-preview');
   assert.equal(NativeUiFixture.state('long-history'), 'long-history');
   assert.equal(NativeUiFixture.state('dock-send-idle'), 'dock-send-idle');
@@ -1714,6 +1713,12 @@ test('turn change card and bottom live control keep compact ownership and motion
   const dock = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/components/NativeBottomConversationDock.ets',
     import.meta.url), 'utf8');
+  const design = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/services/NativeDesign.ets',
+    import.meta.url), 'utf8');
+  const appearance = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/services/WindowAppearance.ets',
+    import.meta.url), 'utf8');
   assert.match(view, /已编辑 ' \+ this\.summary\.fileCount \+ ' 个文件/);
   assert.match(view, /this\.summary\.files\.slice\(0, 3\)/);
   assert.match(view, /再显示 ' \+ \(this\.summary\.files\.length - 3\) \+ ' 个文件/);
@@ -1774,7 +1779,14 @@ test('turn change card and bottom live control keep compact ownership and motion
   assert.doesNotMatch(dock, /\.backgroundColor\((?:Color\.)?(?:Black|'#000000')\)/);
   assert.match(dock, /margin\(\{ left: -this\.horizontalBleed, right: -this\.horizontalBleed \}\)/);
   assert.match(dock, /nativeSafeBottom/);
-  assert.match(dock, /top: 8, bottom: Math\.ceil\(this\.safeBottom \* 1\.2\) \+ 8/);
+  assert.match(design, /static navigationBarMinInset: number = 20/);
+  assert.match(appearance, /NativeDesign\.navigationBarMinInset/);
+  assert.match(appearance,
+    /Math\.max\(NativeDesign\.navigationBarMinInset, Math\.ceil\(bottom\)\)/);
+  assert.match(appearance,
+    /mainWindow === null[\s\S]{0,160}publishBottomInset\(0\)/);
+  assert.match(dock,
+    /bottom: this\.imeVisible \? NativeDesign\.imeComposerInset :\s*NativeDesign\.navigationBarMinInset/);
   assert.match(workspace, /hitTestBehavior\(HitTestMode\.Transparent\)\.zIndex\(6\)/);
   assert.match(workspace, /this\.liveTurnChangesVisible = false/);
 });
@@ -1912,11 +1924,12 @@ test('todo_write projects structured status rows and the newest replacement plan
     /NativeConversationDock|NativeTaskDock/,
     'task-plan dock must not reserve a sibling row above the transcript');
   assert.match(conversation,
-    /Column\(\) \{\s*NativeConversationDock\(\) \{[\s\S]{0,120}NativeTaskDock[\s\S]{0,180}\}\s*\}\.width\('100%'\)\s*\.hitTestBehavior\(HitTestMode\.Transparent\)\s*\.zIndex\(5\)/);
+    /Column\(\) \{\s*NativeConversationDock\(\) \{[\s\S]{0,260}NativeTaskDock[\s\S]{0,420}\}\s*\}\.width\('100%'\)\s*\.hitTestBehavior\(HitTestMode\.Transparent\)\s*\.zIndex\(5\)/);
   assert.match(conversation,/Stack\(\{ alignContent: Alignment\.Bottom \}\)/);
   assert.doesNotMatch(workspaceView,/conversationDockHeight/);
   assert.doesNotMatch(workspaceView,/contentStartOffset\(/);
-  assert.match(workspaceView,/\.width\('100%'\)\.height\('100%'\)\.clip\(true\)\.cachedCount\(6\)/);
+  assert.match(workspaceView,
+    /\.width\('calc\(100% \+ 24vp\)'\)\.height\('100%'\)[\s\S]{0,100}\.padding\(\{ right: 24 \}\)\.clip\(true\)\.cachedCount\(6\)/);
   assert.match(workspaceView,/glyph: 'chevron-down-outline'/);
   assert.match(workspaceView,/\.width\(39\)\.height\(39\)\.borderRadius\(19\.5\)/);
   assert.match(workspaceView,/\.opacity\(this\.backToBottomPressed \? 0\.85 : 0\.6\)/);
@@ -2044,6 +2057,7 @@ test('foreground navigation wins over width changes and the session menu keeps t
     '文件浏览,复制 Markdown,下载日志');
   assert.equal(nativeUtilityMenu(true,true,false,false,false).map(x=>x.id).join(','),'files,copy');
   assert.equal(nativeUtilityMenu(true,false,false,false,false).map(x=>x.id).join(','),'files');
+  assert.equal(nativeUtilityMenu(true,false,false,false,false,true).map(x=>x.id).join(','),'files,planOff');
 });
 
 test('workspace document model classifies previews, configuration, text fallback and binary files', () => {
@@ -2151,8 +2165,9 @@ test('document preview/source mode uses one title-row icon action', () => {
   assert.match(header, /private header\(\) \{\s*Row\(\{ space: 4 \}\)/);
   assert.equal((header.match(/NativeDocumentModeSwitch/g) || []).length, 1);
   const modePosition = header.indexOf('NativeDocumentModeSwitch');
-  const copyPosition = header.indexOf("glyph: 'copy-outline'");
-  assert.ok(modePosition >= 0 && modePosition < copyPosition);
+  const downloadPosition = header.indexOf("glyph: 'download-outline'");
+  assert.ok(modePosition >= 0 && modePosition < downloadPosition);
+  assert.doesNotMatch(header, /copy-outline|复制/);
   assert.doesNotMatch(header, /Row\(\) \{\s*NativeDocumentModeSwitch/);
   assert.match(mode, /NativeIconButton\(\{/);
   assert.match(mode,
@@ -2542,6 +2557,8 @@ test('live process and terminal file-card motion contracts stay bounded', () => 
   assert.match(workspace,/if \(frame\.type === 'delta'\) \{[\s\S]{0,120}frame\.text\.length > 0/);
   assert.match(workspace,/!forceFull && this\.streamTextPatchDirty \?/);
   assert.match(workspace,/if \(tailOnlyTextUpdate\) \{[\s\S]{0,120}this\.source\.setTail\(visible, 2\)/);
+  assert.match(workspace,
+    /message\.runningTurn && message\.role === 'assistant' \? ':' \+ message\.text\.length/);
   const titleFrame=workspace.indexOf("if (frame.type === 'title')");
   const modelApply=workspace.indexOf('this.model.apply(frame)',titleFrame);
   assert.ok(titleFrame >= 0 && modelApply > titleFrame);
@@ -3256,35 +3273,15 @@ test('streaming Markdown repair closes inline syntax, hides partial tables and c
   '流式 Markdown\n\n| 状态 | 结果 |\n| --- | --- |\n| 完成 | 是 |');
 });
 
-test('settings index normalizes full-width text and ranks title before synonym and path', () => {
-  const {
-    nativeNormalizeSettingsQuery,
-    nativeSearchSettings
-  } = load('NativeSettingsIndex', {});
-  assert.equal(nativeNormalizeSettingsQuery('  ＡＰＩ　Key  '), 'apikey');
-  const notification = nativeSearchSettings('通知');
-  assert.equal(notification[0].entry.id, 'notifications');
-  assert.ok(notification.some(hit => hit.entry.id === 'notifications.approval'));
-  const transparency = nativeSearchSettings('透明');
-  assert.equal(transparency[0].entry.title, '减少透明效果');
-  const material = nativeSearchSettings('material');
-  assert.equal(material[0].entry.id, 'appearance.transparency');
-  assert.equal(material[0].matchedSynonym, 'material');
-  const dark = nativeSearchSettings('dark');
-  assert.equal(dark[0].entry.id, 'appearance.theme');
-  const cache = nativeSearchSettings('cache');
-  assert.equal(cache[0].entry.id, 'storage');
-  assert.ok(nativeSearchSettings('storage', 1).length === 1);
-  assert.equal(nativeSearchSettings('   ').length, 0);
-});
-
-test('frontend hardening source wires masking, stream repair and settings search into production', () => {
+test('frontend hardening source wires masking and stream repair into production', () => {
   const message = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/components/NativeMessageView.ets', import.meta.url), 'utf8');
   const text = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/components/NativeTextContent.ets', import.meta.url), 'utf8');
   const textSource = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/services/NativeTextSource.ets', import.meta.url), 'utf8');
+  const inlineText = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeInlineText.ets', import.meta.url), 'utf8');
   const settings = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/components/NativeSettings.ets', import.meta.url), 'utf8');
   assert.match(message, /copyMessage\(\).*?rawMessageText\(\)/s);
@@ -3297,6 +3294,7 @@ test('frontend hardening source wires masking, stream repair and settings search
   assert.match(text, /nativeSecretSpans\(this\.renderedText\)/);
   assert.match(textSource, /protectedRanges: NativeSecretSpan\[\]/);
   assert.match(text, /pasteboard\.createData\(pasteboard\.MIMETYPE_TEXT_PLAIN, this\.text\)/);
-  assert.match(settings, /nativeSearchSettings\(this\.settingsQuery\)/);
-  assert.match(settings, /this\.openPage\(hit\.entry\.page\)/);
+  assert.match(inlineText,
+    /index\.toString\(\) \+ ':' \+ _run\.text \+ ':' \+ \(_run\.secret \? 'secret' : 'plain'\)/);
+  assert.doesNotMatch(settings, /nativeSearchSettings|settingsQuery|搜索设置/);
 });

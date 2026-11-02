@@ -15,6 +15,8 @@ export default class EntryAbility extends UIAbility {
   onCreate(want: Want): void {
     AppStorage.setOrCreate<boolean>('systemDark', this.context.config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
     AppStorage.setOrCreate<boolean>('pocketPageThemeKnown', false);
+    AppStorage.setOrCreate<boolean>('nativeImeVisible', false);
+    AppStorage.setOrCreate<number>('nativeImeHeight', 0);
     webview.WebviewController.initializeWebEngine();
     // Debug builds alone expose the standard HDC-forwarded inspection socket.
     if (this.context.applicationInfo.debug) webview.WebviewController.setWebDebuggingAccess(true);
@@ -40,6 +42,7 @@ export default class EntryAbility extends UIAbility {
   onWindowStageCreate(stage: window.WindowStage): void {
     const mainWindow = stage.getMainWindowSync();
     WindowAppearance.mainWindow = mainWindow;
+    WindowAppearance.observeKeyboard();
     // Keep both system bars visible while painting their background from the
     // active page. Native content handles the corresponding safe-area insets.
     WindowAppearance.fullscreen(true).then(() => {
@@ -66,6 +69,7 @@ export default class EntryAbility extends UIAbility {
 
   onDestroy(): void {
     try { accessibility.offAnimationReduceStateChange(this.motionChanged); } catch (_) {}
+    WindowAppearance.stopObservingKeyboard();
     WindowAppearance.mainWindow = null;
   }
 

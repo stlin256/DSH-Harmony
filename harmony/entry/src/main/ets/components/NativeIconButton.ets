@@ -14,6 +14,7 @@ export struct NativeIconButton {
   @Prop controlEnabled: boolean = true;
   @Prop tone: string = 'secondary';
   @Prop glyphSize: number = NativeDesign.glyphControl;
+  @Prop controlId: string = '';
   onPressed: () => void = (): void => {};
   @StorageLink('nativeDark') private dark: boolean = false;
 
@@ -42,6 +43,7 @@ export struct NativeIconButton {
     .backgroundColor(Color.Transparent)
     .enabled(this.controlEnabled)
     .opacity(this.controlEnabled ? 1 : 0.4)
+    .id(this.controlId)
     .accessibilityText(this.label)
     .onClick((): void => { this.onPressed(); })
   }

@@ -479,17 +479,19 @@ function showcaseAttachments(): NativeAttachmentDraft[] {
 }
 
 function isSubagentFixtureState(state: string): boolean {
-  return state === 'plan-subagent' || state === 'plan-off-error' ||
+  return state === 'plan-subagent' || state === 'plan-subagent-long-count' ||
+    state === 'plan-off-error' ||
     state === 'subagent-continuable' || state === 'subagent-one-shot' ||
     state === 'subagent-unknown' || state === 'subagent-parent-offline';
 }
 
 function isPlanFixtureState(state: string): boolean {
-  return state === 'plan-subagent' || state === 'plan-dock-overlay' ||
+  return state === 'plan-subagent' || state === 'plan-subagent-long-count' ||
+    state === 'plan-dock-overlay' ||
     state === 'plan-off-error';
 }
 
-function showcaseSubagentCatalog(): ShowcaseSubagentCatalogRow[] {
+function showcaseSubagentCatalog(state: string = 'plan-subagent'): ShowcaseSubagentCatalogRow[] {
   const rows: ShowcaseSubagentCatalogRow[] = [];
   const definitions: string[][] = [
     [SHOWCASE_CHILD_CONTINUABLE, 'continuable', '可继续检查'],
@@ -497,19 +499,22 @@ function showcaseSubagentCatalog(): ShowcaseSubagentCatalogRow[] {
     [SHOWCASE_CHILD_UNKNOWN, 'unknown', '未知模式记录'],
     [SHOWCASE_CHILD_EXTERNAL, 'external', '外部任务']
   ];
-  definitions.forEach((definition: string[], index: number): void => {
+  const count = state === 'plan-subagent-long-count' ? 128 : definitions.length;
+  for (let index = 0; index < count; index++) {
+    const definition = index < definitions.length ? definitions[index] :
+      ['showcase-child-extra-' + index.toString(), 'external', '外部任务 ' + (index + 1).toString()];
     const row = new ShowcaseSubagentCatalogRow();
     row.id = definition[0];
     row.createdAt = 1761900000000 + index;
     row.mode = definition[1];
     row.label = definition[2];
     rows.push(row);
-  });
+  }
   return rows;
 }
 
 function showcaseNativeSubagentCatalog(state: string): NativeSubagentEntry[] {
-  return showcaseSubagentCatalog().map((row: ShowcaseSubagentCatalogRow): NativeSubagentEntry => {
+  return showcaseSubagentCatalog(state).map((row: ShowcaseSubagentCatalogRow): NativeSubagentEntry => {
     const entry = new NativeSubagentEntry();
     entry.id = row.id;
     entry.createdAt = row.createdAt;
@@ -566,7 +571,7 @@ function showcaseProjectionJson(state: string, sessionId: string, planRemoved: b
       values.plan = showcasePlanProjection(planRemoved);
     }
     if (isSubagentFixtureState(state)) {
-      values.subagentCatalog = showcaseSubagentCatalog();
+      values.subagentCatalog = showcaseSubagentCatalog(state);
     }
   }
   const envelope = new ShowcaseProjectionEnvelope();
@@ -580,7 +585,6 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
     state === 'stream-long' ? '长流持续输出' :
     state === 'stream-repaired' ? '流式 Markdown' :
     state === 'secret-masked' ? '凭据显示与复制来源' :
-    state === 'settings-search' ? '设置搜索与结果' :
     state === 'dock-send-idle' || state === 'dock-material-quiet' ? 'Dock 空闲与发送' :
     state === 'dock-send-error' ? '发送失败与重试' :
     state === 'dock-queue-pending' ? '发送中与队列确认' :
@@ -590,6 +594,7 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
     state === 'interaction-approval' ? '审批卡样式检查' :
     state === 'interaction-question' ? '问题卡样式检查' :
     state === 'plan-subagent' ? '计划与子智能体' :
+    state === 'plan-subagent-long-count' ? '计划与子智能体标题很长时优先压缩标题并保留数量' :
     state === 'plan-dock-overlay' ? '悬浮任务计划' :
     state === 'plan-off-error' ? '计划退出失败' :
     state === 'subagent-continuable' ? '可继续子会话' :

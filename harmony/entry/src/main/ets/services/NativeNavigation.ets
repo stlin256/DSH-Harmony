@@ -37,11 +37,13 @@ export function nativeSessionMenu(pinned: boolean, archived: boolean = false): N
 
 /** The more menu is complete before asynchronous capability discovery finishes. */
 export function nativeUtilityMenu(known: boolean, copyMarkdown: boolean, downloadLog: boolean,
-  copying: boolean, downloading: boolean): NativeMenuItem[] {
+  copying: boolean, downloading: boolean, planActive: boolean = false): NativeMenuItem[] {
   const rows: NativeMenuItem[] = [
     { id: 'files', title: '文件浏览', icon: 'browse-outline',
       danger: false, disabled: false, separator: false }
   ];
+  if (planActive) rows.push({ id: 'planOff', title: '退出计划模式', icon: 'plan-outline',
+    danger: false, disabled: false, separator: false });
   if (!known || copyMarkdown) rows.push({ id: 'copy', title: '复制 Markdown', icon: 'copy-outline',
     danger: false, disabled: copying, separator: false });
   if (!known || downloadLog) rows.push({ id: 'download', title: '下载日志', icon: 'download-outline',

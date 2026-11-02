@@ -50,8 +50,8 @@ export struct NativeStructuredToolView {
   }
 
   private viewerHeight(): number {
-    const contentHeight = Math.max(44, this.document.read.lines.length * 22 + 20);
-    return Math.max(64, Math.min(280, this.maxExpandedHeight, contentHeight));
+    const contentHeight = Math.max(30, this.document.read.lines.length * 22 + 8);
+    return Math.min(280, this.maxExpandedHeight, contentHeight);
   }
 
   private openUrl(url: string): void {
@@ -78,6 +78,18 @@ export struct NativeStructuredToolView {
         .fontColor(this.fieldColor(field)).copyOption(CopyOptions.InApp)
         .maxLines(field.code ? 2 : 3).textOverflow({ overflow: TextOverflow.Ellipsis })
     }.width('100%').alignItems(VerticalAlign.Top)
+  }
+
+  @Builder
+  private commandRow(field: NativeStructuredField) {
+    Column({ space: 2 }) {
+      Text(field.label).fontSize(NativeDesign.fontMicro)
+        .fontColor(NativeDesign.textTertiary(this.dark))
+      Text(field.value).width('100%').fontSize(NativeDesign.fontMicro)
+        .lineHeight('16fp').fontFamily('Noto Sans Mono, monospace')
+        .fontColor(this.fieldColor(field)).copyOption(CopyOptions.InApp)
+        .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
+    }.width('100%').alignItems(HorizontalAlign.Start)
   }
 
   @Builder
@@ -228,7 +240,11 @@ export struct NativeStructuredToolView {
       if (this.document.fields.length) {
         Column({ space: 4 }) {
           ForEach(this.document.fields, (field: NativeStructuredField) => {
-            this.fieldRow(field)
+            if (field.label === '命令') {
+              this.commandRow(field)
+            } else {
+              this.fieldRow(field)
+            }
           }, (field: NativeStructuredField, index: number) => field.label + ':' + index)
         }.width('100%')
       }
@@ -238,7 +254,8 @@ export struct NativeStructuredToolView {
           language: this.document.read.language,
           startNumber: this.document.read.lines[0].number,
           identity: this.document.path + ':' + this.document.read.offset + ':' +
-            this.document.read.lines.length
+            this.document.read.lines.length,
+          compact: true
         }).width('100%').height(this.viewerHeight())
       }
       if (this.document.search.paths.length || this.document.search.files.length) {

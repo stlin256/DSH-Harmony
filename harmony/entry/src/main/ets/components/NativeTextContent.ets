@@ -27,6 +27,7 @@ export struct NativeTextContent {
   @Prop @Watch('changed') streaming: boolean = false;
   @Prop @Watch('changed') maskSecrets: boolean = false;
   @Prop monospace: boolean = false;
+  @Prop denseMonospace: boolean = false;
   client: NativeHarnessClient = new NativeHarnessClient('');
   sessionId: string = '';
   @StorageLink('nativeDark') private dark: boolean = false;
@@ -114,7 +115,9 @@ export struct NativeTextContent {
       NativeTable({ table: table, maskSecrets: this.maskSecrets,
         client: this.client, sessionId: this.sessionId })
     } else if (this.monospace || plain) {
-      Text(value).width('100%').fontSize(NativeDesign.fontSection).lineHeight('22fp')
+      Text(value).width('100%')
+        .fontSize(this.denseMonospace ? NativeDesign.fontMicro : NativeDesign.fontSection)
+        .lineHeight(this.denseMonospace ? '16fp' : '22fp')
         .fontFamily('Noto Sans Mono, monospace').copyOption(CopyOptions.InApp)
         .fontColor(NativeDesign.textPrimary(this.dark))
     } else {

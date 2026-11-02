@@ -12,6 +12,7 @@ export struct NativeDocumentModeSwitch {
       glyph: this.mode === 'preview' ? 'code-outline' : 'eye-outline',
       label: this.mode === 'preview' ? '切换到源码' : '切换到渲染预览',
       glyphSize: NativeDesign.glyphControl,
+      controlId: 'document-mode-toggle',
       onPressed: (): void => {
         this.onMode(this.mode === 'preview' ? 'code' : 'preview');
       }
