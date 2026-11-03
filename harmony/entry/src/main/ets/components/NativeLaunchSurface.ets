@@ -177,7 +177,8 @@ export struct NativeLaunchSurface {
       .borderRadius(NativeDesign.radiusChip)
       .backgroundColor(NativeDesign.accentSurface(this.dark))
       .border({ width: 0.5, color: this.primary() })
-      .alignSelf(ItemAlign.Start)
+      .alignSelf(ItemAlign.Center)
+      .id('iteration-notice-chip')
       Text('项目正在快速迭代').fontSize(NativeDesign.fontBrand).fontWeight(FontWeight.Bold)
         .fontColor(this.foreground()).margin({ top: 16 })
       Text('当前仍有许多功能尚未完成，也可能出现 Bug 或不够顺畅的交互。')
@@ -522,14 +523,18 @@ export struct NativeLaunchSurface {
         .width('100%').padding(NativeDesign.spaceM).borderRadius(NativeDesign.radiusRow)
         .backgroundColor(NativeDesign.dangerSurface(this.dark))
         .border({ width: 1, color: NativeDesign.border(this.dark) })
+        .id('launch-login-error')
+        .transition(NativeMotion.rowTransition())
       }
-      this.primaryButton('连接工作空间', this.busy, this.onConnect)
+      this.primaryButton('连接工作空间', this.busy, this.onConnect, 'launch-login-connect')
     }
+    .id('launch-login-card')
     .width('100%').padding(18).borderRadius(NativeDesign.radiusSurface)
     .backgroundColor(this.surface()).border({ width: 1, color: this.subtleStroke() })
     .shadow({ radius: NativeExperience.materialsEnabled() ? 22 : 0,
       color: this.dark ? '#55000000' : '#16000000', offsetY: 8 })
     .constraintSize({ maxWidth: 500 })
+    .transition(NativeMotion.rowTransition())
   }
 
   @Builder
@@ -566,9 +571,11 @@ export struct NativeLaunchSurface {
       this.primaryButton('重试', this.busy, this.onRetry)
       this.secondaryButton('修改地址', this.onEditAddress)
     }
+    .id('launch-error-card')
     .width('100%').padding(18).borderRadius(NativeDesign.radiusSurface).backgroundColor(this.surface())
     .border({ width: 1, color: this.subtleStroke() })
     .constraintSize({ maxWidth: 500 })
+    .transition(NativeMotion.rowTransition())
   }
 
   @Builder

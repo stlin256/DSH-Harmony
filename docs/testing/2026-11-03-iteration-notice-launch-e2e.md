@@ -2,9 +2,10 @@
 
 Date opened: 2026-11-03
 
-Status: API 26 device execution passed on Mock HAP SHA-256
+Status: previous API 26 device execution passed on Mock HAP SHA-256
 `3FE9EE11C150C2C7380B5C360C4994782A87AFB2F94162D2445950C641C0DB48`.
-API 23, maximum font and a real-account saved-session relaunch remain pending.
+The current centered-chip revision requires fresh device evidence. API 23,
+maximum font and a real-account saved-session relaunch remain pending.
 
 Requirement:
 [`2026-11-03-iteration-notice-launch.md`](../requirements/2026-11-03-iteration-notice-launch.md)
@@ -27,6 +28,8 @@ Driver: `scripts/device-ui-launch-notice-e2e.ps1`
 | ITER-09 | Relaunch after confirmation with a saved session | Notice is skipped and the existing saved-session restoration branch runs | Pending; requires a real saved account |
 | ITER-10 | Disable the source feature flag and relaunch | Previous launch order is restored without any notice phase | Automated source/model check |
 | ITER-11 | API 23 and maximum font | Notice remains readable with opaque surfaces and no unsafe overlap | Pending |
+| ITER-12 | Inspect the rapid-iteration chip alignment in dark and light themes | `快速迭代版本` chip center matches the notice content center within 2px | Pending; requires fresh current-HAP device evidence |
+| ITER-13 | Enter login and submit an empty service address | Inline login error settles without clipping; motion follows `LOGIN-ERR-01` | Pending; requires fresh current-HAP device evidence |
 
 ## Mock Evidence
 

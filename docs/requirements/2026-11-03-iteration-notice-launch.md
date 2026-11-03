@@ -23,6 +23,8 @@ API 23, maximum font and a real-account saved-session relaunch remain pending.
 - `ITER-REQ-06` The notice adapts to system light and dark appearance.
 - `ITER-REQ-07` A source-level feature flag controls the notice. The flag is on
   for the current build.
+- `ITER-REQ-08` The `快速迭代版本` badge is horizontally centered within the
+  notice content column. It is not left-aligned with the body copy.
 
 ## Behavior
 

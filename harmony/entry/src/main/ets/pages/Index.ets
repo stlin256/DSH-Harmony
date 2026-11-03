@@ -181,17 +181,24 @@ struct Index {
     this.ready = false;
     this.busy = false;
     this.error = '';
-    this.launchError = NativeLaunchFlow.safeMessage(null, message);
-    this.launchPhase = NativeLaunchFlow.needsLogin(this.launchError)
-      ? NativeLaunchPhase.login : NativeLaunchPhase.error;
+    const value = NativeLaunchFlow.safeMessage(null, message);
+    this.setLaunchError(value, NativeLaunchFlow.needsLogin(value)
+      ? NativeLaunchPhase.login : NativeLaunchPhase.error);
     this.applyNativeTheme();
+  }
+
+  private setLaunchError(message: string, phase: string = ''): void {
+    NativeMotion.animate(this.getUIContext(), 'micro', (): void => {
+      this.launchError = message;
+      if (phase) this.launchPhase = phase;
+    });
   }
 
   private attemptConnect(): void {
     if (this.busy) return;
     const failurePhase = this.launchPhase === NativeLaunchPhase.error
       ? NativeLaunchPhase.error : NativeLaunchPhase.login;
-    this.launchError = '';
+    this.setLaunchError('');
     this.connect(false).then((): void => {
       if (this.uiMode === 'native' && !this.authSurface) {
         this.launchPhase = NativeLaunchPhase.restoring;
@@ -200,9 +207,9 @@ struct Index {
         this.finishLaunch();
       }
     }).catch((error: Error): void => {
-      this.launchError = NativeLaunchFlow.safeMessage(error, '连接失败');
-      this.launchPhase = NativeLaunchFlow.needsLogin(this.launchError)
-        ? NativeLaunchPhase.login : failurePhase;
+      const value = NativeLaunchFlow.safeMessage(error, '连接失败');
+      this.setLaunchError(value, NativeLaunchFlow.needsLogin(value)
+        ? NativeLaunchPhase.login : failurePhase);
     });
   }
 

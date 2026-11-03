@@ -53,7 +53,8 @@ continues.
 - shared launch background and safe-area handling;
 - the same `logoX`, `logoY` and `logoSize` used by `intro`;
 - the same content anchor immediately below the logo;
-- one compact maturity badge;
+- one compact maturity badge, horizontally centered in the notice content
+  column;
 - title and two short explanatory paragraphs;
 - version/iteration metadata;
 - one 48vp confirmation action at the bottom of the content column.
@@ -88,12 +89,13 @@ Add `scripts/device-ui-launch-notice-e2e.ps1`:
 
 1. launch dark notice fixture;
 2. assert notice marker and logo bounds;
-3. press system Back and assert the notice remains;
-4. confirm and assert `intro` actions appear;
-5. compare logo bounds before and after confirmation;
-6. repeat in light theme;
-7. repeat once with reduced motion;
-8. launch settings fixture, navigate to service/account, confirm logout and
+3. assert the maturity badge center matches the notice content center;
+4. press system Back and assert the notice remains;
+5. confirm and assert `intro` actions appear;
+6. compare logo bounds before and after confirmation;
+7. repeat in light theme;
+8. repeat once with reduced motion;
+9. launch settings fixture, navigate to service/account, confirm logout and
    assert the notice returns.
 
 ## Verification

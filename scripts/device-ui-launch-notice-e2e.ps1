@@ -123,13 +123,39 @@ function Query-ById {
     [string]$Layout,
     [string]$Id,
     [ValidateSet('text', 'clickable', 'checkable')]
-    [string]$Target = 'text'
+    [string]$Target = 'text',
+    [int]$ExpectCount = 1
   )
-  $raw = & python $queryScript $Layout --find-id $Id --target $Target --expect-count 1 2>&1
+  $raw = & python $queryScript $Layout --find-id $Id --target $Target --expect-count $ExpectCount 2>&1
   if ($LASTEXITCODE -ne 0) {
     throw "Layout id query failed for '$Id': $($raw -join [Environment]::NewLine)"
   }
   return (($raw -join '') | ConvertFrom-Json)
+}
+
+function Wait-ById {
+  param(
+    [string]$Name,
+    [string]$Id,
+    [ValidateSet('text', 'clickable', 'checkable')]
+    [string]$Target = 'text',
+    [int]$TimeoutMilliseconds = 8000
+  )
+  $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMilliseconds)
+  $lastError = ''
+  do {
+    try {
+      $layout = Dump-Layout $Name
+      return @{
+        Layout = $layout
+        Node = Query-ById $layout $Id $Target
+      }
+    } catch {
+      $lastError = $_.Exception.Message
+      Start-Sleep -Milliseconds 250
+    }
+  } while ([DateTime]::UtcNow -lt $deadline)
+  throw "Timed out waiting for layout id '$Id': $lastError"
 }
 
 function Assert-VisibleText {
@@ -144,6 +170,21 @@ function Assert-VisibleText {
     throw "Visible text assertion failed for '$Text'."
   }
   return $node
+}
+
+function Assert-HorizontallyCentered {
+  param(
+    [object]$Container,
+    [object]$Child,
+    [string]$Label
+  )
+  $containerBounds = Get-Bounds $Container
+  $childBounds = Get-Bounds $Child
+  $containerCenter = ($containerBounds.Left + $containerBounds.Right) / 2
+  $childCenter = ($childBounds.Left + $childBounds.Right) / 2
+  if ([Math]::Abs($containerCenter - $childCenter) -gt 2) {
+    throw "$Label is not horizontally centered: container=$($Container.bounds) child=$($Child.bounds)"
+  }
 }
 
 function Wait-Text {
@@ -221,6 +262,9 @@ foreach ($theme in $themes) {
   $null = Assert-VisibleText $noticeLayout '项目正在快速迭代'
   $null = Assert-VisibleText $noticeLayout '当前仍有许多功能尚未完成'
   $null = Assert-VisibleText $noticeLayout '提交 Issue'
+  $notice = Query-ById $noticeLayout 'iteration-notice'
+  $maturityChip = Query-ById $noticeLayout 'iteration-notice-chip'
+  Assert-HorizontallyCentered $notice $maturityChip 'Rapid-iteration chip'
   $confirm = Query-ById $noticeLayout 'iteration-notice-confirm' 'clickable'
   $beforeLogo = Get-Bounds (Query-ById $noticeLayout 'launch-brand-logo')
   Capture-Screen "$theme-notice"
@@ -249,6 +293,22 @@ foreach ($theme in $themes) {
     result = 'Passed'
   })
 }
+
+Launch-Fixture -Screen 'launch' -State 'iteration-notice' -Theme 'dark' `
+  -ReduceMotion $false -FirstLaunch $false
+$loginNoticeLayout = Dump-Layout 'login-error-notice'
+$loginNoticeConfirm = Query-ById $loginNoticeLayout 'iteration-notice-confirm' 'clickable'
+Invoke-Click $loginNoticeConfirm
+$loginWelcome = Wait-Text 'login-error-welcome' '直接进入' 'clickable'
+$directLogin = Query-Text $loginWelcome.Layout '直接进入' 'clickable' -Exact
+Invoke-Click $directLogin
+$loginReady = Wait-ById 'login-error-ready' 'launch-login-connect' 'clickable'
+$null = Query-ById $loginReady.Layout 'launch-login-error' 'text' 0
+$loginConnect = Query-ById $loginReady.Layout 'launch-login-connect' 'clickable'
+Invoke-Click $loginConnect
+$loginError = Wait-ById 'login-error-visible' 'launch-login-error' 'text'
+$null = Assert-VisibleText $loginError.Layout '请输入有效的服务地址'
+Capture-Screen 'dark-login-error'
 
 Launch-Fixture -Screen 'launch' -State 'iteration-notice' -Theme 'dark' `
   -ReduceMotion $true -FirstLaunch $false
@@ -337,7 +397,8 @@ $manifest = [ordered]@{
       id = 'dark-notice'
       status = 'passed'
       mandatory = $true
-      assertions = @('Notice precedes welcome', 'Notice copy fits without clipping')
+      assertions = @('Notice precedes welcome', 'Notice copy fits without clipping',
+        'Rapid-iteration chip is horizontally centered')
     },
     [ordered]@{
       id = 'system-back'
@@ -377,6 +438,13 @@ $manifest = [ordered]@{
       status = 'passed'
       mandatory = $true
       assertions = @('Confirmed Mock logout returns to the notice')
+    },
+    [ordered]@{
+      id = 'login-error-motion'
+      status = 'passed'
+      mandatory = $true
+      assertions = @('Empty-address login error enters through the shared micro transition',
+        'Inline error settles without clipping')
     },
     [ordered]@{
       id = 'process-liveness'
