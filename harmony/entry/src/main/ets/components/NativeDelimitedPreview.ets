@@ -1,6 +1,7 @@
 import { NativeDelimitedTable, nativeDelimitedTable } from '../services/NativeDelimitedModel';
 import { NativeMarkdownTable } from '../services/NativeMarkdownTable';
 import { NativeDesign } from '../services/NativeDesign';
+import { nativeAdaptiveTableWidths, nativeTableRowNumberWidth } from '../services/NativeTableLayout';
 import { NativeTable } from './NativeTable';
 
 @Component
@@ -14,6 +15,7 @@ export struct NativeDelimitedPreview {
   @State private error: string = '';
   @State private bounded: boolean = false;
   @State private incomplete: boolean = false;
+  @State private columnWidths: number[] = [];
 
   aboutToAppear(): void {
     this.refresh();
@@ -51,6 +53,9 @@ export struct NativeDelimitedPreview {
       }
       return values;
     });
+    const dataRows = table.rows.map((row: string[]): string[] => row.slice(1));
+    this.columnWidths = [nativeTableRowNumberWidth(table.rows.length)]
+      .concat(nativeAdaptiveTableWidths(table.headers.slice(1), dataRows));
     this.table = table;
   }
 
@@ -89,8 +94,9 @@ export struct NativeDelimitedPreview {
         Scroll() {
           NativeTable({
             table: this.table,
+            columnWidths: this.columnWidths,
+            layoutId: 'delimited-table',
             literal: true,
-            cellWidth: 168,
             maxLines: 3
           }).width('100%')
         }
@@ -99,6 +105,7 @@ export struct NativeDelimitedPreview {
         .scrollable(ScrollDirection.Vertical)
         .scrollBar(BarState.Auto)
         .edgeEffect(EdgeEffect.None)
+        .align(Alignment.TopStart)
       }
     }.layoutWeight(1).width('100%').alignItems(HorizontalAlign.Start)
   }

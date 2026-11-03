@@ -59,7 +59,7 @@ sort: effectiveLastInteraction DESC, sessionId ASC
 
 生成顺序：
 
-1. 过滤 subagent、归档、不可见 blank、当前筛选和搜索。
+1. 过滤 subagent、归档、不可见 blank 和搜索；侧边栏不使用工作区筛选。
 2. 建立 session 到 workspace 的唯一 membership 索引。
 3. 生成 pinned 排序行；至少一行时生成 pinned header。
 4. 按 Host items 顺序生成工作区 header 和普通会话。

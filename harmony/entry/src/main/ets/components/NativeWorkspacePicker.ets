@@ -14,6 +14,7 @@ export struct NativeWorkspacePicker {
   @Prop snapshot: NativeWorkspaceSnapshot = new NativeWorkspaceSnapshot();
   @Prop sessions: NativeSession[] = [];
   @Prop selectedId: string = '';
+  @Prop creatingSession: boolean = false;
   @Prop page: string = 'root';
   @Prop navigationDirection: number = 1;
   onClose: () => void = (): void => {};
@@ -44,7 +45,7 @@ export struct NativeWorkspacePicker {
     finally { this.busy = false; }
   }
   @Builder
-  private row(title: string, detail: string, selected: boolean, click: () => void) {
+  private row(title: string, detail: string, selected: boolean, click: () => void, id: string) {
     Button({ type: ButtonType.Normal }) {
       Row({ space: 8 }) {
         DSHIcon({ glyph: 'browse-outline', color: NativeDesign.textTertiary(this.dark), glyphSize: NativeDesign.glyphControl })
@@ -55,7 +56,7 @@ export struct NativeWorkspacePicker {
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         if (selected) { DSHIcon({ glyph: 'check-outline', color: NativeDesign.accent(this.dark) }) }
       }.width('100%')
-    }.width('100%').constraintSize({ minHeight: NativeDesign.standardRow }).padding(8)
+    }.width('100%').constraintSize({ minHeight: NativeDesign.standardRow }).padding(8).id(id)
       .borderRadius(NativeDesign.radiusRow)
       .backgroundColor(selected ? NativeDesign.selection(this.dark) : Color.Transparent).onClick(click)
   }
@@ -66,9 +67,11 @@ export struct NativeWorkspacePicker {
           onPressed: (): void => {
             if (this.page !== 'root') this.onPageChange('root'); else this.onClose();
           } })
-        Text(this.creating() ? '添加工作区' : this.archived() ? '已归档会话' : '工作区')
+        Text(this.creating() ? '添加工作区' :
+          this.archived() ? '已归档会话' : this.creatingSession ? '选择工作区' : '工作区')
           .fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium).layoutWeight(1)
           .fontColor(NativeDesign.textPrimary(this.dark))
+          .id('workspace-picker-title')
       }.width('100%')
       Scroll() {
         Column({ space: 5 }) {
@@ -91,10 +94,14 @@ export struct NativeWorkspacePicker {
             }, (id: string) => id)
             if (!this.snapshot.archivedSessionIds.length) { Text('没有已归档会话').fontSize(NativeDesign.fontCompact) }
           } else {
-            this.row('全部会话', '', !this.selectedId, () => { this.onSelect(''); })
             ForEach(this.snapshot.items, (workspace: NativeWorkspaceItem) => {
               Row({ space: 4 }) {
-                Column() { this.row(workspace.title, workspace.path, this.selectedId === workspace.workspaceId, () => { this.onSelect(workspace.workspaceId); }) }.layoutWeight(1)
+                Column() {
+                  this.row(workspace.title, workspace.path,
+                    this.selectedId === workspace.workspaceId,
+                    () => { this.onSelect(workspace.workspaceId); },
+                    'workspace-picker-' + workspace.workspaceId)
+                }.layoutWeight(1)
                 Button({ type: ButtonType.Normal }) {
                   DSHIcon({ glyph: 'ellipsis-outline', color: NativeDesign.textTertiary(this.dark) })
                 }.width(NativeDesign.hitTarget).height(NativeDesign.hitTarget).backgroundColor(Color.Transparent)
@@ -110,8 +117,10 @@ export struct NativeWorkspacePicker {
             }, (workspace: NativeWorkspaceItem) => workspace.workspaceId)
             if (this.snapshot.available) {
               Divider().color(NativeDesign.divider(this.dark)).margin({ top: 8, bottom: 8 })
-              this.row('添加工作区', '', false, () => { this.onPageChange('create'); })
-              this.row('已归档会话', '', false, () => { this.onPageChange('archive'); })
+              this.row('添加工作区', '', false, () => { this.onPageChange('create'); },
+                'workspace-picker-add')
+              this.row('已归档会话', '', false, () => { this.onPageChange('archive'); },
+                'workspace-picker-archive')
             }
           }
         }.width('100%').alignItems(HorizontalAlign.Start)

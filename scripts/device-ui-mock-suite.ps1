@@ -279,6 +279,20 @@ function Assert-LayoutBottomSafe {
   }
 }
 
+function Assert-LayoutNodeId {
+  param(
+    [string]$LayoutPath,
+    [string]$Id
+  )
+  $output = & python $queryScript $LayoutPath `
+    --find-id $Id `
+    --target text `
+    --expect-count 1 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Required layout id '$Id' is missing: $($output -join [Environment]::NewLine)"
+  }
+}
+
 foreach ($scenario in $scenarios) {
   $startedAt = Get-Date
   $arguments = @{
@@ -322,6 +336,14 @@ foreach ($scenario in $scenarios) {
       -LayoutPath (Join-Path $captureDir 'layout.json') `
       -Marker (Get-ExpectedMarker -Screen $scenario.Screen -State $scenario.State)
     Assert-LayoutBottomSafe -LayoutPath (Join-Path $captureDir 'layout.json')
+    if ($scenario.Screen -eq 'sidebar' -and $scenario.State -eq 'completed') {
+      Assert-LayoutNodeId -LayoutPath (Join-Path $captureDir 'layout.json') `
+        -Id 'sidebar-all-workspaces'
+      Assert-LayoutNodeId -LayoutPath (Join-Path $captureDir 'layout.json') `
+        -Id 'sidebar-workspace-workspace-mobile'
+      Assert-LayoutNodeId -LayoutPath (Join-Path $captureDir 'layout.json') `
+        -Id 'sidebar-workspace-workspace-gateway'
+    }
     if ($scenario.Screen -in @('plugins', 'automation')) {
       Assert-LayoutMarker `
         -LayoutPath (Join-Path $captureDir 'layout.json') `

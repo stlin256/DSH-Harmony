@@ -7,7 +7,15 @@
       "states": ["iteration-notice"],
       "drivers": ["device-ui-mock-suite.ps1", "device-ui-launch-notice-e2e.ps1"],
       "e2eIds": ["ITER-01", "ITER-02", "ITER-03", "ITER-04", "ITER-05",
-        "ITER-06", "ITER-07", "ITER-08"],
+        "ITER-06", "ITER-07", "ITER-08", "ITER-12", "ITER-13"],
+      "requiresInteraction": true
+    },
+    {
+      "id": "launch.login-error-motion",
+      "screens": ["launch"],
+      "states": ["iteration-notice"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-launch-notice-e2e.ps1"],
+      "e2eIds": ["LOGIN-ERR-01", "LOGIN-ERR-02", "LOGIN-ERR-03"],
       "requiresInteraction": true
     },
     {
@@ -34,9 +42,9 @@
     {
       "id": "composer.ime-layout-stability",
       "screens": ["conversation"],
-      "states": ["dock-send-idle"],
+      "states": ["completed"],
       "drivers": ["device-ui-mock-suite.ps1", "device-ui-ime-e2e.ps1"],
-      "e2eIds": ["IME-01", "IME-02", "IME-03", "IME-04", "IME-05"],
+      "e2eIds": ["IME-T-01", "IME-T-02", "IME-T-03", "IME-T-04"],
       "requiresInteraction": true
     },
     {
@@ -194,6 +202,14 @@
       "e2eIds": ["MF-21"]
     },
     {
+      "id": "sidebar.all-workspaces",
+      "screens": ["sidebar"],
+      "states": ["completed"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-workspace-scope-e2e.ps1"],
+      "e2eIds": ["WSA-01", "WSA-02", "WSA-03", "WSA-04"],
+      "requiresInteraction": true
+    },
+    {
       "id": "surface.file-browser",
       "screens": ["browser"],
       "states": ["completed"],
@@ -221,7 +237,7 @@
       "screens": ["preview"],
       "states": ["delimited-preview"],
       "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
-      "e2eIds": ["PREVIEW-DELIM-01", "PREVIEW-DELIM-02"],
+      "e2eIds": ["PREVIEW-DELIM-01", "PREVIEW-DELIM-02", "TABLE-T-01", "TABLE-T-02"],
       "requiresInteraction": true
     },
     {
@@ -229,7 +245,7 @@
       "screens": ["preview"],
       "states": ["tsv-preview"],
       "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
-      "e2eIds": ["PREVIEW-DELIM-03"],
+      "e2eIds": ["PREVIEW-DELIM-03", "TABLE-T-03"],
       "requiresInteraction": true
     },
     {

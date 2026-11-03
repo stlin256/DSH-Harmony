@@ -133,6 +133,7 @@ export struct NativeWorkspace {
   @StorageLink('requestedSession') @Watch('openRequested') private requestedSession: string = '';
   @StorageLink('nativeSafeTop') private safeTop: number = 0;
   @StorageLink('nativeSafeBottom') private safeBottom: number = 0;
+  @StorageLink('nativeImeVisible') private imeVisible: boolean = false;
   @State @Watch('sessionsChanged') private sessions: NativeSession[] = [];
   @State private continued: NativeFrame[] = [];
   @State private interactions: NativeFrame[] = [];
@@ -163,6 +164,7 @@ export struct NativeWorkspace {
   @State private archivedUndo: string = '';
   @State @Watch('navigationChanged') private newSessionOpen: boolean = false;
   @State @Watch('navigationChanged') private workspacePickerOpen: boolean = false;
+  @State private workspacePickerCreate: boolean = false;
   @State private workspacePickerPage: string = 'root';
   @State private workspacePickerDirection: number = 1;
   @State @Watch('sessionsChanged') private workspaces: NativeWorkspaceSnapshot = new NativeWorkspaceSnapshot();
@@ -456,7 +458,9 @@ export struct NativeWorkspace {
   }
 
   private sessionsChanged(): void {
-    const visible = nativeWorkspaceRows(this.sessions, this.workspaces, this.workspaceId, this.query, this.client.models,
+    // The drawer is a global workspace inventory. workspaceId only selects the
+    // destination for a new session and must never narrow this projection.
+    const visible = nativeWorkspaceRows(this.sessions, this.workspaces, '', this.query, this.client.models,
       this.selected, this.collapsedGroups, this.interactionTimes);
     this.visibleSessionCount = visible.filter((row: NativeWorkspaceRow) => !row.group).length;
     this.sessionSource.set(visible, (row: NativeWorkspaceRow): string => row.key);
@@ -1221,7 +1225,8 @@ export struct NativeWorkspace {
     this.sessionsChanged();
     this.navigationChanged();
   }
-  private openWorkspacePicker(): void {
+  private openWorkspacePicker(creatingSession: boolean = false): void {
+    this.workspacePickerCreate = creatingSession;
     this.workspacePickerPage = 'root';
     this.workspacePickerDirection = 1;
     NativeMotion.animate(this.getUIContext(), 'navigation', (): void => { this.workspacePickerOpen = true; });
@@ -1231,7 +1236,21 @@ export struct NativeWorkspace {
     NativeMotion.animate(this.getUIContext(), 'navigation', (): void => { this.workspacePickerPage = page; });
   }
   private closeWorkspacePicker(): void {
-    NativeMotion.animate(this.getUIContext(), 'navigation', (): void => { this.workspacePickerOpen = false; });
+    NativeMotion.animate(this.getUIContext(), 'navigation', (): void => {
+      this.workspacePickerOpen = false;
+      this.workspacePickerCreate = false;
+    });
+  }
+  private chooseWorkspace(id: string): void {
+    if (!id) return;
+    const creatingSession = this.workspacePickerCreate;
+    this.workspaceId = id;
+    this.closeWorkspacePicker();
+    if (creatingSession) {
+      this.createQuickSession(id);
+      return;
+    }
+    this.setDrawerState(true);
   }
   private openTools(page: string, id: string = this.selected): void {
     this.toolsId = id; AppStorage.setOrCreate<string>('nativeSessionToolsPage', page); this.toolsOpen = true;
@@ -1566,15 +1585,7 @@ export struct NativeWorkspace {
     } finally { if (this.mounted) this.workspaceLoading = false; }
   }
   private openNewSession(): void {
-    if (this.workspaceId && this.workspaceId !== 'other') {
-      this.createQuickSession(this.workspaceId);
-      return;
-    }
-    if (this.workspaces.items.length === 1) {
-      this.createQuickSession(this.workspaces.items[0].workspaceId);
-      return;
-    }
-    this.openWorkspacePicker();
+    this.openWorkspacePicker(true);
   }
   private async createQuickSession(workspaceId: string): Promise<void> {
     if (this.loading || !workspaceId) return;
@@ -2799,6 +2810,8 @@ export struct NativeWorkspace {
           .onClick(() => { this.createQuickSession(entry.workspaceId); })
       }
     }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow }).padding({ left: 6, right: 6 })
+      .id(entry.section === 'workspaceHeader' ?
+        'sidebar-workspace-' + entry.workspaceId : 'sidebar-section-' + entry.workspaceId)
       .border({
         width: {
           top: this.dropWorkspaceId === entry.workspaceId && !this.dropWorkspaceAfter ? 2 : 0,
@@ -2868,6 +2881,7 @@ export struct NativeWorkspace {
       }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusRow)
         .backgroundColor(this.fieldSurface())
         .fontColor(this.primaryText()).enabled(!this.loading)
+        .id('sidebar-new-session')
         .onClick(() => { this.openNewSession(); })
       Column({ space: 1 }) {
         Button({ type: ButtonType.Normal }) {
@@ -2938,14 +2952,16 @@ export struct NativeWorkspace {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 5 }) {
             DSHIcon({ glyph: 'browse-outline', glyphSize: NativeDesign.glyphCompact, color: this.tertiaryText() })
-            Text(this.workspaces.items.find((item: NativeWorkspaceItem) => item.workspaceId === this.workspaceId)?.title || '全部')
+            Text('全部')
               .fontSize(NativeDesign.fontCaption).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
               .constraintSize({ maxWidth: 110 })
               .textAlign(TextAlign.End)
               .fontColor(this.tertiaryText())
+              .id('sidebar-all-workspaces')
           }
         }.height(NativeDesign.hitTarget).padding({ left: 8, right: 0 })
           .borderRadius(NativeDesign.radiusControl).backgroundColor(Color.Transparent)
+          .id('sidebar-workspace-manager')
           .onClick(() => { this.openWorkspacePicker(); })
       }.width('100%').padding({ left: 4, right: 0, top: 4 })
       List({ space: 2 }) {
@@ -3274,7 +3290,8 @@ export struct NativeWorkspace {
                 })
               }.width('100%').alignItems(VerticalAlign.Top)
                 .padding({ right: NativeDesign.pageInset }) }
-            }
+            }.id(message.id === this.visibleRows[this.visibleRows.length - 1]?.id ?
+              'transcript-tail-row' : 'transcript-row-' + message.id)
           // LazyForEach caches by this key, so the live row must carry its
           // text length instead of keeping the same identity for every delta.
           }, (message: NativeMessage) => message.id +
@@ -3369,7 +3386,16 @@ export struct NativeWorkspace {
       }.layoutWeight(1).width('100%')
         .onAreaChange((_old: Area, area: Area): void => {
           const height = Number(area.height);
-          if (height > 0 && height !== this.transcriptViewportHeight) this.transcriptViewportHeight = height;
+          if (height > 0 && height !== this.transcriptViewportHeight) {
+            const previousHeight = this.transcriptViewportHeight;
+            this.transcriptViewportHeight = height;
+            // RESIZE shrinks the list before the keyboard animation settles.
+            // Keep a tail-following transcript anchored above the lifted Dock.
+            if (this.imeVisible && this.followTail && height < previousHeight) {
+              this.tailScrollGuardUntil = Date.now() + 220;
+              this.scheduleTailScroll();
+            }
+          }
         })
       ForEach(this.interactions.concat(this.continued), (frame: NativeFrame) => {
         NativeInteraction({ client: this.client, frame, onDone: (): void => {
@@ -3687,13 +3713,12 @@ export struct NativeWorkspace {
       if (this.workspacePickerOpen) {
         Column() {
           NativeWorkspacePicker({ client: this.client, snapshot: this.workspaces, sessions: this.sessions,
-            selectedId: this.workspaceId, page: this.workspacePickerPage,
+            selectedId: this.workspacePickerCreate ? '' : this.workspaceId,
+            creatingSession: this.workspacePickerCreate, page: this.workspacePickerPage,
             navigationDirection: this.workspacePickerDirection,
             onClose: (): void => { this.closeWorkspacePicker(); },
             onPageChange: (page: string): void => { this.setWorkspacePickerPage(page); },
-            onSelect: (id: string): void => {
-              this.workspaceId = id; this.closeWorkspacePicker(); this.setDrawerState(true);
-            },
+            onSelect: (id: string): void => { this.chooseWorkspace(id); },
             onChanged: (value: NativeWorkspaceSnapshot): void => { this.workspaces = value; } })
         }.width('100%').height('100%').backgroundColor(this.baseSurface())
       }

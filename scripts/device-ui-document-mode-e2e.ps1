@@ -258,6 +258,60 @@ function Assert-ActionOrder {
   }
 }
 
+function Get-Bounds {
+  param([string]$Value)
+  if ($Value -notmatch '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$') {
+    throw "Invalid bounds: $Value"
+  }
+  return @{
+    left = [int]$Matches[1]
+    top = [int]$Matches[2]
+    right = [int]$Matches[3]
+    bottom = [int]$Matches[4]
+  }
+}
+
+function Assert-TableTopLeft {
+  param(
+    [object]$Container,
+    [object]$FirstCell
+  )
+  $containerBounds = Get-Bounds $Container.bounds
+  $cellBounds = Get-Bounds $FirstCell.bounds
+  if ([Math]::Abs($cellBounds.left - $containerBounds.left) -gt 2) {
+    throw "Table is not left aligned: container=$($Container.bounds) firstCell=$($FirstCell.bounds)"
+  }
+  if ([Math]::Abs($cellBounds.top - $containerBounds.top) -gt 2) {
+    throw "Table is not top aligned: container=$($Container.bounds) firstCell=$($FirstCell.bounds)"
+  }
+}
+
+function Assert-TableColumnWidths {
+  param(
+    [object]$ShortHeader,
+    [object]$WideHeader,
+    [object]$ShortCell,
+    [object]$WideCell
+  )
+  $shortHeaderBounds = Get-Bounds $ShortHeader.bounds
+  $wideHeaderBounds = Get-Bounds $WideHeader.bounds
+  $shortCellBounds = Get-Bounds $ShortCell.bounds
+  $wideCellBounds = Get-Bounds $WideCell.bounds
+  $shortHeaderWidth = $shortHeaderBounds.right - $shortHeaderBounds.left
+  $wideHeaderWidth = $wideHeaderBounds.right - $wideHeaderBounds.left
+  $shortCellWidth = $shortCellBounds.right - $shortCellBounds.left
+  $wideCellWidth = $wideCellBounds.right - $wideCellBounds.left
+  if ($wideHeaderWidth -le $shortHeaderWidth + 8) {
+    throw "Content-heavy table column did not grow: short=$($ShortHeader.bounds) wide=$($WideHeader.bounds)"
+  }
+  if ([Math]::Abs($shortHeaderWidth - $shortCellWidth) -gt 1) {
+    throw "Short header/data widths differ: header=$($ShortHeader.bounds) cell=$($ShortCell.bounds)"
+  }
+  if ([Math]::Abs($wideHeaderWidth - $wideCellWidth) -gt 1) {
+    throw "Wide header/data widths differ: header=$($WideHeader.bounds) cell=$($WideCell.bounds)"
+  }
+}
+
 function Invoke-Click {
   param([object]$Node)
   if ($null -eq $Node.x -or $null -eq $Node.y) {
@@ -308,6 +362,17 @@ Capture-Screen 'config-preview'
 
 Launch-Fixture -State 'delimited-preview'
 $delimitedTitle = Wait-Query-Node-ById 'delimited-title' 'document-preview-title' 'text'
+$null = Wait-Query-Node-ById 'delimited-table-ready' 'delimited-table' 'text'
+$delimitedTableLayout = Dump-Layout 'delimited-table-layout'
+$delimitedTable = Query-Node-ById $delimitedTableLayout 'delimited-table' 'text'
+$delimitedFirstCell = Query-Node-ById $delimitedTableLayout 'delimited-table-h-0' 'text'
+$delimitedShortHeader = Query-Node-ById $delimitedTableLayout 'delimited-table-h-1' 'text'
+$delimitedWideHeader = Query-Node-ById $delimitedTableLayout 'delimited-table-h-3' 'text'
+$delimitedShortCell = Query-Node-ById $delimitedTableLayout 'delimited-table-r-0-1' 'text'
+$delimitedWideCell = Query-Node-ById $delimitedTableLayout 'delimited-table-r-0-3' 'text'
+Assert-TableTopLeft $delimitedTable $delimitedFirstCell
+Assert-TableColumnWidths $delimitedShortHeader $delimitedWideHeader `
+  $delimitedShortCell $delimitedWideCell
 $tableMarker = Wait-Revealed-Table-Cell 'delimited-table-marker' 'Alpha' 'DSH_TABLE_MARKER'
 $literalTable = Wait-Query-Node 'delimited-literal-table' '**literal value**' 'text'
 $delimitedSourceAction = Wait-Query-Node-ById 'delimited-source-action' 'document-mode-toggle'
@@ -327,6 +392,11 @@ Capture-Screen 'delimited-restored'
 
 Launch-Fixture -State 'tsv-preview'
 $tsvTitle = Wait-Query-Node-ById 'tsv-title' 'document-preview-title' 'text'
+$null = Wait-Query-Node-ById 'tsv-table-ready' 'delimited-table' 'text'
+$tsvTableLayout = Dump-Layout 'tsv-table-layout'
+$tsvTable = Query-Node-ById $tsvTableLayout 'delimited-table' 'text'
+$tsvFirstCell = Query-Node-ById $tsvTableLayout 'delimited-table-h-0' 'text'
+Assert-TableTopLeft $tsvTable $tsvFirstCell
 $tsvMarker = Wait-Revealed-Table-Cell 'tsv-marker' 'Alpha' 'DSH_TSV_MARKER'
 $tsvSourceAction = Wait-Query-Node-ById 'tsv-source-action' 'document-mode-toggle'
 Assert-Same-HeaderRow $tsvTitle $tsvSourceAction
@@ -371,10 +441,14 @@ $manifest = [ordered]@{
     plainConfigHasNoModeToggle = $true
     csvTableRenderedByDefault = $true
     csvLiteralCellNotMarkdown = $true
+    csvTableStartsAtTopLeft = $true
+    csvColumnsAdaptToContent = $true
+    csvHeaderAndDataColumnsShareWidths = $true
     csvSourceModeActionSharesTitleRow = $true
     csvSourceHidesTableProjection = $true
     csvTableRestored = $true
     tsvTableRendered = $true
+    tsvTableStartsAtTopLeft = $true
     malformedCsvShowsTableError = $true
     malformedCsvSourceRemainsAvailable = $true
     binaryDownloadOnlyMessageRendered = $true

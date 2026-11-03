@@ -130,7 +130,7 @@ sentinel attachment image
 
 - 顶部 `new-chat-outline` 和行内工作区 plus 都直接创建/复用当前工作区 blank 会话。
 - 创建时保留其他草稿；进入 composer 后立即可以输入。
-- 工作区选择器只负责切工作区。cwd/preset 经过“新建选项”小弹层，默认不展开。
+- 工作区选择器只负责选择或管理新建会话的工作区，不筛选侧边栏。cwd/preset 经过“新建选项”小弹层，默认不展开。
 - 创建请求带 client requestId，超时后先刷新列表对账，不重复创建。
 
 ## 5. Diff

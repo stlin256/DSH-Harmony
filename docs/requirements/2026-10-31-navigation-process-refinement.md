@@ -66,8 +66,8 @@
   visible vertical gap, and the ellipsis control keeps an active highlight while
   that list is open.
 - The image-lightbox close control must remain clear of the status-bar edge.
-- In the drawer workspace header, the selected workspace label, including the
-  default `全部`, aligns to the trailing content edge.
+- In the drawer workspace header, the permanent `全部` label aligns to the
+  trailing content edge. Selecting a workspace never narrows the drawer.
 - Expanding `工作过程` must stay responsive when a turn contains many operations.
   Opening the group must not synchronously build every off-screen operation row
   inside one animated state transaction.

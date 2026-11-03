@@ -463,6 +463,10 @@ test('launch flow separates restoration, onboarding, guided setup and workspace'
   assert.match(source, /onConfirmIterationNotice/);
   assert.match(source, /await this\.setIterationNoticeSeen\(true\);[\s\S]{0,400}NativeMotion\.animate/);
   assert.match(source,
+    /private setLaunchError\(message: string, phase: string = ''\): void \{[\s\S]{0,180}NativeMotion\.animate\(this\.getUIContext\(\), 'micro'[\s\S]{0,160}this\.launchError = message/);
+  assert.match(source, /this\.setLaunchError\(''\)/);
+  assert.match(source, /this\.setLaunchError\(value, NativeLaunchFlow\.needsLogin\(value\)/);
+  assert.match(source,
     /putSync\('iterationNoticeSeen', false\)[\s\S]{0,260}NativeLaunchFlow\.initialPhase\(/);
   assert.match(source, /this\.launchPhase !== NativeLaunchPhase\.hidden/);
   assert.match(source, /this\.launchPhase === NativeLaunchPhase\.entering/);
@@ -478,6 +482,15 @@ test('launch flow separates restoration, onboarding, guided setup and workspace'
   assert.equal((surface.match(/top: this\.contentBelowLogoTop\(\)/g) || []).length, 2);
   assert.match(surface, /\.id\('launch-brand-logo'\)/);
   assert.match(surface, /\.id\('iteration-notice'\)/);
+  assert.match(surface, /\.alignSelf\(ItemAlign\.Center\)\s*\.id\('iteration-notice-chip'\)/);
+  assert.match(surface,
+    /\.id\('launch-login-error'\)\s*\.transition\(NativeMotion\.rowTransition\(\)\)/);
+  assert.match(surface,
+    /this\.primaryButton\('连接工作空间', this\.busy, this\.onConnect, 'launch-login-connect'\)/);
+  assert.match(surface,
+    /\.id\('launch-login-card'\)[\s\S]{0,420}\.transition\(NativeMotion\.rowTransition\(\)\)/);
+  assert.match(surface,
+    /\.id\('launch-error-card'\)[\s\S]{0,240}\.transition\(NativeMotion\.rowTransition\(\)\)/);
   assert.match(surface,
     /this\.primaryButton\('我已知晓，继续', false, this\.onConfirmIterationNotice, 'iteration-notice-confirm'\)/);
   assert.match(surface, /phase === NativeLaunchPhase\.guide/);
@@ -1316,6 +1329,56 @@ test('Workspace projection isolates pins, sorts by interaction and keeps drag co
   assert.deepEqual(Array.from(nativeWorkspaceDragOrder(complete,'a','c',true)),['b','c','a']);
   assert.equal(nativeWorkspaceDragOrder(complete,'missing','c',false),null);
   assert.deepEqual(Array.from(complete),['a','b','c']);
+});
+
+test('sidebar projects every workspace while new sessions still choose a workspace', () => {
+  const { nativeWorkspaceRows } = load('NativeSessionModel', {});
+  const rows = [
+    { id: 'a', title: 'Alpha', blank: false, updatedAt: 5, cwd: '/workspace/project' },
+    { id: 'b', title: 'Beta', blank: false, updatedAt: 6 },
+    { id: 'c', title: 'Gamma', blank: false, updatedAt: 8 },
+    { id: 'd', title: 'Delta', blank: false, updatedAt: 7 }
+  ];
+  const snapshot = {
+    items: [
+      { workspaceId: 'project', title: 'Project', sessionIds: ['b', 'a'] },
+      { workspaceId: 'lab', title: 'Lab', sessionIds: ['d', 'c'] }
+    ],
+    archivedSessionIds: [],
+    pinnedSessionIds: ['a']
+  };
+  const globalRows = nativeWorkspaceRows(rows, snapshot, '', '', new Map(), '', [], new Map());
+  assert.deepEqual(Array.from(
+    globalRows.filter(row => row.section === 'workspaceHeader').map(row => row.workspaceId),
+  ), ['project', 'lab']);
+  assert.deepEqual(Array.from(
+    globalRows.filter(row => !row.group).map(row => row.session.id),
+  ), ['a', 'b', 'c', 'd']);
+  const explicitlyScoped = nativeWorkspaceRows(rows, snapshot, 'project', '', new Map(), '', [], new Map());
+  assert.equal(explicitlyScoped.some(row => row.section === 'workspaceHeader'), false);
+  assert.deepEqual(Array.from(
+    explicitlyScoped.filter(row => !row.group).map(row => row.session.id),
+  ), ['a', 'b']);
+
+  const workspace = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
+  const picker = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeWorkspacePicker.ets', import.meta.url), 'utf8');
+  assert.match(workspace,
+    /nativeWorkspaceRows\(this\.sessions,\s*this\.workspaces,\s*'',\s*this\.query/,
+    'the sidebar projection must not receive the selected workspace');
+  assert.match(workspace, /Text\('全部'\)/);
+  assert.match(workspace,
+    /private openNewSession\(\): void \{\s*this\.openWorkspacePicker\(true\);/,
+    'the new-session entry must request a workspace choice');
+  assert.match(workspace,
+    /private chooseWorkspace\(id: string\): void \{[\s\S]{0,420}creatingSession[\s\S]{0,240}this\.createQuickSession\(id\)/,
+    'choosing in create mode must create in that workspace');
+  assert.match(workspace,
+    /this\.client\.create\('', '', workspaceId, reusable\?\.id \|\| ''\)/,
+    'the chosen workspace id must remain the creation destination');
+  assert.match(picker, /creatingSession \? '选择工作区'/);
+  assert.doesNotMatch(picker, /this\.row\('全部会话'/);
 });
 
 test('native inline markdown preserves literal code and malformed text while styling nested runs', () => {
@@ -2168,6 +2231,51 @@ test('native delimited preview preserves RFC 4180 records and bounds only the ta
     '表格包含未闭合的引号');
   assert.equal(delimited.nativeDelimitedTable('a\n"closed"x', 'csv').error,
     '表格中存在无法解析的引号');
+});
+
+test('native table layout adapts column widths to content and bounded long values', () => {
+  const layout = load('NativeTableLayout', {});
+  assert.equal(layout.nativeTableTextUnits('abc'), 3);
+  assert.equal(layout.nativeTableTextUnits('中文'), 4);
+  assert.equal(layout.nativeTableTextUnits('first\nlonger'), 6);
+
+  const widths = Array.from(layout.nativeAdaptiveTableWidths(
+    ['A', 'note', 'C'],
+    [['x', 'quoted, separator', '中文内容']]
+  ));
+  assert.equal(widths[0], 72);
+  assert.ok(widths[1] > widths[0]);
+  assert.ok(widths[2] >= 72 && widths[2] < 220);
+  assert.equal(Array.from(layout.nativeAdaptiveTableWidths(
+    ['long'],
+    [[`${'x'.repeat(80)}`]],
+    72,
+    220
+  ))[0], 220);
+  assert.equal(layout.nativeTableRowNumberWidth(9), 52);
+  assert.equal(layout.nativeTableRowNumberWidth(1000000), 72);
+
+  const delimited = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeDelimitedPreview.ets', import.meta.url), 'utf8');
+  const table = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeTable.ets', import.meta.url), 'utf8');
+  assert.match(delimited, /nativeAdaptiveTableWidths\(table\.headers\.slice\(1\), dataRows\)/);
+  assert.match(delimited, /layoutId: 'delimited-table'/);
+  assert.match(delimited, /\.align\(Alignment\.TopStart\)/);
+  assert.match(table, /@Prop columnWidths: number\[\]/);
+  assert.match(table, /private widthFor\(index: number\): number/);
+  assert.match(table, /\.align\(Alignment\.TopStart\)\.id\(this\.layoutId\)/);
+  assert.match(table, /this\.layoutId \+ '-h-' \+ index\.toString\(\)/);
+});
+
+test('IME resize re-anchors a tail-following transcript without moving the header', () => {
+  const source = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
+  assert.match(source, /@StorageLink\('nativeImeVisible'\) private imeVisible: boolean/);
+  assert.match(source,
+    /if \(this\.imeVisible && this\.followTail && height < previousHeight\) \{[\s\S]{0,180}this\.scheduleTailScroll\(\)/);
+  assert.match(source, /'transcript-tail-row'/);
+  assert.doesNotMatch(source, /translate\(\{ y: AppStorage\.get<number>\('nativeImeHeight'\)/);
 });
 
 test('document preview/source mode uses one title-row icon action', () => {

@@ -177,6 +177,23 @@ function Assert-HeaderStable {
   }
 }
 
+function Assert-TranscriptAnchored {
+  param(
+    [object]$BeforeRow,
+    [object]$OpenRow,
+    [object]$OpenComposer
+  )
+  $beforeBounds = Get-Bounds $BeforeRow.bounds
+  $openBounds = Get-Bounds $OpenRow.bounds
+  $composerBounds = Get-Bounds $OpenComposer.bounds
+  if ($openBounds.bottom -ge ($beforeBounds.bottom - 40)) {
+    throw "Transcript tail did not move upward with the IME: $($BeforeRow.bounds) -> $($OpenRow.bounds)"
+  }
+  if ($openBounds.bottom -gt $composerBounds.top) {
+    throw "Transcript tail overlaps the composer: tail=$($OpenRow.bounds) composer=$($OpenComposer.bounds)"
+  }
+}
+
 function Open-Ime {
   param(
     [string]$Name,
@@ -272,23 +289,26 @@ $bundle = 'io.github.stlin256.dshharmony'
 
 $firstTheme = $true
 foreach ($theme in @('dark', 'light')) {
-  Launch-Fixture -State 'dock-send-idle' -Theme $theme -First $firstTheme
+  Launch-Fixture -State 'completed' -Theme $theme -First $firstTheme
   $firstTheme = $false
   $initialLayout = Dump-Layout "$theme-initial"
-  $initialTitle = Query-Node $initialLayout 'Dock 空闲与发送' 'text'
+  $initialTitle = Query-Node $initialLayout '发布准备与商店检查' 'text'
   $initialComposer = Query-Node $initialLayout '发送消息…' 'text'
   $initialSend = Query-Node-ById $initialLayout 'composer-send' 'text'
+  $initialTail = Query-Node-ById $initialLayout 'transcript-tail-row' 'text'
   $initialGap = Assert-ImeSendGap $initialLayout $initialSend 96
 
   Invoke-Click $initialComposer
   $opened = Open-Ime "$theme-ime" $initialComposer
-  $openedTitle = Query-Node $opened.layout 'Dock 空闲与发送' 'text'
+  $openedTitle = Query-Node $opened.layout '发布准备与商店检查' 'text'
   Assert-HeaderStable $initialTitle $openedTitle
   $openedSend = Query-Node-ById $opened.layout 'composer-send' 'text'
+  $openedTail = Query-Node-ById $opened.layout 'transcript-tail-row' 'text'
   $openedGap = Assert-ImeSendGap $opened.layout $openedSend 66
   if ($openedGap -ge $initialGap) {
     throw "IME did not tighten the composer gap: closed=$initialGap open=$openedGap"
   }
+  Assert-TranscriptAnchored $initialTail $openedTail $opened.composer
 
   $rootBounds = Get-RootBounds $opened.layout
   $openComposerBounds = Get-Bounds $opened.composer.bounds
@@ -308,13 +328,14 @@ foreach ($theme in @('dark', 'light')) {
 
   Close-Ime
   $closedLayout = Dump-Layout "$theme-closed"
-  $closedTitle = Query-Node $closedLayout 'Dock 空闲与发送' 'text'
+  $closedTitle = Query-Node $closedLayout '发布准备与商店检查' 'text'
   $closedComposer = if ($theme -eq 'dark') {
     Query-Node $closedLayout 'ime_layout_probe' 'text'
   } else {
     Query-Node $closedLayout '发送消息…' 'text'
   }
   $closedSend = Query-Node-ById $closedLayout 'composer-send' 'text'
+  $closedTail = Query-Node-ById $closedLayout 'transcript-tail-row' 'text'
   $closedGap = Assert-ImeSendGap $closedLayout $closedSend 96
   if ($closedGap -le $openedGap) {
     throw "Composer gap did not restore after IME close: open=$openedGap closed=$closedGap"
@@ -324,6 +345,11 @@ foreach ($theme in @('dark', 'light')) {
   $initialComposerBounds = Get-Bounds $initialComposer.bounds
   if ([Math]::Abs($closedComposerBounds.top - $initialComposerBounds.top) -gt 2) {
     throw "Composer geometry did not restore after IME close: $($initialComposer.bounds) -> $($closedComposer.bounds)"
+  }
+  $closedTailBounds = Get-Bounds $closedTail.bounds
+  $initialTailBounds = Get-Bounds $initialTail.bounds
+  if ([Math]::Abs($closedTailBounds.bottom - $initialTailBounds.bottom) -gt 4) {
+    throw "Transcript tail geometry did not restore after IME close: $($initialTail.bounds) -> $($closedTail.bounds)"
   }
   if ($theme -eq 'dark') {
     $null = Query-Node $closedLayout 'ime_layout_probe' 'text' 1
@@ -348,8 +374,10 @@ $manifest = [ordered]@{
     headerTopStableWhileImeOpen = $true
     composerRemainsInsideResizedPage = $true
     imeSendGapTightened = $true
+    transcriptTailMovesUpWithIme = $true
+    transcriptTailRemainsAboveComposer = $true
     idleSafeGapRestored = $true
-    headerAndComposerGeometryRestore = $true
+    headerComposerAndTranscriptGeometryRestore = $true
     draftSurvivesImeClose = $true
     lightAndDarkHeaderStable = $true
     processAliveAfterAllFlows = $true

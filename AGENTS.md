@@ -131,6 +131,12 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-03-iteration-notice-launch.md](docs/specs/2026-11-03-iteration-notice-launch.md)
 - Rapid-iteration notice device E2E:
   [2026-11-03-iteration-notice-launch-e2e.md](docs/testing/2026-11-03-iteration-notice-launch-e2e.md)
+- Login error motion requirement:
+  [2026-11-03-login-error-motion.md](docs/requirements/2026-11-03-login-error-motion.md)
+- Login error motion implementation spec:
+  [2026-11-03-login-error-motion.md](docs/specs/2026-11-03-login-error-motion.md)
+- Login error motion device E2E:
+  [2026-11-03-login-error-motion-e2e.md](docs/testing/2026-11-03-login-error-motion-e2e.md)
 - DSH Go-inspired frontend hardening requirement:
   [2026-11-02-dsh-go-frontend-hardening.md](docs/requirements/2026-11-02-dsh-go-frontend-hardening.md)
 - DSH Go frontend learning research:
@@ -394,6 +400,18 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-01-live-process-title-streaming.md](docs/specs/2026-11-01-live-process-title-streaming.md)
 - Live process, title and streaming device E2E:
   [2026-11-01-live-process-title-streaming-e2e.md](docs/testing/2026-11-01-live-process-title-streaming-e2e.md)
+- IME transcript anchoring and adaptive table layout requirement:
+  [2026-11-03-ime-transcript-table-layout.md](docs/requirements/2026-11-03-ime-transcript-table-layout.md)
+- IME transcript anchoring and adaptive table layout implementation spec:
+  [2026-11-03-ime-transcript-table-layout.md](docs/specs/2026-11-03-ime-transcript-table-layout.md)
+- IME transcript anchoring and adaptive table layout device E2E:
+  [2026-11-03-ime-transcript-table-layout-e2e.md](docs/testing/2026-11-03-ime-transcript-table-layout-e2e.md)
+- Sidebar workspace inventory requirement:
+  [2026-11-03-sidebar-all-workspaces.md](docs/requirements/2026-11-03-sidebar-all-workspaces.md)
+- Sidebar workspace inventory implementation spec:
+  [2026-11-03-sidebar-all-workspaces.md](docs/specs/2026-11-03-sidebar-all-workspaces.md)
+- Sidebar workspace inventory device E2E:
+  [2026-11-03-sidebar-all-workspaces-e2e.md](docs/testing/2026-11-03-sidebar-all-workspaces-e2e.md)
 - Device UI mock and bottom dock requirement:
   [2026-11-01-device-ui-mock-e2e.md](docs/requirements/2026-11-01-device-ui-mock-e2e.md)
 - Device UI mock and bottom dock implementation spec:
