@@ -3537,7 +3537,9 @@ test('permission UI keeps one-shot approval and session preset changes distinct'
     '../../harmony/entry/src/main/ets/components/NativeSettings.ets', import.meta.url), 'utf8');
   assert.doesNotMatch(picker, /允许一次/);
   assert.doesNotMatch(picker, /不会修改这里的选择/);
-  assert.match(interaction, /允许一次仅影响当前工具调用，不会改变会话权限/);
+  assert.doesNotMatch(interaction, /允许一次仅影响当前工具调用，不会改变会话权限/);
+  assert.match(interaction, /targetPermission/);
+  assert.match(interaction, /approvalReason/);
   assert.match(interaction, /submitted = true/);
   assert.match(workspace, /outlineWidth: 0/);
   assert.match(workspace, /borderWidth: 0/);

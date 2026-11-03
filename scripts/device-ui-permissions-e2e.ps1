@@ -307,7 +307,7 @@ Capture-Screen 'cancel-after'
 
 Launch-Fixture -State 'approval-workspace-once' -Theme 'dark'
 $approvalLayout = Dump-Layout 'approval-workspace'
-$null = Query-Node $approvalLayout '允许一次仅影响当前工具调用，不会改变会话权限。' 'text'
+$null = Query-Node $approvalLayout '允许一次仅影响当前工具调用，不会改变会话权限。' 'text' 0
 $null = Query-Node $approvalLayout '工作区内修改' 'text'
 Capture-Screen 'approval-workspace'
 
@@ -331,7 +331,7 @@ $null = Query-Node $approvalEndedLayout '等待审批' 'text' 0
 Launch-Fixture -State 'approval-full-once' -Theme 'dark'
 $fullApprovalLayout = Dump-Layout 'approval-full'
 $null = Query-Node $fullApprovalLayout '完全权限' 'text'
-$null = Query-Node $fullApprovalLayout '允许一次仅影响当前工具调用，不会改变会话权限。' 'text'
+$null = Query-Node $fullApprovalLayout '允许一次仅影响当前工具调用，不会改变会话权限。' 'text' 0
 Capture-Screen 'approval-full'
 
 Launch-Fixture -State 'approval-long-reason' -Theme 'dark'
@@ -375,7 +375,7 @@ Capture-Screen 'light-confirm'
 
 Launch-Fixture -State 'approval-workspace-once' -Theme 'light'
 $lightApprovalLayout = Dump-Layout 'light-approval'
-$null = Query-Node $lightApprovalLayout '允许一次仅影响当前工具调用，不会改变会话权限。' 'text'
+$null = Query-Node $lightApprovalLayout '允许一次仅影响当前工具调用，不会改变会话权限。' 'text' 0
 Capture-Screen 'light-approval'
 
 $processId = ((& $hdc -t $Device shell "pidof $bundle") -join ' ').Trim()

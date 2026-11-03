@@ -126,7 +126,7 @@ setPermissionPreset(sessionId, preset)
 
 - 保持现有 `NativeInteraction` 两按钮合同：
   `rejected` 和 `allowed-once`。
-- 卡片明确显示“允许一次仅影响当前工具调用，不会改变会话权限”。
+- 卡片保留工具名、目标权限、具体原因和剩余时间，不再显示额外的单次授权说明行。
 - Host 提供目标权限时显示目标范围；高风险目标使用 warning 语义。
 - submitting 状态保持卡片可见，两个按钮禁用并显示进度。
 - `interaction-ended` 移除卡片；迟到响应不能重新提交。

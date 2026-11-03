@@ -217,7 +217,6 @@ Session 权限事件。审批结束后，客户端移除 interaction，等待工
 ● 等待审批                              12s
 
 工具：bash
-允许一次仅影响当前工具调用，不会改变会话权限。
 允许此操作使用 workspace-write 权限：
 Need to write the requested file.
 

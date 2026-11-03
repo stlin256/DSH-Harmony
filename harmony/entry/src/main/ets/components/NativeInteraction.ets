@@ -285,9 +285,6 @@ export struct NativeInteraction {
                   NativeDesign.danger(this.dark) : NativeDesign.warning(this.dark))
             }
           }.width('100%')
-          Text('允许一次仅影响当前工具调用，不会改变会话权限。')
-            .fontSize(NativeDesign.fontCaption).lineHeight(16)
-            .fontColor(this.approvalRisk() ? NativeDesign.danger(this.dark) : NativeDesign.textSecondary(this.dark))
           Text(this.approvalReason() || '该工具请求执行需要你确认').fontSize(NativeDesign.fontBody)
             .fontWeight(FontWeight.Medium).fontColor(NativeDesign.textPrimary(this.dark))
         }.width('100%').alignItems(HorizontalAlign.Start)
