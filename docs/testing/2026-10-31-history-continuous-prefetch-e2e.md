@@ -40,4 +40,4 @@
 | HIST-VAL-01 | Run `gateway/npm test`. | All tests pass with no private host or transcript fixture. | Passed |
 | HIST-VAL-02 | Build `default` Release. | Build succeeds. | Passed |
 | HIST-VAL-03 | Build `store` Release. | Build succeeds. | Passed |
-| HIST-VAL-04 | Install the personal Release on the connected device. | Critical history rows pass with observed device evidence. | Pending |
+| HIST-VAL-04 | Install the community Release on the connected device. | Critical history rows pass with observed device evidence. | Pending |

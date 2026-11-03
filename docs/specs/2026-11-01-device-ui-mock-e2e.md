@@ -18,7 +18,7 @@ showcaseTheme=light|dark|system
 ```
 
 The dedicated `mock` product sets `storeShowcase=true` automatically through
-`ProductCapabilities.supportsMockFixtures`. Personal and store launches require
+`ProductCapabilities.supportsMockFixtures`. Community and store launches require
 the explicit flag and otherwise keep the real client.
 
 ## 2. Fixture states

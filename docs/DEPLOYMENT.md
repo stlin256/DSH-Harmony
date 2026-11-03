@@ -18,13 +18,23 @@ App 填工作空间入口，身份服务地址由已配置的网关返回。强�
 
 插件直接监听真实 `session/event` 并写入 SQLite，无需另装 `pocket-notify` 或配置公网事件密钥。保存任务名、状态与路由标识，不提交对话正文。历史继承事件被过滤，取消不作为完成提醒。
 
-自用 `default` HAP 使用 Huawei Push Kit。需要已登记的 Harmony 应用、Push Kit 能力和项目级服务账号 JSON。将 Harness 服务的 `HUAWEI_SERVICE_ACCOUNT` 设为受限文件路径，不要提交私钥。`HUAWEI_TEST_MESSAGE` 默认为 true，类别默认为 MARKETING。`store` HAP 不打包 Push Kit；可选开启任务运行时后台监测，应用只在存在运行中任务时申请系统长时任务，并在任务结束后停止。
+社区 `default` target HAP 使用 Huawei Push Kit。需要已登记的 Harmony 应用、Push Kit 能力和项目级服务账号 JSON。将 Harness 服务的 `HUAWEI_SERVICE_ACCOUNT` 设为受限文件路径，不要提交私钥。`HUAWEI_TEST_MESSAGE` 默认为 true，类别默认为 MARKETING。`store` HAP 不打包 Push Kit；可选开启任务运行时后台监测，应用只在存在运行中任务时申请系统长时任务，并在任务结束后停止。
 
 ## 编译和安装 App
 
 安装含 SDK 26 的 DevEco Studio。在 `harmony/` 将 `build-profile.example.json5` 复制为被 Git 忽略的 `build-profile.json5`，配置 bundle、开发证书、设备和 Profile。Passkey 需要 `ohos.permission.ACCESS_FIDO2_ONLINEAUTH`。
 
-`build-profile.example.json5` 定义了两个产品：`default`（自用 Push Kit）和 `store`（不含 Push Kit）。保留本机签名资料，将两个产品的 `bundleName` 设置为开发者中心登记的应用 ID；个人 Push Kit 版与应用商店版应使用各自需要的签名配置。
+`build-profile.example.json5` 定义了 `default`、`store` 和 `mock` target。`default`
+target 承载社区 Push Kit 构建，`store` 不含 Push Kit；产品脚本对外使用
+`community` 和 `store`。保留本机签名资料，将两个发布产品的 `bundleName`
+设置为开发者中心登记的应用 ID，并分别使用需要的签名配置。
+
+```bash
+.\scripts\build-harmony.ps1 -Product community -BuildMode release
+.\scripts\build-harmony.ps1 -Product store -BuildMode release
+```
+
+绕过产品脚本直接使用 DevEco CLI 时，社区版仍使用底层 `default` target：
 
 ```bash
 devecocli signature generate --product default

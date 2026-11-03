@@ -44,7 +44,7 @@ is not available as a general product mode.
 - ArkTS source contracts verify the native default and startup resolver are
   wired before connection restoration and verify the compatibility picker is
   absent from native settings.
-- Builds cover both personal and store Release variants.
-- The personal Release is installed on the phone and cold-start behavior is
+- Builds cover both community and store Release variants.
+- The community Release is installed on the phone and cold-start behavior is
   checked with HDC screenshot and layout evidence.
 

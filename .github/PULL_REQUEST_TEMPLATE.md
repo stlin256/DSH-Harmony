@@ -16,7 +16,7 @@ Describe the user-visible or behavioral outcome.
 - [ ] Every new action, send, selection, navigation or state transition has an
   interaction driver and assertion.
 - [ ] Mock feature manifest and E2E rows are updated.
-- [ ] Shared ArkUI changes build default, store and mock variants.
+- [ ] Shared ArkUI changes build community, store and mock variants.
 - [ ] No private hosts, credentials, cookies, signatures or transcript content
   are included.
 

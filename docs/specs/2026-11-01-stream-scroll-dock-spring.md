@@ -69,6 +69,6 @@ row clock.
 - Source contracts assert the `16/64ms` cadence, scroll-motion tail gate,
   single coalesced tail timer, programmatic-scroll guard and one Dock spring.
 - Existing list tail-patching and model reducer tests remain green.
-- Build personal and store Release variants.
+- Build community and store Release variants.
 - Add a device E2E row for streaming while dragging/flinging and slow-motion Dock
   expansion. Keep it Pending without device evidence.

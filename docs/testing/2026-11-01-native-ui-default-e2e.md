@@ -8,7 +8,7 @@ isolated fixtures.
 
 | ID | Scenario | Expected result | Result |
 |---|---|---|---|
-| NUI-01 | Inspect the installed application package | Personal Release metadata is visible and matches the newly installed HAP | Pass: installed personal Release `0.4.7` (`versionCode 28`); HDC reports `debug: false` |
+| NUI-01 | Inspect the installed application package | Community Release metadata is visible and matches the newly installed HAP | Pass: installed community Release `0.4.7` (`versionCode 28`); HDC reports `debug: false` |
 | NUI-02 | Cold-start an affected installation with no `uiMode` preference | Native workspace opens after authentication; no compatibility page is the initial surface | Pass: HDC force-stop plus cold launch restored the native conversation surface |
 | NUI-03 | Cold-start a fresh-install fixture | Native workspace is selected by default | Pending |
 | NUI-04 | Open application settings | No compatibility mode control is visible | Pending |

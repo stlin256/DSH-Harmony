@@ -5,7 +5,7 @@ param(
   [string]$OutputDir = '',
   [switch]$SkipBuild,
   [switch]$SkipInstall,
-  [switch]$RestorePersonal
+  [Alias('RestorePersonal')][switch]$RestoreCommunity
 )
 
 $ErrorActionPreference = 'Stop'
@@ -127,23 +127,17 @@ $manifest |
 Get-ChildItem -LiteralPath $finalDir -Filter '*.png' |
   Select-Object FullName, Length, LastWriteTime
 
-if ($RestorePersonal) {
-  Push-Location (Join-Path $repo 'harmony')
-  try {
-    devecocli build --product default --build-mode release
-    if ($LASTEXITCODE -ne 0) {
-      throw "Personal Release build failed: $LASTEXITCODE"
-    }
+if ($RestoreCommunity) {
+  & (Join-Path $PSScriptRoot 'build-harmony.ps1') -DevEcoHome $DevEcoHome -Product community -BuildMode release -AssembleApp
+  if ($LASTEXITCODE -ne 0) {
+    throw "Community Release build failed: $LASTEXITCODE"
   }
-  finally {
-    Pop-Location
-  }
-  $personalHap = (Resolve-Path -LiteralPath (
+  $communityHap = (Resolve-Path -LiteralPath (
     Join-Path $repo 'harmony\entry\build\default\outputs\default\entry-default-signed.hap'
   )).Path
-  & $hdc -t $Device install -r $personalHap
+  & $hdc -t $Device install -r $communityHap
   if ($LASTEXITCODE -ne 0) {
-    throw "Personal HAP installation failed: $LASTEXITCODE"
+    throw "Community HAP installation failed: $LASTEXITCODE"
   }
   & $hdc -t $Device shell "aa force-stop $bundle" | Out-Null
   & $hdc -t $Device shell "aa start -a EntryAbility -b $bundle -m entry" | Out-Null

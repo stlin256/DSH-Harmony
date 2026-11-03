@@ -437,14 +437,14 @@ test('About reads the installed bundle version instead of a source constant', ()
 });
 
 test('display names are product-owned and store-safe', () => {
-  const personal = readFileSync(new URL(
-    '../../harmony/entry/src/personal/ProductCapabilities.ets', import.meta.url), 'utf8');
+  const community = readFileSync(new URL(
+    '../../harmony/entry/src/community/ProductCapabilities.ets', import.meta.url), 'utf8');
   const store = readFileSync(new URL(
     '../../harmony/entry/src/store/ProductCapabilities.ets', import.meta.url), 'utf8');
   const mock = readFileSync(new URL(
     '../../harmony/entry/src/mock/ProductCapabilities.ets', import.meta.url), 'utf8');
   const name = source => source.match(/appDisplayName\s*:\s*string\s*=\s*(['"])(.*?)\1/)?.[2] || '';
-  assert.equal(name(personal), 'DSH Harmony');
+  assert.equal(name(community), 'DSH Harmony');
   assert.equal(name(mock), 'DSH Harmony');
   assert.match(name(store), /\S+/);
   assert.doesNotMatch(name(store), /harmony/i);

@@ -9,8 +9,8 @@ Mock Release HAP SHA-256:
 
 | ID | Scenario | Expected | Evidence |
 | --- | --- | --- | --- |
-| SHOT-01 | Build Mock and personal Release products | Signed Mock and personal HAPs build successfully | Passed; Mock build completed before capture, and personal Release `0.4.7` (`versionCode 28`) was reinstalled afterward with `debug: false` |
-| SHOT-02 | Normal app launch | No fixture client or synthetic content is selected without showcase routing | Passed by build and source inspection; the installed personal Release was launched after capture |
+| SHOT-01 | Build Mock and community Release products | Signed Mock and community HAPs build successfully | Passed; Mock build completed before capture, and community Release `0.4.7` (`versionCode 28`) was reinstalled afterward with `debug: false` |
+| SHOT-02 | Normal app launch | No fixture client or synthetic content is selected without showcase routing | Passed by build and source inspection; the installed community Release was launched after capture |
 | SHOT-03 | Capture conversation and floating task plan, light | Native conversation opens with deterministic plan-overlay content and no clipping | Passed; `raw/01-conversation-light.png` and both composed orientations inspected |
 | SHOT-04 | Capture complete work process, light and dark | Expanded work process and result render in first-appearance order | Passed; `raw/02-process-light.png` and `raw/07-process-dark.png` inspected after switching from a collapsed fixture-only view to the product process scene |
 | SHOT-05 | Capture plan and subagent lineage, light | Lineage sheet opens over the selected session with known and unavailable modes | Passed; `raw/03-lineage-light.png` and composed orientations inspected |

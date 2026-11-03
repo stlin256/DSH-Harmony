@@ -65,7 +65,7 @@ can also pass `-SkipInstall`.
 .\scripts\capture-store-screenshots.ps1 -Device '<device-id>'
 ```
 
-Pass `-RestorePersonal` to rebuild and reinstall the personal Push Kit variant
+Pass `-RestoreCommunity` to rebuild and reinstall the community Push Kit variant
 after capture. Without it, the device remains on the captured Mock build.
 
 `scripts/compose-store-screenshots.py` places each real-device portrait capture

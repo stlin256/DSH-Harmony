@@ -79,7 +79,7 @@
       }
     },
     "product": {
-      "enum": ["default", "store", "mock"]
+      "enum": ["community", "default", "store", "mock"]
     },
     "hap": {
       "type": "object",

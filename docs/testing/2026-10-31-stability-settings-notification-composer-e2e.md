@@ -6,7 +6,7 @@ Status: pending device run on version 0.3.4.
 
 ## Drawer Destinations
 
-- [ ] Install the updated signed personal HAP with `install -r`.
+- [ ] Install the updated signed community HAP with `install -r`.
 - [ ] Clear hilog, open the drawer and tap Plugins.
 - [ ] Confirm the app stays alive and the compatibility surface loads.
 - [ ] Repeat for Automation tasks and More.

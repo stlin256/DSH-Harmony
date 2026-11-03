@@ -54,4 +54,4 @@ Status: pending device run.
 | VAL-E2E-02 | Run ArkTS model tests for stream correctness. | All deterministic gap/recovery cases pass. | Pending |
 | VAL-E2E-03 | Build Release for the `default` product. | Build succeeds. | Pending |
 | VAL-E2E-04 | Build Release for the `store` product. | Build succeeds. | Pending |
-| VAL-E2E-05 | Install the personal Release build on the HarmonyOS device and repeat critical rows. | Stream, image and file flows pass with fresh evidence. | Pending |
+| VAL-E2E-05 | Install the community Release build on the HarmonyOS device and repeat critical rows. | Stream, image and file flows pass with fresh evidence. | Pending |

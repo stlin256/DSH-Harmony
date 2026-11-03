@@ -8,7 +8,7 @@ live-network stability.
 Recorded on 2026-11-01:
 
 - Gateway and native model tests: `151/151` passed.
-- Personal and Store Release variants compiled and signed.
+- Community and Store Release variants compiled and signed.
 - Plugin `0.3.7` was deployed to a versioned remote release. The native probe
   authenticated, received sessions over protocol `2`, opened the live channel
   successfully, and logged out.

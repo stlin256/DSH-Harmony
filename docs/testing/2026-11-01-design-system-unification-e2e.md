@@ -36,7 +36,7 @@ they do not replace any device row in the matrix above.
 
 - `node --test test/design-system.test.mjs`: 6/6 passed.
 - `npm test`: 157/157 passed.
-- Personal Release build completed:
+- Community Release build completed:
   `harmony/entry/build/default/outputs/default/entry-default-signed.hap`.
 - Store Release build completed:
   `harmony/entry/build/store/outputs/store/entry-store-signed.hap`.

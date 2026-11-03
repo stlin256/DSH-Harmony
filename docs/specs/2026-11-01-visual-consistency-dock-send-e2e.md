@@ -158,6 +158,6 @@ The workspace-level error line remains available on non-conversation surfaces.
   reachability, material ordering and removal of foreground gradient blur from
   the empty layer.
 - Run all gateway tests.
-- Build personal and store Release products.
+- Build community and store Release products.
 - Run the screenshot and send scripts only when a device is ready. Store device
   results in the E2E table.

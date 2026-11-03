@@ -32,9 +32,9 @@ Date: 2026-11-01
 ## Mock 产品变体
 
 - 产品名固定为 `mock`，输出独立的 signed HAP。
-- 使用与个人版相同的 bundle identity，以便现有 HDC 和签名 Profile 可直接安装。
+- 使用与社区版相同的 bundle identity，以便现有 HDC 和签名 Profile 可直接安装。
 - Mock 产品默认进入本地 fixture；显式启动参数仍可覆盖 screen、state 和 theme。
-- 个人版与商店版不得在正常启动时自动进入 fixture。
+- 社区版与商店版不得在正常启动时自动进入 fixture。
 - Mock 不使用网络、真实账号、Passkey、真实服务地址或真实会话内容。
 
 ## 当前新增功能

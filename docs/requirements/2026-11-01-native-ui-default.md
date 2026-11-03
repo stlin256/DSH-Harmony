@@ -4,7 +4,7 @@ Date: 2026-11-01
 
 ## Problem
 
-The personal Release build is installed correctly, but the application opens
+The community Release build is installed correctly, but the application opens
 the compatibility WebView instead of the native workspace. The persisted
 `uiMode` key is absent on the affected device, and both the initial ArkUI state
 and preference fallback currently resolve to `compatibility`.

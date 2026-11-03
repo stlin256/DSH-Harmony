@@ -4,8 +4,8 @@ import { join } from 'node:path';
 const root = process.cwd();
 const mainManifest = readFileSync(join(root, 'harmony/entry/src/main/module.json5'), 'utf8');
 const storeManifest = readFileSync(join(root, 'harmony/variants/store/module.json5'), 'utf8');
-const personalCapabilities = readFileSync(
-  join(root, 'harmony/entry/src/personal/ProductCapabilities.ets'),
+const communityCapabilities = readFileSync(
+  join(root, 'harmony/entry/src/community/ProductCapabilities.ets'),
   'utf8',
 );
 const storeCapabilities = readFileSync(
@@ -45,7 +45,7 @@ function appDisplayName(source) {
   return source.match(/appDisplayName\s*:\s*string\s*=\s*(['"])(.*?)\1/)?.[2] || '';
 }
 
-const personalName = appDisplayName(personalCapabilities);
+const communityName = appDisplayName(communityCapabilities);
 const storeName = appDisplayName(storeCapabilities);
 const mockName = appDisplayName(mockCapabilities);
 
@@ -60,21 +60,21 @@ for (const required of ['ohos.permission.INTERNET', 'ohos.permission.KEEP_BACKGR
     failures.push(`both manifests must retain ${required}`);
   }
 }
-if (!/supportsPasskey:\s*boolean\s*=\s*true/.test(personalCapabilities)) {
-  failures.push('default product must advertise Passkey support');
+if (!/supportsPasskey:\s*boolean\s*=\s*true/.test(communityCapabilities)) {
+  failures.push('community product must advertise Passkey support');
 }
 if (!/supportsPasskey:\s*boolean\s*=\s*false/.test(storeCapabilities)) {
   failures.push('store product must not advertise Passkey support');
 }
-if (!/supportsMockFixtures:\s*boolean\s*=\s*false/.test(personalCapabilities) ||
+if (!/supportsMockFixtures:\s*boolean\s*=\s*false/.test(communityCapabilities) ||
     !/supportsMockFixtures:\s*boolean\s*=\s*false/.test(storeCapabilities)) {
-  failures.push('default and store products must not auto-select Mock fixtures');
+  failures.push('community and store products must not auto-select Mock fixtures');
 }
 if (!/supportsMockFixtures:\s*boolean\s*=\s*true/.test(mockCapabilities)) {
   failures.push('mock product must auto-select Mock fixtures');
 }
-if (personalName !== 'DSH Harmony') {
-  failures.push('default product display name must be DSH Harmony');
+if (communityName !== 'DSH Harmony') {
+  failures.push('community product display name must be DSH Harmony');
 }
 if (mockName !== 'DSH Harmony') {
   failures.push('mock product display name must be DSH Harmony');
@@ -91,7 +91,7 @@ if (!Array.isArray(appStrings.string) ||
   failures.push('source launcher name must remain the default DSH Harmony value');
 }
 if (!buildScript.includes('appDisplayName') ||
-    !buildScript.includes("$capabilityRoot = if ($Product -eq 'default')") ||
+    !buildScript.includes("$capabilityRoot = if ($buildProduct -eq 'default') { 'community' }") ||
     !buildScript.includes('AppScope/resources/base/element/string.json') ||
     !buildScript.includes('restoreAppStrings') ||
     !buildScript.includes('[IO.File]::WriteAllBytes($appStrings, $restoreAppStrings)') ||

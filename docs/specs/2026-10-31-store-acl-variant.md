@@ -32,7 +32,7 @@ release Profile.
 
 Add `ProductCapabilities` to the target-specific source roots:
 
-- `src/personal/ProductCapabilities.ets`: Passkey supported.
+- `src/community/ProductCapabilities.ets`: Passkey supported.
 - `src/store/ProductCapabilities.ets`: Passkey unsupported.
 
 The shared login page imports `entry/ProductCapabilities` in the same way that

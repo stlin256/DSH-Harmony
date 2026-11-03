@@ -14,7 +14,7 @@ Automated evidence in this change:
   reusable bottom dock, read-only file opening and reduced-motion handling.
 - `default` Release build: passed.
 - `store` Release build: passed.
-- Device evidence: the rebuilt personal Release was installed and run through
+- Device evidence: the rebuilt community Release was installed and run through
   the fixture interaction driver. Screenshots and ArkUI bounds are stored under
   `artifacts/device-ui-turn-change-e2e/completed-card/`.
 

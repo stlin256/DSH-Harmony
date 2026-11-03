@@ -12,7 +12,7 @@ Date: 2026-11-01
 - `device-ui-settings-e2e.ps1` 和 `device-ui-turn-change-e2e.ps1` 覆盖设置与文件变更。
 - Plan、谱系和四种子智能体模式由 `device-ui-mode-subagent-e2e.ps1` 驱动。
 - `build-profile` 已有独立 `mock` product，默认构建专用 signed HAP。
-- personal/store 不自动选择 fixture，避免普通用户进入测试状态。
+- community/store 不自动选择 fixture，避免普通用户进入测试状态。
 
 ## 设计判断
 

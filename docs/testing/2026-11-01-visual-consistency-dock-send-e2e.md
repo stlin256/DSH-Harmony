@@ -43,7 +43,7 @@ until screenshots and post-send layout dumps exist.
 | ID | Check | Expected | Status |
 | --- | --- | --- | --- |
 | A01 | Gateway tests | 145/145 tests pass | Passed 2026-11-01 |
-| A02 | Personal Release | Signed HAP builds | Passed 2026-11-01 |
+| A02 | Community Release | Signed HAP builds | Passed 2026-11-01 |
 | A03 | Store Release | Signed HAP builds | Passed 2026-11-01 |
 | A04 | Fixture isolation | Showcase client unreachable without explicit launch flag | Passed 2026-11-01 |
 

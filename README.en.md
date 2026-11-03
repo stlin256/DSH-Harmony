@@ -97,7 +97,7 @@ Setup guides:
 
 DSH Harmony can send tiered HarmonyOS notifications when a task completes, fails or waits for approval. Tapping a notification returns to its session, while home-screen service widgets summarize workspaces and task state.
 
-Personal builds can use Push Kit for immediate delivery. The planned AppGallery build will use a store-specific configuration and provide background status monitoring where system policy allows.
+Community builds can use Push Kit for immediate delivery. The planned AppGallery build will use a store-specific configuration and provide background status monitoring where system policy allows.
 
 ## Coming to AppGallery
 

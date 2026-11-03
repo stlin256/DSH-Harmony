@@ -200,7 +200,7 @@ App不能仅从Preferences.pushEnabled得知系统通知权限和server绑定仍
 | SETTINGS-03 | Index二级Back已存在；局部popover等前景层还需统一 | Nav state统一派生，系统Back从前景消费；已受理修改不因返回隐式撤销 | Select/连接/模式/预览逐层返回；旋转后仍同层，0错误退出 |
 | SETTINGS-04 | 全局busy早退，旧未知Bridge命令、缺回读/事务；模式入口丢失 | 命令registry类型化，独立pending，受控desired/committed；flush/Remote结果后回读；失败短反馈 | 每个可见项一正一反、一错误、一取消；重启回读一致；不存在空onClick/静默return |
 | SETTINGS-05 | 三分类合同两端有；新补丁仍先本地后远端且不明结果回滚 | per-device receipt+幂等配置+对账；发送前复查levels，取消待发同级job | 8种level组合、前台本地/后台Push；关闭一级仅对应一级停止；关闭Push仅此设备 |
-| SETTINGS-06 | personal/store适配已存在，后台start/stop真实但无失败回显 | 按supported显示Push/monitor；无Push不承诺杀进程保活；通知路由绑定连接身份 | Push冷/热/认证后打开；无Push开启拒绝回滚、关闭停任务、活跃结束停任务；不新开发商店发布 |
+| SETTINGS-06 | community/store适配已存在，后台start/stop真实但无失败回显 | 按supported显示Push/monitor；无Push不承诺杀进程保活；通知路由绑定连接身份 | Push冷/热/认证后打开；无Push开启拒绝回滚、关闭停任务、活跃结束停任务；不新开发商店发布 |
 | SETTINGS-07 | Host revision队列已有但UI不利用缓存，刷新全局锁；字段尚未全移植 | immutable镜像、串行同ns、refresh合并、冲突恢复与权限；保留原spec未完字段目录 | 冲突/只读/文档变更/重连下权威值；四模式×时机×回复实际影响同一聊天，不只选中UI |
 | SETTINGS-08 | About本地logo/avatar、BuildInfo字段齐；embedded新补丁未验 | 第三tab展示完整内容，外链系统打开/失败短反馈，不因头像网络慢等待 | 离线头像/logo均可见；版本与app.json一致；作者/仓库/Issue目标正确；版权许可有来源 |
 | SETTINGS-09 | 现有平整tab方向正确，Unicode箭头残留、默认弹层/文字密度不统一 | 官方glyph/token/compact行复用，16vp内容边距；只保留必要标签与状态 | 320/360vp/大字体不溢出；重要文字不截断；无JSON/大段实现说明 |

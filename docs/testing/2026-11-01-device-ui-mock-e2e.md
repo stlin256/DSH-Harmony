@@ -11,7 +11,7 @@ the current product checklist remains pending in
 
 ## Automated evidence
 
-The final suite ran against the rebuilt personal Release HAP. All 11 selected
+The final suite ran against the rebuilt community Release HAP. All 11 selected
 screen/state/theme combinations passed from a clean force-stop each time.
 `artifacts/device-ui-mock/suite-summary.json` is the machine-readable run
 summary.

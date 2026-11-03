@@ -551,8 +551,8 @@ export function validateEvidence(
     }
   }
 
-  if (!['default', 'store', 'mock'].includes(evidence.product)) {
-    errors.push('product must be default, store or mock');
+  if (!['community', 'default', 'store', 'mock'].includes(evidence.product)) {
+    errors.push('product must be community, store or mock (legacy default is accepted)');
   }
 
   if (!isObject(evidence.hap)) {

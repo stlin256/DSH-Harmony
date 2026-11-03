@@ -2,7 +2,7 @@
   "apiType": "stageMode",
   "buildOption": {},
   "targets": [
-    { "name": "default", "source": { "sourceRoots": ["./src/personal"] } },
+    { "name": "default", "source": { "sourceRoots": ["./src/community"] } },
     { "name": "store", "source": { "sourceRoots": ["./src/store"] } },
     { "name": "mock", "source": { "sourceRoots": ["./src/mock"] } }
   ]

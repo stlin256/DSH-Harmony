@@ -10,11 +10,11 @@ The HarmonyOS native project lives here. The repository root README covers the p
 
 | Product | Push Kit | Background notifications | Use |
 | --- | --- | --- | --- |
-| `default` | Included | Delivered by Push Kit | Maintainer build; the server plugin sends pushes with the project service account |
+| `community` | Included | Delivered by Push Kit | Community build; the server plugin sends pushes with the project service account |
 | `store` | Push Kit SDK excluded | Optional monitoring for active tasks | AppGallery and regular developer builds |
 | `mock` | Excluded | Not applicable | Frontend development and device automation; deterministic local data with no network |
 
-`default` and `mock` display **DSH Harmony**; the `store` product displays
+`community` and `mock` display **DSH Harmony**; the `store` product displays
 **DSH Mobile**. Each target owns its display name through
 `ProductCapabilities.appDisplayName`. The build script synchronizes the launcher
 `app_name` resource and restores the source resource after the build. The bundle
@@ -22,6 +22,10 @@ name remains `io.github.stlin256.dshharmony`. Register this app in Huawei
 Developer Console before requesting app signing or Push Kit capabilities. This
 repository does not contain signing material, service accounts or developer
 credentials.
+
+The community build reuses the HarmonyOS `default` target internally so existing
+signing material and upgrade paths keep working. Product scripts expose it as
+`community`.
 
 ## Build locally
 
@@ -31,12 +35,13 @@ credentials.
    launcher name, checks Mock coverage and restores temporary resource changes:
 
 ```powershell
-.\scripts\build-harmony.ps1 -Product default -BuildMode release
+.\scripts\build-harmony.ps1 -Product community -BuildMode release
 .\scripts\build-harmony.ps1 -Product store -BuildMode release
 .\scripts\build-harmony.ps1 -Product mock -BuildMode release
 ```
 
-To use the DevEco CLI directly, run from the Harmony project directory:
+To use the DevEco CLI directly, run from the Harmony project directory. The
+community build still uses the underlying `default` target:
 
 ```sh
 devecocli signature generate --product default
@@ -59,6 +64,6 @@ Every user-visible frontend feature must add a deterministic Mock state, a visua
 
 ## Notifications
 
-The server plugin stores task names and a status-only projection. The `default` build uses Push Kit for completion, failure and approval reminders. The `store` build does not request Push Kit tokens. If the user enables “Monitor active tasks in background,” it requests a visible long-running task only while a task is active, polls the status, then stops. Tapping a notification opens its session.
+The server plugin stores task names and a status-only projection. The `community` build uses Push Kit for completion, failure and approval reminders. The `store` build does not request Push Kit tokens. If the user enables “Monitor active tasks in background,” it requests a visible long-running task only while a task is active, polls the status, then stops. Tapping a notification opens its session.
 
 Never commit real service URLs, credentials, signing profiles or Push Kit service-account files.

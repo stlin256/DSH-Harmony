@@ -36,7 +36,7 @@ navigation or system behavior.
 ## Automated verification (2026-11-01)
 
 - Gateway and ArkTS service contracts: `178/178` tests passed.
-- Personal Release build and signing: passed.
+- Community Release build and signing: passed.
 - Store Release build and signing: passed.
 - Static source contracts verify plugin/media cards, read-only background
   notices, non-editable `tool-jobs` queue rows, editor subcommand

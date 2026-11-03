@@ -406,8 +406,8 @@ export function verifyMockCoverage(root = defaultRoot) {
     join(root, 'scripts/build-harmony.ps1'), 'utf8');
   const mockScript = readFileSync(
     join(root, 'scripts/device-ui-mock.ps1'), 'utf8');
-  const personalCapabilities = readFileSync(
-    join(root, 'harmony/entry/src/personal/ProductCapabilities.ets'), 'utf8');
+  const communityCapabilities = readFileSync(
+    join(root, 'harmony/entry/src/community/ProductCapabilities.ets'), 'utf8');
   const storeCapabilities = readFileSync(
     join(root, 'harmony/entry/src/store/ProductCapabilities.ets'), 'utf8');
   const mockCapabilities = readFileSync(
@@ -420,7 +420,7 @@ export function verifyMockCoverage(root = defaultRoot) {
   if (!exampleProfile.includes('"name": "mock"')) {
     failures.push('example build profile is missing the mock product');
   }
-  if (!/ValidateSet\('default','store','mock'\)/.test(buildScript)) {
+  if (!/ValidateSet\('community','default','store','mock'\)/.test(buildScript)) {
     failures.push('build-harmony.ps1 does not accept the mock product');
   }
   if (!mockScript.includes('-Product mock')) {
@@ -431,9 +431,9 @@ export function verifyMockCoverage(root = defaultRoot) {
   )) {
     failures.push('device-ui-mock.ps1 does not use the mock HAP');
   }
-  for (const source of [personalCapabilities, storeCapabilities]) {
+  for (const source of [communityCapabilities, storeCapabilities]) {
     if (!/supportsMockFixtures:\s*boolean\s*=\s*false/.test(source)) {
-      failures.push('default/store capability must not auto-select fixtures');
+      failures.push('community/store capability must not auto-select fixtures');
     }
   }
   if (!/supportsMockFixtures:\s*boolean\s*=\s*true/.test(mockCapabilities)) {

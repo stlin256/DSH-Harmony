@@ -1,6 +1,6 @@
 param(
   [string]$DevEcoHome = $env:DEVECO_STUDIO_HOME,
-  [ValidateSet('default','store','mock')][string]$Product = 'default',
+  [ValidateSet('community','default','store','mock')][string]$Product = 'community',
   [ValidateSet('debug','release')][string]$BuildMode = 'debug',
   [switch]$AssembleApp
 )
@@ -13,7 +13,8 @@ $profile = Join-Path $project 'build-profile.json5'
 $manifest = Join-Path $project 'entry/src/main/module.json5'
 $storeManifest = Join-Path $project 'variants/store/module.json5'
 $appStrings = Join-Path $project 'AppScope/resources/base/element/string.json'
-$capabilityRoot = if ($Product -eq 'default') { 'personal' } else { $Product }
+$buildProduct = if ($Product -eq 'community' -or $Product -eq 'default') { 'default' } else { $Product }
+$capabilityRoot = if ($buildProduct -eq 'default') { 'community' } else { $Product }
 $capabilitySource = Join-Path $project ("entry/src/{0}/ProductCapabilities.ets" -f $capabilityRoot)
 $verifyNode = Join-Path $ide 'tools/node/node.exe'
 $verifyCoverage = Join-Path $repo 'scripts/verify-mock-coverage.mjs'
@@ -43,7 +44,7 @@ $savedCli = $env:DEVECO_CLI_STUDIO_PATH
 $savedPath = $env:Path
 Push-Location -LiteralPath $project
 try {
-  if ($Product -eq 'store') {
+  if ($buildProduct -eq 'store') {
     $restoreManifest = [IO.File]::ReadAllBytes($manifest)
     Copy-Item -LiteralPath $storeManifest -Destination $manifest -Force
   }
@@ -66,9 +67,9 @@ try {
   if ($LASTEXITCODE -ne 0) { throw 'ohpm install failed' }
   if ($AssembleApp) {
     $env:DEVECO_CLI_STUDIO_PATH = $ide
-    & devecocli build --product $Product --build-mode $BuildMode
+    & devecocli build --product $buildProduct --build-mode $BuildMode
   } else {
-    & (Join-Path $env:NODE_HOME 'node.exe') (Join-Path $ide 'tools/hvigor/bin/hvigorw.js') --mode module -p "product=$Product" -p "module=entry@$Product" -p "buildMode=$BuildMode" assembleHap --no-daemon
+    & (Join-Path $env:NODE_HOME 'node.exe') (Join-Path $ide 'tools/hvigor/bin/hvigorw.js') --mode module -p "product=$buildProduct" -p "module=entry@$buildProduct" -p "buildMode=$BuildMode" assembleHap --no-daemon
   }
   if ($LASTEXITCODE -ne 0) { throw "HarmonyOS build failed: $LASTEXITCODE" }
 } finally {

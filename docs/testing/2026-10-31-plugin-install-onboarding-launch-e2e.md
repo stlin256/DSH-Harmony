@@ -14,7 +14,7 @@ cases remain pending or explicitly partial.
 
 | ID | Scenario | Expected Result | Status |
 | --- | --- | --- | --- |
-| ONB-E2E-01 | Install signed personal HAP with no saved session and launch | Branded intro appears with logo, name and both actions inside the display | Passed; `artifacts/device-e2e/20261102-launch-2/intro.jpeg` and JSON |
+| ONB-E2E-01 | Install signed community HAP with no saved session and launch | Branded intro appears with logo, name and both actions inside the display | Passed; `artifacts/device-e2e/20261102-launch-2/intro.jpeg` and JSON |
 | ONB-E2E-02 | Tap the guide action | Watermark and three steps settle without clipping; reduced motion resolves immediately | Passed; current-build `guide-settled.jpeg` and `install-settled.jpeg` plus the reduced-motion early/settled sequence are in `20261102-reduced-motion-onboarding-1`; `20261102-launch-2` contains the normal-mode guide layout JSON |
 | ONB-E2E-03 | Use guide copy and paste into a text field | Canonical prompt is copied without private data | Partial; copied-state UI and source contract pass, independent clipboard content is not readable through HDC |
 | ONB-E2E-04 | Use guide repository action | Repository opens in the system browser | Passed; system browser focus and rendered repository evidence |

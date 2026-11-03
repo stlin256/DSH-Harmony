@@ -86,6 +86,6 @@ All state changes use the existing semantic micro/navigation motion tokens.
 - Source-contract tests verify accounting, clear coordination, current-scope
   use, red confirmation UI and absence of success feedback.
 - Both Release product variants must build after implementation.
-- The personal Release HAP is installed on the connected device.
+- The community Release HAP is installed on the connected device.
 - Device E2E records usage display, confirmation cancellation, successful
   clear, retained login and retained Host content.

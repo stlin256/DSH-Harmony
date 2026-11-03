@@ -17,7 +17,7 @@ unreachable during normal launches.
 
 The supported test path is the dedicated `mock` product documented in
 [`2026-11-01-mock-variant-coverage.md`](2026-11-01-mock-variant-coverage.md).
-Personal/store artifacts retain the explicit launch flag only for existing
+Community/store artifacts retain the explicit launch flag only for existing
 screenshot tooling.
 
 ## Mock contract
