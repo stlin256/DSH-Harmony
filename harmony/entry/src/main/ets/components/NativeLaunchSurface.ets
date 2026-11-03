@@ -213,7 +213,7 @@ export struct NativeLaunchSurface {
   @Builder
   private welcome() {
     Column({ space: 12 }) {
-      Text('DSH Harmony').fontSize(NativeDesign.fontBrand).fontWeight(FontWeight.Bold).fontColor(this.foreground())
+      Text(BuildInfo.appName).fontSize(NativeDesign.fontBrand).fontWeight(FontWeight.Bold).fontColor(this.foreground())
       Text('把 DeepSeek Harness 带到你的手机上').fontSize(NativeDesign.fontBody).fontColor(this.secondary())
       Blank()
       if (this.phase === NativeLaunchPhase.booting) {
@@ -271,7 +271,7 @@ export struct NativeLaunchSurface {
           Column() {
             this.guideStep('01', 'globe-outline', '打开 DSH 插件', '在侧边栏进入“插件”')
             Divider().strokeWidth(0.5).margin({ left: 53 }).color(this.subtleStroke())
-            this.guideStep('02', 'download-outline', '安装 DSH Harmony 插件', '粘贴安装提示词并启用')
+            this.guideStep('02', 'download-outline', '安装 ' + BuildInfo.appName + ' 插件', '粘贴安装提示词并启用')
             Divider().strokeWidth(0.5).margin({ left: 53 }).color(this.subtleStroke())
             this.guideStep('03', 'check-outline', '连接工作空间', '返回 App，选择登录方式')
           }.width('100%').padding({ left: NativeDesign.cardPadding, right: NativeDesign.cardPadding })
@@ -295,7 +295,7 @@ export struct NativeLaunchSurface {
           .width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
           .padding({ left: NativeDesign.rowInset, right: NativeDesign.rowInset })
           .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.surface()).border({ width: 1, color: this.subtleStroke() })
-          .accessibilityText('复制 DSH Harmony 插件安装提示词')
+          .accessibilityText('复制 ' + BuildInfo.appName + ' 插件安装提示词')
           .onClick((): void => { this.copy(BuildInfo.pluginInstallPrompt, 'prompt'); })
           Row({ space: 8 }) {
             Button({ type: ButtonType.Normal }) {

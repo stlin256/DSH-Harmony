@@ -415,11 +415,15 @@ test('About reads the installed bundle version instead of a source constant', ()
       assert.equal(flag, 0);
       return { versionName: '9.8.7' };
     }
-  } } };
+  } }, 'entry/ProductCapabilities': {
+    ProductCapabilities: { appDisplayName: 'DSH Mobile' }
+  } };
   const { BuildInfo } = load('BuildInfo', kits);
   const pluginVersion = JSON.parse(readFileSync(new URL(
     '../../plugins/dsh-harmony/package.json', import.meta.url), 'utf8')).version;
   assert.equal(BuildInfo.version, '9.8.7');
+  assert.equal(BuildInfo.appName, 'DSH Mobile');
+  assert.equal(BuildInfo.appFilePrefix, 'DSH-Mobile');
   assert.equal(BuildInfo.pluginReleaseTag, 'plugin-v' + pluginVersion);
   assert.equal(BuildInfo.pluginArtifact,
     'https://github.com/stlin256/DSH-Harmony/releases/download/plugin-v' + pluginVersion +
@@ -430,6 +434,44 @@ test('About reads the installed bundle version instead of a source constant', ()
   const guide = readFileSync(new URL('../../docs/PLUGIN-INSTALL.md', import.meta.url), 'utf8');
   assert.ok(guide.includes('plugin-v' + pluginVersion));
   assert.ok(guide.includes('dsh-harmony-plugin-' + pluginVersion + '.tgz'));
+});
+
+test('display names are product-owned and store-safe', () => {
+  const personal = readFileSync(new URL(
+    '../../harmony/entry/src/personal/ProductCapabilities.ets', import.meta.url), 'utf8');
+  const store = readFileSync(new URL(
+    '../../harmony/entry/src/store/ProductCapabilities.ets', import.meta.url), 'utf8');
+  const mock = readFileSync(new URL(
+    '../../harmony/entry/src/mock/ProductCapabilities.ets', import.meta.url), 'utf8');
+  const name = source => source.match(/appDisplayName\s*:\s*string\s*=\s*(['"])(.*?)\1/)?.[2] || '';
+  assert.equal(name(personal), 'DSH Harmony');
+  assert.equal(name(mock), 'DSH Harmony');
+  assert.match(name(store), /\S+/);
+  assert.doesNotMatch(name(store), /harmony/i);
+
+  const buildInfo = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/services/BuildInfo.ets', import.meta.url), 'utf8');
+  assert.match(buildInfo, /import\s+\{\s*ProductCapabilities\s*\}\s+from\s+'entry\/ProductCapabilities'/);
+  assert.match(buildInfo, /appName:\s*string\s*=\s*ProductCapabilities\.appDisplayName/);
+
+  const launch = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeLaunchSurface.ets', import.meta.url), 'utf8');
+  const about = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/AboutSettings.ets', import.meta.url), 'utf8');
+  const workspace = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
+  const settings = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeSettings.ets', import.meta.url), 'utf8');
+  const quick = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/widget/pages/QuickCard.ets', import.meta.url), 'utf8');
+  const overview = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/widget/pages/OverviewCard.ets', import.meta.url), 'utf8');
+  assert.match(launch, /Text\(BuildInfo\.appName\)/);
+  assert.match(about, /Text\(BuildInfo\.appName\)/);
+  assert.match(workspace, /Text\(BuildInfo\.appName\)/);
+  assert.match(settings, /sectionLabel\(BuildInfo\.appName\.toUpperCase\(\)\)/);
+  assert.match(quick, /BuildInfo\.appName/);
+  assert.match(overview, /BuildInfo\.appName/);
 });
 
 test('launch flow separates restoration, onboarding, guided setup and workspace', () => {
@@ -3073,7 +3115,8 @@ test('UI mode bridge accepts native only and JavaScript cannot switch it from an
     './WindowAppearance':{WindowAppearance:{}},'./NativeExperience':{NativeExperience:{state:()=> '{}'}},
     './WidgetStore':{WidgetStore:{detailsEnabled:()=>false}},
     'entry/PushKitAdapter':{PushKitAdapter:{supported:false}},
-    './BackgroundMonitor':{BackgroundMonitor:{}}
+    './BackgroundMonitor':{BackgroundMonitor:{}},
+    'entry/ProductCapabilities':{ProductCapabilities:{appDisplayName:'DSH Harmony'}}
   },{AppStorage});
   const controller={getLastJavascriptProxyCallingFrameUrl:()=> 'https://other.example.com/',getUrl:()=> 'https://dsh.example.com/',runJavaScript:async()=>{}};
   const bridge=new PocketBridge(context,controller,'https://dsh.example.com',async()=>{});
@@ -3101,6 +3144,7 @@ test('local notification tiers migrate legacy booleans and preserve off/quiet/st
     './WindowAppearance':{WindowAppearance:{}},'./NativeExperience':{NativeExperience:{state:()=> '{}'}},
     './WidgetStore':{WidgetStore:{detailsEnabled:()=>true}},
     'entry/PushKitAdapter':{PushKitAdapter:{supported:false}},
+    'entry/ProductCapabilities':{ProductCapabilities:{appDisplayName:'DSH Harmony'}},
     './BackgroundMonitor':{BackgroundMonitor:{
       notificationId:(session,kind)=>session.length + kind.length,
       notify:async(session,title,body,id,level)=>delivered.push({session,title,body,id,level})

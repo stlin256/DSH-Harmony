@@ -14,13 +14,25 @@ HarmonyOS 原生工程位于本目录。仓库根目录 README 提供产品、�
 | `store` | 不包含 Push Kit SDK | 可选监测运行中任务 | 应用商店及普通开发者构建 |
 | `mock` | 不包含 | 不适用 | 仅供前端开发与设备自动化；默认加载确定性本地数据，不访问网络 |
 
-三个产品的应用名均为 **DSH Harmony**，bundle name 为 `io.github.stlin256.dshharmony`。需要在 Huawei 开发者中心登记这个应用后，才能为该应用申请应用签名和 Push Kit 能力。此仓库不保存应用签名、服务帐号或开发者凭据。
+`default` 和 `mock` 的展示名为 **DSH Harmony**，`store` 的展示名为
+**DSH Mobile**。展示名由各产品的 `ProductCapabilities.appDisplayName`
+控制，构建脚本会同步桌面 `app_name` 并在构建结束后恢复源资源。bundle name
+保持为 `io.github.stlin256.dshharmony`。需要在 Huawei 开发者中心登记这个应用后，才能为该应用申请应用签名和 Push Kit 能力。此仓库不保存应用签名、服务帐号或开发者凭据。
 
 ## 本机构建
 
 1. 使用包含 SDK 26 的 DevEco Studio。
 2. 将 `build-profile.example.json5` 复制为本机忽略的 `build-profile.json5`，填入开发者中心签名配置；保留个人密钥在 Git 之外。
-3. 在 Harmony 工程目录执行：
+3. 在仓库根目录使用产品构建脚本；它会同步桌面名称、检查 Mock 覆盖并恢复
+   构建期间的临时资源修改：
+
+```powershell
+.\scripts\build-harmony.ps1 -Product default -BuildMode release
+.\scripts\build-harmony.ps1 -Product store -BuildMode release
+.\scripts\build-harmony.ps1 -Product mock -BuildMode release
+```
+
+直接使用 DevEco CLI 时，命令如下：
 
 ```sh
 devecocli signature generate --product default

@@ -1,4 +1,5 @@
 import { WidgetLinkParams } from '../WidgetLinkParams';
+import { BuildInfo } from '../../services/BuildInfo';
 
 @Entry
 @Component
@@ -29,9 +30,9 @@ struct QuickCard {
           .fontColor($r('app.color.widget_primary')).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
         Text(this.detail).fontSize(11).fontColor($r('app.color.widget_secondary'))
           .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text('DSH Harmony').fontSize(10).fontColor($r('app.color.widget_secondary'))
+        Text(BuildInfo.appName).fontSize(10).fontColor($r('app.color.widget_secondary'))
       }.width('100%').height('100%').padding(16).alignItems(HorizontalAlign.Start)
         .backgroundColor($r('app.color.widget_background')).borderRadius(24)
-    }.width('100%').height('100%').accessibilityText('DSH Harmony，' + this.headline + '，打开工作空间')
+    }.width('100%').height('100%').accessibilityText(BuildInfo.appName + '，' + this.headline + '，打开工作空间')
   }
 }

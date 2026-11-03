@@ -17,6 +17,7 @@ import { NativeMessageView } from './NativeMessageView';
 import { NativeProcessView } from './NativeProcessView';
 import { NativeQueueDock } from './NativeQueueDock';
 import { NativeTaskDock } from './NativeTaskDock';
+import { BuildInfo } from '../services/BuildInfo';
 
 class DisclosureFileDiff {
   path: string = '';
@@ -229,7 +230,8 @@ function disclosureProcessMessage(state: string): NativeMessage {
   if (state === 'disclosure-process-web') {
     return disclosureProcess(disclosureOperation('web', '已搜索网页',
       '展开态设计基线', 'tool', 'web_search', '{"query":"DSH disclosure design"}', '',
-      '{"sources":[{"url":"https://example.com/design","title":"DSH Harmony 设计基线",' +
+      '{"sources":[{"url":"https://example.com/design","title":' +
+        JSON.stringify(BuildInfo.appName + ' 设计基线') + ',' +
         '"snippet":"紧凑展开行与单一滚动容器。"}],"answer":"优先保证层级与触控。"}'));
   }
   if (state === 'disclosure-process-web-fetch') {

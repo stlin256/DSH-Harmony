@@ -1,5 +1,6 @@
 import { WidgetTask } from '../../services/WidgetStore';
 import { WidgetLinkParams } from '../WidgetLinkParams';
+import { BuildInfo } from '../../services/BuildInfo';
 
 @Entry
 @Component
@@ -45,7 +46,7 @@ struct OverviewCard {
   build() {
     Column({ space: 6 }) {
       Row() {
-        Text('DSH Harmony').fontSize(13).fontWeight(FontWeight.Medium).fontColor($r('app.color.widget_primary'))
+        Text(BuildInfo.appName).fontSize(13).fontWeight(FontWeight.Medium).fontColor($r('app.color.widget_primary'))
         Blank()
         Text(this.stamp).fontSize(10).fontColor($r('app.color.widget_secondary')).maxLines(1)
       }.width('100%')

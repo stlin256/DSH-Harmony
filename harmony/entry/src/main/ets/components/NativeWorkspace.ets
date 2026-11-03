@@ -74,6 +74,7 @@ import { NativeQueueDock } from './NativeQueueDock';
 import { NativeIconButton } from './NativeIconButton';
 import { NativePluginsSurface } from './NativePluginsSurface';
 import { NativeAutomationSurface } from './NativeAutomationSurface';
+import { BuildInfo } from '../services/BuildInfo';
 
 class NativeExportCapabilities { copyMarkdown: boolean = false; downloadLog: boolean = false; }
 class NativeWorkspaceOrderRequest {
@@ -802,7 +803,7 @@ export struct NativeWorkspace {
       const value = await sessionsPending;
       const nextWorkspaces = await workspacesPending;
       if (!this.mounted || generation !== this.generation) return;
-      if (value.protocol !== 2) throw new Error('请升级 DSH Harmony 插件或网关');
+      if (value.protocol !== 2) throw new Error('请升级 ' + BuildInfo.appName + ' 插件或网关');
       this.sessions = value.items;
       this.hydrateModeProjections();
       if (nextWorkspaces.available) {
@@ -944,7 +945,7 @@ export struct NativeWorkspace {
         this.assistantProgressAt, this.deliveryMismatchAt, this.followOpened, backgrounded,
         this.followStateKnown, this.followRunning, this.followWaiting, this.followAttemptId);
       if (reason) {
-        console.error('DSH Harmony stream repair: ' + reason);
+        console.error(BuildInfo.appName + ' stream repair: ' + reason);
         this.reconnect(id);
         return;
       }
@@ -1892,7 +1893,7 @@ export struct NativeWorkspace {
       if (frame.type === 'error') {
         // Preserve the server's close/reconnect lifecycle instead of throwing
         // through the WebSocket parser and misreporting an invalid JSON frame.
-        console.error('DSH Harmony live stream returned an error frame');
+        console.error(BuildInfo.appName + ' live stream returned an error frame');
         this.notifyConnectionFailure(id);
         this.reconnect(id);
         return;
@@ -1948,7 +1949,7 @@ export struct NativeWorkspace {
         }, frame.type === 'delta' ? (this.scrollMotionActive ? 64 : 32) : 0);
       }
     }, (reason: string): void => {
-      console.error('DSH Harmony live socket ended: ' + reason);
+      console.error(BuildInfo.appName + ' live socket ended: ' + reason);
       this.reconnect(id);
     }, background, address).catch((): void => { this.scheduleReconnect(id); });
   }
@@ -1985,7 +1986,7 @@ export struct NativeWorkspace {
     if (!id || this.connectionPhase !== 'live' || this.connectionNotified) return;
     this.connectionNotified = true;
     const title = this.sessions.find((item: NativeSession): boolean => item.id === id)?.title ||
-      this.title || 'DSH Harmony';
+      this.title || BuildInfo.appName;
     this.onLocalNotification(id, title, 'connection').catch(() => {});
   }
   private queueItems(): NativeQueueItem[] {
@@ -2853,7 +2854,7 @@ export struct NativeWorkspace {
   private sessionList(inMobileDrawer: boolean = false) {
     Column({ space: 6 }) {
       Row({ space: 4 }) {
-        Text('DSH Harmony').fontSize(NativeDesign.fontPageTitle).fontWeight(FontWeight.Bold).layoutWeight(1)
+        Text(BuildInfo.appName).fontSize(NativeDesign.fontPageTitle).fontWeight(FontWeight.Bold).layoutWeight(1)
           .fontColor(this.primaryText())
         NativeIconButton({
           glyph: 'search-outline',

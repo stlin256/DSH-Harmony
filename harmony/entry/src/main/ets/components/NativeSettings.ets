@@ -13,6 +13,7 @@ import { DSHIcon } from './DSHIcon';
 import { NativeMotion } from '../services/NativeMotion';
 import { NativeDesign } from '../services/NativeDesign';
 import { NativeIconButton } from './NativeIconButton';
+import { BuildInfo } from '../services/BuildInfo';
 
 class NotificationPreferences {
   version: number = 1;
@@ -593,7 +594,7 @@ export struct NativeSettings {
       this.rootHeader()
       Scroll() {
         Column({ space: 0 }) {
-          this.sectionLabel('DSH HARMONY')
+          this.sectionLabel(BuildInfo.appName.toUpperCase())
           Column() {
             this.navigationRow('deepseek-logo', 'DSH 设置', '对话与过程展示', 'dsh')
             Divider().strokeWidth(0.5).margin({ left: 44 }).color(this.dividerColor())

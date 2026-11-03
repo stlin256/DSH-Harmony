@@ -33,7 +33,7 @@ export struct AboutSettings {
           Column({ space: 2 }) {
             Text('关于').fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium)
               .fontColor(NativeDesign.textPrimary(this.dark))
-            Text('DSH Harmony').fontSize(NativeDesign.fontCaption)
+            Text(BuildInfo.appName).fontSize(NativeDesign.fontCaption)
               .fontColor(NativeDesign.textTertiary(this.dark))
           }.alignItems(HorizontalAlign.Start).layoutWeight(1)
         }.width('100%')

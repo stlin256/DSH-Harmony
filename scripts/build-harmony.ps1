@@ -12,8 +12,18 @@ $project = (Resolve-Path (Join-Path $repo 'harmony')).Path
 $profile = Join-Path $project 'build-profile.json5'
 $manifest = Join-Path $project 'entry/src/main/module.json5'
 $storeManifest = Join-Path $project 'variants/store/module.json5'
+$appStrings = Join-Path $project 'AppScope/resources/base/element/string.json'
+$capabilityRoot = if ($Product -eq 'default') { 'personal' } else { $Product }
+$capabilitySource = Join-Path $project ("entry/src/{0}/ProductCapabilities.ets" -f $capabilityRoot)
 $verifyNode = Join-Path $ide 'tools/node/node.exe'
 $verifyCoverage = Join-Path $repo 'scripts/verify-mock-coverage.mjs'
+$productDisplayName = [regex]::Match(
+  [IO.File]::ReadAllText($capabilitySource),
+  "appDisplayName\s*:\s*string\s*=\s*'([^']+)'"
+).Groups[1].Value
+if (-not $productDisplayName) {
+  throw "Product display name not found in $capabilitySource"
+}
 if (-not (Test-Path -LiteralPath $verifyNode)) {
   throw "Node.js not found in DevEco Studio: $verifyNode"
 }
@@ -25,10 +35,7 @@ if (-not (Test-Path -LiteralPath $profile)) {
   Copy-Item -LiteralPath (Join-Path $project 'build-profile.example.json5') -Destination $profile
 }
 $restoreManifest = $null
-if ($Product -eq 'store') {
-  $restoreManifest = [IO.File]::ReadAllBytes($manifest)
-  Copy-Item -LiteralPath $storeManifest -Destination $manifest -Force
-}
+$restoreAppStrings = $null
 $savedNode = $env:NODE_HOME
 $savedJava = $env:JAVA_HOME
 $savedSdk = $env:DEVECO_SDK_HOME
@@ -36,6 +43,21 @@ $savedCli = $env:DEVECO_CLI_STUDIO_PATH
 $savedPath = $env:Path
 Push-Location -LiteralPath $project
 try {
+  if ($Product -eq 'store') {
+    $restoreManifest = [IO.File]::ReadAllBytes($manifest)
+    Copy-Item -LiteralPath $storeManifest -Destination $manifest -Force
+  }
+  $restoreAppStrings = [IO.File]::ReadAllBytes($appStrings)
+  $resourceText = [Text.Encoding]::UTF8.GetString($restoreAppStrings)
+  $resource = $resourceText | ConvertFrom-Json
+  $appNameEntry = @($resource.string) | Where-Object { $_.name -eq 'app_name' } | Select-Object -First 1
+  if ($null -eq $appNameEntry) {
+    throw "app_name entry not found in $appStrings"
+  }
+  $appNameEntry.value = $productDisplayName
+  $resourceJson = $resource | ConvertTo-Json -Depth 8 -Compress
+  [IO.File]::WriteAllText($appStrings, $resourceJson + [Environment]::NewLine,
+    [Text.UTF8Encoding]::new($false))
   $env:NODE_HOME = Join-Path $ide 'tools/node'
   $env:JAVA_HOME = Join-Path $ide 'jbr'
   $env:DEVECO_SDK_HOME = Join-Path $ide 'sdk'
@@ -53,6 +75,9 @@ try {
   Pop-Location
   if ($null -ne $restoreManifest) {
     [IO.File]::WriteAllBytes($manifest, $restoreManifest)
+  }
+  if ($null -ne $restoreAppStrings) {
+    [IO.File]::WriteAllBytes($appStrings, $restoreAppStrings)
   }
   $env:NODE_HOME = $savedNode
   $env:JAVA_HOME = $savedJava

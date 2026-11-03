@@ -488,6 +488,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-01-structured-protocol-completeness.md](docs/specs/2026-11-01-structured-protocol-completeness.md)
 - Structured protocol completeness E2E:
   [2026-11-01-structured-protocol-completeness-e2e.md](docs/testing/2026-11-01-structured-protocol-completeness-e2e.md)
+- Product display-name requirement:
+  [2026-11-03-product-display-name.md](docs/requirements/2026-11-03-product-display-name.md)
+- Product display-name research:
+  [2026-11-03-product-display-name.md](docs/research/2026-11-03-product-display-name.md)
+- Product display-name implementation spec:
+  [2026-11-03-product-display-name.md](docs/specs/2026-11-03-product-display-name.md)
+- Product display-name E2E:
+  [2026-11-03-product-display-name-e2e.md](docs/testing/2026-11-03-product-display-name-e2e.md)
 - Native sidebar destinations requirement:
   [2026-11-01-native-sidebar-destinations.md](docs/requirements/2026-11-01-native-sidebar-destinations.md)
 - Native sidebar destinations research:

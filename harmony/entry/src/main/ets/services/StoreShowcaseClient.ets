@@ -38,13 +38,14 @@ import {
 } from './NativeShowcaseInteraction';
 import { NativeUiFixture } from './NativeUiFixture';
 import { http } from '@kit.NetworkKit';
+import { BuildInfo } from './BuildInfo';
 
 const SHOWCASE_SESSION = 'showcase-release';
 const SHOWCASE_CHILD_CONTINUABLE = 'showcase-child-continuable';
 const SHOWCASE_CHILD_ONE_SHOT = 'showcase-child-one-shot';
 const SHOWCASE_CHILD_UNKNOWN = 'showcase-child-unknown';
 const SHOWCASE_CHILD_EXTERNAL = 'showcase-child-external';
-const SHOWCASE_README = `# DSH Harmony
+const SHOWCASE_README = '# ' + BuildInfo.appName + `
 
 DeepSeek Harness 的鸿蒙原生客户端。
 
@@ -97,7 +98,7 @@ function showcaseFileSource(path: string): string {
   if (path.endsWith('report.tsv')) return SHOWCASE_TSV;
   if (path.endsWith('malformed.csv')) return SHOWCASE_MALFORMED_CSV;
   if (path.endsWith('.npmrc')) return 'registry=https://registry.example.invalid/\nstrict-ssl=true\n';
-  if (path.endsWith('LICENSE')) return 'DSH Harmony fixture license text.\n';
+  if (path.endsWith('LICENSE')) return BuildInfo.appName + ' fixture license text.\n';
   return '{\n  "name": "dsh-harmony"\n}\n';
 }
 
@@ -645,7 +646,7 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
         const child = new NativeSession();
         child.id = id;
         child.title = showcaseChildIdentity(id).label;
-        child.cwd = 'DSH Harmony';
+        child.cwd = BuildInfo.appName;
         child.origin = 'subagent';
         child.parentSessionId = SHOWCASE_SESSION;
         child.running = id === SHOWCASE_CHILD_CONTINUABLE &&
@@ -667,8 +668,8 @@ function showcaseWorkspaces(): NativeWorkspaceSnapshot {
   value.available = true;
   const mobile = new NativeWorkspaceItem();
   mobile.workspaceId = 'workspace-mobile';
-  mobile.path = 'DSH Harmony';
-  mobile.title = 'DSH Harmony 移动端';
+  mobile.path = BuildInfo.appName;
+  mobile.title = BuildInfo.appName + ' 移动端';
   mobile.sessionIds = ['showcase-release', 'showcase-files', 'showcase-notify', 'showcase-settings', 'showcase-mobile'];
   const gateway = new NativeWorkspaceItem();
   gateway.workspaceId = 'workspace-gateway';
@@ -798,7 +799,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   }
 
   sessionCwd(id: string): string {
-    return id === 'showcase-passkey' ? 'Passkey Gateway' : 'DSH Harmony';
+    return id === 'showcase-passkey' ? 'Passkey Gateway' : BuildInfo.appName;
   }
 
   async workspaces(): Promise<NativeWorkspaceSnapshot> {
@@ -851,7 +852,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
           "updatable": true,
           "optional": false,
           "version": "0.4.7",
-          "title": "DSH Harmony",
+          "title": ` + JSON.stringify(BuildInfo.appName) + `,
           "localizedDescription": "原生通知、文件预览与移动端能力",
           "source": "Profile",
           "installSpec": "",
@@ -948,7 +949,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
           "timeZone": "Asia/Shanghai",
           "time": "09:00:00",
           "targetKind": "new_once",
-          "targetCwd": "DSH Harmony",
+          "targetCwd": ` + JSON.stringify(BuildInfo.appName) + `,
           "createdAt": "2026-10-26T02:10:00.000Z",
           "updatedAt": "2026-11-01T02:10:00.000Z",
           "lastDeliveryAt": "2026-11-01T01:00:00.000Z"
@@ -1008,7 +1009,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       "timeZone": "Asia/Shanghai",
       "time": "09:00:00",
       "targetKind": "new_once",
-      "targetCwd": "DSH Harmony",
+      "targetCwd": ` + JSON.stringify(BuildInfo.appName) + `,
       "createdAt": "2026-10-26T02:10:00.000Z",
       "updatedAt": "2026-11-01T02:10:00.000Z",
       "lastDeliveryAt": "2026-11-01T01:00:00.000Z"
@@ -1067,7 +1068,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     if (operation === 'pluginSetEnabled' || operation === 'pluginSetRowEnabled') {
       return `{
         "changed": true, "application": "applied", "stage": "enable",
-        "target": "DSH Harmony", "enabled": true, "pendingBuilds": []
+        "target": ` + JSON.stringify(BuildInfo.appName) + `, "enabled": true, "pendingBuilds": []
       }`;
     }
     if (operation === 'pluginInspect') {
@@ -1103,7 +1104,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     if (operation === 'pluginUpdate' || operation === 'pluginRemove') {
       return `{
         "changed": true, "application": "restart-required", "stage": "install",
-        "target": "DSH Harmony", "restartReason": "plugin", "pendingBuilds": []
+        "target": ` + JSON.stringify(BuildInfo.appName) + `, "restartReason": "plugin", "pendingBuilds": []
       }`;
     }
     if (operation === 'automationList') return this.automationCatalogJson();

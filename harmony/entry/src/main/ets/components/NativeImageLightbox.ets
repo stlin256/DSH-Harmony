@@ -11,6 +11,7 @@ import { NativeImageZoom, NativeImageZoomTarget } from '../services/NativeImageZ
 import { NativeMotion } from '../services/NativeMotion';
 import { DSHIcon } from './DSHIcon';
 import { NativeDesign } from '../services/NativeDesign';
+import { BuildInfo } from '../services/BuildInfo';
 
 class LightboxAttachmentResult {
   data: string = '';
@@ -325,7 +326,7 @@ export struct NativeImageLightbox {
       fileIo.closeSync(output);
       output = null;
       const config: photoAccessHelper.PhotoCreationConfig = {
-        title: 'DSH-Harmony-' + Date.now(),
+        title: BuildInfo.appFilePrefix + '-' + Date.now(),
         fileNameExtension: extension,
         photoType: photoAccessHelper.PhotoType.IMAGE
       };

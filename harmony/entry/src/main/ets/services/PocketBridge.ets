@@ -9,6 +9,7 @@ import { PushKitAdapter } from 'entry/PushKitAdapter';
 import { BackgroundMonitor } from './BackgroundMonitor';
 import { notificationManager } from '@kit.NotificationKit';
 import { UiModePreference } from './UiModePreference';
+import { BuildInfo } from './BuildInfo';
 
 class LocalNotificationMessage {
   sessionId: string = '';
@@ -214,7 +215,7 @@ export class PocketBridge {
       if (!await notificationManager.isNotificationEnabled()) {
         throw new Error('Notification permission was not granted');
       }
-      await BackgroundMonitor.notify('test-notification', 'DSH Harmony 测试通知', '通知已连接',
+      await BackgroundMonitor.notify('test-notification', BuildInfo.appName + ' 测试通知', '通知已连接',
         BackgroundMonitor.notificationId('test', 'notification'), 'prominent');
       return '';
     }
