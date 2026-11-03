@@ -16,22 +16,26 @@ CURATED_OUTPUTS = (
     ("02-process-light", "02-process"),
     ("03-lineage-light", "03-plan-subagent"),
     ("04-preview-light", "04-file-preview"),
-    ("05-settings-light", "05-settings"),
+    ("05-approval-light", "05-approval"),
     ("11-paired-appearance", "06-appearance-light-dark"),
-    ("12-desktop-cards", "07-desktop-cards"),
-    ("13-open-source", "08-open-source"),
-    ("07-process-dark", "09-process-dark"),
-    ("08-subagent-dark", "10-subagent-dark"),
+    ("09-automation-dark", "07-automation"),
+    ("10-plugins-dark", "08-plugins"),
+    ("12-desktop-cards", "09-desktop-cards"),
+    ("13-open-source", "10-open-source"),
 )
+
+PORTRAIT_PHONE_Y = 640
+PORTRAIT_PHONE_HEIGHT = 1040
+PORTRAIT_FOOTER_Y = 1814
 
 CAPTURES = (
     (
         "01-conversation-light.png",
         "01-conversation-light",
         "会话",
-        "每个对话\n都在掌控中",
-        "会话、工作过程与浮动任务计划保持在同一视野，长内容也可以自然展开。",
-        ("原生会话", "任务计划", "流式输出"),
+        "一个想法\n一处完成",
+        "从需求澄清到代码落地，会话、计划与实时进度都在同一工作空间里。",
+        ("原生会话", "浮动计划", "自动恢复"),
         False,
     ),
     (
@@ -39,7 +43,7 @@ CAPTURES = (
         "02-process-light",
         "工作过程",
         "过程清楚\n结果直接",
-        "思考、命令、文件和结果按实际顺序展开，重要信息保持紧凑而清楚。",
+        "读取、执行与改动按真实顺序展开，需要细看的时候再展开。",
         ("真实顺序", "结构化工具", "紧凑展开"),
         False,
     ),
@@ -47,9 +51,9 @@ CAPTURES = (
         "03-lineage-light.png",
         "03-lineage-light",
         "计划与子代理",
-        "分工清楚\n上下文相连",
-        "计划、子代理和父子会话汇成一条清晰谱系，继续检查也不会丢失上下文。",
-        ("计划模式", "子代理谱系", "会话继续"),
+        "并行推进\n上下文相连",
+        "把任务拆给子代理，状态、身份和父子关系始终保持可见。",
+        ("计划模式", "子代理谱系", "继续会话"),
         False,
     ),
     (
@@ -57,26 +61,26 @@ CAPTURES = (
         "04-preview-light",
         "文件预览",
         "文件就在\n工作区里",
-        "配置文件、表格、Markdown、代码和图片都能在工作区中直接阅读。",
-        ("文本预览", "表格预览", "只读浏览"),
+        "配置、表格、Markdown、代码和图片都可以在工作区里直接阅读。",
+        ("多格式预览", "表格适配", "只读浏览"),
         False,
     ),
     (
-        "05-settings-light.png",
-        "05-settings-light",
-        "设置",
-        "常用设置\n触手可及",
-        "外观、通知、工作区与账户，在统一的原生界面中完成。",
-        ("外观与动效", "分级通知", "账户管理"),
+        "05-approval-light.png",
+        "05-approval-light",
+        "权限与审批",
+        "该确认时\n只确认一次",
+        "高风险写入清楚展示范围与影响，确认后继续当前操作。",
+        ("权限预设", "单次审批", "风险边界"),
         False,
     ),
     (
         "06-conversation-dark.png",
         "06-conversation-dark",
-        "计划与子代理",
-        "复杂协作\n一眼看清",
-        "计划状态、子代理数量与会话内容在深色界面中保持清楚且不喧宾夺主。",
-        ("计划模式", "子代理数量", "原生深色"),
+        "暗色会话",
+        "暗色工作\n依然清楚",
+        "计划、消息与工具状态在深色界面里保持安静而准确的层级。",
+        ("原生暗色", "浮动计划", "状态清晰"),
         True,
     ),
     (
@@ -101,19 +105,28 @@ CAPTURES = (
         "09-automation-dark.png",
         "09-automation-dark",
         "自动化",
-        "重复工作\n交给自动化",
-        "在原生界面中浏览自动化、核对运行状态，并把常用流程集中管理。",
-        ("原生列表", "运行状态", "集中管理"),
+        "重复工作\n按时完成",
+        "每日巡检、每周整理与发布同步，在同一处查看状态和下一次执行。",
+        ("定时任务", "运行状态", "集中管理"),
         True,
     ),
     (
         "10-plugins-dark.png",
         "10-plugins-dark",
         "插件",
-        "插件管理\n就在手边",
-        "浏览已安装插件、确认运行状态，并在同一处完成启用与管理。",
-        ("插件列表", "运行状态", "集中管理"),
+        "工具随需\n工作不乱",
+        "浏览已安装能力、确认运行状态，并在同一处完成启用与管理。",
+        ("插件列表", "运行组件", "按需扩展"),
         True,
+    ),
+    (
+        "11-settings-light.png",
+        "11-settings-light",
+        "设置",
+        "细节可调\n体验一致",
+        "外观、通知、权限与工作区，在统一的原生界面中完成。",
+        ("外观与动效", "分级通知", "权限默认值"),
+        False,
     ),
 )
 
@@ -345,7 +358,7 @@ def draw_feature(
     compact: bool = False,
 ) -> None:
     draw = ImageDraw.Draw(canvas)
-    height = 64 if compact else 78
+    height = 74 if compact else 82
     fill = (28, 32, 42, 208) if dark else (255, 255, 255, 220)
     edge = (72, 83, 105, 170) if dark else (198, 207, 220, 220)
     text = (240, 244, 250) if dark else (29, 34, 43)
@@ -365,11 +378,18 @@ def draw_feature(
     draw.ellipse((x + 18, cy - 6, x + 30, cy + 6), fill=ellipse)
     draw.ellipse((x + 21, cy - 3, x + 27, cy + 3), fill=accent)
     draw.text(
-        (x + 42, cy - (11 if compact else 13)),
+        (x + 42, cy - (13 if compact else 15)),
         label,
-        font=font(18 if compact else 21, True),
+        font=font(20 if compact else 22, True),
         fill=text,
     )
+
+
+def validate_editorial_layout() -> None:
+    # The phone frame grows by a small pad around its target height. Reserve
+    # enough room below it for the dedicated portrait footer band.
+    if PORTRAIT_PHONE_Y + PORTRAIT_PHONE_HEIGHT + 48 >= PORTRAIT_FOOTER_Y:
+        raise ValueError("Portrait footer overlaps the device frame")
 
 
 def draw_scene(
@@ -390,19 +410,19 @@ def draw_scene(
     accent = (102, 148, 255) if dark else (55, 105, 225)
 
     if portrait:
-        draw_brand(canvas, 62, 60, dark, 76, 34, 18)
-        draw.text((64, 188), eyebrow.upper(), font=font(22, True), fill=accent)
-        title_face = font(62, True)
-        title_y = 238
+        draw_brand(canvas, 62, 56, dark, 76, 34, 18)
+        draw.text((64, 180), eyebrow.upper(), font=font(24, True), fill=accent)
+        title_face = font(68, True)
+        title_y = 226
         for line in title.splitlines():
             draw.text((62, title_y), line, font=title_face, fill=foreground)
-            title_y += 78
-        subtitle_face = font(28)
-        subtitle_y = title_y + 18
+            title_y += 84
+        subtitle_face = font(30)
+        subtitle_y = title_y + 14
         for line in wrap_pixels(draw, subtitle, subtitle_face, 900):
             draw.text((64, subtitle_y), line, font=subtitle_face, fill=muted)
-            subtitle_y += 42
-        feature_y = min(500, subtitle_y + 24)
+            subtitle_y += 46
+        feature_y = min(530, subtitle_y + 24)
         gap = 12
         feature_width = (1080 - 128 - gap * 2) // 3
         for index, label in enumerate(features):
@@ -415,22 +435,26 @@ def draw_scene(
                 dark,
                 compact=True,
             )
-        canvas = paste_device_centered(canvas, raw, dark, 540, 626, 1210)
+        canvas = paste_device_centered(canvas, raw, dark, 540,
+          PORTRAIT_PHONE_Y, PORTRAIT_PHONE_HEIGHT)
         draw = ImageDraw.Draw(canvas)
-        draw.text((64, 1844), "简洁 · 流畅 · 功能完备", font=font(22, True), fill=accent)
+        draw.line((64, PORTRAIT_FOOTER_Y, 1016, PORTRAIT_FOOTER_Y),
+          fill=(205, 214, 228) if not dark else (63, 72, 88), width=1)
+        draw.text((64, PORTRAIT_FOOTER_Y + 26), "简洁 · 流畅 · 功能完备",
+          font=font(24, True), fill=accent)
     else:
         draw_brand(canvas, 96, 72, dark, 84, 38, 20)
-        draw.text((98, 218), eyebrow.upper(), font=font(22, True), fill=accent)
-        title_face = font(70, True)
-        title_y = 266
+        draw.text((98, 214), eyebrow.upper(), font=font(24, True), fill=accent)
+        title_face = font(74, True)
+        title_y = 260
         for line in title.splitlines():
             draw.text((96, title_y), line, font=title_face, fill=foreground)
             title_y += 86
-        subtitle_face = font(29)
+        subtitle_face = font(31)
         subtitle_y = title_y + 18
         for line in wrap_pixels(draw, subtitle, subtitle_face, 840):
             draw.text((98, subtitle_y), line, font=subtitle_face, fill=muted)
-            subtitle_y += 44
+            subtitle_y += 48
         feature_y = min(584, subtitle_y + 26)
         gap = 16
         feature_width = (850 - gap * 2) // 3
@@ -443,7 +467,7 @@ def draw_scene(
                 label,
                 dark,
             )
-        draw.text((98, 938), "简洁 · 流畅 · 功能完备", font=font(24, True), fill=accent)
+        draw.text((98, 930), "简洁 · 流畅 · 功能完备", font=font(26, True), fill=accent)
         canvas = paste_device(canvas, raw, dark, 1270, 50, 1000)
 
     canvas.convert("RGB").save(out, "PNG", optimize=True)
@@ -466,15 +490,17 @@ def draw_pair_art(raw_dir: Path, out: Path, portrait: bool) -> None:
         draw.multiline_text(
             (64, 410),
             "跟随系统，也可以随时选择亮色或暗色。\n每个控件都保持清晰、克制和一致。",
-            font=font(27),
+            font=font(30),
             fill=muted,
             spacing=12,
         )
-        canvas = paste_device(canvas, light_raw, False, 36, 632, 1150)
-        canvas = paste_device(canvas, dark_raw, True, 556, 632, 1150)
+        canvas = paste_device(canvas, light_raw, False, 36, 610, 1050)
+        canvas = paste_device(canvas, dark_raw, True, 556, 610, 1050)
         draw = ImageDraw.Draw(canvas)
-        draw.text((62, 1836), "LIGHT", font=font(19, True), fill=(132, 137, 145))
-        draw.text((582, 1836), "DARK", font=font(19, True), fill=(132, 137, 145))
+        draw.text((62, 1742), "LIGHT", font=font(21, True), fill=(132, 137, 145))
+        draw.text((582, 1742), "DARK", font=font(21, True), fill=(132, 137, 145))
+        draw.line((64, 1810, 1016, 1810), fill=(205, 214, 228), width=1)
+        draw.text((62, 1832), "同一套 DSH 视觉语言", font=font(22, True), fill=accent)
     else:
         draw_brand(canvas, 92, 70, False, 84, 38, 20)
         draw.text((96, 216), "APPEARANCE", font=font(22, True), fill=accent)
@@ -869,6 +895,7 @@ def main() -> None:
     raw_dir = Path(args.raw)
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
+    validate_editorial_layout()
     for stale in out_dir.glob("*.png"):
         stale.unlink()
 

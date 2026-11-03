@@ -38,16 +38,17 @@ No origin, account, token, cookie, real path or real session title is present.
 
 | Raw file | Screen | Fixture state | Theme |
 | --- | --- | --- | --- |
-| `01-conversation-light.png` | `conversation` | `plan-dock-overlay` | Light |
-| `02-process-light.png` | `process` | `completed` | Light |
-| `03-lineage-light.png` | `lineage` | `plan-subagent` | Light |
+| `01-conversation-light.png` | `conversation` | `showcase-plan` | Light |
+| `02-process-light.png` | `process` | `showcase-process` | Light |
+| `03-lineage-light.png` | `lineage` | `showcase-lineage` | Light |
 | `04-preview-light.png` | `preview` | `text-config-preview` | Light |
-| `05-settings-light.png` | `settings` | `completed` | Light |
-| `06-conversation-dark.png` | `conversation` | `plan-subagent` | Dark |
-| `07-process-dark.png` | `process` | `completed` | Dark |
-| `08-subagent-dark.png` | `subagent` | `subagent-continuable` | Dark |
+| `05-approval-light.png` | `conversation` | `showcase-approval` | Light |
+| `06-conversation-dark.png` | `conversation` | `showcase-dark` | Dark |
+| `07-process-dark.png` | `process` | `showcase-dark-process` | Dark |
+| `08-subagent-dark.png` | `subagent` | `showcase-subagent` | Dark |
 | `09-automation-dark.png` | `automation` | `automation-list` | Dark |
 | `10-plugins-dark.png` | `plugins` | `plugins-list` | Dark |
+| `11-settings-light.png` | `settings` | `completed` | Light |
 
 ## Capture output
 

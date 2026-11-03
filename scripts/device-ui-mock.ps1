@@ -8,6 +8,13 @@ param(
   [ValidateSet(
     'iteration-notice',
     'completed',
+    'showcase-plan',
+    'showcase-process',
+    'showcase-lineage',
+    'showcase-dark',
+    'showcase-dark-process',
+    'showcase-subagent',
+    'showcase-approval',
     'live-change',
     'attachments',
     'streaming',
@@ -115,6 +122,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'resolve-deveco-home.ps1')
+. (Join-Path $PSScriptRoot 'showcase-scroll-to-tail.ps1')
 $DevEcoHome = Resolve-DevEcoHome -ExplicitHome $DevEcoHome
 $hdc = Join-Path $DevEcoHome 'sdk\default\openharmony\toolchains\hdc.exe'
 if (-not (Test-Path -LiteralPath $hdc)) {
@@ -316,6 +324,16 @@ $null = Wait-FixtureReady `
   -RemoteProbeLayout "/data/local/tmp/dsh-ui-ready-$Screen-$State-$Theme.json" `
   -ProbeLayout $probeLayout `
   -TimeoutSeconds $StartupTimeoutSeconds
+$tailEvidence = [ordered]@{ attempted = $false; atTail = $true; swipes = 0 }
+if ($State -like 'showcase-*') {
+  $tailEvidence = Move-ShowcaseToTail `
+    -BundleName $bundle `
+    -RemotePath "/data/local/tmp/dsh-ui-tail-$Screen-$State-$Theme.json" `
+    -LocalPath (Join-Path $captureDir 'tail-layout.json')
+  if (-not $tailEvidence.atTail) {
+    throw "Fixture transcript did not settle at the tail: $State/$Theme/$Screen"
+  }
+}
 
 & $hdc -t $Device shell "uitest screenCap -p $remoteImage"
 if ($LASTEXITCODE -ne 0) {
@@ -368,6 +386,7 @@ $manifest = [ordered]@{
     theme = $Theme
     reduceMotion = [bool]$ReduceMotion
     reduceTransparency = [bool]$ReduceTransparency
+    tailScroll = $tailEvidence
   }
   files = [ordered]@{
     screenshot = 'screen.jpeg'

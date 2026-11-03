@@ -19,6 +19,16 @@
       "requiresInteraction": true
     },
     {
+      "id": "showcase.product-story",
+      "screens": ["conversation", "process", "lineage", "subagent"],
+      "states": ["showcase-plan", "showcase-process", "showcase-lineage",
+        "showcase-dark", "showcase-dark-process", "showcase-subagent",
+        "showcase-approval"],
+      "drivers": ["device-ui-mock-suite.ps1"],
+      "e2eIds": ["SHOT-R1", "SHOT-R2", "SHOT-R3", "SHOT-R4", "SHOT-R5",
+        "SHOT-R6", "SHOT-R7", "SHOT-R8", "SHOT-R9", "SHOT-R10", "SHOT-R11"]
+    },
+    {
       "id": "conversation.completed-turn",
       "screens": ["conversation"],
       "states": ["completed"],

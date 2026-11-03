@@ -2,6 +2,13 @@
 
 Date: 2026-11-03
 
+Historical status: superseded on 2026-11-04 by
+[`2026-11-04-store-showcase-refresh-e2e.md`](2026-11-04-store-showcase-refresh-e2e.md).
+The newer run replaced the settings-only light scene with a dedicated approval
+scene, retained settings as scene 11, expanded the fixture content and changed
+the export count. This table is retained as the earlier baseline; use the newer
+document for current asset names, counts and HAP identity.
+
 Device: `HBN-AL80`, serial `33Z0224801015621`, HarmonyOS API `26`.
 
 Mock Release HAP SHA-256:

@@ -1,79 +1,85 @@
-{
-  "generatedAt": "2026-11-02T23:05:23.1979161Z",
-  "device": "33Z0224801015621",
-  "deviceModel": "HBN-AL80",
-  "deviceApi": "26",
-  "bundleName": "io.github.stlin256.dshharmony",
-  "product": "mock",
-  "hap": "harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap",
-  "hapSha256": "FE5AEF43AFA733BE726A36BCF5627E7396ADAF16F90D6B6DAC8267CAD01ADF18",
-  "rawDirectory": "artifacts/store-screenshots/raw",
-  "finalDirectory": "artifacts/store-screenshots/final",
-  "mockModel": "DeepSeek-V4-Pro",
-  "reasoningEffort": "max",
-  "scenes": [
-    {
-      "file": "01-conversation-light.png",
-      "screen": "conversation",
-      "state": "plan-dock-overlay",
-      "theme": "light"
-    },
-    {
-      "file": "02-process-light.png",
-      "screen": "process",
-      "state": "completed",
-      "theme": "light"
-    },
-    {
-      "file": "03-lineage-light.png",
-      "screen": "lineage",
-      "state": "plan-subagent",
-      "theme": "light"
-    },
-    {
-      "file": "04-preview-light.png",
-      "screen": "preview",
-      "state": "text-config-preview",
-      "theme": "light"
-    },
-    {
-      "file": "05-settings-light.png",
-      "screen": "settings",
-      "state": "completed",
-      "theme": "light"
-    },
-    {
-      "file": "06-conversation-dark.png",
-      "screen": "conversation",
-      "state": "plan-subagent",
-      "theme": "dark"
-    },
-    {
-      "file": "07-process-dark.png",
-      "screen": "process",
-      "state": "completed",
-      "theme": "dark"
-    },
-    {
-      "file": "08-subagent-dark.png",
-      "screen": "subagent",
-      "state": "subagent-continuable",
-      "theme": "dark"
-    },
-    {
-      "file": "09-automation-dark.png",
-      "screen": "automation",
-      "state": "automation-list",
-      "theme": "dark"
-    },
-    {
-      "file": "10-plugins-dark.png",
-      "screen": "plugins",
-      "state": "plugins-list",
-      "theme": "dark"
-    }
-  ],
-  "artifactCount": 26,
-  "appGalleryLandscapeCount": 10,
-  "appGalleryPortraitCount": 10
+﻿{
+    "generatedAt":  "2026-11-03T16:54:34.3104607Z",
+    "device":  "33Z0224801015621",
+    "deviceModel":  "HBN-AL80",
+    "deviceApi":  "26",
+    "bundleName":  "io.github.stlin256.dshharmony",
+    "product":  "mock",
+    "hap":  "harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap",
+    "hapSha256":  "020CCE74C12198488D896241AC7AA40BE42A0D059FD60B5C8AA7FB946F582FD7",
+    "rawDirectory":  "artifacts/store-screenshots/raw",
+    "finalDirectory":  "artifacts/store-screenshots/final",
+    "mockModel":  "DeepSeek-V4-Pro",
+    "reasoningEffort":  "max",
+    "scenes":  [
+                   {
+                       "file":  "01-conversation-light.png",
+                       "screen":  "conversation",
+                       "state":  "showcase-plan",
+                       "theme":  "light"
+                   },
+                   {
+                       "file":  "02-process-light.png",
+                       "screen":  "process",
+                       "state":  "showcase-process",
+                       "theme":  "light"
+                   },
+                   {
+                       "file":  "03-lineage-light.png",
+                       "screen":  "lineage",
+                       "state":  "showcase-lineage",
+                       "theme":  "light"
+                   },
+                   {
+                       "file":  "04-preview-light.png",
+                       "screen":  "preview",
+                       "state":  "text-config-preview",
+                       "theme":  "light"
+                   },
+                   {
+                       "file":  "05-approval-light.png",
+                       "screen":  "conversation",
+                       "state":  "showcase-approval",
+                       "theme":  "light"
+                   },
+                   {
+                       "file":  "06-conversation-dark.png",
+                       "screen":  "conversation",
+                       "state":  "showcase-dark",
+                       "theme":  "dark"
+                   },
+                   {
+                       "file":  "07-process-dark.png",
+                       "screen":  "process",
+                       "state":  "showcase-dark-process",
+                       "theme":  "dark"
+                   },
+                   {
+                       "file":  "08-subagent-dark.png",
+                       "screen":  "subagent",
+                       "state":  "showcase-subagent",
+                       "theme":  "dark"
+                   },
+                   {
+                       "file":  "09-automation-dark.png",
+                       "screen":  "automation",
+                       "state":  "automation-list",
+                       "theme":  "dark"
+                   },
+                   {
+                       "file":  "10-plugins-dark.png",
+                       "screen":  "plugins",
+                       "state":  "plugins-list",
+                       "theme":  "dark"
+                   },
+                   {
+                       "file":  "11-settings-light.png",
+                       "screen":  "settings",
+                       "state":  "completed",
+                       "theme":  "light"
+                   }
+               ],
+    "artifactCount":  28,
+    "appGalleryLandscapeCount":  10,
+    "appGalleryPortraitCount":  10
 }

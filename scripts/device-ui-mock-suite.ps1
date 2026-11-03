@@ -36,6 +36,13 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'launch'; State = 'iteration-notice'; Theme = 'dark'; ReduceMotion = $true },
   [pscustomobject]@{ Screen = 'conversation'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'completed'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'showcase-plan'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'process'; State = 'showcase-process'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'lineage'; State = 'showcase-lineage'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'showcase-approval'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'showcase-dark'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'process'; State = 'showcase-dark-process'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'subagent'; State = 'showcase-subagent'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'live-change'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'live-change'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'attachments'; Theme = 'dark' },
@@ -186,6 +193,9 @@ function Get-ExpectedMarker {
   switch ("$Screen/$State") {
     'launch/iteration-notice' { return '项目正在快速迭代' }
     'conversation/completed' { return '发布检查完成' }
+    'conversation/showcase-plan' { return '状态设置已收敛' }
+    'conversation/showcase-approval' { return '等待审批' }
+    'conversation/showcase-dark' { return '整理通知中心未读分组' }
     'conversation/live-change' { return '底部 Dock 运行态' }
     'conversation/attachments' { return '附件与实时变更 Dock' }
     'conversation/streaming' { return '流式输出与标题更新' }
@@ -221,11 +231,15 @@ function Get-ExpectedMarker {
     'conversation/plan-dock-overlay' { return '悬浮任务计划' }
     'conversation/plan-off-error' { return '计划退出失败' }
     'lineage/plan-subagent' { return '可继续检查' }
+    'lineage/showcase-lineage' { return '筛选状态检查' }
     'subagent/subagent-continuable' { return '可继续子会话' }
     'subagent/subagent-one-shot' { return '一次性子会话' }
     'subagent/subagent-unknown' { return '未知模式子会话' }
     'subagent/subagent-parent-offline' { return '父会话不可用' }
+    'subagent/showcase-subagent' { return '筛选状态检查' }
     'process/completed' { return '更新了计划' }
+    'process/showcase-process' { return '闪白已定位' }
+    'process/showcase-dark-process' { return '重复请求已消失' }
     'sidebar/completed' { return '置顶' }
     'browser/completed' { return '工作区根目录' }
     'preview/document-preview' { return 'diagram.svg' }

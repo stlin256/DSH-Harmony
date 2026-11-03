@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>把 DeepSeek Harness 装进 HarmonyOS</strong><br>
-  原版能力，原生触感。为手机重新设计的 Harness 客户端。
+  为手机重新设计的原生工作空间，让想法、执行与结果留在同一条工作线上。
 </p>
 
 <p align="center">
@@ -32,52 +32,62 @@ DSH Harmony 将 DeepSeek Harness 的工作空间、会话、工具调用和实�
 
 它关心的不只是“能不能用”。从冷启动到长对话滚动，从一次工具调用到一条后台通知，DSH Harmony 都围绕更少的等待、更清楚的状态和更自然的操作展开。
 
-## 一眼看清工作流
+## 从想法到交付，在同一条工作线上
+
+把需求交给 DSH Harmony，接着看它读取文件、运行命令、整理差异并给出结果。过程可以展开，结果保持直接；浮动任务计划和实时状态始终贴着当前工作。
 
 <p align="center">
-  <img src="artifacts/store-screenshots/final/appgallery-landscape/01-conversation-1920x1080.png" width="100%" alt="DSH Harmony 原生会话界面">
+  <img src="artifacts/store-screenshots/final/appgallery-landscape/01-conversation-1920x1080.png" width="100%" alt="DSH Harmony 原生会话与浮动任务计划">
 </p>
-
-<table>
-  <tr>
-    <td align="center" width="33%">
-      <img src="artifacts/store-screenshots/final/appgallery-portrait/02-process-1080x1920.png" width="250" alt="工具过程与会话结果"><br>
-      <strong>过程清楚，结果直接</strong><br>
-      <sub>思考、命令与文件改动保持紧凑，并在同一处展开。</sub>
-    </td>
-    <td align="center" width="33%">
-      <img src="artifacts/store-screenshots/final/appgallery-portrait/03-plan-subagent-1080x1920.png" width="250" alt="计划与子代理谱系"><br>
-      <strong>计划与子代理，上下文相连</strong><br>
-      <sub>计划、子代理和父子会话保持清楚，继续检查也不丢失上下文。</sub>
-    </td>
-    <td align="center" width="33%">
-      <img src="artifacts/store-screenshots/final/appgallery-portrait/04-file-preview-1080x1920.png" width="250" alt="工作区文件预览"><br>
-      <strong>文件就在工作区里</strong><br>
-      <sub>直接阅读配置、表格、Markdown、代码和图片，全程只读。</sub>
-    </td>
-  </tr>
-</table>
 
 <p align="center">
-  <img src="artifacts/store-screenshots/final/appgallery-landscape/09-process-dark-1920x1080.png" width="49%" alt="DSH Harmony 深色模式工作过程">
-  <img src="artifacts/store-screenshots/final/appgallery-landscape/10-subagent-dark-1920x1080.png" width="49%" alt="DSH Harmony 深色模式子代理">
+  <img src="artifacts/store-screenshots/final/appgallery-portrait/02-process-1080x1920.png" width="250" alt="结构化工作过程">
+  <img src="artifacts/store-screenshots/final/appgallery-portrait/03-plan-subagent-1080x1920.png" width="250" alt="计划与子代理谱系">
+  <img src="artifacts/store-screenshots/final/appgallery-portrait/04-file-preview-1080x1920.png" width="250" alt="工作区文件预览">
 </p>
 
-## 顺滑、简洁，也足够完整
+**过程清楚，结果直接。** 读取、执行与改动按真实顺序展开，需要细看的时候再展开。
+
+**并行推进，上下文相连。** 计划、子代理和父子会话保持清楚，继续检查也不丢失上下文。
+
+**文件就在工作区里。** 配置、表格、Markdown、代码和图片都可以直接阅读，全程只读。
+
+## 该确认时，只确认一次
+
+会话权限、单次审批、提问和附件都贴着输入栏工作。高风险操作会明确展示范围与影响；单次授权只放行当前工具调用，不会改变会话权限。
+
+<p align="center">
+  <img src="artifacts/store-screenshots/final/appgallery-portrait/05-approval-1080x1920.png" width="250" alt="单次审批与风险确认">
+  <img src="artifacts/store-screenshots/final/appgallery-portrait/07-automation-1080x1920.png" width="250" alt="自动化任务与运行状态">
+  <img src="artifacts/store-screenshots/final/appgallery-portrait/08-plugins-1080x1920.png" width="250" alt="插件与运行组件">
+</p>
+
+**清楚的审批边界。** 允许一次、拒绝、风险确认和提交中的状态都有明确的视觉归宿。
+
+**让重复工作按时发生。** 每日巡检、每周整理和发布同步都在自动化任务中集中管理。
+
+**工具随需扩展。** 浏览已安装能力、确认运行状态，并在同一处完成启用与管理。
+
+## 原生界面，完整工作流
+
+DSH Harmony 以 ArkUI 构建单一原生工作空间：会话、工作过程、模型选择、权限、文件预览、插件和自动化都使用 DSH 的视觉语言。它会记住上次会话、工作区、滚动位置和展开状态。
+
+登录保持灵活：
+
+- **Harness 原生登录**是默认选项，可连接局域网或公网地址。
+- **Pocket ID · Passkey**是可选选项，在 HTTPS 环境中使用系统 Passkey。
+
+## 清晰，但不打断思路
 
 | **顺滑** | **简洁** |
 | --- | --- |
 | 缓存先行、增量同步，历史内容提前预取；稳定列表与虚拟化渲染让长对话保持轻盈，页面切换和展开状态遵循 HarmonyOS 的节奏。 | 沿用 DSH 的紧凑信息层级与视觉语义。工具、思考、文件和消息保持清楚，但不让界面替内容抢戏。 |
 | 触控反馈、抽屉、页面动线、安全区和系统 Back 都为 HarmonyOS 重新实现，并尊重系统的减少动态效果设置。 | 覆盖会话、模型、工具、审批、提问、图片、Markdown、代码、文件浏览与分级通知，让移动端真正完成工作流。 |
 
-## 原生界面，一套工作流
-
-DSH Harmony 以 ArkUI 构建单一的原生工作空间：会话列表、实时消息、工具步骤、审批、提问、模型选择、文件预览、插件和自动化都以 DSH 的视觉语言呈现。它会记住上次会话、工作区、滚动位置和展开状态。
-
-登录同样保持灵活：
-
-- **Harness 原生登录**是默认选项，可连接局域网或公网地址。
-- **Pocket ID · Passkey**是可选选项，在 HTTPS 环境中使用系统 Passkey。
+<p align="center">
+  <img src="artifacts/store-screenshots/final/appgallery-landscape/06-appearance-light-dark-1920x1080.png" width="49%" alt="DSH Harmony 亮暗模式">
+  <img src="artifacts/store-screenshots/final/appgallery-landscape/09-desktop-cards-1920x1080.png" width="49%" alt="DSH Harmony 桌面卡片">
+</p>
 
 ## 开始使用
 
@@ -89,17 +99,15 @@ DSH Harmony 以 ArkUI 构建单一的原生工作空间：会话列表、实时�
 
 也可以打开 DSH 的 **插件 → Add plugin**，粘贴同一版本化 tarball 地址。随后打开 DSH Harmony，填写服务地址并选择原生登录或 Passkey。
 
-完整说明：
-
 [插件安装](docs/PLUGIN-INSTALL.md) · [部署](docs/DEPLOYMENT.md) · [Passkey](docs/OIDC-DEPLOYMENT.md)
 
 ## 连接状态，随时知道
 
 任务完成、失败或等待确认时，DSH Harmony 可以按级别发送 HarmonyOS 通知。点击通知会回到对应会话；桌面服务卡片则以紧凑方式呈现工作区与任务状态。
 
-社区构建支持使用 Push Kit 的即时推送。准备中的 AppGallery 版本会按应用商店能力单独构建，并在受系统约束的场景下提供后台状态监测。
+社区构建支持使用 Push Kit 的即时推送。面向 AppGallery 的构建会按应用商店能力单独配置，并在受系统约束的场景下提供后台状态监测。
 
-## 即将登陆 AppGallery
+## 面向 AppGallery
 
 <p align="left">
   <a href="https://developer.huawei.com/consumer/cn/appgallery/">
@@ -108,7 +116,7 @@ DSH Harmony 以 ArkUI 构建单一的原生工作空间：会话列表、实时�
   <strong>HarmonyOS AppGallery · 准备中</strong>
 </p>
 
-我们正在准备面向所有 HarmonyOS 用户的商店版本。它会保留同样流畅的界面、完整的会话体验与 DSH 原生设计，并按照 AppGallery 的分发与通知规范持续更新。
+DSH Harmony 正在完成面向所有 HarmonyOS 用户的商店发布准备。商店版本保留同样流畅的界面、完整的会话体验与 DSH 原生设计，并按照 AppGallery 的分发与通知规范发布。
 
 ## 参与共建
 

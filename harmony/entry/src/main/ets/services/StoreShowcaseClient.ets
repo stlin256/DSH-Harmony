@@ -50,10 +50,46 @@ const SHOWCASE_README = '# ' + BuildInfo.appName + `
 
 DeepSeek Harness 的鸿蒙原生客户端。
 
-- 会话与工作区保持同步
-- Markdown、代码和文件预览
-- 分级通知与桌面卡片
-- 亮色、暗色与跟随系统
+## 产品定位
+
+在手机上继续桌面端已经开始的开发工作。会话、工作区、计划与子智能体保持
+同一套上下文，阅读、审批和文件检查都为触控重新整理，但不改变上游语义。
+
+## 核心能力
+
+- 原生会话流：流式输出、工作过程、计划与最终回答各自保持正确的出现顺序
+- 工作区浏览：目录导航、源码预览、表格、图片、PDF、HTML 与配置文本
+- 计划协作：悬浮任务计划、可继续子智能体与明确的父子会话层级
+- 权限边界：只读、工作区写入、完全权限与单次审批保持可见且可回溯
+- 桌面卡片：一眼查看运行状态、最近结果与需要处理的审批
+- 通知分级：完成、失败、审批与连接变化可独立设置
+- 外观系统：亮色、暗色与跟随系统，API 23 也有完整的功能与层级
+
+## 开发
+
+    构建默认变体
+    构建社区版本
+    构建商店版本
+    构建 Mock 展示版本
+
+提交前依次运行类型检查、协议测试、Mock 覆盖率检查与真机 E2E。展示资源
+必须由设备上的确定性 Mock 状态生成，不使用真实账户、主机或会话内容。
+
+## 设计原则
+
+1. 信息优先：控件服务于阅读、比较与重复操作。
+2. 原生触控：命中区、安全区、键盘与系统返回都遵循 HarmonyOS 习惯。
+3. 克制动效：只表达层级、方向和状态变化，不制造装饰性循环。
+4. 可回退：加载、离线、失败与权限不足都提供明确下一步。
+
+## 隐私
+
+客户端不内置第三方统计 SDK。远程连接信息保存在本机安全存储中，日志默认
+隐藏凭据。导出诊断前会提示范围，并允许用户检查将要发送的内容。
+
+## 许可证
+
+源代码、第三方依赖与商店变体分别遵循仓库中的许可证和构建说明。
 `;
 const SHOWCASE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
 <!-- DSH_SOURCE_MARKER -->
@@ -67,22 +103,115 @@ const SHOWCASE_CONF = `; DSH_CONFIG_MARKER
 host = 127.0.0.1
 port = 4317
 read_timeout = 30s
+write_timeout = 30s
+idle_timeout = 120s
+max_connections = 24
+request_body_limit = 16mb
+trusted_proxy = false
 
 [preview]
 marker = DSH_CONFIG_MARKER
 line_limit = 500
 table_rows = 200
+wrap_source = false
+preserve_indentation = true
+highlight_delimited_text = true
+maximum_rendered_bytes = 4194304
+
+[workspace]
+root = DSH_HOME
+follow_symlinks = false
+read_binary_metadata = true
+include_hidden_files = true
+default_encoding = utf-8
+fallback_encoding = gb18030
+refresh_debounce_ms = 180
+
+[transcript]
+history_page_size = 40
+prefetch_threshold = 12
+keep_process_groups = true
+collapse_completed_turns = true
+stream_patch_interval_ms = 16
+preserve_tool_order = true
+
+[cache]
+directory = DSH_HOME/cache
+metadata_ttl_seconds = 300
+transcript_ttl_seconds = 86400
+workspace_ttl_seconds = 60
+maximum_size_gib = 5
+cleanup_batch_size = 32
+retain_last_successful_preview = true
+
+[notifications]
+completed = quiet
+failed = standard
+approval = standard
+connection = off
+group_by_session = true
+include_preview = false
+
+[approval]
+default_mode = workspace-write
+show_scope = true
+show_reason = true
+single_action_label = allow-once
+timeout_seconds = 30
+record_decisions = true
+
+[automation]
+enabled = true
+time_zone = Asia/Shanghai
+history_limit = 50
+merge_adjacent_results = true
+
+[diagnostics]
+level = info
+redact_secrets = true
+include_tool_output = false
+export_manifest = true
+log_directory = DSH_HOME/logs
 `;
-const SHOWCASE_CSV = `name,team,note,status
-Alpha,Platform,"first line
+const SHOWCASE_CSV = `name,team,owner,updated_at,note,status
+Alpha,Platform,Lin,2026-11-01,"first line
 second line",DSH_TABLE_MARKER
-Beta,Client,"quoted, separator",ready
-Gamma,Infra,"literal ""quote""",**literal value**
-Delta,Quality,,ready
+Beta,Client,Chen,2026-11-01,"quoted, separator",ready
+Gamma,Infra,Zhao,2026-10-31,"literal ""quote""",**literal value**
+Delta,Quality,Wu,2026-10-31,,ready
+Epsilon,Design,Sun,2026-10-30,compact layout,review
+Zeta,Runtime,He,2026-10-30,stream patch,ready
+Eta,Workspace,Xu,2026-10-29,file preview,ready
+Theta,Notifications,Gu,2026-10-29,digest group,ready
+Iota,Permissions,Ma,2026-10-28,single approval,review
+Kappa,Automation,Zhu,2026-10-28,history retention,ready
+Lambda,Cards,Hu,2026-10-27,quick summary,ready
+Mu,Search,Guo,2026-10-27,first-paint cache,ready
+Nu,Markdown,Lin,2026-10-26,tables and code,ready
+Xi,Images,Chen,2026-10-26,thumbnail cache,ready
+Omicron,Gateway,Zhao,2026-10-25,passkey session,ready
+Pi,Release,Wu,2026-10-25,signature check,review
+Rho,Docs,Sun,2026-10-24,deployment guide,ready
+Sigma,Tests,He,2026-10-24,device evidence,ready
+Tau,Plugins,Xu,2026-10-23,versioned update,ready
+Upsilon,OpenSource,Gu,2026-10-23,license index,ready
 short`;
-const SHOWCASE_TSV = `name\tteam\tmarker
-Alpha\tPlatform\tDSH_TSV_MARKER
-Beta\tClient\tready
+const SHOWCASE_TSV = `name\tteam\towner\tupdated_at\tstatus
+Alpha\tPlatform\tLin\t2026-11-01\tDSH_TSV_MARKER
+Beta\tClient\tChen\t2026-11-01\tready
+Gamma\tInfra\tZhao\t2026-10-31\tready
+Delta\tQuality\tWu\t2026-10-31\treview
+Epsilon\tDesign\tSun\t2026-10-30\tready
+Zeta\tRuntime\tHe\t2026-10-30\tready
+Eta\tWorkspace\tXu\t2026-10-29\tready
+Theta\tNotifications\tGu\t2026-10-29\treview
+Iota\tPermissions\tMa\t2026-10-28\tready
+Kappa\tAutomation\tZhu\t2026-10-28\tready
+Lambda\tCards\tHu\t2026-10-27\tready
+Mu\tSearch\tGuo\t2026-10-27\tready
+Nu\tMarkdown\tLin\t2026-10-26\tready
+Xi\tImages\tChen\t2026-10-26\tready
+Omicron\tGateway\tZhao\t2026-10-25\treview
 `;
 const SHOWCASE_MALFORMED_CSV = `name,note
 "unterminated,value
@@ -99,8 +228,49 @@ function showcaseFileSource(path: string): string {
   if (path.endsWith('report.tsv')) return SHOWCASE_TSV;
   if (path.endsWith('malformed.csv')) return SHOWCASE_MALFORMED_CSV;
   if (path.endsWith('.npmrc')) return 'registry=https://registry.example.invalid/\nstrict-ssl=true\n';
-  if (path.endsWith('LICENSE')) return BuildInfo.appName + ' fixture license text.\n';
-  return '{\n  "name": "dsh-harmony"\n}\n';
+  if (path.endsWith('LICENSE')) {
+    return 'Apache License\nVersion 2.0, January 2004\n\n' +
+      'Copyright 2026 ' + BuildInfo.appName + ' contributors\n\n' +
+      'Licensed under the Apache License, Version 2.0 (the "License");\n' +
+      'you may not use this file except in compliance with the License.\n' +
+      'You may obtain a copy of the License at\n\n' +
+      'https://www.apache.org/licenses/LICENSE-2.0\n\n' +
+      'Unless required by applicable law or agreed to in writing, software\n' +
+      'distributed under the License is distributed on an "AS IS" BASIS,\n' +
+      'WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n';
+  }
+  if (path.endsWith('package.json')) {
+    return '{\n' +
+      '  "name": "dsh-harmony",\n' +
+      '  "private": true,\n' +
+      '  "version": "1.4.0",\n' +
+      '  "scripts": {\n' +
+      '    "test": "node --test",\n' +
+      '    "qa": "node scripts/qa.mjs pr",\n' +
+      '    "mock:coverage": "node scripts/verify-mock-coverage.mjs"\n' +
+      '  },\n' +
+      '  "devDependencies": {\n' +
+      '    "typescript": "5.7.2",\n' +
+      '    "eslint": "9.16.0"\n' +
+      '  }\n' +
+      '}\n';
+  }
+  if (path.endsWith('BUILDING.md') || path.endsWith('DEPLOYMENT.md') ||
+      path.endsWith('DESIGN.md')) {
+    return '# ' + path.split('/').pop() + '\n\n' +
+      'This synthetic fixture documents the release workflow, visual tokens and\n' +
+      'device verification expectations used by the generated store artwork.\n\n' +
+      '## Required checks\n\n' +
+      '- Build the default, community, store and mock variants.\n' +
+      '- Run protocol, model and layout tests before device capture.\n' +
+      '- Verify every new state in the deterministic mock feature manifest.\n' +
+      '- Capture clean device evidence without private account or host data.\n' +
+      '- Review safe areas, keyboard movement and system Back behavior.\n\n' +
+      '## Visual baseline\n\n' +
+      'Compact information density, neutral surfaces, precise outlines and a\n' +
+      'single DeepSeek blue accent. Motion communicates direction and state only.\n';
+  }
+  return '{\n  "name": "dsh-harmony",\n  "fixture": true\n}\n';
 }
 
 class ShowcaseFileDiff {
@@ -189,6 +359,38 @@ function textBlock(kind: string, text: string): NativeTextBlock {
   value.kind = kind;
   value.text = text;
   return value;
+}
+
+function showcaseHistory(prefix: string, turns: string[][]): NativeMessage[] {
+  const rows: NativeMessage[] = [];
+  turns.forEach((turn: string[], index: number): void => {
+    const turnNumber = index + 1;
+    const seq = index * 3 + 1;
+    rows.push(message(prefix + '-history-user-' + turnNumber, 'user',
+      seq, turnNumber, 1, turn[0]));
+    rows.push(message(prefix + '-history-assistant-' + turnNumber, 'assistant',
+      seq + 1, turnNumber, 2, turn[1]));
+    const end = message(prefix + '-history-end-' + turnNumber, 'turn',
+      seq + 2, turnNumber, 2, '');
+    end.eventType = 'turn/end';
+    end.outcome = 'completed';
+    rows.push(end);
+  });
+  return rows;
+}
+
+function showcaseWithHistory(prefix: string, current: NativeMessage[],
+  turns: string[][]): NativeMessage[] {
+  const history = showcaseHistory(prefix, turns);
+  current.forEach((row: NativeMessage): void => {
+    row.turn += turns.length;
+    row.turnKey = 'turn:' + row.turn;
+  });
+  const rows = history.concat(current);
+  rows.forEach((row: NativeMessage, index: number): void => {
+    row.seq = index + 1;
+  });
+  return rows;
 }
 
 function showcaseMessages(): NativeMessage[] {
@@ -282,6 +484,358 @@ function showcaseMessages(): NativeMessage[] {
   return rows;
 }
 
+function showcaseMarketingPlanMessages(): NativeMessage[] {
+  const rows: NativeMessage[] = [];
+  rows.push(message('marketing-plan-user', 'user', 1, 1, 1,
+    '把设置页里的离线状态和同步状态整理成一套可复用的组件，并补上空数据回退。'));
+  const reasoning = message('marketing-plan-reason', 'reasoning', 2, 1, 2,
+    '先对齐状态入口和文案，再整理组件边界，最后检查离线时的保留信息。');
+  reasoning.reasoning = reasoning.text;
+  reasoning.text = '';
+  rows.push(reasoning);
+  rows.push(toolMessage('marketing-plan-start', 'marketing-plan-todo', 'todo_write',
+    showcasePlan([
+      showcaseTodo('梳理离线与同步状态入口', 'in_progress'),
+      showcaseTodo('整理状态组件与文案', 'pending'),
+      showcaseTodo('补齐空数据回退', 'pending')
+    ]), '', 3, 1, 2));
+  rows.push(toolMessage('marketing-plan-read-start', 'marketing-plan-read', 'read',
+    '{"path":"harmony/entry/src/main/ets/services/NativeHostSettings.ets"}', '', 4, 1, 2));
+  rows.push(toolMessage('marketing-plan-read-result', 'marketing-plan-read', 'read',
+    '', '已读取 2 个文件：状态定义与设置投影', 5, 1, 2, true));
+  const diff = new ShowcaseDiffPayload();
+  const settingsDiff = new ShowcaseFileDiff();
+  settingsDiff.path = 'harmony/entry/src/main/ets/components/NativeSettings.ets';
+  settingsDiff.oldText = 'renderSyncState();';
+  settingsDiff.newText = 'renderSyncState();\n// keep the last successful sync time\n// expose retry only when offline';
+  diff.diffs.push(settingsDiff);
+  const hostSettingsDiff = new ShowcaseFileDiff();
+  hostSettingsDiff.path = 'harmony/entry/src/main/ets/services/NativeHostSettings.ets';
+  hostSettingsDiff.oldText = 'syncState = loading;';
+  hostSettingsDiff.newText = 'syncState = cached || loading;\n' +
+    '// preserve the last successful timestamp';
+  diff.diffs.push(hostSettingsDiff);
+  const emptyStateDiff = new ShowcaseFileDiff();
+  emptyStateDiff.path = 'harmony/entry/src/main/ets/components/NativeEmptyState.ets';
+  emptyStateDiff.oldText = '';
+  emptyStateDiff.newText = 'export class NativeEmptyState {\n' +
+    '  static retryLabel = \'重新同步\';\n}\n';
+  diff.diffs.push(emptyStateDiff);
+  const offlineTestDiff = new ShowcaseFileDiff();
+  offlineTestDiff.path = 'docs/testing/offline-sync-e2e.md';
+  offlineTestDiff.oldText = '';
+  offlineTestDiff.newText = '# Offline sync\n\n- cached timestamp remains visible\n' +
+    '- empty data exposes one retry action\n';
+  diff.diffs.push(offlineTestDiff);
+  rows.push(toolMessage('marketing-plan-edit-start', 'marketing-plan-edit', 'edit',
+    JSON.stringify(diff), '', 6, 1, 2));
+  rows.push(toolMessage('marketing-plan-edit-result', 'marketing-plan-edit', 'edit',
+    '', '', 7, 1, 2, true));
+  const assistant = message('marketing-plan-assistant', 'assistant', 8, 1, 3, '');
+  assistant.text = '状态设置已收敛。离线、同步中和已同步共用一套组件，' +
+    '断网时保留最近一次成功时间，并给出可执行的重新同步入口。';
+  assistant.blocks = [
+    textBlock('heading', '状态设置已收敛'),
+    textBlock('text', '离线、同步中和已同步共用一套状态组件；断网时保留最近一次成功同步时间。'),
+    textBlock('quote', '空数据不再显示占位卡片，直接给出可执行的重新同步入口。')
+  ];
+  rows.push(assistant);
+  const end = message('marketing-plan-end', 'turn', 9, 1, 3, '');
+  end.eventType = 'turn/end';
+  end.outcome = 'completed';
+  rows.push(end);
+  return showcaseWithHistory('marketing-plan', rows, [
+    [
+      '先梳理设置页里离线、同步中和同步失败的状态入口，标出断网后仍需保留的信息。',
+      '已整理出四种状态。断网后需要保留最近一次成功同步时间，失败入口要能直接重新同步。'
+    ],
+    [
+      '失败时不要只弹一条提示，把恢复动作放进状态行，并补一个没有数据时的回退。',
+      '恢复动作会固定在状态行右侧；空数据使用独立说明和重试入口，不再渲染空白占位卡。'
+    ]
+  ]);
+}
+
+function showcaseMarketingProcessMessages(): NativeMessage[] {
+  const rows: NativeMessage[] = [];
+  rows.push(message('marketing-process-user', 'user', 1, 1, 1,
+    '排查搜索结果切换时偶发闪白的问题，先把首帧缓存和空结果回退分开验证。'));
+  const reasoning = message('marketing-process-reason', 'reasoning', 2, 1, 2,
+    '从缓存命中、请求竞态和首帧布局三个方向检查，避免只看表面闪烁。');
+  reasoning.reasoning = reasoning.text;
+  reasoning.text = '';
+  rows.push(reasoning);
+  rows.push(toolMessage('marketing-process-read-start', 'marketing-process-read', 'read',
+    '{"path":"harmony/entry/src/main/ets/components/SearchSurface.ets"}', '', 3, 1, 2));
+  rows.push(toolMessage('marketing-process-read-result', 'marketing-process-read', 'read',
+    '', '已读取 3 个文件：搜索视图、缓存与请求状态', 4, 1, 2, true));
+  rows.push(toolMessage('marketing-process-command-start', 'marketing-process-command', 'exec_command',
+    '{"command":"npm test -- search-cache"}', '', 5, 1, 2));
+  rows.push(toolMessage('marketing-process-command-result', 'marketing-process-command', 'exec_command',
+    '', 'PASS search-cache\n12 tests passed', 6, 1, 2, true));
+  const diff = new ShowcaseDiffPayload();
+  const searchDiff = new ShowcaseFileDiff();
+  searchDiff.path = 'harmony/entry/src/main/ets/components/SearchSurface.ets';
+  searchDiff.oldText = 'state = loading;';
+  searchDiff.newText = 'state = cached || loading;\n// keep the previous result visible while refreshing\n// clear only after the new page settles';
+  diff.diffs.push(searchDiff);
+  const cacheDiff = new ShowcaseFileDiff();
+  cacheDiff.path = 'harmony/entry/src/main/ets/services/SearchCache.ets';
+  cacheDiff.oldText = 'if (empty) return;';
+  cacheDiff.newText = 'if (empty) return fallback;\n// distinguish empty results from transient failures';
+  diff.diffs.push(cacheDiff);
+  const pagerDiff = new ShowcaseFileDiff();
+  pagerDiff.path = 'harmony/entry/src/main/ets/services/SearchPager.ets';
+  pagerDiff.oldText = 'commit(response);';
+  pagerDiff.newText = 'if (response.revision < current) return;\ncommit(response);';
+  diff.diffs.push(pagerDiff);
+  const searchTestDiff = new ShowcaseFileDiff();
+  searchTestDiff.path = 'tests/search-cache.test.ts';
+  searchTestDiff.oldText = '';
+  searchTestDiff.newText = 'test(\'keeps cached rows during refresh\', () => {\n' +
+    '  expect(view.state).toBe(\'cached\');\n});\n';
+  diff.diffs.push(searchTestDiff);
+  rows.push(toolMessage('marketing-process-edit-start', 'marketing-process-edit', 'edit',
+    JSON.stringify(diff), '', 7, 1, 2));
+  rows.push(toolMessage('marketing-process-edit-result', 'marketing-process-edit', 'edit',
+    '', '', 8, 1, 2, true));
+  const assistant = message('marketing-process-assistant', 'assistant', 9, 1, 3, '');
+  assistant.text = '闪白已定位。首帧缓存与请求完成之间存在状态空窗，刷新时沿用上一页结果；' +
+    '空结果、失败和请求竞态分别收口，不再共用一个 loading 状态。';
+  assistant.blocks = [
+    textBlock('heading', '闪白已定位'),
+    textBlock('text', '首帧缓存和请求完成之间存在状态空窗，刷新时沿用上一页结果即可消除闪白。'),
+    textBlock('text', '• 缓存结果继续可见\n• 空结果使用独立回退\n• 请求竞态由最后一次响应收口')
+  ];
+  rows.push(assistant);
+  const end = message('marketing-process-end', 'turn', 10, 1, 3, '');
+  end.eventType = 'turn/end';
+  end.outcome = 'completed';
+  rows.push(end);
+  return showcaseWithHistory('marketing-process', rows, [
+    [
+      '先看搜索结果切换时的闪白录屏，判断是首帧布局、缓存还是请求竞态。',
+      '闪白出现在旧结果已经清空、新结果还没有提交的空窗。字体和主题切换都排除了。'
+    ],
+    [
+      '把缓存命中、真实空结果和请求失败拆开验证，别用一个 loading 状态覆盖所有情况。',
+      '缓存命中继续显示上一页，真实空结果才进入空状态，失败保留原内容和重试入口。'
+    ]
+  ]);
+}
+
+function showcaseMarketingLineageMessages(): NativeMessage[] {
+  const rows: NativeMessage[] = [];
+  rows.push(message('marketing-lineage-user', 'user', 1, 1, 1,
+    '并行拆分搜索筛选体验的重构，分别检查状态、接口和回归用例。'));
+  const reasoning = message('marketing-lineage-reason', 'reasoning', 2, 1, 2,
+    '把筛选状态、接口约束和回归验证拆成三条互相独立的检查线。');
+  reasoning.reasoning = reasoning.text;
+  reasoning.text = '';
+  rows.push(reasoning);
+  rows.push(toolMessage('marketing-lineage-plan-start', 'marketing-lineage-plan', 'todo_write',
+    showcasePlan([
+      showcaseTodo('整理筛选状态与空结果', 'completed'),
+      showcaseTodo('核对接口约束与旧数据', 'completed'),
+      showcaseTodo('补齐回归与视觉检查', 'in_progress')
+    ]), '', 3, 1, 2));
+  rows.push(toolMessage('marketing-lineage-plan-result', 'marketing-lineage-plan', 'todo_write',
+    '', '', 4, 1, 2, true));
+  rows.push(toolMessage('marketing-lineage-read-start', 'marketing-lineage-read', 'read',
+    '{"path":"harmony/entry/src/main/ets/components/FilterState.ets"}', '', 5, 1, 2));
+  rows.push(toolMessage('marketing-lineage-read-result', 'marketing-lineage-read', 'read',
+    '', '已读取 4 个文件：状态、请求、表单和回归清单', 6, 1, 2, true));
+  const assistant = message('marketing-lineage-assistant', 'assistant', 7, 1, 3, '');
+  assistant.text = '三条检查线已收敛。筛选状态、接口约束和回归验证分别完成，' +
+    '剩余视觉检查可以直接回到对应子智能体继续确认。';
+  assistant.blocks = [
+    textBlock('heading', '三条检查线已收敛'),
+    textBlock('text', '筛选状态与接口约束分开处理，回归检查继续保持可见，方便随时回到主会话继续确认。')
+  ];
+  rows.push(assistant);
+  const end = message('marketing-lineage-end', 'turn', 8, 1, 3, '');
+  end.eventType = 'turn/end';
+  end.outcome = 'completed';
+  rows.push(end);
+  return showcaseWithHistory('marketing-lineage', rows, [
+    [
+      '筛选重构先拆成状态、接口和回归三条线，互相不要阻塞。',
+      '状态线负责筛选投影，接口线核对旧数据兼容，回归线覆盖空结果和快速切换。'
+    ],
+    [
+      '每条线都保留可继续的上下文，视觉检查最后再汇总。',
+      '三个子会话已经拆分完成，都会带同一份工作区约束和验收边界。'
+    ]
+  ]);
+}
+
+function showcaseMarketingDarkMessages(): NativeMessage[] {
+  const rows: NativeMessage[] = [];
+  rows.push(message('marketing-dark-user', 'user', 1, 1, 1,
+    '把通知中心的未读消息按任务分组，并保留一键回到原会话的入口。'));
+  const reasoning = message('marketing-dark-reason', 'reasoning', 2, 1, 2,
+    '先按任务归并通知，再用时间线保留最近一次状态变化。');
+  reasoning.reasoning = reasoning.text;
+  reasoning.text = '';
+  rows.push(reasoning);
+  rows.push(toolMessage('marketing-dark-plan-start', 'marketing-dark-plan', 'todo_write',
+    showcasePlan([
+      showcaseTodo('按任务聚合通知', 'completed'),
+      showcaseTodo('保留时间与状态变化', 'completed'),
+      showcaseTodo('验证回到原会话', 'in_progress')
+    ]), '', 3, 1, 2));
+  rows.push(toolMessage('marketing-dark-plan-result', 'marketing-dark-plan', 'todo_write',
+    '', '', 4, 1, 2, true));
+  rows.push(toolMessage('marketing-dark-read-start', 'marketing-dark-read', 'read',
+    '{"path":"harmony/entry/src/main/ets/components/NativeNotificationCenter.ets"}', '', 5, 1, 2));
+  rows.push(toolMessage('marketing-dark-read-result', 'marketing-dark-read', 'read',
+    '', '已读取通知中心与任务状态投影', 6, 1, 2, true));
+  const assistant = message('marketing-dark-assistant', 'assistant', 7, 1, 3, '');
+  assistant.text = '通知分组已整理。同一任务的完成、失败和待确认提醒收拢到一组，' +
+    '最近一次状态保留在顶部，点按即可回到对应会话。';
+  assistant.blocks = [
+    textBlock('heading', '通知分组已整理'),
+    textBlock('text', '同一任务的完成、失败和待确认提醒收拢到一组，最近一次状态始终保留在顶部。'),
+    textBlock('quote', '点击通知即可回到对应会话，不需要重新寻找上下文。')
+  ];
+  rows.push(assistant);
+  const end = message('marketing-dark-end', 'turn', 8, 1, 3, '');
+  end.eventType = 'turn/end';
+  end.outcome = 'completed';
+  rows.push(end);
+  return showcaseWithHistory('marketing-dark', rows, [
+    [
+      '通知列表现在按时间散着排，先按任务归并，再保留最近一次状态。',
+      '会按会话聚合，完成、失败和审批提醒进入同一组，组标题展示最新结果。'
+    ],
+    [
+      '点通知之后要直接回到原会话，还要保留当时的工作区上下文。',
+      '通知携带会话和工作区标识，打开后恢复到对应轮次，并继续沿用原权限边界。'
+    ]
+  ]);
+}
+
+function showcaseMarketingDarkProcessMessages(): NativeMessage[] {
+  const rows: NativeMessage[] = [];
+  rows.push(message('marketing-dark-process-user', 'user', 1, 1, 1,
+    '定位图片缓存失效后重复请求的问题，确认离线回退不会影响已有图片。'));
+  const reasoning = message('marketing-dark-process-reason', 'reasoning', 2, 1, 2,
+    '先检查缓存键的失效条件，再核对离线回退和并发请求合并。');
+  reasoning.reasoning = reasoning.text;
+  reasoning.text = '';
+  rows.push(reasoning);
+  rows.push(toolMessage('marketing-dark-process-read-start', 'marketing-dark-process-read', 'read',
+    '{"path":"harmony/entry/src/main/ets/services/ImageCache.ets"}', '', 3, 1, 2));
+  rows.push(toolMessage('marketing-dark-process-read-result', 'marketing-dark-process-read', 'read',
+    '', '已读取缓存键、请求合并与回退路径', 4, 1, 2, true));
+  rows.push(toolMessage('marketing-dark-process-command-start', 'marketing-dark-process-command',
+    'exec_command', '{"command":"npm test -- image-cache"}', '', 5, 1, 2));
+  rows.push(toolMessage('marketing-dark-process-command-result', 'marketing-dark-process-command',
+    'exec_command', '', 'PASS image-cache\n8 tests passed', 6, 1, 2, true));
+  const diff = new ShowcaseDiffPayload();
+  const cacheDiff = new ShowcaseFileDiff();
+  cacheDiff.path = 'harmony/entry/src/main/ets/services/ImageCache.ets';
+  cacheDiff.oldText = 'cache.delete(key);';
+  cacheDiff.newText = 'cache.retainUnlessChanged(key);\n// merge concurrent requests\n// keep the last good image while offline';
+  diff.diffs.push(cacheDiff);
+  const requestDiff = new ShowcaseFileDiff();
+  requestDiff.path = 'harmony/entry/src/main/ets/services/RequestMerge.ets';
+  requestDiff.oldText = 'return fetch(key);';
+  requestDiff.newText = 'return inflight.get(key) || fetchAndShare(key);';
+  diff.diffs.push(requestDiff);
+  const fallbackDiff = new ShowcaseFileDiff();
+  fallbackDiff.path = 'harmony/entry/src/main/ets/components/NativeImageView.ets';
+  fallbackDiff.oldText = 'image = null;';
+  fallbackDiff.newText = 'image = cachedImage;\n// expose retry without clearing the frame';
+  diff.diffs.push(fallbackDiff);
+  const imageCacheTestDiff = new ShowcaseFileDiff();
+  imageCacheTestDiff.path = 'tests/image-cache.test.ts';
+  imageCacheTestDiff.oldText = '';
+  imageCacheTestDiff.newText = 'test(\'offline keeps last image\', () => {\n' +
+    '  expect(renderer.source).toBe(lastGoodImage);\n});\n';
+  diff.diffs.push(imageCacheTestDiff);
+  rows.push(toolMessage('marketing-dark-process-edit-start', 'marketing-dark-process-edit', 'edit',
+    JSON.stringify(diff), '', 7, 1, 2));
+  rows.push(toolMessage('marketing-dark-process-edit-result', 'marketing-dark-process-edit', 'edit',
+    '', '', 8, 1, 2, true));
+  const assistant = message('marketing-dark-process-assistant', 'assistant', 9, 1, 3, '');
+  assistant.text = '重复请求已消失。缓存只在版本真正变化时失效，并发请求会合并，' +
+    '离线时继续展示最近一张成功图片，并保留明确的恢复入口。';
+  assistant.blocks = [
+    textBlock('heading', '重复请求已消失'),
+    textBlock('text', '缓存只在版本真正变化时失效，并发请求会合并，离线时继续展示最近一张成功图片。')
+  ];
+  rows.push(assistant);
+  const end = message('marketing-dark-process-end', 'turn', 10, 1, 3, '');
+  end.eventType = 'turn/end';
+  end.outcome = 'completed';
+  rows.push(end);
+  return showcaseWithHistory('marketing-dark-process', rows, [
+    [
+      '先定位图片缓存失效后的重复请求，看看是键变化还是并发没有合并。',
+      '请求确实被重复发出，原因是版本刷新时先删缓存再等待并发请求，多个页面同时落入了同一空窗。'
+    ],
+    [
+      '离线回退不要清掉已经显示的图片，弱网时也保留最后一次成功结果。',
+      '缓存策略改为版本变化后原子替换，失败时沿用最近一张可用图片并标记可重试。'
+    ]
+  ]);
+}
+
+function showcaseMarketingSubagentMessages(): NativeMessage[] {
+  const rows: NativeMessage[] = [];
+  rows.push(message('marketing-subagent-user', 'user', 1, 1, 1,
+    '审查离线缓存的失效与回退路径，重点看弱网和版本切换。'));
+  const reasoning = message('marketing-subagent-reason', 'reasoning', 2, 1, 2,
+    '先检查版本键，再确认弱网下的失败回退和清理时机。');
+  reasoning.reasoning = reasoning.text;
+  reasoning.text = '';
+  rows.push(reasoning);
+  rows.push(toolMessage('marketing-subagent-read-start', 'marketing-subagent-read', 'read',
+    '{"path":"harmony/entry/src/main/ets/services/OfflineCache.ets"}', '', 3, 1, 2));
+  rows.push(toolMessage('marketing-subagent-read-result', 'marketing-subagent-read', 'read',
+    '', '已读取版本键、失败回退和清理入口', 4, 1, 2, true));
+  const assistant = message('marketing-subagent-assistant', 'assistant', 5, 1, 2,
+    '检查完成。版本切换会清理旧键；弱网失败继续使用最近一次成功结果，并保留重试入口。');
+  rows.push(assistant);
+  const end = message('marketing-subagent-end', 'turn', 6, 1, 2, '');
+  end.eventType = 'turn/end';
+  end.outcome = 'completed';
+  rows.push(end);
+  return showcaseWithHistory('marketing-subagent', rows, [
+    [
+      '先核对离线缓存的版本键和清理时机。',
+      '版本键由工作区标识与内容版本共同组成，旧键会在新结果提交后清理，不会提前失效。'
+    ],
+    [
+      '再看弱网失败时的回退，确认不会把最近一次成功结果清掉。',
+      '失败路径保留最近成功结果，同时记录可重试状态；恢复网络后只合并必要请求。'
+    ]
+  ]);
+}
+
+function showcaseMarketingApprovalMessages(): NativeMessage[] {
+  const rows: NativeMessage[] = [];
+  rows.push(message('marketing-approval-user', 'user', 1, 1, 1,
+    '修正筛选栏在窄屏下的截断问题，只改布局样式并补一条回归检查。'));
+  rows.push(message('marketing-approval-assistant', 'assistant', 2, 1, 2,
+    '已完成定位，接下来需要写入一次组件样式并运行视觉回归。'));
+  const end = message('marketing-approval-end', 'turn', 3, 1, 2, '');
+  end.eventType = 'turn/end';
+  end.outcome = 'completed';
+  rows.push(end);
+  return showcaseWithHistory('marketing-approval', rows, [
+    [
+      '先复现窄屏筛选栏被截断的问题，只记录最小修改范围。',
+      '已复现：筛选标签在 360vp 以下会挤压尾部操作，问题只涉及布局样式，不需要改筛选数据。'
+    ],
+    [
+      '把修复限制在一次组件样式写入，并补一条视觉回归。',
+      '目标文件已经缩小到筛选栏组件和一张回归快照。下一步写入需要一次工作区权限。'
+    ]
+  ]);
+}
+
 function showcaseDockMessages(): NativeMessage[] {
   const rows: NativeMessage[] = [];
   rows.push(message('dock-user', 'user', 1, 1, 1,
@@ -367,6 +921,13 @@ function showcaseLongHistoryMessages(): NativeMessage[] {
 }
 
 function showcaseMessagesFor(state: string): NativeMessage[] {
+  if (state === 'showcase-plan') return showcaseMarketingPlanMessages();
+  if (state === 'showcase-process') return showcaseMarketingProcessMessages();
+  if (state === 'showcase-lineage') return showcaseMarketingLineageMessages();
+  if (state === 'showcase-dark') return showcaseMarketingDarkMessages();
+  if (state === 'showcase-dark-process') return showcaseMarketingDarkProcessMessages();
+  if (state === 'showcase-subagent') return showcaseMarketingSubagentMessages();
+  if (state === 'showcase-approval') return showcaseMarketingApprovalMessages();
   if (state === 'secret-masked') return showcaseSecretMessages();
   if (state === 'dock-send-idle' || state === 'dock-send-error' ||
       state === 'dock-material-quiet' || state === 'interaction-approval' ||
@@ -435,7 +996,7 @@ function showcaseQueue(state: string): NativeQueueItem[] {
 function showcaseInteractionFrame(state: string): NativeFrame | null {
   const approval = state === 'interaction-approval' || state === 'approval-workspace-once' ||
     state === 'approval-full-once' || state === 'approval-long-reason' ||
-    state === 'approval-submitting';
+    state === 'approval-submitting' || state === 'showcase-approval';
   if (!approval && state !== 'interaction-question') return null;
   const frame = new NativeFrame();
   frame.type = 'interaction';
@@ -449,7 +1010,9 @@ function showcaseInteractionFrame(state: string): NativeFrame | null {
     frame.request.toolName = 'workspace/edit';
     frame.request.targetPermission = state === 'approval-full-once' ? 'danger-full-access' : 'workspace-write';
     frame.request.targetScope = frame.request.targetPermission;
-    frame.request.reason = state === 'approval-long-reason' ?
+    frame.request.reason = state === 'showcase-approval' ?
+      '需要写入一次窄屏筛选栏样式，并运行对应的视觉回归检查。' :
+      state === 'approval-long-reason' ?
       '需要写入一次已确认的界面修复。该操作涉及工作区外的发布目录、签名产物与商店截图资源；' +
         '请在确认目标权限和写入范围后决定是否仅放行当前这一次工具调用。' :
       state === 'approval-full-once' ?
@@ -526,18 +1089,25 @@ function isSubagentFixtureState(state: string): boolean {
   return state === 'plan-subagent' || state === 'plan-subagent-long-count' ||
     state === 'plan-off-error' ||
     state === 'subagent-continuable' || state === 'subagent-one-shot' ||
-    state === 'subagent-unknown' || state === 'subagent-parent-offline';
+    state === 'subagent-unknown' || state === 'subagent-parent-offline' ||
+    state === 'showcase-lineage' || state === 'showcase-subagent';
 }
 
 function isPlanFixtureState(state: string): boolean {
   return state === 'plan-subagent' || state === 'plan-subagent-long-count' ||
     state === 'plan-dock-overlay' ||
-    state === 'plan-off-error';
+    state === 'plan-off-error' || state === 'showcase-plan' ||
+    state === 'showcase-lineage' || state === 'showcase-dark';
 }
 
 function showcaseSubagentCatalog(state: string = 'plan-subagent'): ShowcaseSubagentCatalogRow[] {
   const rows: ShowcaseSubagentCatalogRow[] = [];
-  const definitions: string[][] = [
+  const definitions: string[][] = state === 'showcase-lineage' || state === 'showcase-subagent' ? [
+    [SHOWCASE_CHILD_CONTINUABLE, 'continuable', '筛选状态检查'],
+    [SHOWCASE_CHILD_ONE_SHOT, 'one-shot', '接口约束整理'],
+    [SHOWCASE_CHILD_UNKNOWN, 'unknown', '回归用例整理'],
+    [SHOWCASE_CHILD_EXTERNAL, 'external', '视觉回归']
+  ] : [
     [SHOWCASE_CHILD_CONTINUABLE, 'continuable', '可继续检查'],
     [SHOWCASE_CHILD_ONE_SHOT, 'one-shot', '一次性检查'],
     [SHOWCASE_CHILD_UNKNOWN, 'unknown', '未知模式记录'],
@@ -569,30 +1139,86 @@ function showcaseNativeSubagentCatalog(state: string): NativeSubagentEntry[] {
   });
 }
 
-function showcaseChildIdentity(id: string): NativeSubagentIdentity {
+function showcaseChildIdentity(id: string, state: string = ''): NativeSubagentIdentity {
   const identity = new NativeSubagentIdentity();
   identity.mode = id === SHOWCASE_CHILD_ONE_SHOT ? 'one-shot' :
     id === SHOWCASE_CHILD_UNKNOWN ? 'unknown' : 'continuable';
-  identity.label = id === SHOWCASE_CHILD_ONE_SHOT ? '一次性检查' :
-    id === SHOWCASE_CHILD_UNKNOWN ? '未知模式记录' : '可继续检查';
+  identity.label = state === 'showcase-subagent' || state === 'showcase-lineage' ?
+    id === SHOWCASE_CHILD_ONE_SHOT ? '接口约束整理' :
+      id === SHOWCASE_CHILD_UNKNOWN ? '回归用例整理' : '筛选状态检查' :
+    id === SHOWCASE_CHILD_ONE_SHOT ? '一次性检查' :
+      id === SHOWCASE_CHILD_UNKNOWN ? '未知模式记录' : '可继续检查';
   identity.seq = 20;
   return identity;
 }
 
-function showcaseChildMessages(id: string): NativeMessage[] {
-  const identity = showcaseChildIdentity(id);
+function showcaseChildMessages(id: string, state: string = ''): NativeMessage[] {
+  const identity = showcaseChildIdentity(id, state);
   const rows: NativeMessage[] = [];
+  const marketing = state === 'showcase-subagent' || state === 'showcase-lineage';
   rows.push(message('child-user-' + id, 'user', 1, 1, 1,
-    '请检查 ' + identity.label + ' 的原生呈现。'));
-  const assistant = message('child-assistant-' + id, 'assistant', 2, 1, 2,
-    identity.mode === 'continuable' ? '检查完成，可以继续发送消息。' :
+    marketing ?
+      '请检查离线缓存的失效与回退路径，重点看弱网和版本切换。' :
+      '请检查 ' + identity.label + ' 的原生呈现。'));
+  if (marketing) {
+    rows.push(toolMessage('child-read-start-' + id, 'child-cache-read', 'read',
+      '{"path":"harmony/entry/src/main/ets/services/OfflineCache.ets"}', '', 2, 1, 2));
+    rows.push(toolMessage('child-read-result-' + id, 'child-cache-read', 'read',
+      '', '已读取缓存键、失败回退、并发合并和清理入口', 3, 1, 2, true));
+    rows.push(toolMessage('child-test-start-' + id, 'child-cache-test', 'exec_command',
+      '{"command":"npm test -- offline-cache"}', '', 4, 1, 2));
+    rows.push(toolMessage('child-test-result-' + id, 'child-cache-test', 'exec_command',
+      '', 'PASS offline-cache\n14 tests passed\nretry merge verified', 5, 1, 2, true));
+    const diff = new ShowcaseDiffPayload();
+    const cacheDiff = new ShowcaseFileDiff();
+    cacheDiff.path = 'harmony/entry/src/main/ets/services/OfflineCache.ets';
+    cacheDiff.oldText = 'cache.delete(key);';
+    cacheDiff.newText = 'cache.replaceAfterCommit(key);\n' +
+      '// keep the last successful value while offline\n' +
+      '// merge concurrent retries into one request';
+    diff.diffs.push(cacheDiff);
+    const requestDiff = new ShowcaseFileDiff();
+    requestDiff.path = 'harmony/entry/src/main/ets/services/RequestMerge.ets';
+    requestDiff.oldText = 'return fetch(key);';
+    requestDiff.newText = 'return inflight.get(key) || fetchAndShare(key);';
+    diff.diffs.push(requestDiff);
+    const imageDiff = new ShowcaseFileDiff();
+    imageDiff.path = 'harmony/entry/src/main/ets/components/NativeImageView.ets';
+    imageDiff.oldText = 'image = null;';
+    imageDiff.newText = 'image = cachedImage;\n// keep the last successful frame';
+    diff.diffs.push(imageDiff);
+    const cacheTestDiff = new ShowcaseFileDiff();
+    cacheTestDiff.path = 'tests/offline-cache.test.ts';
+    cacheTestDiff.oldText = '';
+    cacheTestDiff.newText = 'test(\'version switch is atomic\', () => {\n' +
+      '  expect(cache.current).toBe(committedValue);\n});\n';
+    diff.diffs.push(cacheTestDiff);
+    rows.push(toolMessage('child-edit-start-' + id, 'child-cache-edit', 'edit',
+      JSON.stringify(diff), '', 6, 1, 2));
+    rows.push(toolMessage('child-edit-result-' + id, 'child-cache-edit', 'edit',
+      '', '', 7, 1, 2, true));
+  }
+  const assistant = message('child-assistant-' + id, 'assistant', marketing ? 8 : 2, 1, 3,
+    marketing ?
+      '检查完成。版本切换会清理旧键；弱网失败继续使用最近一次成功结果。' :
+      identity.mode === 'continuable' ? '检查完成，可以继续发送消息。' :
       '此记录保持只读，不提供发送入口。');
   rows.push(assistant);
-  const end = message('child-end-' + id, 'turn', 3, 1, 2, '');
+  const end = message('child-end-' + id, 'turn', marketing ? 9 : 3, 1, 3, '');
   end.eventType = 'turn/end';
   end.outcome = 'completed';
   rows.push(end);
-  return rows;
+  if (!marketing) return rows;
+  return showcaseWithHistory('child-' + id, rows, [
+    [
+      '先核对缓存版本键，确认版本切换时不会提前清掉仍在使用的键。',
+      '版本键包含工作区标识与内容版本。旧键会在新结果提交后清理，当前实现不存在提前失效。'
+    ],
+    [
+      '再检查弱网和请求失败，已有图片必须继续可见。',
+      '弱网失败会保留最近一次成功结果，只把状态标记为可重试；恢复网络后合并重复请求。'
+    ]
+  ]);
 }
 
 function showcasePlanProjection(planRemoved: boolean): NativePlanProjection {
@@ -608,7 +1234,7 @@ function showcaseProjectionJson(state: string, sessionId: string, planRemoved: b
   if (sessionId === SHOWCASE_CHILD_CONTINUABLE || sessionId === SHOWCASE_CHILD_ONE_SHOT ||
       sessionId === SHOWCASE_CHILD_UNKNOWN) {
     values.subagentKnown = true;
-    values.subagent = showcaseChildIdentity(sessionId);
+    values.subagent = showcaseChildIdentity(sessionId, state);
     values.subagentCatalog = [];
   } else {
     values.modelSelection = new ShowcaseModelSelectionProjection();
@@ -629,6 +1255,13 @@ function showcaseProjectionJson(state: string, sessionId: string, planRemoved: b
 
 function showcaseSessions(state: string = 'completed', planRemoved: boolean = false): NativeSession[] {
   const firstTitle = state === 'live-change' ? '底部 Dock 运行态' :
+    state === 'showcase-plan' ? '整理离线与同步状态' :
+    state === 'showcase-process' ? '排查搜索首帧闪白' :
+    state === 'showcase-lineage' ? '拆分搜索筛选重构' :
+    state === 'showcase-dark' ? '整理通知中心未读分组' :
+    state === 'showcase-dark-process' ? '定位图片缓存重复请求' :
+    state === 'showcase-subagent' ? '审查离线缓存回退' :
+    state === 'showcase-approval' ? '修正窄屏筛选栏' :
     state === 'streaming' ? '流式输出与标题更新' :
     state === 'stream-long' ? '长流持续输出' :
     state === 'stream-repaired' ? '流式 Markdown' :
@@ -672,7 +1305,11 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
     ['showcase-passkey', 'Passkey 登录与远程连接', 'workspace-gateway', 'false'],
     ['showcase-notify', '分级通知与桌面卡片', 'workspace-mobile', 'false'],
     ['showcase-settings', '外观与动效偏好', 'workspace-mobile', 'false'],
-    ['showcase-mobile', '手机端交互适配', 'workspace-mobile', 'false']
+    ['showcase-mobile', '手机端交互适配', 'workspace-mobile', 'false'],
+    ['showcase-streaming', '流式输出与键盘布局', 'workspace-mobile', 'false'],
+    ['showcase-preview', '文件预览格式覆盖', 'workspace-mobile', 'false'],
+    ['showcase-permissions', '权限模式与审批记录', 'workspace-mobile', 'false'],
+    ['showcase-cards', '发布截图与桌面卡片', 'workspace-mobile', 'false']
   ];
   const sessions = definitions.map((row: string[]): NativeSession => {
     const value = new NativeSession();
@@ -685,7 +1322,8 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
       state === 'empty' || state === 'dock-queue-pending' ||
       state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
       state === 'dock-material-elevated' || state === 'interaction-approval' ||
-      state === 'interaction-question' || state === 'approval-workspace-once' ||
+      state === 'interaction-question' || state === 'showcase-approval' ||
+      state === 'approval-workspace-once' ||
       state === 'approval-full-once' || state === 'approval-long-reason' ||
       state === 'approval-submitting') &&
       row[0] === SHOWCASE_SESSION;
@@ -711,17 +1349,17 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
       .forEach((id: string, index: number): void => {
         const child = new NativeSession();
         child.id = id;
-        child.title = showcaseChildIdentity(id).label;
+        child.title = showcaseChildIdentity(id, state).label;
         child.cwd = BuildInfo.appName;
         child.origin = 'subagent';
         child.parentSessionId = SHOWCASE_SESSION;
         child.running = id === SHOWCASE_CHILD_CONTINUABLE &&
-          state === 'subagent-continuable';
+          (state === 'subagent-continuable' || state === 'showcase-subagent');
         child.agentAvailable = true;
         child.updatedAt = 1761900000000 - (index + 2) * 1000;
         const projections = new NativeSubagentProjectionValues();
         projections.subagentKnown = true;
-        projections.subagent = showcaseChildIdentity(id);
+        projections.subagent = showcaseChildIdentity(id, state);
         child.projections = projections;
         sessions.push(child);
       });
@@ -736,7 +1374,9 @@ function showcaseWorkspaces(): NativeWorkspaceSnapshot {
   mobile.workspaceId = 'workspace-mobile';
   mobile.path = BuildInfo.appName;
   mobile.title = BuildInfo.appName + ' 移动端';
-  mobile.sessionIds = ['showcase-release', 'showcase-files', 'showcase-notify', 'showcase-settings', 'showcase-mobile'];
+  mobile.sessionIds = ['showcase-release', 'showcase-files', 'showcase-notify', 'showcase-settings',
+    'showcase-mobile', 'showcase-streaming', 'showcase-preview', 'showcase-permissions',
+    'showcase-cards'];
   const gateway = new NativeWorkspaceItem();
   gateway.workspaceId = 'workspace-gateway';
   gateway.path = 'Passkey Gateway';
@@ -779,6 +1419,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       this.fixtureState === 'dock-material-elevated' ||
       this.fixtureState === 'interaction-approval' ||
       this.fixtureState === 'interaction-question' ||
+      this.fixtureState === 'showcase-approval' ||
       this.fixtureState === 'approval-workspace-once' ||
       this.fixtureState === 'approval-full-once' ||
       this.fixtureState === 'approval-long-reason' ||
@@ -794,13 +1435,14 @@ export class StoreShowcaseClient extends NativeHarnessClient {
         .forEach((id: string): void => {
           const childRunning = id === SHOWCASE_CHILD_CONTINUABLE &&
             this.fixtureState === 'subagent-continuable';
-          const childMessages = showcaseChildMessages(id);
+          const childMessages = showcaseChildMessages(id, this.fixtureState);
           this.childInteractions.set(id,
             new NativeShowcaseInteraction(childMessages, childRunning, 3, []));
         });
     }
     this.interaction.waiting = this.fixtureState === 'interaction-approval' ||
       this.fixtureState === 'interaction-question' ||
+      this.fixtureState === 'showcase-approval' ||
       this.fixtureState === 'approval-workspace-once' ||
       this.fixtureState === 'approval-full-once' ||
       this.fixtureState === 'approval-long-reason' ||
@@ -854,7 +1496,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   }
 
   cacheKey(): string {
-    return 'store-showcase-v1';
+    return 'store-showcase-v2';
   }
 
   async prepareCacheKey(): Promise<void> {
@@ -975,6 +1617,54 @@ export class StoreShowcaseClient extends NativeHarnessClient {
           ]
         },
         {
+          "name": "@dsh/api-inspector",
+          "official": false,
+          "availability": "installation",
+          "installed": true,
+          "enabled": true,
+          "removable": true,
+          "updatable": true,
+          "optional": true,
+          "version": "1.4.0",
+          "title": "API Inspector",
+          "localizedDescription": "查看请求、响应与错误结构",
+          "source": "https://registry.example.invalid/api-inspector",
+          "installSpec": "@dsh/api-inspector",
+          "rows": [
+            {
+              "rowId": "request-trace",
+              "moduleName": "@dsh/api-inspector/trace",
+              "entryId": "request-trace",
+              "title": "请求追踪",
+              "description": "定位接口与重试路径"
+            }
+          ]
+        },
+        {
+          "name": "@dsh/release-notes",
+          "official": false,
+          "availability": "installation",
+          "installed": true,
+          "enabled": true,
+          "removable": true,
+          "updatable": false,
+          "optional": true,
+          "version": "0.9.3",
+          "title": "Release Notes",
+          "localizedDescription": "整理版本说明与变更摘要",
+          "source": "https://registry.example.invalid/release-notes",
+          "installSpec": "@dsh/release-notes",
+          "rows": [
+            {
+              "rowId": "notes-summary",
+              "moduleName": "@dsh/release-notes/summary",
+              "entryId": "notes-summary",
+              "title": "变更摘要",
+              "description": "按任务聚合提交与说明"
+            }
+          ]
+        },
+        {
           "name": "@dsh/markdown-check",
           "official": false,
           "availability": "installation",
@@ -987,6 +1677,21 @@ export class StoreShowcaseClient extends NativeHarnessClient {
           "title": "Markdown Check",
           "localizedDescription": "检查文档链接与代码块",
           "installSpec": "@dsh/markdown-check",
+          "rows": []
+        },
+        {
+          "name": "@dsh/code-search",
+          "official": false,
+          "availability": "installation",
+          "installed": false,
+          "enabled": false,
+          "removable": false,
+          "updatable": false,
+          "optional": true,
+          "version": "0.8.1",
+          "title": "Code Search",
+          "localizedDescription": "在工作区中按语义查找实现",
+          "installSpec": "@dsh/code-search",
           "rows": []
         }
       ],
@@ -1002,6 +1707,20 @@ export class StoreShowcaseClient extends NativeHarnessClient {
           "entryId": "push-delivery",
           "moduleName": "@dsh-harmony/plugin/push",
           "title": "通知投递",
+          "enabled": true,
+          "phase": "active"
+        },
+        {
+          "entryId": "request-trace",
+          "moduleName": "@dsh/api-inspector/trace",
+          "title": "请求追踪",
+          "enabled": true,
+          "phase": "active"
+        },
+        {
+          "entryId": "notes-summary",
+          "moduleName": "@dsh/release-notes/summary",
+          "title": "变更摘要",
           "enabled": true,
           "phase": "active"
         }
@@ -1044,6 +1763,33 @@ export class StoreShowcaseClient extends NativeHarnessClient {
           "targetKind": "session",
           "targetSessionId": "showcase-release",
           "updatedAt": "2026-10-31T08:00:00.000Z"
+        },
+        {
+          "id": "automation-feedback",
+          "kind": "weekly",
+          "status": "active",
+          "title": "整理产品反馈与高频问题",
+          "prompt": "汇总本周反馈，按主题归并高频问题，并标记需要进入规格的条目。",
+          "scheduledAt": "2026-11-04T03:00:00.000Z",
+          "timeZone": "Asia/Shanghai",
+          "time": "11:00:00",
+          "weekdays": [3],
+          "targetKind": "new_once",
+          "targetCwd": ` + JSON.stringify(BuildInfo.appName) + `,
+          "updatedAt": "2026-10-31T08:20:00.000Z"
+        },
+        {
+          "id": "automation-release",
+          "kind": "every",
+          "status": "active",
+          "title": "同步发布进度与阻塞项",
+          "prompt": "检查当前发布任务的状态，列出阻塞项和建议的下一步。",
+          "scheduledAt": "2026-11-04T06:00:00.000Z",
+          "everySeconds": 21600,
+          "timeZone": "Asia/Shanghai",
+          "targetKind": "session",
+          "targetSessionId": "showcase-release",
+          "updatedAt": "2026-11-03T06:00:00.000Z"
         },
         {
           "id": "automation-paused",
@@ -1333,13 +2079,15 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     value.path = path;
     const entries: NativeDirectoryEntry[] = [];
     if (!path || path === '.') {
-      ['config', 'docs', 'harmony', 'gateway'].forEach((name: string): void => {
+      ['.github', 'config', 'docs', 'gateway', 'harmony', 'scripts', 'specs', 'tests']
+        .forEach((name: string): void => {
         const entry = new NativeDirectoryEntry();
         entry.name = name;
         entry.type = 'directory';
         entries.push(entry);
       });
-      ['README.md', 'LICENSE', '.npmrc', 'package.json'].forEach((name: string): void => {
+      ['README.md', 'LICENSE', '.npmrc', 'package.json', 'package-lock.json',
+        'BUILDING.md', 'CHANGELOG.md', '.gitignore'].forEach((name: string): void => {
         const entry = new NativeDirectoryEntry();
         entry.name = name;
         entry.type = 'file';
@@ -1347,25 +2095,57 @@ export class StoreShowcaseClient extends NativeHarnessClient {
         entries.push(entry);
       });
     } else if (path === 'config') {
-      ['app.conf', 'production.env', 'service.cfg'].forEach((name: string): void => {
+      ['app.conf', 'production.env', 'staging.env', 'local.env', 'service.cfg',
+        'models.json', 'permissions.conf', 'notifications.conf', 'preview.conf',
+        'automation.conf'].forEach((name: string): void => {
         const entry = new NativeDirectoryEntry();
         entry.name = name;
         entry.type = 'file';
-        entry.size = name === 'app.conf' ? SHOWCASE_CONF.length : 160;
+        entry.size = name === 'app.conf' ? SHOWCASE_CONF.length : showcaseFileSource(name).length;
         entries.push(entry);
       });
     } else if (path === 'docs') {
-      ['assets', 'archive.zip', 'DEPLOYMENT.md', 'DESIGN.md', 'malformed.csv',
-        'report.tsv', 'users.csv'].forEach((name: string): void => {
+      ['assets', 'BUILDING.md', 'DEPLOYMENT.md', 'DESIGN.md', 'PROTOCOL.md',
+        'PRIVACY.md', 'malformed.csv', 'report.tsv', 'users.csv', 'diagram.svg',
+        'archive.zip'].forEach((name: string): void => {
         const entry = new NativeDirectoryEntry();
         entry.name = name;
         entry.type = name === 'assets' ? 'directory' : 'file';
         entry.size = name === 'users.csv' ? SHOWCASE_CSV.length :
           name === 'report.tsv' ? SHOWCASE_TSV.length :
             name === 'malformed.csv' ? SHOWCASE_MALFORMED_CSV.length :
+              name === 'diagram.svg' ? SHOWCASE_SVG.length :
               name === 'archive.zip' ? SHOWCASE_BINARY.length : 420;
         entries.push(entry);
       });
+    } else if (path === 'harmony') {
+      ['entry', 'build-profile.json5', 'hvigorfile.ts', 'oh-package.json5']
+        .forEach((name: string): void => {
+          const entry = new NativeDirectoryEntry();
+          entry.name = name;
+          entry.type = name === 'entry' ? 'directory' : 'file';
+          entry.size = showcaseFileSource(name).length;
+          entries.push(entry);
+        });
+    } else if (path === 'scripts') {
+      ['build-harmony.ps1', 'capture-store-screenshots.ps1', 'compose-store-screenshots.py',
+        'device-ui-mock-suite.ps1', 'qa.mjs', 'verify-mock-coverage.mjs']
+        .forEach((name: string): void => {
+          const entry = new NativeDirectoryEntry();
+          entry.name = name;
+          entry.type = 'file';
+          entry.size = 1180 + name.length * 42;
+          entries.push(entry);
+        });
+    } else if (path === 'tests') {
+      ['protocol', 'layout', 'unit', 'device-evidence.json']
+        .forEach((name: string): void => {
+          const entry = new NativeDirectoryEntry();
+          entry.name = name;
+          entry.type = name === 'device-evidence.json' ? 'file' : 'directory';
+          entry.size = name === 'device-evidence.json' ? 2840 : 0;
+          entries.push(entry);
+        });
     }
     value.entries = entries;
     return value;
@@ -1438,7 +2218,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       throw new Error('子智能体不支持此附件');
     }
     if (child) {
-      const identity = this.childInteractions.has(id) ? showcaseChildIdentity(id) : null;
+      const identity = this.childInteractions.has(id) ? showcaseChildIdentity(id, this.fixtureState) : null;
       if (!identity || identity.mode !== 'continuable') {
         throw new Error('此子智能体只读');
       }

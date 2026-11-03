@@ -66,7 +66,11 @@ HAP SHA-256
 `3FE9EE11C150C2C7380B5C360C4994782A87AFB2F94162D2445950C641C0DB48`.
 The earlier complete 115/115 visual suite remains qualified on Mock HAP SHA-256
 `F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD`.
-Do not present those two evidence sets as one current-HAP release claim.
+The store-showcase refresh and approval-card density evidence was captured on
+Mock HAP SHA-256
+`020CCE74C12198488D896241AC7AA40BE42A0D059FD60B5C8AA7FB946F582FD7`.
+Do not present these isolated Mock evidence sets as one current release-HAP
+claim.
 
 - Rapid-iteration notice, logo continuity, dark/light themes, reduced motion,
   System Back and Mock logout return:
@@ -95,6 +99,9 @@ Do not present those two evidence sets as one current-HAP release claim.
   `artifacts/device-e2e-final/task-dock-clean/floating-overlay/manifest.json`.
 - Conversation scrollbar physical edge:
   `artifacts/device-e2e-final/conversation-chrome-clean/scrollbar-edge/manifest.json`.
+- Store showcase density and approval-card compactness:
+  `artifacts/store-screenshots/manifest.json` and
+  `artifacts/device-e2e/20261104-permissions-approval-density/permissions/manifest.json`.
 - Previous default Release installation/launch smoke:
   `artifacts/device-e2e-final/release-smoke/manifest.json`.
 
@@ -221,6 +228,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-10-31-store-showcase-screenshots.md](docs/specs/2026-10-31-store-showcase-screenshots.md)
 - Store showcase screenshot E2E:
   [2026-10-31-store-showcase-screenshots-e2e.md](docs/testing/2026-10-31-store-showcase-screenshots-e2e.md)
+- Store showcase refresh requirement:
+  [2026-11-04-store-showcase-refresh.md](docs/requirements/2026-11-04-store-showcase-refresh.md)
+- Store showcase refresh research:
+  [2026-11-04-store-showcase-refresh.md](docs/research/2026-11-04-store-showcase-refresh.md)
+- Store showcase refresh implementation spec:
+  [2026-11-04-store-showcase-refresh.md](docs/specs/2026-11-04-store-showcase-refresh.md)
+- Store showcase refresh E2E:
+  [2026-11-04-store-showcase-refresh-e2e.md](docs/testing/2026-11-04-store-showcase-refresh-e2e.md)
 - AppGallery ACL-safe store variant requirement:
   [2026-10-31-store-acl-variant.md](docs/requirements/2026-10-31-store-acl-variant.md)
 - AppGallery ACL-safe store variant implementation spec:

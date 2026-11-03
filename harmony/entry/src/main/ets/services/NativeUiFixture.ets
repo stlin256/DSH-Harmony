@@ -5,6 +5,8 @@ export class NativeUiFixture {
   ];
   static readonly states: string[] = [
     'iteration-notice', 'completed', 'live-change', 'attachments', 'streaming', 'stream-long', 'empty', 'long-history',
+    'showcase-plan', 'showcase-process', 'showcase-lineage', 'showcase-dark',
+    'showcase-dark-process', 'showcase-subagent', 'showcase-approval',
     'secret-masked', 'stream-repaired', 'document-preview',
     'text-config-preview', 'delimited-preview', 'tsv-preview',
     'delimited-error-preview', 'binary-preview',

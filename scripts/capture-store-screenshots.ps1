@@ -11,6 +11,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'resolve-deveco-home.ps1')
+. (Join-Path $PSScriptRoot 'showcase-scroll-to-tail.ps1')
 $DevEcoHome = Resolve-DevEcoHome -ExplicitHome $DevEcoHome
 if (-not $HapPath) {
   $HapPath = Join-Path $repo 'harmony\entry\build\mock\outputs\mock\entry-mock-signed.hap'
@@ -20,7 +21,9 @@ if (-not $OutputDir) {
 }
 $rawDir = Join-Path $OutputDir 'raw'
 $finalDir = Join-Path $OutputDir 'final'
+$tailDir = Join-Path ([System.IO.Path]::GetTempPath()) 'dsh-store-tail'
 New-Item -ItemType Directory -Force -Path $rawDir, $finalDir | Out-Null
+New-Item -ItemType Directory -Force -Path $tailDir | Out-Null
 Get-ChildItem -LiteralPath $rawDir -Filter '*.png' -File |
   Remove-Item -Force
 
@@ -71,6 +74,15 @@ function Capture([string]$fileName, [string]$screen, [string]$state, [string]$th
     throw "Launch failed for $screen/$state/$theme"
   }
   Start-Sleep -Seconds 4
+  if (@('conversation', 'process', 'lineage', 'subagent') -contains $screen) {
+    $tail = Move-ShowcaseToTail `
+      -BundleName $bundle `
+      -RemotePath "/data/local/tmp/dsh-store-tail-$screen-$state-$theme.json" `
+      -LocalPath (Join-Path $tailDir ($screen + "-" + $state + "-" + $theme + "-tail.json"))
+    if (-not $tail.atTail) {
+      throw "Screenshot fixture did not settle at the tail: $screen/$state/$theme"
+    }
+  }
   devecocli ui screenshot --device $Device --path $path
   if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $path)) {
     throw "Screenshot failed: $fileName"
@@ -78,16 +90,17 @@ function Capture([string]$fileName, [string]$screen, [string]$state, [string]$th
 }
 
 $captures = @(
-  [ordered]@{ file = '01-conversation-light.png'; screen = 'conversation'; state = 'plan-dock-overlay'; theme = 'light' },
-  [ordered]@{ file = '02-process-light.png'; screen = 'process'; state = 'completed'; theme = 'light' },
-  [ordered]@{ file = '03-lineage-light.png'; screen = 'lineage'; state = 'plan-subagent'; theme = 'light' },
+  [ordered]@{ file = '01-conversation-light.png'; screen = 'conversation'; state = 'showcase-plan'; theme = 'light' },
+  [ordered]@{ file = '02-process-light.png'; screen = 'process'; state = 'showcase-process'; theme = 'light' },
+  [ordered]@{ file = '03-lineage-light.png'; screen = 'lineage'; state = 'showcase-lineage'; theme = 'light' },
   [ordered]@{ file = '04-preview-light.png'; screen = 'preview'; state = 'text-config-preview'; theme = 'light' },
-  [ordered]@{ file = '05-settings-light.png'; screen = 'settings'; state = 'completed'; theme = 'light' },
-  [ordered]@{ file = '06-conversation-dark.png'; screen = 'conversation'; state = 'plan-subagent'; theme = 'dark' },
-  [ordered]@{ file = '07-process-dark.png'; screen = 'process'; state = 'completed'; theme = 'dark' },
-  [ordered]@{ file = '08-subagent-dark.png'; screen = 'subagent'; state = 'subagent-continuable'; theme = 'dark' },
+  [ordered]@{ file = '05-approval-light.png'; screen = 'conversation'; state = 'showcase-approval'; theme = 'light' },
+  [ordered]@{ file = '06-conversation-dark.png'; screen = 'conversation'; state = 'showcase-dark'; theme = 'dark' },
+  [ordered]@{ file = '07-process-dark.png'; screen = 'process'; state = 'showcase-dark-process'; theme = 'dark' },
+  [ordered]@{ file = '08-subagent-dark.png'; screen = 'subagent'; state = 'showcase-subagent'; theme = 'dark' },
   [ordered]@{ file = '09-automation-dark.png'; screen = 'automation'; state = 'automation-list'; theme = 'dark' },
-  [ordered]@{ file = '10-plugins-dark.png'; screen = 'plugins'; state = 'plugins-list'; theme = 'dark' }
+  [ordered]@{ file = '10-plugins-dark.png'; screen = 'plugins'; state = 'plugins-list'; theme = 'dark' },
+  [ordered]@{ file = '11-settings-light.png'; screen = 'settings'; state = 'completed'; theme = 'light' }
 )
 
 foreach ($capture in $captures) {
