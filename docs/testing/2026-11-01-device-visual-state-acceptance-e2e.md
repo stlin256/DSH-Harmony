@@ -30,7 +30,7 @@ Implementation spec:
 | Previous Default HAP SHA-256 | `088BFBAF96CC40D97382F1BB062B6A7D2932F7ACB6C06ECB78ED75AD4A3C91BE` |
 | Previous Store HAP SHA-256 | `E81EB570FB7390DBFC72901B66CA6188690154EE6434F37372993297C0C80226` |
 | Store-showcase Mock HAP SHA-256 | `020CCE74C12198488D896241AC7AA40BE42A0D059FD60B5C8AA7FB946F582FD7` |
-| Store-showcase Community Release SHA-256 | `E711CE522B3E3232FC46D3D106747EA9F6D4CC00D75B7F78D143FA3458A163C3` |
+| Current Community Release SHA-256 | `5768B21EA252CEDAADB242C2F21D984086AF7F755EDA7FCCD2EF6C3A19FEE710` |
 | Store-showcase Store Release SHA-256 | `F877638C8AC5E5545E735026B51B7120159FD2BEF8F85160FBDB699699EACD96` |
 | Device-qualified Mock HAP SHA-256 | `F23693248955498EC90306DC2D1942D2DC30F440FE449D73DDB9592FE59412CD` |
 | Launch-notice Mock HAP SHA-256 | `3FE9EE11C150C2C7380B5C360C4994782A87AFB2F94162D2445950C641C0DB48` |
@@ -92,8 +92,8 @@ Implementation spec:
 - Store showcase approval-card density, long-reason/submitting/ended/disconnected
   states and process liveness on the same Mock HAP:
   `artifacts/device-e2e/20261104-permissions-approval-density/permissions/manifest.json`
-- Store-showcase Community Release restored and launched after the store build;
-  installed version `0.4.7 (28)` and the app process remained alive after start.
+- Current Community Release installed and launched after the store build;
+  installed version `0.4.8 (29)` and the app process remained alive after start.
 - Previous PR QA run: `20261101T192208Z-eefbe49f`
   `.artifacts/qa/20261101T192208Z-eefbe49f/report.json`
 - Selector-rhythm PR QA run: `20261102T053410Z-8f4a02be`
@@ -148,7 +148,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-27 | Rapid-iteration notice launch gate | The first-run notice precedes welcome, keeps the shared logo bounds stable, remains on System Back, adapts to light/dark themes, resolves under reduced motion and reappears after logout | Passed on API 26 default-font Mock HAP `3FE9EE11…`; API 23, maximum font, landscape and real-account saved-session relaunch remain Pending |
 | VSA-28 | Store showcase density | Device Mock scenes provide populated conversations, process histories, permission cards, automation/plugin lists and a substantial file preview; portrait composites preserve readable type and keep footer copy clear of the phone frame | Passed on API 26 default-font Mock HAP `020CCE74…`; all 14 portrait and 14 landscape composites reviewed |
 | VSA-29 | Approval card density | The one-shot approval card keeps mode, target scope, reason and countdown without the removed explanatory footer; long reason, submitting, ended, disconnected and light-theme states remain usable | Passed on API 26 default-font Mock HAP `020CCE74…` |
-| VSA-30 | Final variant restore | After building and checking the store variant, the Community Release installs over the device build, launches and leaves a live process | Passed on API 26; Community HAP `E711CE52…`, version `0.4.7 (28)` |
+| VSA-30 | Final variant restore | After building and checking the store variant, the Community Release installs over the device build, launches and leaves a live process | Passed on API 26; Community HAP `5768B21E…`, version `0.4.8 (29)` |
 
 ## Remaining device checks
 
