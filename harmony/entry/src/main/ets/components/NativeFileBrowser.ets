@@ -338,6 +338,7 @@ export struct NativeFileBrowser {
         glyph: 'close-outline',
         label: '关闭文件浏览器',
         tone: 'primary',
+        controlId: 'file-browser-close',
         glyphSize: NativeDesign.glyphControl,
         onPressed: (): void => { this.onClose(); }
       })
@@ -396,6 +397,7 @@ export struct NativeFileBrowser {
         .stateEffect(false)
         .enabled(entry.type !== 'other')
         .accessibilityText(entry.name + '，' + entry.type)
+        .id('file-entry-' + entry.name)
         .onClick(() => { this.open(entry); })
       if (entry.type === 'directory') {
         DSHIcon({ glyph: 'chevron-left-outline', glyphSize: NativeDesign.glyphInline,

@@ -369,6 +369,15 @@
       "drivers": ["device-ui-mock-suite.ps1", "device-ui-frontend-hardening-e2e.ps1"],
       "e2eIds": ["FHH-04", "FHH-05"],
       "requiresInteraction": true
+    },
+    {
+      "id": "store.review-demo",
+      "screens": ["conversation", "settings"],
+      "states": ["showcase-plan"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-store-review-e2e.ps1"],
+      "e2eIds": ["SR-01", "SR-02", "SR-03", "SR-04", "SR-05",
+        "SR-06", "SR-07", "SR-08", "SR-09", "SR-10", "SR-11", "SR-12", "SR-13"],
+      "requiresInteraction": true
     }
   ]
 }

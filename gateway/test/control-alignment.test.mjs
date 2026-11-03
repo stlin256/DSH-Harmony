@@ -73,7 +73,8 @@ test('major native pages share the documented content edge', () => {
   const settings = readComponent('NativeSettings.ets');
   assert.doesNotMatch(settings, /left: 12 \+ this\.safeLeft/);
   assert.match(settings, /private rootHeader\(\)[\s\S]{0,360}NativeDesign\.pageInset/);
-  assert.match(settings, /private pageHeader\([\s\S]{0,420}NativeDesign\.pageInset/);
+  assert.match(settings, /private pageHeader\([\s\S]{0,480}NativeDesign\.pageInset/);
+  assert.match(settings, /private pageHeader\([\s\S]{0,160}controlId: 'settings-back'/);
 
   const workspace = readComponent('NativeWorkspace.ets');
   assert.match(workspace, /left: NativeDesign\.drawerInset, right: NativeDesign\.drawerInset/);

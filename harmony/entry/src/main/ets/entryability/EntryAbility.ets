@@ -30,7 +30,9 @@ export default class EntryAbility extends UIAbility {
 
   onForeground(): void {
     AppStorage.setOrCreate<boolean>('nativeAppActive', true);
-    NativeExperience.refresh(this.context);
+    NativeExperience.refresh(this.context,
+      AppStorage.get<boolean>('storeReviewPresentationActive') === true ||
+      AppStorage.get<boolean>('storeShowcase') === true);
     AppStorage.setOrCreate<number>('pocketForegroundRevision', (AppStorage.get<number>('pocketForegroundRevision') || 0) + 1);
   }
 
@@ -74,25 +76,27 @@ export default class EntryAbility extends UIAbility {
   }
 
   private route(want: Want): void {
-    const storeShowcase = want.parameters?.storeShowcase;
-    if (ProductCapabilities.supportsMockFixtures ||
-      storeShowcase === true || storeShowcase === 'true') {
+    if (ProductCapabilities.supportsMockFixtures) {
       AppStorage.setOrCreate<boolean>('storeShowcase', true);
+      const showcaseScreen = want.parameters?.showcaseScreen;
+      AppStorage.setOrCreate<string>('storeShowcaseScreen', NativeUiFixture.screen(showcaseScreen));
+      AppStorage.setOrCreate<boolean>('storeShowcaseProcessOpen',
+        NativeUiFixture.screen(showcaseScreen) === 'process');
+      const showcaseState = want.parameters?.showcaseState;
+      AppStorage.setOrCreate<string>('storeShowcaseState', NativeUiFixture.state(showcaseState));
+      const showcaseTheme = want.parameters?.showcaseTheme;
+      AppStorage.setOrCreate<string>('storeShowcaseTheme', NativeUiFixture.theme(showcaseTheme));
+      const showcaseReduceMotion = want.parameters?.showcaseReduceMotion;
+      AppStorage.setOrCreate<boolean>('showcaseReduceMotion',
+        showcaseReduceMotion === true || showcaseReduceMotion === 'true');
+      const showcaseReduceTransparency = want.parameters?.showcaseReduceTransparency;
+      AppStorage.setOrCreate<boolean>('showcaseReduceTransparency',
+        showcaseReduceTransparency === true || showcaseReduceTransparency === 'true');
+    } else {
+      // Store review activation must pass through the fixed-origin credential
+      // check in Index; exported Want parameters cannot open the showcase.
+      AppStorage.setOrCreate<boolean>('storeShowcase', false);
     }
-    const showcaseScreen = want.parameters?.showcaseScreen;
-    AppStorage.setOrCreate<string>('storeShowcaseScreen', NativeUiFixture.screen(showcaseScreen));
-    AppStorage.setOrCreate<boolean>('storeShowcaseProcessOpen',
-      NativeUiFixture.screen(showcaseScreen) === 'process');
-    const showcaseState = want.parameters?.showcaseState;
-    AppStorage.setOrCreate<string>('storeShowcaseState', NativeUiFixture.state(showcaseState));
-    const showcaseTheme = want.parameters?.showcaseTheme;
-    AppStorage.setOrCreate<string>('storeShowcaseTheme', NativeUiFixture.theme(showcaseTheme));
-    const showcaseReduceMotion = want.parameters?.showcaseReduceMotion;
-    AppStorage.setOrCreate<boolean>('showcaseReduceMotion',
-      showcaseReduceMotion === true || showcaseReduceMotion === 'true');
-    const showcaseReduceTransparency = want.parameters?.showcaseReduceTransparency;
-    AppStorage.setOrCreate<boolean>('showcaseReduceTransparency',
-      showcaseReduceTransparency === true || showcaseReduceTransparency === 'true');
     const route = want.parameters?.pocketRoute;
     if (typeof route === 'string' && ['workspace', 'overview', 'settings'].includes(route)) {
       AppStorage.setOrCreate<string>('requestedPocketRoute', route);

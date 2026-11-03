@@ -1113,6 +1113,11 @@ export struct NativeWorkspace {
   private handleError(error: Error): void {
     if (!this.mounted) return;
     if (error instanceof NativeHttpError && error.status === 401) { this.onLogin(); return; }
+    if (error instanceof NativeHttpError && error.status === 402 &&
+      error.code === 'insufficient_balance') {
+      this.error = '账户余额不足，请充值后重试';
+      return;
+    }
     this.error = error.message || '连接失败，请刷新后重试';
   }
   private activityChanged(): void {
@@ -3231,6 +3236,7 @@ export struct NativeWorkspace {
           }.width('100%').padding({ left: 10, right: 10 })
         }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(Color.Transparent)
+          .id('sidebar-plugins')
           .onClick((): void => { this.openDrawerDestination('plugins'); })
         Button({ type: ButtonType.Normal }) {
           Row({ space: 10 }) {
@@ -3241,6 +3247,7 @@ export struct NativeWorkspace {
           }.width('100%').padding({ left: 10, right: 10 })
         }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(Color.Transparent)
+          .id('sidebar-automation')
           .onClick((): void => { this.openDrawerDestination('automation'); })
         Button({ type: ButtonType.Normal }) {
           Row({ space: 10 }) {
@@ -3252,6 +3259,7 @@ export struct NativeWorkspace {
           }.width('100%').padding({ left: 10, right: 10 })
         }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.moreOpen ? this.fieldSurface() : Color.Transparent)
+          .id('sidebar-more')
           .accessibilityText(this.moreOpen ? '收起更多' : '展开更多')
           .onClick((): void => { this.toggleMore(); })
         if (this.moreOpen) {
@@ -3263,6 +3271,7 @@ export struct NativeWorkspace {
               }.width('100%').padding({ left: 30, right: 10 })
             }.width('100%').height(NativeDesign.compactRow).borderRadius(NativeDesign.radiusControl)
               .backgroundColor(Color.Transparent).enabled(!!this.moreFileSession())
+              .id('sidebar-files')
               .onClick((): void => { this.openMoreFileBrowser(); })
             Button({ type: ButtonType.Normal }) {
               Row({ space: 10 }) {
@@ -3342,6 +3351,7 @@ export struct NativeWorkspace {
         }.width('100%').padding({ left: 10, right: 10 })
       }.width('100%').height(NativeDesign.hitTarget).borderRadius(NativeDesign.radiusRow)
         .backgroundColor(Color.Transparent)
+        .id('workspace-settings')
         .accessibilityText('应用设置').onClick(() => {
           this.onSettings();
         })
@@ -3374,6 +3384,7 @@ export struct NativeWorkspace {
   private subagentEditableComposer() {
     Column({ space: 3 }) {
       TextArea({ text: this.draft, placeholder: '发送消息…' }).height(NativeDesign.compactHitTarget)
+        .id('composer-input')
         .enabled(!this.sending && this.currentSubagentInputEnabled())
         .placeholderColor(this.tertiaryText())
         .fontSize(NativeDesign.fontBody).borderRadius(0).padding({ left: 7, right: 7, top: 3, bottom: 3 })

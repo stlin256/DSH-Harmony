@@ -4,6 +4,7 @@ import { util } from '@kit.ArkTS';
 import { KeyboardAvoidMode } from '@kit.ArkUI';
 import { webview } from '@kit.ArkWeb';
 import { http } from '@kit.NetworkKit';
+import { cryptoFramework } from '@kit.CryptoArchitectureKit';
 import { picker } from '@kit.CoreFileKit';
 import { PocketBridge } from '../services/PocketBridge';
 import { WindowAppearance } from '../services/WindowAppearance';
@@ -319,6 +320,14 @@ struct Index {
     try {
       if (this.origin && this.origin !== next) throw new Error('请先退出当前连接');
       this.origin = next;
+      const reviewOrigin = this.normalize(ProductCapabilities.storeReviewOrigin);
+      const storedReview = ProductCapabilities.supportsStoreReview &&
+        next === reviewOrigin &&
+        this.store?.getSync('storeReviewMode', false) === true;
+      if (storedReview || await this.storeReviewCredentialMatches(next, this.accessKey)) {
+        await this.activateStoreReview(next);
+        return;
+      }
       this.nativeClient = new NativeHarnessClient(next);
       let state = await this.nativeClient.state();
       if (this.mode === 'native') {
@@ -355,6 +364,101 @@ struct Index {
       this.origin = ''; this.ready = false;
       throw new Error(error instanceof Error ? error.message : '连接失败');
     } finally { this.busy = false; }
+  }
+
+  private async storeReviewCredentialMatches(origin: string, credential: string): Promise<boolean> {
+    if (!ProductCapabilities.supportsStoreReview ||
+      origin !== this.normalize(ProductCapabilities.storeReviewOrigin) ||
+      !credential.trim()) return false;
+    try {
+      const md = cryptoFramework.createMd('SHA256');
+      const encoder = util.TextEncoder.create();
+      await md.update({ data: encoder.encodeInto(origin + '\n' + credential.trim()) });
+      const digest = await md.digest();
+      let hash = '';
+      for (let index = 0; index < digest.data.length; index++) {
+        hash += digest.data[index].toString(16).padStart(2, '0');
+      }
+      return hash.toUpperCase() === ProductCapabilities.storeReviewCredentialSha256.toUpperCase();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  private loadStoreReviewPresentation(): void {
+    const theme = this.store?.getSync('storeReviewTheme', 'system') as string;
+    AppStorage.setOrCreate<string>('storeShowcaseTheme',
+      theme === 'dark' || theme === 'light' ? theme : 'system');
+    AppStorage.setOrCreate<boolean>('showcaseReduceMotion',
+      this.store?.getSync('storeReviewReduceMotion', false) === true);
+    AppStorage.setOrCreate<boolean>('showcaseReduceTransparency',
+      this.store?.getSync('storeReviewReduceTransparency', false) === true);
+    AppStorage.setOrCreate<boolean>('showcaseWidgetDetails',
+      this.store?.getSync('storeReviewWidgetDetails', true) === true);
+    AppStorage.setOrCreate<boolean>('showcaseBackgroundMonitor',
+      this.store?.getSync('storeReviewBackgroundMonitor', false) === true);
+    AppStorage.setOrCreate<string>('showcaseNotifyCompleted',
+      this.store?.getSync('storeReviewNotifyCompleted', 'quiet') as string);
+    AppStorage.setOrCreate<string>('showcaseNotifyFailed',
+      this.store?.getSync('storeReviewNotifyFailed', 'standard') as string);
+    AppStorage.setOrCreate<string>('showcaseNotifyApproval',
+      this.store?.getSync('storeReviewNotifyApproval', 'standard') as string);
+    AppStorage.setOrCreate<string>('showcaseNotifyConnection',
+      this.store?.getSync('storeReviewNotifyConnection', 'off') as string);
+  }
+
+  private async persistStoreReviewValue(key: string, value: string | boolean): Promise<void> {
+    this.store?.putSync(key, value);
+    try { await this.store?.flush(); } catch (_) {}
+  }
+
+  private async clearStoreReviewPresentation(): Promise<void> {
+    if (!this.store) return;
+    this.store.putSync('storeReviewTheme', 'system');
+    this.store.putSync('storeReviewNotifyCompleted', 'quiet');
+    this.store.putSync('storeReviewNotifyFailed', 'standard');
+    this.store.putSync('storeReviewNotifyApproval', 'standard');
+    this.store.putSync('storeReviewNotifyConnection', 'off');
+    ['storeReviewReduceMotion', 'storeReviewReduceTransparency',
+      'storeReviewBackgroundMonitor'].forEach((key: string): void => {
+      this.store?.putSync(key, false);
+    });
+    this.store.putSync('storeReviewWidgetDetails', true);
+    try { await this.store.flush(); } catch (_) {}
+  }
+
+  private async activateStoreReview(origin: string): Promise<void> {
+    this.showcase = true;
+    this.uiMode = 'native';
+    this.applyKeyboardAvoidMode();
+    this.loadStoreReviewPresentation();
+    AppStorage.setOrCreate<boolean>('storeReviewPresentationActive', true);
+    AppStorage.setOrCreate<boolean>('nativeUserReduceMotion',
+      AppStorage.get<boolean>('showcaseReduceMotion') === true);
+    AppStorage.setOrCreate<boolean>('nativeReduceTransparency',
+      AppStorage.get<boolean>('showcaseReduceTransparency') === true);
+    const reviewTheme = AppStorage.get<string>('storeShowcaseTheme');
+    this.nativeThemeMode = reviewTheme === 'dark' || reviewTheme === 'light' ?
+      reviewTheme : 'system';
+    NativeExperience.changed();
+    this.nativeClient = new StoreShowcaseClient('showcase-plan', true);
+    this.address = origin;
+    this.origin = origin;
+    this.authOrigin = '';
+    this.proxyAuth = false;
+    this.authSurface = false;
+    AppStorage.setOrCreate<boolean>('nativeAuthSurface', false);
+    this.bridge = null;
+    this.error = '';
+    this.accessKey = '';
+    this.ready = true;
+    this.settingsCached = true;
+    this.store?.putSync('origin', origin);
+    this.store?.putSync('mode', 'native');
+    this.store?.putSync('storeReviewMode', true);
+    await this.store?.flush();
+    if (this.uiMode === 'native') this.openPocketRoute();
+    this.applyNativeTheme();
   }
 
   private allowed(url: string): boolean {
@@ -461,25 +565,39 @@ struct Index {
       if (command === 'nativeState') return StoreShowcaseClient.initialState();
       if (command === 'themeMode') {
         this.nativeThemeMode = value;
+        AppStorage.setOrCreate<string>('storeShowcaseTheme', value);
+        await this.persistStoreReviewValue('storeReviewTheme', value);
         this.applyNativeTheme();
+        NativeExperience.changed();
       }
       if (command === 'reduceMotion' || command === 'reduceTransparency') {
         const enabled = value === 'true';
         const motionKey = command === 'reduceMotion' ? 'showcaseReduceMotion' : 'showcaseReduceTransparency';
+        const runtimeKey = command === 'reduceMotion' ? 'nativeUserReduceMotion' : 'nativeReduceTransparency';
+        const reviewKey = command === 'reduceMotion' ?
+          'storeReviewReduceMotion' : 'storeReviewReduceTransparency';
         AppStorage.setOrCreate<boolean>(motionKey, enabled);
+        AppStorage.setOrCreate<boolean>(runtimeKey, enabled);
+        await this.persistStoreReviewValue(reviewKey, enabled);
+        NativeExperience.changed();
         return JSON.stringify({
-          reduceMotion: AppStorage.get<boolean>('showcaseReduceMotion') === true,
-          reduceTransparency: AppStorage.get<boolean>('showcaseReduceTransparency') === true,
+          reduceMotion: AppStorage.get<boolean>('nativeUserReduceMotion') === true,
+          reduceTransparency: AppStorage.get<boolean>('nativeReduceTransparency') === true,
           themeMode: this.nativeThemeMode
         });
       }
       if (command === 'widgetDetails') {
-        AppStorage.setOrCreate<boolean>('showcaseWidgetDetails', value === 'true');
-        return JSON.stringify({ widgetDetails: value === 'true' });
+        const enabled = value === 'true';
+        AppStorage.setOrCreate<boolean>('showcaseWidgetDetails', enabled);
+        await this.persistStoreReviewValue('storeReviewWidgetDetails', enabled);
+        return JSON.stringify({ widgetDetails: enabled });
       }
       if (command === 'backgroundMonitor') {
-        AppStorage.setOrCreate<boolean>('showcaseBackgroundMonitor', value === 'true');
-        return JSON.stringify({ backgroundMonitor: value === 'true' });
+        const enabled = value === 'true';
+        AppStorage.setOrCreate<boolean>('showcaseBackgroundMonitor', enabled);
+        AppStorage.setOrCreate<boolean>('nativeBackgroundMonitor', enabled);
+        await this.persistStoreReviewValue('storeReviewBackgroundMonitor', enabled);
+        return JSON.stringify({ backgroundMonitor: enabled });
       }
       if (command === 'notificationLevels') {
         const preferences = JSON.parse(value) as Record<string, Object>;
@@ -491,6 +609,12 @@ struct Index {
         AppStorage.setOrCreate<string>('showcaseNotifyFailed', failed);
         AppStorage.setOrCreate<string>('showcaseNotifyApproval', approval);
         AppStorage.setOrCreate<string>('showcaseNotifyConnection', connection);
+        await Promise.all([
+          this.persistStoreReviewValue('storeReviewNotifyCompleted', completed),
+          this.persistStoreReviewValue('storeReviewNotifyFailed', failed),
+          this.persistStoreReviewValue('storeReviewNotifyApproval', approval),
+          this.persistStoreReviewValue('storeReviewNotifyConnection', connection)
+        ]);
         return value;
       }
       if (command === 'nativeCompatibilityActive') return '{}';
@@ -500,6 +624,8 @@ struct Index {
     return await this.bridge.performNative(command, value);
   }
   private async resetConnectionState(): Promise<void> {
+    const leavingStoreReview = ProductCapabilities.supportsStoreReview &&
+      this.store?.getSync('storeReviewMode', false) === true;
     const retainedAddress = this.origin || this.address;
     if (this.origin) {
       const scope = this.nativeClient.cacheKey();
@@ -522,6 +648,15 @@ struct Index {
     this.address = retainedAddress; this.accessKey = ''; this.error = '';
     this.bridge = null; this.controller = new webview.WebviewController();
     this.nativeClient = new NativeHarnessClient('');
+    if (leavingStoreReview) {
+      this.showcase = false;
+      AppStorage.setOrCreate<boolean>('storeShowcase', false);
+      AppStorage.setOrCreate<boolean>('storeReviewPresentationActive', false);
+      this.store?.putSync('storeReviewMode', false);
+      await this.clearStoreReviewPresentation();
+      NativeExperience.refresh(this.context);
+      this.nativeThemeMode = AppStorage.get<string>('nativeThemeMode') || 'system';
+    }
     this.requestedPocketRoute = ''; this.requestedSession = '';
     try { this.store?.putSync('origin', retainedAddress); await this.store?.flush(); } catch (_) {}
     this.onboardingSeen = false;

@@ -538,6 +538,7 @@ export struct NativeAutomationSurface {
       }.width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
         .padding({ left: NativeDesign.rowInset, right: NativeDesign.rowInset, top: 7, bottom: 7 })
     }.width('100%').borderRadius(NativeDesign.radiusRow).backgroundColor(Color.Transparent)
+      .id('automation-task-' + task.id)
       .onClick((): void => { this.openDetail(task); })
       .transition(NativeMotion.rowTransition())
   }
@@ -570,6 +571,7 @@ export struct NativeAutomationSurface {
         if (this.refreshing) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.accent())
         NativeIconButton({
           glyph: 'plus-outline', label: '创建任务', tone: 'primary', glyphSize: NativeDesign.glyphControl,
+          controlId: 'automation-create',
           onPressed: (): void => { this.openCreate(); }
         })
       }.width('100%').height(NativeDesign.headerHeight)
@@ -634,11 +636,13 @@ export struct NativeAutomationSurface {
           Row({ space: 8 }) {
             Button(this.actionBusy === 'active' ? '处理中…' :
               this.selected.status === 'active' ? '暂停' : '启用', { type: ButtonType.Normal })
+              .id('automation-active')
               .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
               .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
               .fontColor(this.primaryText()).enabled(!this.actionBusy && this.selected.status !== 'ended')
               .onClick((): void => { this.toggleActive(); })
             Button(this.actionBusy === 'run' ? '正在运行…' : '立即运行', { type: ButtonType.Normal })
+              .id('automation-run')
               .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
               .borderRadius(NativeDesign.radiusControl).backgroundColor(this.accent())
               .fontColor(NativeDesign.textInverse(this.dark))
@@ -681,7 +685,7 @@ export struct NativeAutomationSurface {
             }.width('100%').padding({ left: 12, right: 12 })
           }.width('100%').height(NativeDesign.doubleLineRow).borderRadius(NativeDesign.radiusRow)
             .backgroundColor(this.fieldSurface()).onClick((): void => { this.openHistory(); })
-          Button('删除任务', { type: ButtonType.Normal }).width('100%')
+          Button('删除任务', { type: ButtonType.Normal }).width('100%').id('automation-delete')
             .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection).borderRadius(NativeDesign.radiusControl)
             .backgroundColor(NativeDesign.dangerSurface(this.dark)).fontColor(this.danger())
             .enabled(!this.actionBusy).onClick((): void => { this.confirmDelete(); })
@@ -781,12 +785,14 @@ export struct NativeAutomationSurface {
         Column({ space: 8 }) {
           this.fieldLabel('名称')
           TextInput({ text: this.formTitle, placeholder: '任务名称' })
+            .id('automation-title')
             .width('100%').height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
             .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
             .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
             .onChange((value: string): void => { this.formTitle = value; })
           this.fieldLabel('指令')
           TextArea({ text: this.formPrompt, placeholder: '发送给智能体的任务指令' })
+            .id('automation-prompt')
             .width('100%').height(120).fontSize(NativeDesign.fontCompact).padding(10)
             .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
             .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
@@ -837,6 +843,7 @@ export struct NativeAutomationSurface {
               .onChange((value: string): void => { this.formPreset = value; })
           }
           Button(this.saving ? '保存中…' : '保存任务', { type: ButtonType.Normal }).width('100%')
+            .id('automation-save')
             .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontCompact).borderRadius(NativeDesign.radiusControl)
             .backgroundColor(this.accent()).fontColor(NativeDesign.textInverse(this.dark))
             .enabled(!this.saving && this.formValid() && !this.conflict)

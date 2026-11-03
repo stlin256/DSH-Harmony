@@ -563,7 +563,7 @@ export struct NativeSettings {
   @Builder
   private pageHeader(title: string) {
     Row({ space: 8 }) {
-      NativeIconButton({ glyph: 'chevron-left-outline', label: '返回设置', tone: 'primary',
+      NativeIconButton({ glyph: 'chevron-left-outline', label: '返回设置', tone: 'primary', controlId: 'settings-back',
         onPressed: (): void => { this.openPage('root'); } })
       Text(title).fontSize(NativeDesign.fontHeaderTitle).fontWeight(FontWeight.Medium).layoutWeight(1)
         .fontColor(this.primaryText())
@@ -626,6 +626,7 @@ export struct NativeSettings {
     }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
       .borderRadius(0).backgroundColor(Color.Transparent)
       .accessibilityText(title + (detail ? '，' + detail : ''))
+      .id('settings-open-' + page)
       .onClick(() => { this.openPage(page); })
   }
 
@@ -687,6 +688,7 @@ export struct NativeSettings {
       if (this.hostSaving.includes(ns + ':' + field)) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
       else {
         Select(this.choiceOptions(values, labels, current))
+          .id('settings-' + ns + '-' + field)
           .selected(this.choiceIndex(values, current))
           .value(this.choiceLabel(values, labels, current))
           .font({ size: NativeDesign.fontCompact }).height(NativeDesign.hitTarget)
@@ -725,6 +727,7 @@ export struct NativeSettings {
       } else {
         Select(this.choiceOptions(this.permissionDefaultValues(), this.permissionDefaultLabels(),
           this.permissionDefaultCurrent()))
+          .id('settings-permission-defaultPreset')
           .selected(this.choiceIndex(this.permissionDefaultValues(), this.permissionDefaultCurrent()))
           .value(this.choiceLabel(this.permissionDefaultValues(), this.permissionDefaultLabels(),
             this.permissionDefaultCurrent()))
@@ -849,6 +852,7 @@ export struct NativeSettings {
       if (this.pendingFor(key)) LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
       if (showToggle) {
         Toggle({ type: ToggleType.Switch, isOn: this.localValue(key) })
+          .id('settings-toggle-state-' + key + '-' + (this.localValue(key) ? 'on' : 'off'))
           .enabled(!this.initializing && unavailable.length === 0 && !this.pendingFor(key))
           .selectedColor(NativeDesign.accentStrong(this.dark))
           .hitTestBehavior(HitTestMode.None)
@@ -857,6 +861,7 @@ export struct NativeSettings {
     }.width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
       .padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset, top: 7, bottom: 7 })
       .enabled(!this.initializing && unavailable.length === 0 && !this.pendingFor(key))
+      .id('settings-toggle-' + key)
       .onClick(() => {
         if (showToggle) this.setting(key, !this.localValue(key));
       })
@@ -868,6 +873,8 @@ export struct NativeSettings {
       Column({ space: 7 }) {
         DSHIcon({ glyph: icon, glyphSize: NativeDesign.glyphControlEmphasis,
           color: this.themeMode === mode ? this.primaryText() : this.tertiaryText() })
+          .id('settings-theme-state-' + mode + '-' +
+            (this.themeMode === mode ? 'selected' : 'unselected'))
         Text(label).fontSize(NativeDesign.fontSection)
           .fontColor(this.themeMode === mode ? this.primaryText() : this.tertiaryText())
       }
@@ -877,6 +884,7 @@ export struct NativeSettings {
       .border({ width: this.themeMode === mode ? 1 : 0,
         color: this.themeMode === mode ? NativeDesign.border(this.dark) : Color.Transparent })
       .enabled(!this.initializing && !this.pendingFor('theme'))
+      .id('settings-theme-' + mode)
       .onClick(() => { this.theme(mode); })
   }
 
@@ -913,6 +921,7 @@ export struct NativeSettings {
   @Builder
   private notificationLevelButton(category: string, levelValue: string, label: string) {
     Button(label, { type: ButtonType.Normal }).layoutWeight(1).height(NativeDesign.compactControl)
+      .id('settings-notification-' + category + '-' + levelValue)
       .responseRegion({ x: 0, y: -6, width: '100%', height: NativeDesign.hitTarget })
       .fontSize(NativeDesign.fontMicro).borderRadius(NativeDesign.radiusControl)
       .backgroundColor(this.notificationValue(category) === levelValue ? NativeDesign.accentStrong(this.dark) :
@@ -957,6 +966,7 @@ export struct NativeSettings {
     }.width('100%').constraintSize({ minHeight: NativeDesign.standardRow + 8 })
       .padding({ left: NativeDesign.cardPadding, right: 13, top: 7, bottom: 7 })
       .enabled(!this.initializing && !this.pendingFor(command))
+      .id('settings-action-' + command)
       .onClick(() => { this.action(command); })
   }
 

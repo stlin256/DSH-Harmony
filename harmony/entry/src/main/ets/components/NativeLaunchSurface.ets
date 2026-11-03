@@ -491,6 +491,7 @@ export struct NativeLaunchSurface {
           .backgroundColor(this.raised()).fontColor(this.foreground())
           .placeholderColor(this.secondary())
           .border({ width: 1, color: this.subtleStroke() })
+          .id('launch-login-address')
           .onChange((value: string): void => { this.onAddressChange(value); })
       }.width('100%').alignItems(HorizontalAlign.Start)
       Column({ space: 8 }) {
@@ -502,6 +503,7 @@ export struct NativeLaunchSurface {
             .backgroundColor(this.raised()).fontColor(this.foreground())
             .placeholderColor(this.secondary())
             .border({ width: 1, color: this.subtleStroke() })
+            .id('launch-login-access-key')
             .onChange((value: string): void => { this.onAccessKeyChange(value); })
         }
         if (this.showPasskey) {

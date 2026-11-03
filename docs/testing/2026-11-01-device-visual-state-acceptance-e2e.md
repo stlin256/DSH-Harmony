@@ -149,6 +149,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-28 | Store showcase density | Device Mock scenes provide populated conversations, process histories, permission cards, automation/plugin lists and a substantial file preview; portrait composites preserve readable type and keep footer copy clear of the phone frame | Passed on API 26 default-font Mock HAP `020CCE74…`; all 14 portrait and 14 landscape composites reviewed |
 | VSA-29 | Approval card density | The one-shot approval card keeps mode, target scope, reason and countdown without the removed explanatory footer; long reason, submitting, ended, disconnected and light-theme states remain usable | Passed on API 26 default-font Mock HAP `020CCE74…` |
 | VSA-30 | Final variant restore | After building and checking the store variant, the Community Release installs over the device build, launches and leaves a live process | Passed on API 26; Community HAP `5768B21E…`, version `0.4.8 (29)` |
+| VSA-31 | Store review experience | Store-only activation opens populated native sessions, settings, permissions, plugins, automation and file previews without a review label; mutable settings and the structured insufficient-balance response render correctly | Pending; current request is compile-gated and the device driver has not been run |
 
 ## Remaining device checks
 
@@ -169,6 +170,10 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   runs, plus a real-account saved-session relaunch after confirmation.
 - Store-showcase landscape exports were reviewed as generated images, not as
   live app landscape layouts; live landscape behavior remains Pending.
+- The store review experience still requires the pending driver run in
+  [`2026-11-04-store-review-demo-e2e.md`](2026-11-04-store-review-demo-e2e.md)
+  on a store Release HAP, including restore, settings mutation, send failure
+  and logout.
 
 These environment-bound checks remain `Pending`; source tests and the current
 API 26 portrait default-font device run are not substitutes for them.

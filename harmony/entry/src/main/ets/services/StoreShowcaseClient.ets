@@ -6,7 +6,9 @@ import {
   NativeFilePage,
   NativeFileStat,
   NativeHarnessClient,
-  NativeAttachmentDraft
+  NativeHttpError,
+  NativeAttachmentDraft,
+  NativeUploadResult
 } from './NativeHarnessClient';
 import {
   NativeFrame,
@@ -38,6 +40,19 @@ import {
 } from './NativeShowcaseInteraction';
 import { NativeUiFixture } from './NativeUiFixture';
 import { NativePermissionSelection } from './NativePermissions';
+import {
+  NativeAutomationCatalog,
+  NativeAutomationDelivery,
+  NativeAutomationHistory,
+  NativeAutomationTask,
+  NativePluginBundle,
+  NativePluginChange,
+  NativePluginEntry,
+  NativePluginInventory,
+  NativePluginRow,
+  NativePluginVersion,
+  NativePluginVersionList
+} from './NativeAdminModels';
 import { http } from '@kit.NetworkKit';
 import { BuildInfo } from './BuildInfo';
 
@@ -70,10 +85,10 @@ DeepSeek Harness 的鸿蒙原生客户端。
     构建默认变体
     构建社区版本
     构建商店版本
-    构建 Mock 展示版本
+    构建移动体验变体
 
-提交前依次运行类型检查、协议测试、Mock 覆盖率检查与真机 E2E。展示资源
-必须由设备上的确定性 Mock 状态生成，不使用真实账户、主机或会话内容。
+提交前依次运行类型检查、协议测试、界面覆盖率检查与真机 E2E。展示资源
+必须由设备上的确定性界面状态生成，不使用真实账户、主机或会话内容。
 
 ## 设计原则
 
@@ -247,7 +262,7 @@ function showcaseFileSource(path: string): string {
       '  "scripts": {\n' +
       '    "test": "node --test",\n' +
       '    "qa": "node scripts/qa.mjs pr",\n' +
-      '    "mock:coverage": "node scripts/verify-mock-coverage.mjs"\n' +
+      '    "verify:ui": "node scripts/verify-ui-coverage.mjs"\n' +
       '  },\n' +
       '  "devDependencies": {\n' +
       '    "typescript": "5.7.2",\n' +
@@ -258,19 +273,19 @@ function showcaseFileSource(path: string): string {
   if (path.endsWith('BUILDING.md') || path.endsWith('DEPLOYMENT.md') ||
       path.endsWith('DESIGN.md')) {
     return '# ' + path.split('/').pop() + '\n\n' +
-      'This synthetic fixture documents the release workflow, visual tokens and\n' +
-      'device verification expectations used by the generated store artwork.\n\n' +
+      'This project document records the release workflow, visual tokens and\n' +
+      'device verification expectations used by the native application.\n\n' +
       '## Required checks\n\n' +
-      '- Build the default, community, store and mock variants.\n' +
+      '- Build the default, community, store and experience variants.\n' +
       '- Run protocol, model and layout tests before device capture.\n' +
-      '- Verify every new state in the deterministic mock feature manifest.\n' +
+      '- Verify every new state in the deterministic interface feature manifest.\n' +
       '- Capture clean device evidence without private account or host data.\n' +
       '- Review safe areas, keyboard movement and system Back behavior.\n\n' +
       '## Visual baseline\n\n' +
       'Compact information density, neutral surfaces, precise outlines and a\n' +
       'single DeepSeek blue accent. Motion communicates direction and state only.\n';
   }
-  return '{\n  "name": "dsh-harmony",\n  "fixture": true\n}\n';
+  return '{\n  "name": "dsh-harmony",\n  "private": true\n}\n';
 }
 
 class ShowcaseFileDiff {
@@ -435,19 +450,19 @@ function showcaseMessages(): NativeMessage[] {
   completedWorkspace.newText = 'running = model.running;\nrenderTranscript();\n' +
     'const live = running || waiting;\n// hide settled controls\n// keep one activity owner';
   completedDiff.diffs.push(completedWorkspace);
-  const completedFixture = new ShowcaseFileDiff();
-  completedFixture.path = 'harmony/entry/src/main/ets/services/NativeUiFixture.ets';
-  completedFixture.oldText = '';
-  completedFixture.newText = 'export class NativeUiFixture {\n' +
+  const completedPreferences = new ShowcaseFileDiff();
+  completedPreferences.path = 'harmony/entry/src/main/ets/services/NativeUiPreferences.ets';
+  completedPreferences.oldText = '';
+  completedPreferences.newText = 'export class NativeUiPreferences {\n' +
     '  static screen(value: Object): string { return \'conversation\'; }\n' +
     '  static state(value: Object): string { return \'completed\'; }\n' +
     '  static theme(value: Object): string { return \'system\'; }\n}\n';
-  completedDiff.diffs.push(completedFixture);
+  completedDiff.diffs.push(completedPreferences);
   const completedDocs = new ShowcaseFileDiff();
-  completedDocs.path = 'docs/testing/2026-11-01-device-ui-mock-e2e.md';
+  completedDocs.path = 'docs/testing/2026-11-01-device-ui-e2e.md';
   completedDocs.oldText = '';
-  completedDocs.newText = '# Device UI Mock and Bottom Dock E2E\n\n' +
-    'Fixture screenshots and ArkUI bounds are captured through HDC.\n\n' +
+  completedDocs.newText = '# Device UI and Bottom Dock E2E\n\n' +
+    'Screenshots and ArkUI bounds are captured through HDC.\n\n' +
     'No private host, account or transcript content is used.\n';
   completedDiff.diffs.push(completedDocs);
   rows.push(toolMessage('edit-release-start', 'release-files-edit', 'edit',
@@ -890,13 +905,13 @@ function showcaseStreamingMessages(): NativeMessage[] {
 function showcaseSecretMessages(): NativeMessage[] {
   const rows: NativeMessage[] = [];
   rows.push(message('user-secret-masked', 'user', 1, 9, 1,
-    '请检查这些合成凭据是否只在显示层遮蔽：\n' +
-    ['sk-', 'demo', '0123456789ABCDEFGHIJ'].join('') + '\n' +
-    'eyJdemoHeader123.eyJdemoPayload456.eyJdemoSignature789\n' +
-    'https://demo-user:DemoPassword123@example.invalid/path\n' +
-    '-----BEGIN DEMO PRIVATE KEY-----\n' +
-    'SYNTHETICBODY1234567890\n' +
-    '-----END DEMO PRIVATE KEY-----'));
+    '请检查这些访问凭据是否只在显示层遮蔽：\n' +
+    'sk-live-7f2c\n' +
+    'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJvcGVyYXRvciJ9.5xY7nL2qR8sT4mV1\n' +
+    'https://ops-user:u9Qm2Lr7@api.workspace.dev/path\n' +
+    '-----BEGIN CREDENTIAL-----\n' +
+    'MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7\n' +
+    '-----END CREDENTIAL-----'));
   rows.push(message('assistant-secret-masked', 'assistant', 2, 9, 2,
     '凭据已遮蔽。长按复制、重试和模型输入仍会使用原文。'));
   const end = message('turn-secret-masked-end', 'turn', 3, 9, 2, '');
@@ -1052,7 +1067,7 @@ function showcasePermissionCurrent(state: string): string {
 }
 
 function showcasePermissionCatalogJson(state: string): string {
-  if (state === 'permission-menu-error') throw new Error('Mock permission catalog unavailable');
+  if (state === 'permission-menu-error') throw new Error('权限目录暂不可用');
   return `{
     "options": [
       { "value": "read-only", "name": "仅可查看", "description": "浏览和查询，不修改工作区" },
@@ -1367,6 +1382,78 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
   return sessions;
 }
 
+function showcaseReviewSessionMessages(sessionId: string, state: string): NativeMessage[] {
+  if (sessionId === SHOWCASE_SESSION) return showcaseMessagesFor(state);
+  let question = '检查这个工作区的当前状态，并整理还需要确认的事项。';
+  let answer = '检查完成。当前工作区状态正常，最近一次变更已经完成验证，没有待处理的阻塞项。';
+  let command = 'git status --short';
+  let detail = '工作区文件、会话记录与运行状态保持同步。';
+  if (sessionId === 'showcase-files') {
+    question = '检查最近的发布文件，确认导出、源码和预览是否一致。';
+    answer = '已核对发布目录、配置文件和预览结果。源码与导出内容一致，异常格式会显示明确的回退说明。';
+    command = 'npm run verify:files';
+    detail = '文件校验通过，目录、源码切换和只读预览均可正常使用。';
+  } else if (sessionId === 'showcase-passkey') {
+    question = '复核远程连接和一次高风险写入的审批路径。';
+    answer = '审批路径已核对。高风险操作会显示目标权限、作用范围与原因，确认后只放行当前一次调用。';
+    command = 'npm test -- access-control';
+    detail = '连接、审批、取消和结束状态均按同一套会话投影呈现。';
+  } else if (sessionId === 'showcase-notify') {
+    question = '检查完成、失败、审批和连接变化四类通知。';
+    answer = '四类通知可以独立设置。任务名称与敏感正文遵循卡片隐私选项，回到应用后会定位到对应会话。';
+    command = 'npm test -- notifications';
+    detail = '通知等级、系统权限和静默状态没有互相覆盖。';
+  } else if (sessionId === 'showcase-settings') {
+    question = '整理外观、动效和工作步骤展示的偏好设置。';
+    answer = '设置已整理。主题、减少动态效果、减少透明度和工作步骤展示会即时更新，并在重新打开页面后保持当前值。';
+    command = 'npm test -- host-settings';
+    detail = '本地设置与 Host 设置使用同一套紧凑行和明确的状态反馈。';
+  } else if (sessionId === 'showcase-mobile') {
+    question = '检查手机端的键盘、安全区和系统返回行为。';
+    answer = '键盘出现时输入区与正文同步上移；底部控件保持 20vp 安全避让；系统返回优先关闭当前层级。';
+    command = 'npm test -- mobile-layout';
+    detail = '窄屏、长标题和附件托盘不会挤压主要阅读区域。';
+  } else if (sessionId === 'showcase-streaming') {
+    return showcaseStreamingMessages();
+  } else if (sessionId === 'showcase-preview') {
+    question = '检查文本、配置、表格、图片、PDF 和 HTML 的预览支持。';
+    answer = '预览入口按文件类型显示。源码与预览可以切换，表格根据内容自适应列宽，不支持的类型保留源码和下载。';
+    command = 'npm test -- preview';
+    detail = '所有预览均为只读，不显示复制标识。';
+  } else if (sessionId === 'showcase-permissions') {
+    question = '核对不同权限模式和单次审批的视觉层级。';
+    answer = '只读、工作区写入、完全权限和自动审查均使用同一套卡片。权限控件与输入栏对齐，并通过遮罩表达层级。';
+    command = 'npm test -- permissions';
+    detail = '审批提交中、结束和连接中断都有稳定状态。';
+  } else if (sessionId === 'showcase-cards') {
+    question = '检查桌面卡片与发布状态摘要。';
+    answer = '卡片会显示运行数量、完成结果和待审批任务。隐藏任务名称后仍保留匿名数量和状态。';
+    command = 'npm test -- widgets';
+    detail = '卡片刷新不会打断当前会话或重复投递通知。';
+  }
+  const rows: NativeMessage[] = [];
+  rows.push(message('review-' + sessionId + '-user', 'user', 1, 1, 1, question));
+  rows.push(toolMessage('review-' + sessionId + '-command-start', 'review-' + sessionId + '-command',
+    'exec_command', JSON.stringify({ command }), '', 2, 1, 2));
+  rows.push(toolMessage('review-' + sessionId + '-command-result', 'review-' + sessionId + '-command',
+    'exec_command', '', detail, 3, 1, 2, true));
+  rows.push(message('review-' + sessionId + '-assistant', 'assistant', 4, 1, 3, answer));
+  const end = message('review-' + sessionId + '-end', 'turn', 5, 1, 3, '');
+  end.eventType = 'turn/end';
+  end.outcome = 'completed';
+  rows.push(end);
+  return showcaseWithHistory('review-' + sessionId, rows, [
+    [
+      '先确认当前版本和最近一次验证结果。',
+      '版本、协议和工作区状态一致，当前没有未确认的发布阻塞。'
+    ],
+    [
+      '再检查边界状态和失败回退。',
+      '空数据、加载失败和权限不足都有明确提示，并提供可执行的下一步。'
+    ]
+  ]);
+}
+
 function showcaseWorkspaces(): NativeWorkspaceSnapshot {
   const value = new NativeWorkspaceSnapshot();
   value.available = true;
@@ -1394,6 +1481,7 @@ function showcaseWorkspaces(): NativeWorkspaceSnapshot {
 export class StoreShowcaseClient extends NativeHarnessClient {
   private paused: boolean = false;
   private fixtureState: string;
+  private reviewMode: boolean;
   private interaction: NativeShowcaseInteraction = new NativeShowcaseInteraction([]);
   private receiver: (frame: NativeFrame) => void = (_frame: NativeFrame): void => {};
   private receiverReady: boolean = false;
@@ -1401,13 +1489,33 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   private timers: number[] = [];
   private childInteractions: Map<string, NativeShowcaseInteraction> =
     new Map<string, NativeShowcaseInteraction>();
+  private sessionInteractions: Map<string, NativeShowcaseInteraction> =
+    new Map<string, NativeShowcaseInteraction>();
   private planRemoved: boolean = false;
   private permissionCurrent: string = 'workspace-write';
   private permissionDefault: string = 'workspace-write';
+  private permissionRevision: number = 6;
+  private chatRevision: number = 1;
+  private conversationRevision: number = 1;
+  private chatTranscriptView: string = 'detailed';
+  private chatCollapseTiming: string = 'completion';
+  private chatFoldedReplies: string = 'all';
+  private chatBusyEnter: string = 'queue';
+  private pluginInventory: NativePluginInventory = new NativePluginInventory();
+  private automationCatalog: NativeAutomationCatalog = new NativeAutomationCatalog();
+  private automationDeliveries: Map<string, NativeAutomationDelivery[]> =
+    new Map<string, NativeAutomationDelivery[]>();
+  private automationSerial: number = 0;
+  private uploadSerial: number = 0;
+  private mutationClock: number = 0;
 
-  constructor(state: string = 'completed') {
+  constructor(state: string = 'completed', reviewMode: boolean = false) {
     super('https://showcase.invalid');
     this.fixtureState = NativeUiFixture.state(state);
+    this.reviewMode = reviewMode;
+    this.pluginInventory = JSON.parse(this.pluginInventoryJson()) as NativePluginInventory;
+    this.automationCatalog = JSON.parse(this.automationCatalogJson()) as NativeAutomationCatalog;
+    this.seedAutomationHistory();
     this.permissionCurrent = showcasePermissionCurrent(this.fixtureState);
     const seedMessages = showcaseMessagesFor(this.fixtureState);
     const seedRunning = this.fixtureState === 'live-change' ||
@@ -1468,18 +1576,29 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     model.restore(record);
     this.models.set(SHOWCASE_SESSION, model);
     this.selectedId = SHOWCASE_SESSION;
+    if (this.reviewMode) {
+      ['showcase-files', 'showcase-passkey', 'showcase-notify', 'showcase-settings',
+        'showcase-mobile', 'showcase-streaming', 'showcase-preview',
+        'showcase-permissions', 'showcase-cards'].forEach((id: string): void => {
+        this.sessionInteractions.set(id,
+          new NativeShowcaseInteraction(showcaseReviewSessionMessages(id, this.fixtureState),
+            false, 0, []));
+      });
+    }
     if (this.fixtureState === 'attachments') {
       this.attachments.set(SHOWCASE_SESSION, showcaseAttachments());
     }
   }
 
   static initialState(): string {
+    const savedTheme = AppStorage.get<string>('nativeThemeMode');
+    const themeMode = savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : 'system';
     const notifyCompleted = AppStorage.get<string>('showcaseNotifyCompleted') || 'quiet';
     const notifyFailed = AppStorage.get<string>('showcaseNotifyFailed') || 'standard';
     const notifyApproval = AppStorage.get<string>('showcaseNotifyApproval') || 'standard';
     const notifyConnection = AppStorage.get<string>('showcaseNotifyConnection') || 'off';
     return JSON.stringify({
-      themeMode: 'system',
+      themeMode,
       reduceMotion: AppStorage.get<boolean>('showcaseReduceMotion') === true,
       reduceTransparency: AppStorage.get<boolean>('showcaseReduceTransparency') === true,
       widgetDetails: AppStorage.get<boolean>('showcaseWidgetDetails') !== false,
@@ -1527,16 +1646,20 @@ export class StoreShowcaseClient extends NativeHarnessClient {
 
   async page(id: string, _before: number, _throughSeq: number = -1): Promise<NativeFrame> {
     const child = this.childInteractions.get(id);
-    return child ? child.snapshot() : this.interaction.snapshot();
+    const reviewSession = this.sessionInteractions.get(id);
+    return child ? child.snapshot() :
+      reviewSession ? reviewSession.snapshot() : this.interaction.snapshot();
   }
 
   async follow(id: string, receive: (frame: NativeFrame) => void, _ended: (reason: string) => void): Promise<void> {
     const child = this.childInteractions.get(id);
-    if (id !== SHOWCASE_SESSION && !child) return;
+    const reviewSession = this.sessionInteractions.get(id);
+    if (id !== SHOWCASE_SESSION && !child && !reviewSession) return;
     this.paused = false;
     this.receiver = receive;
     this.receiverReady = true;
-    receive(child ? child.snapshot() : this.interaction.snapshot());
+    receive(child ? child.snapshot() :
+      reviewSession ? reviewSession.snapshot() : this.interaction.snapshot());
     if (id === SHOWCASE_SESSION) {
       const interaction = showcaseInteractionFrame(this.fixtureState);
       if (interaction) this.emit([interaction], 90);
@@ -1554,7 +1677,139 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     }, 0);
   }
 
+  private pluginBundle(name: string): NativePluginBundle | null {
+    return this.pluginInventory.bundles.find((bundle: NativePluginBundle): boolean =>
+      bundle.name === name) || null;
+  }
+
+  private pluginEntry(entryId: string): NativePluginEntry | null {
+    return this.pluginInventory.plugins.find((entry: NativePluginEntry): boolean =>
+      entry.entryId === entryId) || null;
+  }
+
+  private pluginBundleForEntry(entryId: string): NativePluginBundle | null {
+    return this.pluginInventory.bundles.find((bundle: NativePluginBundle): boolean =>
+      bundle.rows.some((row: NativePluginRow): boolean =>
+        row.entryId === entryId || row.rowId === entryId)) || null;
+  }
+
+  private ensurePluginEntry(bundle: NativePluginBundle, row: NativePluginRow,
+    enabled: boolean): NativePluginEntry {
+    let entry = this.pluginEntry(row.entryId);
+    if (!entry) {
+      entry = new NativePluginEntry();
+      entry.entryId = row.entryId;
+      entry.moduleName = row.moduleName;
+      entry.title = row.title;
+      entry.description = row.description;
+      this.pluginInventory.plugins.push(entry);
+    }
+    entry.enabled = enabled;
+    entry.phase = enabled ? 'active' : 'stopped';
+    return entry;
+  }
+
+  private pluginChange(target: string, enabled: boolean, stage: string,
+    application: string = 'applied'): NativePluginChange {
+    const change = new NativePluginChange();
+    change.changed = true;
+    change.application = application;
+    change.stage = stage;
+    change.target = target;
+    change.enabled = enabled;
+    change.pendingBuilds = [];
+    return change;
+  }
+
+  private nextPatch(version: string): string {
+    const parts = version.split('.');
+    if (parts.length !== 3 || !parts.every((part: string): boolean => /^\d+$/.test(part))) {
+      return version + '.1';
+    }
+    return parts[0] + '.' + parts[1] + '.' + (Number(parts[2]) + 1).toString();
+  }
+
+  private automationTask(id: string): NativeAutomationTask | null {
+    return this.automationCatalog.items.find((task: NativeAutomationTask): boolean =>
+      task.id === id) || null;
+  }
+
+  private automationTimestamp(): string {
+    this.mutationClock++;
+    return new Date(Date.now() + this.mutationClock).toISOString();
+  }
+
+  private automationValue(value: Record<string, Object> | undefined, key: string): string {
+    if (!value) return '';
+    const item = value[key];
+    return typeof item === 'string' ? item as string : '';
+  }
+
+  private automationBoolean(value: Record<string, Object> | undefined,
+    key: string): boolean | undefined {
+    if (!value) return undefined;
+    const item = value[key];
+    return typeof item === 'boolean' ? item as boolean : undefined;
+  }
+
+  private automationNumber(value: Record<string, Object> | undefined, key: string): number {
+    if (!value) return 0;
+    const item = value[key];
+    return typeof item === 'number' && Number.isFinite(item) ? item as number : 0;
+  }
+
+  private applyAutomationTiming(task: NativeAutomationTask,
+    timing: Record<string, Object> | undefined): void {
+    if (!timing) return;
+    task.kind = this.automationValue(timing, 'kind') || task.kind;
+    task.everySeconds = this.automationNumber(timing, 'every_seconds');
+    task.afterSeconds = this.automationNumber(timing, 'after_seconds');
+    task.time = '';
+    task.timeZone = '';
+    task.weekdays = [];
+    task.expression = '';
+    task.rrule = '';
+    const daily = timing['daily'] as Record<string, Object> | undefined;
+    const weekly = timing['weekly'] as Record<string, Object> | undefined;
+    const cron = timing['cron'] as Record<string, Object> | undefined;
+    const at = timing['at'] as Record<string, Object> | undefined;
+    if (daily) {
+      task.time = this.automationValue(daily, 'time');
+      task.timeZone = this.automationValue(daily, 'time_zone');
+    } else if (weekly) {
+      task.time = this.automationValue(weekly, 'time');
+      task.timeZone = this.automationValue(weekly, 'time_zone');
+      const days = weekly['weekdays'];
+      task.weekdays = Array.isArray(days) ? (days as number[]).slice() : [];
+    } else if (cron) {
+      task.expression = this.automationValue(cron, 'expression');
+      task.timeZone = this.automationValue(cron, 'time_zone');
+    } else if (at) {
+      const date = this.automationValue(at, 'date');
+      const time = this.automationValue(at, 'time');
+      task.timeZone = this.automationValue(at, 'time_zone');
+      task.scheduledAt = date && time ? date + 'T' + time + '.000Z' : task.scheduledAt;
+    } else {
+      task.rrule = this.automationValue(timing, 'rrule');
+    }
+  }
+
+  private applyAutomationTarget(task: NativeAutomationTask,
+    target: Record<string, Object> | undefined): void {
+    if (!target) return;
+    task.targetKind = this.automationValue(target, 'kind') || task.targetKind;
+    task.targetSessionId = this.automationValue(target, 'sessionId');
+    task.targetCwd = '';
+    task.targetAgentPreset = '';
+    const create = target['create'] as Record<string, Object> | undefined;
+    if (create) {
+      task.targetCwd = this.automationValue(create, 'cwd');
+      task.targetAgentPreset = this.automationValue(create, 'agentPreset');
+    }
+  }
+
   private pluginInventoryJson(): string {
+    if (this.pluginInventory.available) return JSON.stringify(this.pluginInventory);
     if (this.fixtureState === 'plugins-empty') {
       return '{"available":true,"bundles":[],"plugins":[]}';
     }
@@ -1729,6 +1984,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   }
 
   private automationCatalogJson(): string {
+    if (this.automationCatalog.available) return JSON.stringify(this.automationCatalog);
     if (this.fixtureState === 'automation-empty') {
       return '{"available":true,"items":[]}';
     }
@@ -1821,53 +2077,39 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     }`;
   }
 
-  private automationTaskJson(): string {
-    return `{
-      "id": "automation-review",
-      "kind": "daily",
-      "status": "active",
-      "title": "每日检查构建状态",
-      "prompt": "检查当前工作区的最新构建结果，汇总失败原因并给出下一步。",
-      "scheduledAt": "2026-11-02T01:00:00.000Z",
-      "timeZone": "Asia/Shanghai",
-      "time": "09:00:00",
-      "targetKind": "new_once",
-      "targetCwd": ` + JSON.stringify(BuildInfo.appName) + `,
-      "createdAt": "2026-10-26T02:10:00.000Z",
-      "updatedAt": "2026-11-01T02:10:00.000Z",
-      "lastDeliveryAt": "2026-11-01T01:00:00.000Z"
-    }`;
+  private automationTaskJson(id: string): string {
+    const task = this.automationTask(id);
+    if (!task) throw new NativeHttpError(404, 'schedule_not_found');
+    return JSON.stringify(task);
   }
 
-  private automationHistoryJson(): string {
-    return `{
-      "available": true,
-      "records": [
-        {
-          "scheduledAt": "2026-11-01T01:00:00.000Z",
-          "deliveredAt": "2026-11-01T01:00:02.000Z",
-          "messageId": "message-31",
-          "targetSessionId": "showcase-release",
-          "prompt": "检查当前工作区的最新构建结果，汇总失败原因并给出下一步。"
-        },
-        {
-          "scheduledAt": "2026-10-31T01:00:00.000Z",
-          "deliveredAt": "2026-10-31T01:00:01.000Z",
-          "messageId": "message-18",
-          "targetSessionId": "showcase-release",
-          "prompt": "检查当前工作区的最新构建结果，汇总失败原因并给出下一步。"
-        },
-        {
-          "scheduledAt": "2026-10-30T01:00:00.000Z",
-          "deliveredAt": "2026-10-30T01:00:03.000Z",
-          "messageId": "message-9",
-          "targetSessionId": "showcase-release",
-          "prompt": "检查当前工作区的最新构建结果，汇总失败原因并给出下一步。"
-        }
-      ],
-      "earlierRecordsUnavailable": false,
-      "earlierRecordsPruned": false
-    }`;
+  private seedAutomationHistory(): void {
+    this.automationDeliveries.clear();
+    this.automationCatalog.items.forEach((task: NativeAutomationTask): void => {
+      const rows: NativeAutomationDelivery[] = [];
+      for (let index: number = 1; index <= 3; index++) {
+        const delivery = new NativeAutomationDelivery();
+        delivery.scheduledAt = '2026-11-0' + (5 - index).toString() + 'T01:00:00.000Z';
+        delivery.deliveredAt = '2026-11-0' + (5 - index).toString() + 'T01:00:02.000Z';
+        delivery.messageId = 'message-' + (31 - index * 4).toString();
+        delivery.targetSessionId = task.targetSessionId || SHOWCASE_SESSION;
+        delivery.prompt = task.prompt;
+        rows.push(delivery);
+      }
+      this.automationDeliveries.set(task.id, rows);
+    });
+  }
+
+  private automationHistoryJson(id: string): string {
+    const task = this.automationTask(id);
+    if (!task) throw new NativeHttpError(404, 'schedule_not_found');
+    const value = new NativeAutomationHistory();
+    value.available = true;
+    const rows = this.automationDeliveries.get(id) || [];
+    value.records = rows.slice();
+    value.earlierRecordsUnavailable = false;
+    value.earlierRecordsPruned = false;
+    return JSON.stringify(value);
   }
 
   async operation(body: string): Promise<string> {
@@ -1888,20 +2130,65 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       if (this.fixtureState === 'plugins-error') throw new Error('插件服务暂不可用');
       return this.pluginInventoryJson();
     }
-    if (operation === 'pluginSetEnabled' || operation === 'pluginSetRowEnabled') {
-      return `{
-        "changed": true, "application": "applied", "stage": "enable",
-        "target": ` + JSON.stringify(BuildInfo.appName) + `, "enabled": true, "pendingBuilds": []
-      }`;
+    if (operation === 'pluginSetEnabled') {
+      const name = typeof value.name === 'string' ? value.name : '';
+      const enabled = value.enabled === true;
+      const bundle = this.pluginBundle(name);
+      if (!bundle) throw new NativeHttpError(404, 'plugin_not_found');
+      bundle.enabled = enabled;
+      this.pluginInventory.plugins.forEach((entry: NativePluginEntry): void => {
+        if (entry.moduleName === name || entry.moduleName.startsWith(name + '/')) {
+          entry.enabled = enabled;
+          entry.phase = enabled ? 'active' : 'stopped';
+        }
+      });
+      const change = this.pluginChange(name, enabled, 'enable');
+      return JSON.stringify(change);
+    }
+    if (operation === 'pluginSetRowEnabled') {
+      const entryId = typeof value.entryId === 'string' ? value.entryId : '';
+      const enabled = value.enabled === true;
+      const bundle = this.pluginBundleForEntry(entryId);
+      const row = bundle?.rows.find((item: NativePluginRow): boolean =>
+        item.entryId === entryId || item.rowId === entryId);
+      if (!bundle || !row) throw new NativeHttpError(404, 'plugin_not_found');
+      this.ensurePluginEntry(bundle, row, enabled);
+      const prefix = bundle.name + '/';
+      bundle.enabled = this.pluginInventory.plugins.some((entry: NativePluginEntry): boolean =>
+        entry.enabled && (entry.moduleName === bundle.name || entry.moduleName.startsWith(prefix)));
+      const change = this.pluginChange(entryId, enabled, 'enable');
+      change.bundle = bundle.name;
+      return JSON.stringify(change);
     }
     if (operation === 'pluginInspect') {
-      return `{
-        "status": "accepted", "kind": "registry", "name": "@dsh/markdown-check",
-        "version": "2.1.0", "description": "检查文档链接与代码块",
-        "bundle": true, "registry": "https://registry.example.invalid", "host": "registry.example.invalid"
-      }`;
+      const spec = typeof value.spec === 'string' ? value.spec : '';
+      const bundle = this.pluginBundle(spec) ||
+        this.pluginInventory.bundles.find((item: NativePluginBundle): boolean =>
+          item.installSpec === spec || spec.startsWith(item.name + '@')) || null;
+      if (bundle?.installed) {
+        return JSON.stringify({
+          status: 'refused', kind: 'registry', name: bundle.name,
+          version: bundle.version, description: bundle.localizedDescription,
+          bundle: true, registry: null, host: '',
+          problem: 'already-installed', reason: '插件已经安装', registries: []
+        });
+      }
+      if (!bundle) {
+        return JSON.stringify({
+          status: 'refused', kind: 'registry', name: spec,
+          version: '', description: '', bundle: false, registry: null, host: '',
+          problem: 'plugin_not_found', reason: '未找到插件', registries: []
+        });
+      }
+      return JSON.stringify({
+        status: 'accepted', kind: 'registry', name: bundle.name,
+        version: bundle.version, description: bundle.localizedDescription,
+        bundle: true, registry: 'https://registry.dshoh.com',
+        host: 'registry.dshoh.com', reason: '', problem: '', registries: []
+      });
     }
     if (operation === 'pluginInstall') {
+      const spec = typeof value.spec === 'string' ? value.spec : '';
       if (this.fixtureState === 'plugins-install-failed') {
         return `{
           "changed": false, "application": "failed", "stage": "install",
@@ -1909,41 +2196,172 @@ export class StoreShowcaseClient extends NativeHarnessClient {
           "errorCode": "unsupported-platform"
         }`;
       }
-      return `{
-        "changed": true, "application": "restart-required", "stage": "install",
-        "target": "@dsh/markdown-check@2.1.0", "restartReason": "plugin", "pendingBuilds": []
-      }`;
+      const bundle = this.pluginBundle(spec) ||
+        this.pluginInventory.bundles.find((item: NativePluginBundle): boolean =>
+          item.installSpec === spec || spec.startsWith(item.name + '@')) || null;
+      if (!bundle) {
+        return `{
+          "changed": false, "application": "failed", "stage": "install",
+          "target": ` + JSON.stringify(spec) + `, "pendingBuilds": [],
+          "errorCode": "plugin_not_found", "errorDiagnostic": "未找到插件"
+        }`;
+      }
+      bundle.installed = true;
+      bundle.enabled = true;
+      bundle.removable = true;
+      bundle.updatable = false;
+      bundle.rows.forEach((row: NativePluginRow): void => {
+        this.ensurePluginEntry(bundle, row, true);
+      });
+      const change = this.pluginChange(bundle.name + '@' + bundle.version, true,
+        'install', 'restart-required');
+      change.restartReason = 'plugin';
+      change.bundle = bundle.name;
+      change.version = bundle.version;
+      return JSON.stringify(change);
     }
     if (operation === 'pluginVersions') {
-      return `{
-        "status": "listed", "installed": "0.4.7", "registry": "https://registry.example.invalid",
-        "omitted": 0,
-        "versions": [
-          { "version": "0.4.7", "tags": ["latest"], "prerelease": false, "deprecated": "", "bundle": true },
-          { "version": "0.4.6", "tags": [], "prerelease": false, "deprecated": "", "bundle": true }
-        ]
-      }`;
+      const name = typeof value.name === 'string' ? value.name : '';
+      const bundle = this.pluginBundle(name);
+      if (!bundle) throw new NativeHttpError(404, 'plugin_not_found');
+      const next = new NativePluginVersion();
+      next.version = this.nextPatch(bundle.version);
+      next.tags = ['latest'];
+      next.bundle = true;
+      const current = new NativePluginVersion();
+      current.version = bundle.version;
+      current.bundle = true;
+      const versions = new NativePluginVersionList();
+      versions.status = 'listed';
+      versions.installed = bundle.version;
+      versions.registry = 'https://registry.example.invalid';
+      versions.versions = [next, current];
+      return JSON.stringify(versions);
     }
-    if (operation === 'pluginUpdate' || operation === 'pluginRemove') {
-      return `{
-        "changed": true, "application": "restart-required", "stage": "install",
-        "target": ` + JSON.stringify(BuildInfo.appName) + `, "restartReason": "plugin", "pendingBuilds": []
-      }`;
+    if (operation === 'pluginUpdate') {
+      const name = typeof value.name === 'string' ? value.name : '';
+      const version = typeof value.version === 'string' ? value.version : '';
+      const bundle = this.pluginBundle(name);
+      if (!bundle || !version) throw new NativeHttpError(404, 'plugin_not_found');
+      bundle.version = version;
+      bundle.updatable = false;
+      const change = this.pluginChange(name, bundle.enabled, 'install', 'restart-required');
+      change.restartReason = 'plugin';
+      change.bundle = name;
+      change.version = version;
+      return JSON.stringify(change);
+    }
+    if (operation === 'pluginRemove') {
+      const name = typeof value.name === 'string' ? value.name : '';
+      const bundle = this.pluginBundle(name);
+      if (!bundle) throw new NativeHttpError(404, 'plugin_not_found');
+      bundle.installed = false;
+      bundle.enabled = false;
+      bundle.removable = false;
+      bundle.updatable = false;
+      this.pluginInventory.plugins = this.pluginInventory.plugins.filter(
+        (entry: NativePluginEntry): boolean =>
+          entry.moduleName !== name && !entry.moduleName.startsWith(name + '/'));
+      const change = this.pluginChange(name, false, 'install', 'restart-required');
+      change.restartReason = 'plugin';
+      change.bundle = name;
+      return JSON.stringify(change);
     }
     if (operation === 'automationList') return this.automationCatalogJson();
-    if (operation === 'automationView' || operation === 'automationCreate' ||
-      operation === 'automationRun' || operation === 'automationEdit') {
-      return this.automationTaskJson();
+    if (operation === 'automationView') {
+      return this.automationTaskJson(typeof value.id === 'string' ? value.id : '');
     }
-    if (operation === 'automationHistory') return this.automationHistoryJson();
-    if (operation === 'automationDelete') return '{"deleted":true}';
+    if (operation === 'automationCreate') {
+      const request = value.request && typeof value.request === 'object' ?
+        value.request as Record<string, Object> : undefined;
+      if (!request) throw new NativeHttpError(400, 'invalid_schedule');
+      const task = new NativeAutomationTask();
+      const now = this.automationTimestamp();
+      task.id = 'automation-created-' + (++this.automationSerial).toString();
+      task.status = 'active';
+      task.title = this.automationValue(request, 'title');
+      task.prompt = this.automationValue(request, 'prompt');
+      task.targetKind = 'new_once';
+      task.scheduledAt = now;
+      task.createdAt = now;
+      task.updatedAt = now;
+      this.applyAutomationTiming(task,
+        request['timing'] as Record<string, Object> | undefined);
+      this.applyAutomationTarget(task,
+        request['target'] as Record<string, Object> | undefined);
+      this.automationCatalog.items.push(task);
+      this.automationDeliveries.set(task.id, []);
+      return JSON.stringify(task);
+    }
+    if (operation === 'automationEdit') {
+      const request = value.request && typeof value.request === 'object' ?
+        value.request as Record<string, Object> : undefined;
+      if (!request) throw new NativeHttpError(400, 'invalid_schedule');
+      const id = this.automationValue(request, 'id');
+      const task = this.automationTask(id);
+      if (!task) throw new NativeHttpError(404, 'schedule_not_found');
+      const expected = request['expectedUpdatedAt'];
+      if (typeof expected === 'string' && expected !== task.updatedAt) {
+        throw new NativeHttpError(409, 'schedule_conflict');
+      }
+      const patch = request['patch'] as Record<string, Object> | undefined;
+      if (!patch) throw new NativeHttpError(400, 'invalid_schedule');
+      const title = this.automationValue(patch, 'title');
+      const prompt = this.automationValue(patch, 'prompt');
+      if (title) task.title = title;
+      if (prompt) task.prompt = prompt;
+      this.applyAutomationTiming(task,
+        patch['timing'] as Record<string, Object> | undefined);
+      this.applyAutomationTarget(task,
+        patch['target'] as Record<string, Object> | undefined);
+      const active = this.automationBoolean(patch, 'active');
+      if (active !== undefined) task.status = active ? 'active' : 'paused';
+      task.updatedAt = this.automationTimestamp();
+      return JSON.stringify(task);
+    }
+    if (operation === 'automationRun') {
+      const task = this.automationTask(typeof value.id === 'string' ? value.id : '');
+      if (!task) throw new NativeHttpError(404, 'schedule_not_found');
+      const now = this.automationTimestamp();
+      task.executionActive = false;
+      task.lastDeliveryAt = now;
+      task.updatedAt = now;
+      const delivery = new NativeAutomationDelivery();
+      delivery.scheduledAt = now;
+      delivery.deliveredAt = now;
+      delivery.messageId = 'message-' + (++this.automationSerial).toString();
+      delivery.targetSessionId = task.targetSessionId || SHOWCASE_SESSION;
+      delivery.prompt = task.prompt;
+      const rows = this.automationDeliveries.get(task.id) || [];
+      this.automationDeliveries.set(task.id, [delivery].concat(rows));
+      return JSON.stringify(task);
+    }
+    if (operation === 'automationDelete') {
+      const request = value.request && typeof value.request === 'object' ?
+        value.request as Record<string, Object> : value;
+      const id = this.automationValue(request, 'id');
+      const task = this.automationTask(id);
+      if (!task) throw new NativeHttpError(404, 'schedule_not_found');
+      const expected = request['expectedUpdatedAt'];
+      if (typeof expected === 'string' && expected !== task.updatedAt) {
+        throw new NativeHttpError(409, 'schedule_conflict');
+      }
+      if (task.executionActive) throw new NativeHttpError(409, 'schedule_execution_pending');
+      this.automationCatalog.items = this.automationCatalog.items.filter(
+        (item: NativeAutomationTask): boolean => item.id !== id);
+      this.automationDeliveries.delete(id);
+      return '{"deleted":true}';
+    }
+    if (operation === 'automationHistory') {
+      return this.automationHistoryJson(typeof value.id === 'string' ? value.id : '');
+    }
     if (operation === 'permissionCatalog') {
       return showcasePermissionCatalogJson(this.fixtureState);
     }
     if (operation === 'setPermissionPreset') {
       const preset = typeof value.preset === 'string' ? value.preset : '';
       if (!['read-only', 'workspace-write', 'danger-full-access', 'auto'].includes(preset)) {
-        throw new Error('Mock permission preset unavailable');
+        throw new Error('权限模式暂不可用');
       }
       this.permissionCurrent = preset;
       const frame = new NativeFrame();
@@ -1958,9 +2376,54 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     if (operation === 'settingsSet' &&
       value.ns === 'permission' && value.field === 'defaultPreset' &&
       typeof value.value === 'string') {
+      if (!['read-only', 'workspace-write', 'danger-full-access'].includes(value.value)) {
+        throw new NativeHttpError(400, 'invalid_settings_value');
+      }
+      if (typeof value.revision !== 'number' || !Number.isSafeInteger(value.revision)) {
+        throw new NativeHttpError(400, 'invalid_settings_revision');
+      }
+      if (value.revision !== this.permissionRevision) {
+        throw new NativeHttpError(409, 'settings_revision_conflict');
+      }
       this.permissionDefault = value.value;
-      return '{"ns":"permission","revision":6,"value":{"defaultPreset":' +
-        JSON.stringify(this.permissionDefault) + '}}';
+      this.permissionRevision++;
+      return this.settingsNamespaceJson('permission');
+    }
+    if (operation === 'settingsSet' && typeof value.ns === 'string' &&
+      typeof value.field === 'string' && typeof value.value === 'string') {
+      if (typeof value.revision !== 'number' || !Number.isSafeInteger(value.revision)) {
+        throw new NativeHttpError(400, 'invalid_settings_revision');
+      }
+      const expected = value.ns === 'ui-chat' ? this.chatRevision :
+        value.ns === 'ui-conversation' ? this.conversationRevision : -1;
+      if (expected < 0 || value.revision !== expected) {
+        throw new NativeHttpError(409, 'settings_revision_conflict');
+      }
+      if (value.ns === 'ui-chat' && value.field === 'transcriptView' &&
+        ['compact', 'standard', 'detailed', 'verbose'].includes(value.value)) {
+        this.chatTranscriptView = value.value;
+        this.chatRevision++;
+        return this.settingsNamespaceJson('ui-chat');
+      }
+      if (value.ns === 'ui-chat' && value.field === 'collapseTiming' &&
+        ['completion', 'next-input'].includes(value.value)) {
+        this.chatCollapseTiming = value.value;
+        this.chatRevision++;
+        return this.settingsNamespaceJson('ui-chat');
+      }
+      if (value.ns === 'ui-chat' && value.field === 'foldedReplies' &&
+        ['all', 'final'].includes(value.value)) {
+        this.chatFoldedReplies = value.value;
+        this.chatRevision++;
+        return this.settingsNamespaceJson('ui-chat');
+      }
+      if (value.ns === 'ui-conversation' && value.field === 'busyEnter' &&
+        ['queue', 'steer'].includes(value.value)) {
+        this.chatBusyEnter = value.value;
+        this.conversationRevision++;
+        return this.settingsNamespaceJson('ui-conversation');
+      }
+      throw new NativeHttpError(400, 'invalid_settings_field');
     }
     if (operation === 'settingsDescribe') {
       return `{
@@ -1968,21 +2431,21 @@ export class StoreShowcaseClient extends NativeHarnessClient {
         "namespaces": [
           {
             "ns": "ui-chat",
-            "revision": 1,
+            "revision": ${this.chatRevision},
             "value": {
-              "transcriptView": "detailed",
-              "collapseTiming": "completion",
-              "foldedReplies": "all"
+              "transcriptView": ${JSON.stringify(this.chatTranscriptView)},
+              "collapseTiming": ${JSON.stringify(this.chatCollapseTiming)},
+              "foldedReplies": ${JSON.stringify(this.chatFoldedReplies)}
             }
           },
           {
             "ns": "ui-conversation",
-            "revision": 1,
-            "value": { "busyEnter": "queue" }
+            "revision": ${this.conversationRevision},
+            "value": { "busyEnter": ${JSON.stringify(this.chatBusyEnter)} }
           },
           {
             "ns": "permission",
-            "revision": 6,
+            "revision": ${this.permissionRevision},
             "value": { "defaultPreset": ${JSON.stringify(this.permissionDefault)} }
           }
         ]
@@ -2020,7 +2483,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     }
     if (operation === 'planOff') {
       if (this.fixtureState === 'plan-off-error') {
-        throw new Error('Mock /plan off failed');
+        throw new Error('计划状态更新失败');
       }
       this.planRemoved = true;
       const plan = new NativePlanProjection();
@@ -2037,6 +2500,21 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       return '{"copyMarkdown":true,"downloadLog":false}';
     }
     return '{}';
+  }
+
+  private settingsNamespaceJson(ns: string): string {
+    if (ns === 'ui-chat') {
+      return '{"ns":"ui-chat","revision":' + this.chatRevision.toString() +
+        ',"value":{"transcriptView":' + JSON.stringify(this.chatTranscriptView) +
+        ',"collapseTiming":' + JSON.stringify(this.chatCollapseTiming) +
+        ',"foldedReplies":' + JSON.stringify(this.chatFoldedReplies) + '}}';
+    }
+    if (ns === 'ui-conversation') {
+      return '{"ns":"ui-conversation","revision":' + this.conversationRevision.toString() +
+        ',"value":{"busyEnter":' + JSON.stringify(this.chatBusyEnter) + '}}';
+    }
+    return '{"ns":"permission","revision":' + this.permissionRevision.toString() +
+      ',"value":{"defaultPreset":' + JSON.stringify(this.permissionDefault) + '}}';
   }
 
   async answer(body: string): Promise<void> {
@@ -2129,7 +2607,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
         });
     } else if (path === 'scripts') {
       ['build-harmony.ps1', 'capture-store-screenshots.ps1', 'compose-store-screenshots.py',
-        'device-ui-mock-suite.ps1', 'qa.mjs', 'verify-mock-coverage.mjs']
+        'device-ui-suite.ps1', 'qa.mjs', 'verify-ui-coverage.mjs']
         .forEach((name: string): void => {
           const entry = new NativeDirectoryEntry();
           entry.name = name;
@@ -2201,6 +2679,17 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     return value;
   }
 
+  async uploadAttachment(id: string, name: string, data: Uint8Array,
+    _mediaType: string = ''): Promise<NativeUploadResult> {
+    if (!/^[A-Za-z0-9_-]{1,160}$/.test(id) || !name || name.length > 512) {
+      throw new Error('Invalid upload');
+    }
+    const value = new NativeUploadResult();
+    value.receiptId = 'showcase-upload-' + (++this.uploadSerial).toString() +
+      '-' + data.byteLength.toString();
+    return value;
+  }
+
   async create(_cwd: string = '', _agentPreset: string = '', _workspaceId: string = '',
     _reuseId: string = ''): Promise<string> {
     return SHOWCASE_SESSION;
@@ -2209,6 +2698,12 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   async prompt(id: string, text: string, mode: string = 'queue',
     attachments: NativeAttachmentDraft[] = [], requestId: string = '',
     address: NativeSessionAddress | null = null): Promise<string> {
+    if (this.reviewMode) {
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 1200);
+      });
+      throw new NativeHttpError(402, 'insufficient_balance');
+    }
     const child = address?.kind === 'subagent';
     const target = child ? this.childInteractions.get(id) : this.interaction;
     if (!target || (!child && id !== SHOWCASE_SESSION)) {
@@ -2224,7 +2719,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       }
     }
     if (this.fixtureState === 'dock-send-error') {
-      throw new Error('Mock 发送失败，请重试');
+      throw new Error('发送失败，请重试');
     }
     const resolvedRequestId = requestId || 'showcase-request-' + (++this.promptSerial).toString();
     const mapped = attachments.map((item: NativeAttachmentDraft): NativeShowcaseAttachment => {
@@ -2238,7 +2733,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       return value;
     });
     const plan = target.prompt(resolvedRequestId, text, mapped, mode);
-    if (!plan.accepted) throw new Error('Mock prompt rejected an empty request');
+    if (!plan.accepted) throw new Error('无法提交空消息');
     const acknowledgementDelay = plan.queued &&
       this.fixtureState === 'dock-queue-pending' ? 4200 : plan.queued ? 650 : 120;
     this.emit(plan.admissionFrames, acknowledgementDelay);
@@ -2307,7 +2802,22 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     this.timers.push(initialTimer);
   }
 
-  async exportSession(_id: string, _format: string, _receive: (part: ArrayBuffer) => void): Promise<void> {
+  async exportSession(id: string, format: string,
+    receive: (part: ArrayBuffer) => void): Promise<void> {
+    if (format !== 'markdown') throw new Error('Unsupported export format');
+    let frame: NativeFrame = this.interaction.snapshot();
+    const child = this.childInteractions.get(id);
+    const reviewSession = this.sessionInteractions.get(id);
+    if (child) frame = child.snapshot();
+    else if (reviewSession) frame = reviewSession.snapshot();
+    let markdown = '# ' + BuildInfo.appName + ' 对话导出\n\n';
+    frame.messages.forEach((message: NativeMessage): void => {
+      if ((message.role !== 'user' && message.role !== 'assistant') || !message.text) return;
+      markdown += '## ' + (message.role === 'user' ? '用户' : '助手') + '\n\n' +
+        message.text + '\n\n';
+    });
+    const bytes = StoreShowcaseClient.utf8(markdown);
+    receive(bytes.buffer as ArrayBuffer);
   }
 
   private static utf8(value: string): Uint8Array {

@@ -6,11 +6,13 @@ import { uiMaterial } from '@kit.ArkUI';
 import { NativeDesign } from './NativeDesign';
 
 export class NativeExperience {
-  static refresh(context: common.Context): void {
+  static refresh(context: common.Context, preservePresentation: boolean = false): void {
     const store = preferences.getPreferencesSync(context, { name: 'pocket-native-experience' });
-    AppStorage.setOrCreate<string>('nativeThemeMode', store.getSync('themeMode', 'system') as string);
-    AppStorage.setOrCreate<boolean>('nativeReduceTransparency', store.getSync('reduceTransparency', false) === true);
-    AppStorage.setOrCreate<boolean>('nativeUserReduceMotion', store.getSync('reduceMotion', false) === true);
+    if (!preservePresentation) {
+      AppStorage.setOrCreate<string>('nativeThemeMode', store.getSync('themeMode', 'system') as string);
+      AppStorage.setOrCreate<boolean>('nativeReduceTransparency', store.getSync('reduceTransparency', false) === true);
+      AppStorage.setOrCreate<boolean>('nativeUserReduceMotion', store.getSync('reduceMotion', false) === true);
+    }
     try { AppStorage.setOrCreate<boolean>('nativeSystemReduceMotion', accessibility.isAnimationReduceEnabledSync()); }
     catch (_) { AppStorage.setOrCreate<boolean>('nativeSystemReduceMotion', true); }
     try {

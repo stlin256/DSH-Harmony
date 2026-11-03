@@ -527,6 +527,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-03-access-control.md](docs/specs/2026-11-03-access-control.md)
 - Access-control device E2E:
   [2026-11-03-access-control-e2e.md](docs/testing/2026-11-03-access-control-e2e.md)
+- Store review experience requirement:
+  [2026-11-04-store-review-demo.md](docs/requirements/2026-11-04-store-review-demo.md)
+- Store review experience research:
+  [2026-11-04-store-review-demo.md](docs/research/2026-11-04-store-review-demo.md)
+- Store review experience implementation spec:
+  [2026-11-04-store-review-demo.md](docs/specs/2026-11-04-store-review-demo.md)
+- Store review experience device E2E:
+  [2026-11-04-store-review-demo-e2e.md](docs/testing/2026-11-04-store-review-demo-e2e.md)
 
 ## Upstream Tracking
 

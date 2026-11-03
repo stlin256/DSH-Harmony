@@ -436,11 +436,13 @@ export struct NativePluginsSurface {
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         if (bundle.installed && !bundle.readOnlyReason) {
           Toggle({ type: ToggleType.Switch, isOn: bundle.enabled })
+            .id('plugin-bundle-toggle-' + bundle.name)
             .enabled(!this.isBusy('bundle:' + bundle.name))
             .selectedColor(this.accent())
             .onChange((isOn: boolean): void => { this.toggleBundle(bundle); })
         } else if (!bundle.installed && bundle.installSpec) {
           Button('添加', { type: ButtonType.Normal }).height(NativeDesign.compactControl)
+            .id('plugin-install-' + bundle.name)
             .fontSize(NativeDesign.fontCaption).padding({ left: 10, right: 10 })
             .borderRadius(NativeDesign.radiusCompact)
             .backgroundColor(this.selectedSurface()).fontColor(this.accent())
@@ -454,6 +456,7 @@ export struct NativePluginsSurface {
       }.width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
         .padding({ left: 10, right: 10, top: 8, bottom: 8 })
     }.width('100%').borderRadius(NativeDesign.radiusRow).backgroundColor(Color.Transparent)
+      .id('plugin-bundle-' + bundle.name)
       .onClick((): void => { this.openDetail(bundle); })
       .transition(NativeMotion.rowTransition())
   }
@@ -608,6 +611,7 @@ export struct NativePluginsSurface {
       if (row.entryId) {
         Toggle({ type: ToggleType.Switch,
           isOn: this.entryFor(row.entryId)?.enabled === true })
+          .id('plugin-row-toggle-' + row.entryId)
           .enabled(!this.isBusy('row:' + row.entryId))
           .selectedColor(this.accent())
           .onChange((isOn: boolean): void => { this.toggleRow(bundle, row.entryId, isOn); })
@@ -642,6 +646,7 @@ export struct NativePluginsSurface {
             }.layoutWeight(1).alignItems(HorizontalAlign.Start)
             if (this.selected.installed && !this.selected.readOnlyReason) {
               Toggle({ type: ToggleType.Switch, isOn: this.selected.enabled })
+                .id('plugin-detail-toggle')
                 .selectedColor(this.accent())
                 .enabled(!this.isBusy('bundle:' + this.selected.name))
                 .onChange((): void => { this.toggleBundle(this.selected); })
@@ -678,6 +683,7 @@ export struct NativePluginsSurface {
               }.width('100%')
               if (this.updateCandidate()) {
                 Button('更新到 ' + this.updateCandidate(), { type: ButtonType.Normal })
+                  .id('plugin-update')
                   .width('100%').height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
                   .borderRadius(NativeDesign.radiusControl).backgroundColor(this.accent())
                   .fontColor(NativeDesign.textInverse(this.dark))
@@ -708,6 +714,7 @@ export struct NativePluginsSurface {
           }
           if (this.selected.removable) {
             Button('移除插件', { type: ButtonType.Normal }).width('100%')
+              .id('plugin-remove')
               .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection).borderRadius(NativeDesign.radiusControl)
               .backgroundColor(NativeDesign.dangerSurface(this.dark)).fontColor(this.danger())
               .enabled(!this.isBusy('remove:' + this.selected.name))
@@ -732,6 +739,7 @@ export struct NativePluginsSurface {
       this.errorNotice()
       Text('包名').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium).width('100%').fontColor(this.secondaryText())
       TextInput({ text: this.installSpec, placeholder: '包名、Git 地址或本地路径' })
+        .id('plugin-install-spec')
         .width('100%').height(NativeDesign.standardRow).fontSize(NativeDesign.fontCompact)
         .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
         .fontColor(this.primaryText()).placeholderColor(this.tertiaryText())
@@ -741,12 +749,14 @@ export struct NativePluginsSurface {
         })
       Row({ space: 8 }) {
         Button(this.inspecting ? '检查中…' : '检查安装源', { type: ButtonType.Normal })
+          .id('plugin-install-inspect')
           .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
           .borderRadius(NativeDesign.radiusControl).backgroundColor(this.fieldSurface())
           .fontColor(this.primaryText()).enabled(!this.inspecting && !!this.installSpec.trim())
           .onClick((): void => { this.inspectInstall(); })
         if (this.inspection?.status === 'accepted') {
           Button(this.installing ? '安装中…' : '安装', { type: ButtonType.Normal })
+            .id('plugin-install-confirm')
             .layoutWeight(1).height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
             .borderRadius(NativeDesign.radiusControl).backgroundColor(this.accent())
             .fontColor(NativeDesign.textInverse(this.dark))

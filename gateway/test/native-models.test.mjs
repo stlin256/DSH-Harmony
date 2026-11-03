@@ -245,9 +245,15 @@ test('UI fixture launch parameters are bounded and expose explicit running state
     '../../harmony/entry/src/main/ets/pages/Index.ets', import.meta.url), 'utf8');
   const showcase = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/services/StoreShowcaseClient.ets', import.meta.url), 'utf8');
+  const experience = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/services/NativeExperience.ets', import.meta.url), 'utf8');
   assert.match(entry, /storeShowcaseState/);
   assert.match(entry, /NativeUiFixture\.screen/);
   assert.match(entry, /NativeUiFixture\.state/);
+  assert.match(entry,
+    /NativeExperience\.refresh\(this\.context,[\s\S]{0,180}storeReviewPresentationActive[\s\S]{0,100}storeShowcase/);
+  assert.match(experience, /preservePresentation:\s*boolean\s*=\s*false/);
+  assert.match(experience, /if \(!preservePresentation\)/);
   assert.match(entry, /showcaseReduceTransparency/);
   assert.match(index, /if \(AppStorage\.get<boolean>\('storeShowcase'\) === true\)/);
   assert.match(index, /new StoreShowcaseClient\([\s\S]{0,120}storeShowcaseState/);
@@ -272,7 +278,12 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.match(showcase, /record\.running = initial\.running/);
   assert.match(showcase, /const plan = target\.prompt\(resolvedRequestId, text, mapped, mode\)/);
   assert.match(showcase, /this\.receiverReady = true/);
-  assert.match(showcase, /dock-send-error[\s\S]{0,100}Mock 发送失败/);
+  assert.match(showcase, /dock-send-error[\s\S]{0,100}发送失败，请重试/);
+  assert.match(showcase, /private reviewMode:\s*boolean/);
+  assert.match(showcase, /new NativeHttpError\(402, 'insufficient_balance'\)/);
+  assert.match(showcase, /this\.settingsNamespaceJson\('ui-chat'\)/);
+  assert.match(showcase, /this\.settingsNamespaceJson\('ui-conversation'\)/);
+  assert.match(showcase, /this\.settingsNamespaceJson\('permission'\)/);
   assert.match(showcase, /frame\.interaction = 'approval\/request'/);
   assert.match(showcase, /frame\.interaction = 'user-questions\/request'/);
   assert.match(showcase, /this\.attachments\.set\(SHOWCASE_SESSION, showcaseAttachments\(\)\)/);
@@ -282,7 +293,7 @@ test('UI fixture launch parameters are bounded and expose explicit running state
   assert.match(showcase, /showcaseProjectionJson/);
   assert.match(showcase, /this\.childInteractions\.get\(id\)/);
   assert.match(showcase,
-    /async follow\([\s\S]{0,220}if \(id !== SHOWCASE_SESSION && !child\) return;[\s\S]{0,80}this\.paused = false;/,
+    /async follow\([\s\S]{0,260}if \(id !== SHOWCASE_SESSION && !child && !reviewSession\) return;[\s\S]{0,80}this\.paused = false;/,
     'a new showcase follow must resume after a prior pause');
   const workspace = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
