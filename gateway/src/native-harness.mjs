@@ -4,6 +4,9 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {
   normalizeFollow,
+  normalizePermissionCatalog,
+  normalizePermissionPreset,
+  normalizePermissionSelection,
   normalizePlanProjection,
   normalizeProjectionTitle,
   normalizeQueuedState,
@@ -111,6 +114,8 @@ export function normalizedProjectionSnapshot(value) {
   }
   const timing = normalizeSubagentTiming(raw.subagentTiming);
   if (timing) values.subagentTiming = timing;
+  const permissions = normalizePermissionSelection(raw.permissions);
+  if (permissions) values.permissions = permissions;
   return {
     kind: typeof source.kind === 'string' ? source.kind : 'sequenced',
     asOfSeq: Number.isSafeInteger(source.asOfSeq) && source.asOfSeq >= 0 ? source.asOfSeq : -1,
@@ -538,7 +543,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
     app.post('/pocket/api/native/operation', guarded(async (req, res, signal) => {
       const { operation, sessionId } = req.body || {};
       const sessionOptionalOperations = [
-        'modelCatalog', 'workspaceCreate', 'workspaceRename', 'workspaceDelete',
+        'modelCatalog', 'permissionCatalog', 'workspaceCreate', 'workspaceRename', 'workspaceDelete',
         'workspaceOrder', 'sessionInsertBefore', 'settingsDescribe', 'settingsSet',
         'directoryList', 'directoryCreate', 'pluginsList', 'pluginSetEnabled',
         'pluginSetRowEnabled', 'pluginInspect', 'pluginInstall', 'pluginRemove',
@@ -700,15 +705,25 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         }
         case 'settingsDescribe': {
           const value = await rpc('settings/describe', {}, signal);
-          res.json({ writable: value?.writable === true, namespaces: (value?.namespaces || []).filter(row => ['ui-chat', 'ui-theme', 'ui-conversation', 'locale'].includes(row.ns))
-            .map(({ ns, value, revision }) => ({ ns, value, revision })) }); return;
+          const namespaces = (value?.namespaces || []).flatMap(row => {
+            if (!row || !['ui-chat', 'ui-theme', 'ui-conversation', 'locale', 'permission'].includes(row.ns)) return [];
+            if (row.ns !== 'permission') return [{ ns: row.ns, value: row.value, revision: row.revision }];
+            const defaultPreset = normalizePermissionPreset(row.value?.defaultPreset);
+            return defaultPreset ? [{ ns: row.ns, value: { defaultPreset }, revision: row.revision }] : [];
+          });
+          res.json({ writable: value?.writable === true, namespaces }); return;
         }
         case 'settingsSet': {
           const { ns, field, value, revision } = req.body;
           const enums = { 'ui-chat': { transcriptView: ['compact','standard','detailed','verbose'], collapseTiming: ['completion','next-input'], foldedReplies: ['all','final'] },
             'ui-theme': { preference: ['light','dark','system'] }, 'ui-conversation': { busyEnter: ['queue','steer'] } };
           const bounds = { fontSize: [10,22], codeFontSize: [10,16], terminalFontSize: [10,20] };
-          const valid = enums[ns]?.[field]?.includes(value) || (ns === 'ui-theme' && bounds[field] && Number.isInteger(value) && value >= bounds[field][0] && value <= bounds[field][1]);
+          let valid = enums[ns]?.[field]?.includes(value) || (ns === 'ui-theme' && bounds[field] && Number.isInteger(value) && value >= bounds[field][0] && value <= bounds[field][1]);
+          if (ns === 'permission') {
+            const catalog = normalizePermissionCatalog(await rpcArgs('permissionPresets/catalog', {}, signal));
+            valid = field === 'defaultPreset' && catalog !== null &&
+              catalog.defaultOptions.some(option => option.value === value);
+          }
           if (!valid || !Number.isSafeInteger(revision) || revision < 0) return res.sendStatus(400);
           res.json(await rpc('settings/mutate', { ns, ops: [{ op: 'set', path: [field], value }], expectedRevision: revision }, signal)); return;
         }
@@ -761,6 +776,31 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         case 'projections': {
           const value = await rpc('projections', { sessionId }, signal);
           res.json(normalizedProjectionSnapshot(value)); return;
+        }
+        case 'permissionCatalog': {
+          const catalog = normalizePermissionCatalog(
+            await rpcArgs('permissionPresets/catalog', {}, signal));
+          if (!catalog) {
+            res.status(502).json({ error: '权限目录不可用', code: 'permission/catalog-invalid' });
+            return;
+          }
+          res.json(catalog); return;
+        }
+        case 'setPermissionPreset': {
+          const preset = normalizePermissionPreset(req.body.preset);
+          if (!sessionIdValid(sessionId) || !preset || preset === 'custom') return res.sendStatus(400);
+          const catalog = normalizePermissionCatalog(
+            await rpcArgs('permissionPresets/catalog', {}, signal));
+          if (!catalog) {
+            res.status(502).json({ error: '权限目录不可用', code: 'permission/catalog-invalid' });
+            return;
+          }
+          if (!catalog.options.some(option => option.value === preset)) {
+            res.status(409).json({ error: '权限选项已失效', code: 'permission/preset-unavailable' });
+            return;
+          }
+          await rpcArgs('commands/execute', [sessionId, '/permission ' + preset, []], signal);
+          res.json({ accepted: true }); return;
         }
         case 'planOff':
           await rpcArgs('commands/execute', [sessionId, '/plan off', []], signal);
@@ -969,6 +1009,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         } else if (key === 'subagentTiming') {
           const timing = normalizeSubagentTiming(value);
           if (timing) send({ type: 'subagent-timing', timing, projectionSeq });
+        } else if (key === 'permissions') {
+          send({ type: 'permission', selection: normalizePermissionSelection(value), projectionSeq });
         }
       };
       const publishProjectionValues = (values, seq) => {
@@ -979,6 +1021,9 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           publishProjection('subagent', values.subagent, seq);
         }
         publishProjection('subagentTiming', values.subagentTiming, seq);
+        if (Object.prototype.hasOwnProperty.call(values, 'permissions')) {
+          publishProjection('permissions', values.permissions, seq);
+        }
       };
       const endInteraction = eventId => {
         clearTimeout(connection.pending.get(eventId)?.timer);

@@ -330,6 +330,21 @@
       "requiresInteraction": true
     },
     {
+      "id": "permission.presets-and-one-shot-approval",
+      "screens": ["conversation", "settings"],
+      "states": ["permission-current-read-only", "permission-current-workspace",
+        "permission-current-full", "permission-current-custom", "permission-menu",
+        "permission-menu-error", "permission-full-confirm", "permission-full-cancel",
+        "approval-workspace-once", "approval-full-once", "approval-long-reason",
+        "approval-submitting", "approval-ended", "approval-disconnected",
+        "permission-default-setting"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-permissions-e2e.ps1"],
+      "e2eIds": ["PERM-01", "PERM-02", "PERM-03", "PERM-04", "PERM-05",
+        "PERM-06", "PERM-07", "PERM-08", "PERM-09", "PERM-10", "PERM-11",
+        "PERM-12", "PERM-13", "PERM-14", "PERM-15", "PERM-16"],
+      "requiresInteraction": true
+    },
+    {
       "id": "security.secret-mask",
       "screens": ["conversation"],
       "states": ["secret-masked"],

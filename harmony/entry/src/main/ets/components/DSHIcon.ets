@@ -85,7 +85,7 @@ export struct DSHIcon {
     }, drawing.BlendMode.SRC_IN);
   }
   build() {
-    if (['think-outline', 'browse-outline', 'folder-outline', 'search-outline', 'edit-outline', 'api-outline', 'code-outline', 'eye-outline', 'globe-outline', 'external-link-outline', 'agent-preset-outline', 'plan-outline', 'clock-outline', 'question-outline', 'warning-outline', 'refresh-outline', 'sparkle', 'pin-outline', 'pin-fill', 'branch-outline', 'archive-outline', 'download-outline', 'close-outline', 'light-outline', 'dark-outline', 'followsystem-outline', 'personalization-outline', 'deepseek-logo'].includes(this.glyph)) {
+    if (['think-outline', 'browse-outline', 'folder-outline', 'search-outline', 'edit-outline', 'api-outline', 'code-outline', 'eye-outline', 'globe-outline', 'external-link-outline', 'agent-preset-outline', 'plan-outline', 'clock-outline', 'question-outline', 'warning-outline', 'refresh-outline', 'sparkle', 'pin-outline', 'pin-fill', 'branch-outline', 'archive-outline', 'download-outline', 'close-outline', 'light-outline', 'dark-outline', 'followsystem-outline', 'personalization-outline', 'permission-read-only', 'permission-workspace-write', 'permission-full-access', 'permission-auto-review', 'deepseek-logo'].includes(this.glyph)) {
       Stack() {
         Image($rawfile('dsh-icons/' + this.glyph + '.svg')).width(this.glyphSize).height(this.glyphSize)
           .objectFit(ImageFit.Contain)

@@ -6,12 +6,22 @@ import { once } from 'node:events';
 import WebSocket, { WebSocketServer } from 'ws';
 import { openStore } from '../src/store.mjs';
 import { createApp } from '../src/app.mjs';
-import { normalizeFollow, normalizeProjectionTitle, normalizedHistory, richBlocks, normalizeRecord } from '../src/native-protocol.mjs';
+import {
+  normalizeFollow,
+  normalizePermissionCatalog,
+  normalizePermissionPreset,
+  normalizePermissionSelection,
+  normalizeProjectionTitle,
+  normalizedHistory,
+  richBlocks,
+  normalizeRecord
+} from '../src/native-protocol.mjs';
 import {
   changedFilesSummary,
   nativeDeliveryDrainReady,
   nativeHeartbeatPayload,
-  nativeHeartbeatPolicy
+  nativeHeartbeatPolicy,
+  normalizedProjectionSnapshot
 } from '../src/native-harness.mjs';
 
 const origin = 'https://dsh.example.com';
@@ -226,9 +236,27 @@ async function setup(t, options = {}) {
       target: { kind: 'new_once', create: {} }, updatedAt: '2026-11-01T00:00:00.000Z'
     };
     else if (value.method === 'settings/describe') result = {writable:true,namespaces:[
-      {ns:'ui-chat',value:{transcriptView:'standard'},revision:4}, {ns:'private-provider',value:{credential:'must-not-forward'},revision:1}
+      {ns:'ui-chat',value:{transcriptView:'standard'},revision:4},
+      ...(options.permissionSettings ? [{ns:'permission',value:{
+        defaultPreset:'workspace-write', hidden:'must-not-forward'
+      },revision:6}] : []),
+      {ns:'private-provider',value:{credential:'must-not-forward'},revision:1}
     ]};
     else if (value.method === 'settings/mutate') result = {ns:value.payload.args.ns,value:{[value.payload.args.ops[0].path[0]]:value.payload.args.ops[0].value},revision:5};
+    else if (value.method === 'permissionPresets/catalog') result = {
+      options: [
+        { value: 'read-only', name: 'Read Only', description: 'Inspect only' },
+        { value: 'workspace-write', name: 'Workspace Write', description: 'Edit the workspace' },
+        { value: 'danger-full-access', name: 'Full access', description: 'Use full access' },
+        { value: 'auto', name: 'Auto review', description: 'Review automatically' }
+      ],
+      defaultOptions: [
+        { value: 'read-only', name: 'Read Only' },
+        { value: 'workspace-write', name: 'Workspace Write' },
+        { value: 'danger-full-access', name: 'Full access' }
+      ],
+      defaultPreset: 'workspace-write'
+    };
     else if (value.method === 'session/page') result = { records:[{type:'event',event:{seq:0,type:'user/message',data:{content:[{type:'text',text:'older'}]}}}], cursor:3,hasMore:false };
     else if (value.method === 'session/projections') result = {
       kind: 'sequenced', asOfSeq: 12, values: {
@@ -440,10 +468,17 @@ test('native live forwards typed mode projections and rejects stale per-key valu
     type: 'projection', key: 'subagentTiming',
     value: { settledMs: 100, lastTurnCompleted: true }, seq: 13
   });
+  emitProjection('projections', {
+    type: 'projection', key: 'permissions', value: { currentValue: 'workspace-write' }, seq: 13
+  });
+  emitProjection('projections', {
+    type: 'projection', key: 'permissions', value: { currentValue: 'read-only' }, seq: 12
+  });
   await until(() => frames.some(frame => frame.type === 'plan' && frame.projectionSeq === 13) &&
     frames.some(frame => frame.type === 'subagent-catalog' && frame.projectionSeq === 13) &&
     frames.some(frame => frame.type === 'subagent-identity' && frame.projectionSeq === 13) &&
-    frames.some(frame => frame.type === 'subagent-timing' && frame.projectionSeq === 13));
+    frames.some(frame => frame.type === 'subagent-timing' && frame.projectionSeq === 13) &&
+    frames.some(frame => frame.type === 'permission' && frame.projectionSeq === 13));
   assert.deepEqual(frames.find(frame => frame.type === 'plan')?.plan,
     { active: false, pending: true });
   assert.equal(frames.find(frame => frame.type === 'subagent-catalog')?.catalog.length, 1);
@@ -454,6 +489,80 @@ test('native live forwards typed mode projections and rejects stale per-key valu
   ]);
   assert.deepEqual(frames.filter(frame => frame.type === 'subagent-timing').at(-1)?.timing,
     { settledMs: 100, lastTurnCompleted: true });
+  assert.deepEqual(frames.filter(frame => frame.type === 'permission')
+    .map(frame => frame.selection), [{ currentValue: 'workspace-write' }]);
+});
+
+test('permission contracts reject reserved defaults and preserve only selectable presets', () => {
+  const catalog = {
+    options: [
+      { value: 'read-only', name: ' Read Only ', description: 'Inspect only' },
+      { value: 'workspace-write', name: 'Workspace Write' },
+      { value: 'auto', name: 'Auto review' }
+    ],
+    defaultOptions: [
+      { value: 'read-only', name: 'Read Only' },
+      { value: 'workspace-write', name: 'Workspace Write' }
+    ],
+    defaultPreset: 'workspace-write'
+  };
+  assert.deepEqual(normalizePermissionCatalog(catalog), {
+    options: [
+      { value: 'read-only', name: 'Read Only', description: 'Inspect only' },
+      { value: 'workspace-write', name: 'Workspace Write' },
+      { value: 'auto', name: 'Auto review' }
+    ],
+    defaultOptions: [
+      { value: 'read-only', name: 'Read Only' },
+      { value: 'workspace-write', name: 'Workspace Write' }
+    ],
+    defaultPreset: 'workspace-write'
+  });
+  for (const value of [
+    { ...catalog, defaultPreset: 'auto' },
+    { ...catalog, defaultOptions: [{ value: 'auto', name: 'Auto review' }] },
+    { ...catalog, options: [{ value: 'custom', name: 'Custom' }] },
+    { ...catalog, options: [{ value: 'workspace-write', name: 'One' },
+      { value: 'workspace-write', name: 'Two' }] },
+    { ...catalog, options: [{ value: 'read-only', name: 'Read Only', forged: true }] }
+  ]) assert.equal(normalizePermissionCatalog(value), null);
+  assert.equal(normalizePermissionPreset('../full'), '');
+  assert.deepEqual(normalizePermissionSelection({ currentValue: 'custom' }),
+    { currentValue: 'custom' });
+  assert.equal(normalizePermissionSelection({ currentValue: '' }), null);
+  assert.deepEqual(normalizedProjectionSnapshot({
+    asOfSeq: 9,
+    values: { permissions: { currentValue: 'danger-full-access', extra: true } }
+  }).values.permissions, { currentValue: 'danger-full-access' });
+});
+
+test('permission catalog and current-session writes stay behind fixed Host contracts', async t => {
+  const { call, calls } = await setup(t);
+  const operation = body => call('/pocket/api/native/operation', body);
+  const catalogResponse = await operation({ operation: 'permissionCatalog' });
+  assert.equal(catalogResponse.status, 200);
+  assert.deepEqual(JSON.parse(catalogResponse.text).options.map(option => option.value),
+    ['read-only', 'workspace-write', 'danger-full-access', 'auto']);
+  assert.equal(calls.at(-1).value.method, 'permissionPresets/catalog');
+  assert.deepEqual(calls.at(-1).value.payload.args, {});
+
+  assert.equal((await operation({
+    operation: 'setPermissionPreset', sessionId: 'session', preset: 'danger-full-access'
+  })).status, 200);
+  assert.equal(calls.at(-2).value.method, 'permissionPresets/catalog');
+  assert.equal(calls.at(-1).value.method, 'commands/execute');
+  assert.deepEqual(calls.at(-1).value.payload.args,
+    ['session', '/permission danger-full-access', []]);
+
+  assert.equal((await operation({
+    operation: 'setPermissionPreset', sessionId: 'session', preset: 'custom'
+  })).status, 400);
+  assert.equal((await operation({
+    operation: 'setPermissionPreset', sessionId: '../bad', preset: 'read-only'
+  })).status, 400);
+  assert.equal((await operation({
+    operation: 'setPermissionPreset', sessionId: 'session', preset: 'not-in-catalog'
+  })).status, 409);
 });
 
 test('native mode and subagent operations use projection, address and command contracts', async t => {
@@ -618,6 +727,34 @@ test('header utilities export complete Host content and profile writes use named
     {ns:'provider',field:'apiKey',value:'never'}, {ns:'ui-chat',field:'transcriptView',value:'invented'},
     {ns:'ui-theme',field:'fontSize',value:23}, {ns:'ui-chat',field:'collapseTiming',value:'completion',revision:-1}
   ]) assert.equal((await call('/pocket/api/native/operation',{operation:'settingsSet',revision:4,...body})).status,400);
+});
+
+test('new-session permission settings expose only defaultPreset and validate it against the live catalog', async t => {
+  const { call, calls } = await setup(t, { permissionSettings: true });
+  const operation = body => call('/pocket/api/native/operation', body);
+  const settings = JSON.parse((await operation({ operation: 'settingsDescribe' })).text);
+  assert.deepEqual(settings.namespaces.find(row => row.ns === 'permission'), {
+    ns: 'permission', value: { defaultPreset: 'workspace-write' }, revision: 6
+  });
+  assert.doesNotMatch(JSON.stringify(settings), /must-not-forward/);
+  assert.equal((await operation({
+    operation: 'settingsSet', ns: 'permission', field: 'defaultPreset',
+    value: 'read-only', revision: 6
+  })).status, 200);
+  assert.equal(calls.at(-2).value.method, 'permissionPresets/catalog');
+  assert.equal(calls.at(-1).value.method, 'settings/mutate');
+  assert.deepEqual(calls.at(-1).value.payload.args, {
+    ns: 'permission',
+    ops: [{ op: 'set', path: ['defaultPreset'], value: 'read-only' }],
+    expectedRevision: 6
+  });
+  for (const body of [
+    { field: 'defaultPreset', value: 'auto' },
+    { field: 'defaultPreset', value: 'custom' },
+    { field: 'other', value: 'read-only' }
+  ]) assert.equal((await operation({
+    operation: 'settingsSet', ns: 'permission', revision: 6, ...body
+  })).status, 400);
 });
 
 test('native changed-files bridge forwards only the authenticated stopped-turn summary', async t => {

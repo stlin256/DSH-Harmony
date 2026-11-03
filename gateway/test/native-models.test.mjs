@@ -3476,3 +3476,75 @@ test('frontend hardening source wires masking and stream repair into production'
     /index\.toString\(\) \+ ':' \+ _run\.text \+ ':' \+ \(_run\.secret \? 'secret' : 'plain'\)/);
   assert.doesNotMatch(settings, /nativeSearchSettings|settingsQuery|搜索设置/);
 });
+
+test('permission catalog and selection stay host-owned and display-only values remain non-selectable', () => {
+  const permissions = load('NativePermissions', {});
+  const catalog = permissions.nativePermissionCatalogFromJson(JSON.stringify({
+    options: [
+      { value: 'read-only', name: 'Read only', description: 'Inspect only' },
+      { value: 'workspace-write', name: 'Workspace write', description: 'Edit workspace' },
+      { value: 'danger-full-access', name: 'Full access', description: 'Run unrestricted' },
+      { value: 'auto', name: 'Auto review', description: 'Host reviews risky calls' }
+    ],
+    defaultOptions: [
+      { value: 'read-only', name: 'Read only' },
+      { value: 'workspace-write', name: 'Workspace write' },
+      { value: 'danger-full-access', name: 'Full access' }
+    ],
+    defaultPreset: 'workspace-write'
+  }));
+  assert.ok(catalog);
+  assert.equal(catalog.options.length, 4);
+  assert.equal(permissions.nativePermissionLabel(null, 'danger-full-access'), '完全权限');
+  assert.equal(permissions.nativePermissionShortLabel('workspace-write'), '工作区');
+  assert.equal(permissions.nativePermissionIcon('read-only'), 'permission-read-only');
+  assert.equal(permissions.nativePermissionRequiresRisk('auto'), true);
+  assert.equal(permissions.nativePermissionCanSelect(catalog, 'auto'), true);
+  assert.equal(permissions.nativePermissionCanSelect(catalog, 'custom'), false);
+  assert.deepEqual(
+    { ...permissions.nativePermissionSelectionFromValue({ currentValue: 'danger-full-access', extra: true }) },
+    { currentValue: 'danger-full-access' });
+  assert.equal(permissions.nativePermissionSelectionFromValue({ currentValue: '' }), null);
+
+  assert.equal(permissions.nativePermissionCatalogFromJson(JSON.stringify({
+    options: [{ value: 'custom', name: 'Custom' }],
+    defaultOptions: [],
+    defaultPreset: ''
+  })), null);
+  assert.equal(permissions.nativePermissionCatalogFromJson(JSON.stringify({
+    options: [{ value: 'auto', name: 'Auto' }],
+    defaultOptions: [{ value: 'auto', name: 'Auto' }],
+    defaultPreset: 'auto'
+  })), null);
+  assert.equal(permissions.nativePermissionCatalogFromJson(JSON.stringify({
+    options: [
+      { value: 'read-only', name: 'Read only' },
+      { value: 'read-only', name: 'Duplicate' }
+    ],
+    defaultOptions: [{ value: 'read-only', name: 'Read only' }],
+    defaultPreset: 'read-only'
+  })), null);
+});
+
+test('permission UI keeps one-shot approval and session preset changes distinct', () => {
+  const picker = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativePermissionPicker.ets', import.meta.url), 'utf8');
+  const interaction = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeInteraction.ets', import.meta.url), 'utf8');
+  const workspace = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
+  const settings = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeSettings.ets', import.meta.url), 'utf8');
+  assert.doesNotMatch(picker, /允许一次/);
+  assert.doesNotMatch(picker, /不会修改这里的选择/);
+  assert.match(interaction, /允许一次仅影响当前工具调用，不会改变会话权限/);
+  assert.match(interaction, /submitted = true/);
+  assert.match(workspace, /outlineWidth: 0/);
+  assert.match(workspace, /borderWidth: 0/);
+  assert.match(workspace, /mask: \{ color: NativeDesign\.mask/);
+  assert.match(workspace, /frame\.type === 'permission'/);
+  assert.match(workspace, /permissionBusyValue/);
+  assert.match(workspace, /permission-risk-ack/);
+  assert.match(settings, /新会话默认权限/);
+  assert.match(settings, /只影响之后创建的会话/);
+});

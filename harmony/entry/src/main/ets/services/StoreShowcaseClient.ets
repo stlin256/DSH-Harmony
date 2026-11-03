@@ -37,6 +37,7 @@ import {
   nativeShowcaseQueueItem
 } from './NativeShowcaseInteraction';
 import { NativeUiFixture } from './NativeUiFixture';
+import { NativePermissionSelection } from './NativePermissions';
 import { http } from '@kit.NetworkKit';
 import { BuildInfo } from './BuildInfo';
 
@@ -369,7 +370,14 @@ function showcaseMessagesFor(state: string): NativeMessage[] {
   if (state === 'secret-masked') return showcaseSecretMessages();
   if (state === 'dock-send-idle' || state === 'dock-send-error' ||
       state === 'dock-material-quiet' || state === 'interaction-approval' ||
-      state === 'interaction-question') return showcaseDockMessages();
+      state === 'interaction-question' || state === 'permission-current-read-only' ||
+      state === 'permission-current-workspace' || state === 'permission-current-full' ||
+      state === 'permission-current-custom' || state === 'permission-menu' ||
+      state === 'permission-menu-error' || state === 'permission-full-confirm' ||
+      state === 'permission-full-cancel' || state === 'approval-workspace-once' ||
+      state === 'approval-full-once' || state === 'approval-long-reason' ||
+      state === 'approval-submitting' || state === 'approval-ended' ||
+      state === 'approval-disconnected') return showcaseDockMessages();
   if (state === 'dock-queue-pending') return showcaseStreamingMessages();
   if (state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
       state === 'dock-material-elevated') return showcaseLiveChangeMessages();
@@ -425,20 +433,30 @@ function showcaseQueue(state: string): NativeQueueItem[] {
 }
 
 function showcaseInteractionFrame(state: string): NativeFrame | null {
-  if (state !== 'interaction-approval' && state !== 'interaction-question') return null;
+  const approval = state === 'interaction-approval' || state === 'approval-workspace-once' ||
+    state === 'approval-full-once' || state === 'approval-long-reason' ||
+    state === 'approval-submitting';
+  if (!approval && state !== 'interaction-question') return null;
   const frame = new NativeFrame();
   frame.type = 'interaction';
   frame.connectionId = SHOWCASE_SESSION;
   frame.callId = 'showcase-' + state;
   frame.eventId = 'showcase-' + state + '-request';
-  if (state === 'interaction-approval') {
+  if (approval) {
     frame.interaction = 'approval/request';
     frame.remainingMs = 30000;
     frame.request = new NativeInteractionRequest();
     frame.request.toolName = 'workspace/edit';
-    frame.request.reason = '需要写入一次已确认的界面修复。';
+    frame.request.targetPermission = state === 'approval-full-once' ? 'danger-full-access' : 'workspace-write';
+    frame.request.targetScope = frame.request.targetPermission;
+    frame.request.reason = state === 'approval-long-reason' ?
+      '需要写入一次已确认的界面修复。该操作涉及工作区外的发布目录、签名产物与商店截图资源；' +
+        '请在确认目标权限和写入范围后决定是否仅放行当前这一次工具调用。' :
+      state === 'approval-full-once' ?
+        '当前工具请求一次完全权限，以检查系统构建环境并更新发布产物。' :
+        '需要写入一次已确认的界面修复。';
     const localized = new NativeLocalized();
-    localized.zh = '需要写入一次已确认的界面修复。';
+    localized.zh = frame.request.reason;
     localized.en = 'Allow one confirmed UI repair.';
     frame.request.displayReason = localized;
     return frame;
@@ -461,6 +479,31 @@ function showcaseInteractionFrame(state: string): NativeFrame | null {
   });
   frame.request.questions = [question];
   return frame;
+}
+
+function showcasePermissionCurrent(state: string): string {
+  if (state === 'permission-current-read-only' || state === 'permission-menu-error') return 'read-only';
+  if (state === 'permission-current-full') return 'danger-full-access';
+  if (state === 'permission-current-custom') return 'custom';
+  return 'workspace-write';
+}
+
+function showcasePermissionCatalogJson(state: string): string {
+  if (state === 'permission-menu-error') throw new Error('Mock permission catalog unavailable');
+  return `{
+    "options": [
+      { "value": "read-only", "name": "仅可查看", "description": "浏览和查询，不修改工作区" },
+      { "value": "workspace-write", "name": "工作区内修改", "description": "只允许修改当前工作区" },
+      { "value": "danger-full-access", "name": "完全权限", "description": "减少确认并允许敏感操作" },
+      { "value": "auto", "name": "自动审查", "description": "由 Host 自动审查高风险调用" }
+    ],
+    "defaultOptions": [
+      { "value": "read-only", "name": "仅可查看", "description": "浏览和查询，不修改工作区" },
+      { "value": "workspace-write", "name": "工作区内修改", "description": "只允许修改当前工作区" },
+      { "value": "danger-full-access", "name": "完全权限", "description": "减少确认并允许敏感操作" }
+    ],
+    "defaultPreset": "workspace-write"
+  }`;
 }
 
 function showcaseAttachments(): NativeAttachmentDraft[] {
@@ -559,7 +602,8 @@ function showcasePlanProjection(planRemoved: boolean): NativePlanProjection {
   return plan;
 }
 
-function showcaseProjectionJson(state: string, sessionId: string, planRemoved: boolean): string {
+function showcaseProjectionJson(state: string, sessionId: string, planRemoved: boolean,
+  currentPermission: string = ''): string {
   const values: Record<string, Object> = {};
   if (sessionId === SHOWCASE_CHILD_CONTINUABLE || sessionId === SHOWCASE_CHILD_ONE_SHOT ||
       sessionId === SHOWCASE_CHILD_UNKNOWN) {
@@ -568,6 +612,9 @@ function showcaseProjectionJson(state: string, sessionId: string, planRemoved: b
     values.subagentCatalog = [];
   } else {
     values.modelSelection = new ShowcaseModelSelectionProjection();
+    const permission = new NativePermissionSelection();
+    permission.currentValue = currentPermission || showcasePermissionCurrent(state);
+    values.permissions = permission;
     if (isPlanFixtureState(state)) {
       values.plan = showcasePlanProjection(planRemoved);
     }
@@ -594,6 +641,19 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
     state === 'dock-material-elevated' ? '渐变材质与实时变更' :
     state === 'interaction-approval' ? '审批卡样式检查' :
     state === 'interaction-question' ? '问题卡样式检查' :
+    state === 'permission-current-read-only' ? '当前权限 · 仅可查看' :
+    state === 'permission-current-workspace' ? '当前权限 · 工作区内修改' :
+    state === 'permission-current-full' ? '当前权限 · 完全权限' :
+    state === 'permission-current-custom' ? '当前权限 · 自定义' :
+    state === 'permission-menu' ? '切换当前会话权限' :
+    state === 'permission-menu-error' ? '权限目录不可用' :
+    state === 'permission-full-confirm' || state === 'permission-full-cancel' ? '完全权限风险确认' :
+    state === 'approval-workspace-once' ? '工作区单次审批' :
+    state === 'approval-full-once' ? '完全权限单次审批' :
+    state === 'approval-long-reason' ? '长原因单次审批' :
+    state === 'approval-submitting' ? '审批提交中' :
+    state === 'approval-ended' ? '审批已结束' :
+    state === 'approval-disconnected' ? '审批连接中断' :
     state === 'plan-subagent' ? '计划与子智能体' :
     state === 'plan-subagent-long-count' ? '计划与子智能体标题很长时优先压缩标题并保留数量' :
     state === 'plan-dock-overlay' ? '悬浮任务计划' :
@@ -625,14 +685,20 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
       state === 'empty' || state === 'dock-queue-pending' ||
       state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
       state === 'dock-material-elevated' || state === 'interaction-approval' ||
-      state === 'interaction-question') &&
+      state === 'interaction-question' || state === 'approval-workspace-once' ||
+      state === 'approval-full-once' || state === 'approval-long-reason' ||
+      state === 'approval-submitting') &&
       row[0] === SHOWCASE_SESSION;
     value.agentAvailable = row[0] === SHOWCASE_SESSION ?
       state !== 'subagent-parent-offline' : undefined;
     value.updatedAt = 1761900000000 - definitions.findIndex((item: string[]) => item[0] === row[0]) * 60000;
     if (row[0] === SHOWCASE_SESSION &&
-        (isPlanFixtureState(state) || isSubagentFixtureState(state))) {
+        (isPlanFixtureState(state) || isSubagentFixtureState(state) ||
+          state.startsWith('permission-') || state.startsWith('approval-'))) {
       value.projections = new NativeSubagentProjectionValues();
+      const permission = new NativePermissionSelection();
+      permission.currentValue = showcasePermissionCurrent(state);
+      value.projections.permissions = permission;
       if (isPlanFixtureState(state)) value.projections.plan = showcasePlanProjection(planRemoved);
       if (isSubagentFixtureState(state)) {
         value.projections.subagentCatalog = showcaseNativeSubagentCatalog(state);
@@ -696,10 +762,13 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   private childInteractions: Map<string, NativeShowcaseInteraction> =
     new Map<string, NativeShowcaseInteraction>();
   private planRemoved: boolean = false;
+  private permissionCurrent: string = 'workspace-write';
+  private permissionDefault: string = 'workspace-write';
 
   constructor(state: string = 'completed') {
     super('https://showcase.invalid');
     this.fixtureState = NativeUiFixture.state(state);
+    this.permissionCurrent = showcasePermissionCurrent(this.fixtureState);
     const seedMessages = showcaseMessagesFor(this.fixtureState);
     const seedRunning = this.fixtureState === 'live-change' ||
       this.fixtureState === 'attachments' || this.fixtureState === 'streaming' ||
@@ -709,7 +778,11 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       this.fixtureState === 'dock-queue-many' ||
       this.fixtureState === 'dock-material-elevated' ||
       this.fixtureState === 'interaction-approval' ||
-      this.fixtureState === 'interaction-question';
+      this.fixtureState === 'interaction-question' ||
+      this.fixtureState === 'approval-workspace-once' ||
+      this.fixtureState === 'approval-full-once' ||
+      this.fixtureState === 'approval-long-reason' ||
+      this.fixtureState === 'approval-submitting';
     let seedCursor = 0;
     seedMessages.forEach((row: NativeMessage): void => {
       if (Number.isSafeInteger(row.seq) && row.seq > seedCursor) seedCursor = row.seq;
@@ -727,7 +800,11 @@ export class StoreShowcaseClient extends NativeHarnessClient {
         });
     }
     this.interaction.waiting = this.fixtureState === 'interaction-approval' ||
-      this.fixtureState === 'interaction-question';
+      this.fixtureState === 'interaction-question' ||
+      this.fixtureState === 'approval-workspace-once' ||
+      this.fixtureState === 'approval-full-once' ||
+      this.fixtureState === 'approval-long-reason' ||
+      this.fixtureState === 'approval-submitting';
     const initial = this.interaction.snapshot();
     const model = new NativeSessionModel();
     const record = new NativeSessionCacheRecord();
@@ -1114,6 +1191,31 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     }
     if (operation === 'automationHistory') return this.automationHistoryJson();
     if (operation === 'automationDelete') return '{"deleted":true}';
+    if (operation === 'permissionCatalog') {
+      return showcasePermissionCatalogJson(this.fixtureState);
+    }
+    if (operation === 'setPermissionPreset') {
+      const preset = typeof value.preset === 'string' ? value.preset : '';
+      if (!['read-only', 'workspace-write', 'danger-full-access', 'auto'].includes(preset)) {
+        throw new Error('Mock permission preset unavailable');
+      }
+      this.permissionCurrent = preset;
+      const frame = new NativeFrame();
+      frame.type = 'permission';
+      frame.projectionSeq = 44;
+      const selection = new NativePermissionSelection();
+      selection.currentValue = preset;
+      frame.selection = selection;
+      this.emit([frame], 420);
+      return '{"accepted":true}';
+    }
+    if (operation === 'settingsSet' &&
+      value.ns === 'permission' && value.field === 'defaultPreset' &&
+      typeof value.value === 'string') {
+      this.permissionDefault = value.value;
+      return '{"ns":"permission","revision":6,"value":{"defaultPreset":' +
+        JSON.stringify(this.permissionDefault) + '}}';
+    }
     if (operation === 'settingsDescribe') {
       return `{
         "writable": true,
@@ -1131,6 +1233,11 @@ export class StoreShowcaseClient extends NativeHarnessClient {
             "ns": "ui-conversation",
             "revision": 1,
             "value": { "busyEnter": "queue" }
+          },
+          {
+            "ns": "permission",
+            "revision": 6,
+            "value": { "defaultPreset": ${JSON.stringify(this.permissionDefault)} }
           }
         ]
       }`;
@@ -1162,7 +1269,8 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       }`;
     }
     if (operation === 'projections') {
-      return showcaseProjectionJson(this.fixtureState, sessionId, this.planRemoved);
+      return showcaseProjectionJson(this.fixtureState, sessionId, this.planRemoved,
+        this.permissionCurrent);
     }
     if (operation === 'planOff') {
       if (this.fixtureState === 'plan-off-error') {
@@ -1194,7 +1302,18 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     if (value.engage === true) return;
     const id = typeof value.connectionId === 'string' ? value.connectionId : SHOWCASE_SESSION;
     const target = id === SHOWCASE_SESSION ? this.interaction : this.childInteractions.get(id);
-    if (target) this.emit(target.cancel(), 24);
+    if (target) {
+      const frames = target.cancel();
+      if (typeof value.eventId === 'string') {
+        const ended = new NativeFrame();
+        ended.type = 'interaction-ended';
+        ended.eventId = value.eventId;
+        frames.push(ended);
+      }
+      // Keep the submitting fixture alive long enough for device capture and a
+      // full accessibility layout dump to observe the locked actions.
+      this.emit(frames, this.fixtureState === 'approval-submitting' ? 3000 : 24);
+    }
   }
 
   async request(_path: string, _method: http.RequestMethod = http.RequestMethod.GET,

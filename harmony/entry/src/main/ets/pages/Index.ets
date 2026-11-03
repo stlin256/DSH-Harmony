@@ -573,7 +573,11 @@ struct Index {
     clearTimeout(this.settingsExitTimer);
     this.settingsCached = true;
     this.settingsLayer = true;
-    if (!this.nativeSettings) AppStorage.setOrCreate<string>('nativeSettingsPage', 'root');
+    if (!this.nativeSettings) {
+      const showcasePermission = AppStorage.get<boolean>('storeShowcase') === true &&
+        AppStorage.get<string>('storeShowcaseState') === 'permission-default-setting';
+      AppStorage.setOrCreate<string>('nativeSettingsPage', showcasePermission ? 'dsh' : 'root');
+    }
     NativeMotion.animate(this.getUIContext(), 'surface', (): void => {
       this.nativeSettings = true;
       this.settingsOpacity = 1;

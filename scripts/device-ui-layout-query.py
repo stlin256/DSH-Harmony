@@ -368,6 +368,8 @@ def main() -> int:
         "id": target.get("attributes", {}).get("id", ""),
         "checked": checked,
         "background": background,
+        "enabled": target.get("attributes", {}).get("enabled", ""),
+        "clickable": target.get("attributes", {}).get("clickable", ""),
     }))
     return 0
 

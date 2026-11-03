@@ -10,6 +10,7 @@ import { nativeFileWindowMetadata } from './NativeFileWindow';
 import { nativeResolvedWorkspaceTarget, NativeWorkspaceTarget } from './NativeWorkspaceTarget';
 import { NativeProjectionSnapshot, NativeSessionAddress, nativeSessionAddress,
   nativeSessionAddressKey } from './NativeModeSubagent';
+import { NativePermissionCatalog, nativePermissionCatalogFromJson } from './NativePermissions';
 
 export const nativeHarnessClientRoutes: string[] = [
   '/pocket/api/state',
@@ -373,6 +374,17 @@ export class NativeHarnessClient {
   }
   async planOff(id: string): Promise<void> {
     await this.operation(JSON.stringify({ operation: 'planOff', sessionId: id }));
+  }
+  async permissionCatalog(): Promise<NativePermissionCatalog> {
+    const value = nativePermissionCatalogFromJson(await this.operation(
+      JSON.stringify({ operation: 'permissionCatalog' })));
+    if (!value) throw new Error('权限目录不可用');
+    return value;
+  }
+  async setPermissionPreset(id: string, preset: string): Promise<void> {
+    await this.operation(JSON.stringify({
+      operation: 'setPermissionPreset', sessionId: id, preset
+    }));
   }
   async file(id: string, path: string, offset: number = 1, limit: number = 240): Promise<NativeFilePage> {
     return JSON.parse(await this.request('/pocket/api/native/file', http.RequestMethod.POST,

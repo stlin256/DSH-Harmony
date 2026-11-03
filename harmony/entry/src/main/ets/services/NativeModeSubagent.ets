@@ -1,5 +1,7 @@
 /** Pure Plan-mode and subagent presentation rules shared by UI and tests. */
 
+import { NativePermissionSelection } from './NativePermissions';
+
 export const nativeSubagentOneShot: string = 'one-shot';
 export const nativeSubagentContinuable: string = 'continuable';
 export const nativeSubagentExternal: string = 'external';
@@ -50,6 +52,7 @@ export class NativeSubagentProjectionValues {
   subagent: NativeSubagentIdentity | null = null;
   subagentKnown: boolean = false;
   subagentTiming: NativeSubagentTiming | null = null;
+  permissions: NativePermissionSelection | null = null;
 }
 
 export class NativeProjectionSnapshot {

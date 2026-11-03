@@ -95,7 +95,7 @@ test('interaction cards use compact, correct controls', () => {
 test('composer and attachment surfaces remain compact without shrinking type', () => {
   const workspace = readComponent('NativeWorkspace.ets');
   assert.match(workspace, /TextArea\(\{ text: this\.draft, placeholder: '发送消息…' \}\)\.height\(NativeDesign\.compactHitTarget\)/);
-  assert.match(workspace, /width\(NativeDesign\.compactHitTarget\)\.height\(NativeDesign\.compactHitTarget\)/);
+  assert.match(workspace, /width\(NativeDesign\.compactControl\)\.height\(NativeDesign\.compactControl\)/);
   assert.match(workspace, /height\(NativeDesign\.compactHitTarget\)\.padding\(\{ left: 7, right: 2 \}\)/);
   assert.match(workspace, /if \(\(this\.subagentCatalog\?\.length \|\| 0\) > 0\) \{[\s\S]{0,1600}\.clip\(true\)/);
 });

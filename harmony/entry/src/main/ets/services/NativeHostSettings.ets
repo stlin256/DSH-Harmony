@@ -14,6 +14,15 @@ export class NativeChatPreferences {
   foldedReplies: string = 'all';
   busyEnter: string = 'queue';
 }
+export class NativePermissionPreferences {
+  defaultPreset: string = '';
+}
+export function nativePermissionPreferences(rows: NativeSettingsNamespace[]): NativePermissionPreferences {
+  const value = new NativePermissionPreferences();
+  const permission = rows.find((row: NativeSettingsNamespace) => row.ns === 'permission')?.value || {};
+  if (typeof permission.defaultPreset === 'string') value.defaultPreset = permission.defaultPreset;
+  return value;
+}
 export function nativeChatPreferences(rows: NativeSettingsNamespace[]): NativeChatPreferences {
   const value = new NativeChatPreferences();
   const chat = rows.find((row: NativeSettingsNamespace) => row.ns === 'ui-chat')?.value || {};
@@ -35,6 +44,7 @@ export class NativeHostSettings {
   private changed: () => void;
   constructor(call: (value: string) => Promise<string>, changed: () => void = (): void => {}) { this.call = call; this.changed = changed; }
   chat(): NativeChatPreferences { return nativeChatPreferences(this.description.namespaces); }
+  permission(): NativePermissionPreferences { return nativePermissionPreferences(this.description.namespaces); }
   refresh(force: boolean = false): Promise<void> {
     if (this.refreshing) { if (force) this.refreshAgain = true; return this.refreshing; }
     const pending = this.read().finally((): void => { this.refreshing = null; });

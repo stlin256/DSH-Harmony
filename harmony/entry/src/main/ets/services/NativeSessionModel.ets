@@ -1,5 +1,6 @@
 import { NativePlanProjection, NativeSubagentEntry, NativeSubagentIdentity, NativeSubagentTiming,
   NativeSubagentProjectionValues } from './NativeModeSubagent';
+import { NativePermissionSelection } from './NativePermissions';
 
 export class NativeTextBlock {
   kind: string = 'text';
@@ -270,6 +271,7 @@ export class NativeQuestion {
 export class NativeLocalized { zh: string = ''; en: string = ''; }
 export class NativeInteractionRequest {
   toolName: string = ''; reason: string = ''; displayReason: NativeLocalized | null = null;
+  targetPermission: string = ''; targetScope: string = '';
   questions: NativeQuestion[] = [];
 }
 export class NativeReplacement { start: number = -1; end: number = -1; }
@@ -326,6 +328,7 @@ export class NativeFrame {
   catalog: NativeSubagentEntry[] | null = null;
   identity: NativeSubagentIdentity | null = null;
   timing: NativeSubagentTiming | null = null;
+  selection: NativePermissionSelection | null = null;
 }
 export class NativeJournalEntry { seq: number = 0; raw: string = ''; }
 export class NativeCacheFlag {

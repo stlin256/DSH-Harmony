@@ -504,6 +504,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-01-native-sidebar-destinations.md](docs/specs/2026-11-01-native-sidebar-destinations.md)
 - Native sidebar destinations device E2E:
   [2026-11-01-native-sidebar-destinations-e2e.md](docs/testing/2026-11-01-native-sidebar-destinations-e2e.md)
+- Access-control requirement:
+  [2026-11-03-access-control.md](docs/requirements/2026-11-03-access-control.md)
+- Access-control UI research:
+  [2026-11-03-access-control-ui.md](docs/research/2026-11-03-access-control-ui.md)
+- Access-control implementation spec:
+  [2026-11-03-access-control.md](docs/specs/2026-11-03-access-control.md)
+- Access-control device E2E:
+  [2026-11-03-access-control-e2e.md](docs/testing/2026-11-03-access-control-e2e.md)
 
 ## Upstream Tracking
 

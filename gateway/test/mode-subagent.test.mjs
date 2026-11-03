@@ -147,7 +147,7 @@ test('native shell keeps mode UI separate from todo plans and hides child sessio
     /nativeUtilityMenu\([\s\S]{0,160}nativePlanTargetActive\(this\.planProjection\)\)/);
   assert.match(workspace, /this\.client\.planOff\(this\.selected\)/);
   assert.match(workspace,
-    /this\.refreshSelectedProjection\(\);\s*this\.loadSelectedProjections\(\);/);
+    /this\.refreshSelectedProjection\(\);[\s\S]{0,120}this\.loadSelectedProjections\(\);/);
   const title = workspace.indexOf('Text(this.title)');
   const titleCount = workspace.indexOf(
     'Text((this.subagentCatalog?.length || 0).toString())', title);
@@ -179,7 +179,7 @@ test('native shell keeps mode UI separate from todo plans and hides child sessio
   assert.match(lineage, /nativeSubagentCanOpen\(entry\) \? '' : '，不可打开'/);
   assert.match(session, /origin !== 'subagent'/);
   assert.match(showcase,
-    /value\.projections = new NativeSubagentProjectionValues\(\);[\s\S]{0,180}value\.projections\.plan = showcasePlanProjection\(planRemoved\)/);
+    /value\.projections = new NativeSubagentProjectionValues\(\);[\s\S]{0,360}value\.projections\.plan = showcasePlanProjection\(planRemoved\)/);
   assert.match(showcase,
     /value\.projections\.subagentCatalog = showcaseNativeSubagentCatalog\(state\)/);
   assert.match(showcase,

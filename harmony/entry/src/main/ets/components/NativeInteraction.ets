@@ -5,6 +5,7 @@ import { NativeTextContent } from './NativeTextContent';
 import { DSHIcon } from './DSHIcon';
 import { NativeMotion } from '../services/NativeMotion';
 import { NativeDesign } from '../services/NativeDesign';
+import { nativePermissionLabel, nativePermissionRequiresRisk } from '../services/NativePermissions';
 
 class Answer {
   id: string = '';
@@ -97,6 +98,20 @@ export struct NativeInteraction {
     return nativeStructuredText(localized || request.reason || '');
   }
 
+  private approvalTarget(): string {
+    const raw = (this.frame.request.targetPermission || this.frame.request.targetScope || '').trim();
+    if (!raw) return '';
+    if (raw === 'read-only' || raw === 'workspace-write' || raw === 'danger-full-access' || raw === 'auto') {
+      return nativePermissionLabel(null, raw);
+    }
+    return raw.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').slice(0, 80);
+  }
+
+  private approvalRisk(): boolean {
+    return nativePermissionRequiresRisk(this.frame.request.targetPermission) ||
+      this.frame.request.targetScope === 'danger-full-access';
+  }
+
   private engage(): void {
     if (this.engaged || this.remaining < 0 || this.frame.callId) return;
     this.engaged = true;
@@ -159,6 +174,7 @@ export struct NativeInteraction {
     if (this.busy || this.unconfirmed) return;
     this.busy = true;
     this.error = '';
+    let submitted = false;
     try {
       if (this.frame.interaction === 'approval/request') {
         const payload = new ApprovalSubmissionPayload();
@@ -166,6 +182,8 @@ export struct NativeInteraction {
         payload.eventId = this.frame.eventId;
         payload.value = value;
         await this.client.answer(JSON.stringify(payload));
+        // The request is not settled until Host emits interaction-ended.
+        submitted = true;
       } else if (this.frame.callId) {
         const payload = new OperationAnswerPayload();
         payload.sessionId = this.frame.connectionId;
@@ -180,12 +198,12 @@ export struct NativeInteraction {
         payload.value.answers = this.answers;
         await this.client.answer(JSON.stringify(payload));
       }
-      this.onDone();
+      if (!submitted) this.onDone();
     } catch (_) {
       this.unconfirmed = true;
       this.error = '提交结果未确认，请刷新';
     } finally {
-      this.busy = false;
+      if (!submitted) this.busy = false;
     }
   }
 
@@ -228,26 +246,48 @@ export struct NativeInteraction {
   private approvalCard() {
     Column({ space: 0 }) {
       Row({ space: 7 }) {
-        Text('').width(8).height(8).borderRadius(4)
-          .backgroundColor(NativeDesign.warning(this.dark))
-        Text('等待审批').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
-          .fontColor(NativeDesign.warning(this.dark))
+        if (this.busy) {
+          LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
+            .color(this.approvalRisk() ? NativeDesign.danger(this.dark) : NativeDesign.warning(this.dark))
+        } else {
+          Text('').width(8).height(8).borderRadius(4)
+            .backgroundColor(this.approvalRisk() ? NativeDesign.danger(this.dark) : NativeDesign.warning(this.dark))
+        }
+        Text(this.busy ? '正在提交审批' : '等待审批').fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
+          .fontColor(this.approvalRisk() ? NativeDesign.danger(this.dark) : NativeDesign.warning(this.dark))
         Blank()
         if (this.remaining >= 0) {
           Text(Math.ceil(this.remaining / 1000).toString() + 's').fontSize(NativeDesign.fontCaption)
             .fontColor(NativeDesign.textTertiary(this.dark))
         }
       }.width('100%').height(NativeDesign.compactChip).padding({ left: 12, right: 12 })
-        .backgroundColor(NativeDesign.warningSurface(this.dark))
+        .backgroundColor(this.approvalRisk() ?
+          NativeDesign.dangerSurface(this.dark) : NativeDesign.warningSurface(this.dark))
       Scroll() {
         Column({ space: 7 }) {
-          if (this.frame.request.toolName) {
-            Text(this.frame.request.toolName).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
-              .padding({ left: 7, right: 7, top: 3, bottom: 3 })
-              .borderRadius(NativeDesign.radiusBadge)
-              .backgroundColor(NativeDesign.selection(this.dark))
-              .fontColor(NativeDesign.textSecondary(this.dark))
-          }
+          Row({ space: 6 }) {
+            if (this.frame.request.toolName) {
+              Text(this.frame.request.toolName).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
+                .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+                .padding({ left: 7, right: 7, top: 2, bottom: 2 })
+                .borderRadius(NativeDesign.radiusBadge)
+                .backgroundColor(NativeDesign.selection(this.dark))
+                .fontColor(NativeDesign.textSecondary(this.dark))
+            }
+            if (this.approvalTarget()) {
+              Text(this.approvalTarget()).fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Medium)
+                .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+                .padding({ left: 7, right: 7, top: 2, bottom: 2 })
+                .borderRadius(NativeDesign.radiusBadge)
+                .backgroundColor(this.approvalRisk() ?
+                  NativeDesign.dangerSurface(this.dark) : NativeDesign.warningSurface(this.dark))
+                .fontColor(this.approvalRisk() ?
+                  NativeDesign.danger(this.dark) : NativeDesign.warning(this.dark))
+            }
+          }.width('100%')
+          Text('允许一次仅影响当前工具调用，不会改变会话权限。')
+            .fontSize(NativeDesign.fontCaption).lineHeight(16)
+            .fontColor(this.approvalRisk() ? NativeDesign.danger(this.dark) : NativeDesign.textSecondary(this.dark))
           Text(this.approvalReason() || '该工具请求执行需要你确认').fontSize(NativeDesign.fontBody)
             .fontWeight(FontWeight.Medium).fontColor(NativeDesign.textPrimary(this.dark))
         }.width('100%').alignItems(HorizontalAlign.Start)
@@ -261,6 +301,7 @@ export struct NativeInteraction {
           .backgroundColor(NativeDesign.field(this.dark))
           .fontColor(NativeDesign.textPrimary(this.dark))
           .border({ width: 0.5, color: NativeDesign.border(this.dark) })
+          .id('approval-reject')
           .enabled(!this.busy && !this.unconfirmed)
           .onClick((): void => { this.submit('rejected'); })
         Button({ type: ButtonType.Normal }) {
@@ -269,8 +310,10 @@ export struct NativeInteraction {
           else Text('允许一次').fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
         }.layoutWeight(1).height(NativeDesign.compactHitTarget)
           .borderRadius(NativeDesign.radiusControl)
-          .backgroundColor(NativeDesign.accentStrong(this.dark))
+          .backgroundColor(this.approvalRisk() ?
+            NativeDesign.danger(this.dark) : NativeDesign.accentStrong(this.dark))
           .fontColor(NativeDesign.textInverse(this.dark))
+          .id('approval-allow-once')
           .enabled(!this.busy && !this.unconfirmed)
           .onClick((): void => { this.submit('allowed-once'); })
       }.width('100%').padding({ left: 12, right: 12, bottom: 8 })

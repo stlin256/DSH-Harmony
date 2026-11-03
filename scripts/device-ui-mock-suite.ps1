@@ -68,6 +68,21 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-approval'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-question'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-question'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'permission-current-read-only'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'permission-current-workspace'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'permission-current-full'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'permission-current-custom'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'permission-menu'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'permission-menu-error'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'permission-full-confirm'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'permission-full-confirm'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'permission-full-cancel'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'approval-workspace-once'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'approval-full-once'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'approval-long-reason'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'approval-submitting'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'approval-ended'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'approval-disconnected'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'plan-subagent'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'plan-subagent'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'plan-subagent-long-count'; Theme = 'light' },
@@ -100,6 +115,8 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'preview'; State = 'binary-preview'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'settings'; State = 'permission-default-setting'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'settings'; State = 'permission-default-setting'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-list'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-list'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'plugins'; State = 'plugins-empty'; Theme = 'light' },
@@ -159,7 +176,9 @@ $failedCount = 0
 
 function Text-Hex {
   param([string]$Text)
-  return [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($Text))
+  return (([System.BitConverter]::ToString(
+    [Text.Encoding]::UTF8.GetBytes($Text)
+  )) -replace '-', '').ToLowerInvariant()
 }
 
 function Get-ExpectedMarker {
@@ -183,6 +202,20 @@ function Get-ExpectedMarker {
     'conversation/dock-material-elevated' { return '渐变材质与实时变更' }
     'conversation/interaction-approval' { return '等待审批' }
     'conversation/interaction-question' { return '问题卡样式检查' }
+    'conversation/permission-current-read-only' { return '当前权限 · 仅可查看' }
+    'conversation/permission-current-workspace' { return '当前权限 · 工作区内修改' }
+    'conversation/permission-current-full' { return '当前权限 · 完全权限' }
+    'conversation/permission-current-custom' { return '当前权限 · 自定义' }
+    'conversation/permission-menu' { return '切换当前会话权限' }
+    'conversation/permission-menu-error' { return '权限目录不可用' }
+    'conversation/permission-full-confirm' { return '确认启用完全权限？' }
+    'conversation/permission-full-cancel' { return '确认启用完全权限？' }
+    'conversation/approval-workspace-once' { return '允许一次仅影响当前工具调用' }
+    'conversation/approval-full-once' { return '完全权限' }
+    'conversation/approval-long-reason' { return '需要写入一次已确认的界面修复' }
+    'conversation/approval-submitting' { return '等待审批' }
+    'conversation/approval-ended' { return '审批已结束' }
+    'conversation/approval-disconnected' { return '审批连接中断' }
     'conversation/plan-subagent' { return '计划与子智能体' }
     'conversation/plan-subagent-long-count' { return '计划与子智能体标题很长' }
     'conversation/plan-dock-overlay' { return '悬浮任务计划' }
@@ -202,6 +235,7 @@ function Get-ExpectedMarker {
     'preview/delimited-error-preview' { return 'malformed.csv' }
     'preview/binary-preview' { return 'archive.zip' }
     'settings/completed' { return '外观与动效' }
+    'settings/permission-default-setting' { return '新会话默认权限' }
     'plugins/plugins-list' { return 'Workspace Tools' }
     'plugins/plugins-empty' { return '还没有可显示的插件' }
     'plugins/plugins-error' { return '插件服务暂不可用' }

@@ -16,6 +16,7 @@ import { NativeTextContent } from './NativeTextContent';
 import { NativeInteraction } from './NativeInteraction';
 import { NativeSessionTools } from './NativeSessionTools';
 import { NativeModelPicker } from './NativeModelPicker';
+import { NativePermissionPicker } from './NativePermissionPicker';
 import { NativeMessageView } from './NativeMessageView';
 import { NativeBackgroundNoticeView } from './NativeBackgroundNoticeView';
 import { NativeDisclosureFixture } from './NativeDisclosureFixture';
@@ -75,6 +76,18 @@ import { NativeIconButton } from './NativeIconButton';
 import { NativePluginsSurface } from './NativePluginsSurface';
 import { NativeAutomationSurface } from './NativeAutomationSurface';
 import { BuildInfo } from '../services/BuildInfo';
+import {
+  NativePermissionCatalog,
+  NativePermissionOption,
+  NativePermissionSelection,
+  nativePermissionCanSelect,
+  nativePermissionDescription,
+  nativePermissionIcon,
+  nativePermissionLabel,
+  nativePermissionRequiresRisk,
+  nativePermissionRiskDescription,
+  nativePermissionSelectionFromValue
+} from '../services/NativePermissions';
 
 class NativeExportCapabilities { copyMarkdown: boolean = false; downloadLog: boolean = false; }
 class NativeWorkspaceOrderRequest {
@@ -146,6 +159,7 @@ export struct NativeWorkspace {
   @State private fileView: NativeFileViewRequest = new NativeFileViewRequest();
   @State private attaching: boolean = false;
   @State private composerHeight: number = 0;
+  @State private composerWidth: number = 0;
   @State private taskDockHeight: number = 0;
   @State private bottomDockExtraHeight: number = 0;
   @State @Watch('navigationChanged') private toolsOpen: boolean = false;
@@ -213,6 +227,16 @@ export struct NativeWorkspace {
   @State private footerCopiedId: string = '';
   @State private taskPlan: NativePlanDocument = new NativePlanDocument();
   @State private planProjection: NativePlanProjection | null = null;
+  @State private permissionCatalog: NativePermissionCatalog | null = null;
+  @State private permissionSelection: NativePermissionSelection | null = null;
+  @State private permissionCatalogLoading: boolean = false;
+  @State private permissionCatalogError: string = '';
+  @State @Watch('navigationChanged') private permissionMenuOpen: boolean = false;
+  @State @Watch('navigationChanged') private permissionConfirmOpen: boolean = false;
+  @State private permissionConfirmTarget: string = '';
+  @State private permissionConfirmAcknowledged: boolean = false;
+  @State private permissionBusyValue: string = '';
+  @State private permissionError: string = '';
   @State private subagentCatalog: NativeSubagentEntry[] | null = null;
   @State private subagentIdentity: NativeSubagentIdentity | null = null;
   @State private subagentIdentityKnown: boolean = false;
@@ -256,6 +280,8 @@ export struct NativeWorkspace {
   private historyRetryTimer: number = -1;
   private followWatchdogTimer: number = -1;
   private settlementTimer: number = -1;
+  private permissionWaitTimer: number = -1;
+  private permissionCatalogGeneration: number = 0;
 
   private baseSurface(): string {
     return NativeDesign.base(this.dark);
@@ -380,7 +406,8 @@ export struct NativeWorkspace {
     state.drawerPage = this.searchOpen ? 'search' : 'primary';
     state.picker = this.workspacePickerOpen;
     state.create = this.newSessionOpen; state.tools = this.toolsOpen;
-    state.menu = !!this.menuId || this.utilityOpen || this.modelPickerOpen;
+    state.menu = !!this.menuId || this.utilityOpen || this.modelPickerOpen ||
+      this.permissionMenuOpen || this.permissionConfirmOpen;
     state.imagePreview = this.imagePreviewOpen;
     state.filePreview = this.fileViewOpen;
     state.lineage = this.lineageOpen;
@@ -514,6 +541,7 @@ export struct NativeWorkspace {
     this.subagentIdentity = value.subagent;
     this.subagentIdentityKnown = value.subagentKnown;
     this.subagentTiming = value.subagentTiming;
+    this.permissionSelection = nativePermissionSelectionFromValue(value.permissions);
   }
   private mergeSessionProjection(session: NativeSession): void {
     if (!session.projections) return;
@@ -526,6 +554,9 @@ export struct NativeWorkspace {
       target.subagent = source.subagent;
     }
     if (source.subagentTiming) target.subagentTiming = source.subagentTiming;
+    if (source.permissions !== undefined) {
+      target.permissions = nativePermissionSelectionFromValue(source.permissions);
+    }
   }
   private applyModeProjectionFrame(id: string, frame: NativeFrame): void {
     const value = this.projectionValueFor(id);
@@ -542,6 +573,13 @@ export struct NativeWorkspace {
     } else if (frame.type === 'subagent-timing' && frame.timing &&
       this.projectionSeq.accept(id + ':subagentTiming', frame.projectionSeq)) {
       value.subagentTiming = frame.timing;
+    } else if (frame.type === 'permission' &&
+      this.projectionSeq.accept(id + ':permission', frame.projectionSeq)) {
+      value.permissions = nativePermissionSelectionFromValue(frame.selection);
+      if (this.selected === id && this.permissionBusyValue &&
+        value.permissions?.currentValue === this.permissionBusyValue) {
+        this.finishPermissionWrite();
+      }
     } else {
       return;
     }
@@ -570,6 +608,182 @@ export struct NativeWorkspace {
   private currentSubagentInputEnabled(): boolean {
     return nativeSubagentComposerEnabled(this.activeAddress, this.subagentIdentity,
       this.subagentIdentityKnown, this.currentParentAgentAvailable(), this.running);
+  }
+  private currentPermissionOption(): NativePermissionOption | null {
+    const value = this.permissionSelection?.currentValue || '';
+    return this.permissionCatalog?.options.find((option: NativePermissionOption): boolean =>
+      option.value === value) || null;
+  }
+  private currentPermissionLabel(): string {
+    const value = this.permissionSelection?.currentValue || '';
+    return nativePermissionLabel(this.currentPermissionOption(), value);
+  }
+  private showPermissionChip(): boolean {
+    return this.activeAddress.kind === 'session' && !!this.selected &&
+      !!this.permissionCatalog && !!this.permissionSelection?.currentValue;
+  }
+  private permissionTone(): string {
+    const value = this.permissionSelection?.currentValue || '';
+    if (nativePermissionRequiresRisk(value)) return this.warningText();
+    if (value === 'custom') return this.tertiaryText();
+    return this.secondaryText();
+  }
+  private clearPermissionWait(): void {
+    clearTimeout(this.permissionWaitTimer);
+    this.permissionWaitTimer = -1;
+  }
+  private finishPermissionWrite(): void {
+    this.clearPermissionWait();
+    this.permissionBusyValue = '';
+    this.permissionError = '';
+  }
+  private resetPermissionTransient(clearCatalog: boolean = false): void {
+    this.clearPermissionWait();
+    this.permissionMenuOpen = false;
+    this.permissionConfirmOpen = false;
+    this.permissionConfirmTarget = '';
+    this.permissionConfirmAcknowledged = false;
+    this.permissionBusyValue = '';
+    this.permissionError = '';
+    if (clearCatalog) {
+      this.permissionCatalogGeneration++;
+      this.permissionCatalog = null;
+      this.permissionCatalogLoading = false;
+      this.permissionCatalogError = '';
+    }
+    this.navigationChanged();
+  }
+  private async refreshPermissionCatalog(): Promise<void> {
+    if (this.permissionCatalogLoading) return;
+    const generation = ++this.permissionCatalogGeneration;
+    this.permissionCatalogLoading = true;
+    this.permissionCatalogError = '';
+    try {
+      const catalog = await this.client.permissionCatalog();
+      if (!this.mounted || generation !== this.permissionCatalogGeneration) return;
+      this.permissionCatalog = catalog;
+      this.maybeOpenPermissionShowcase();
+    } catch (_) {
+      if (!this.mounted || generation !== this.permissionCatalogGeneration) return;
+      this.permissionCatalog = null;
+      this.permissionCatalogError = '权限目录不可用';
+      this.permissionMenuOpen = false;
+      this.permissionConfirmOpen = false;
+      this.permissionConfirmTarget = '';
+      this.permissionConfirmAcknowledged = false;
+    } finally {
+      if (this.mounted && generation === this.permissionCatalogGeneration) {
+        this.permissionCatalogLoading = false;
+      }
+    }
+  }
+  private maybeOpenPermissionShowcase(): void {
+    if (AppStorage.get<boolean>('storeShowcase') !== true ||
+      AppStorage.get<string>('storeShowcaseScreen') !== 'conversation' ||
+      !this.showPermissionChip()) return;
+    const state = AppStorage.get<string>('storeShowcaseState') || '';
+    if (state === 'permission-menu') {
+      setTimeout((): void => {
+        if (this.mounted && this.showPermissionChip()) {
+          this.permissionMenuOpen = true;
+          this.navigationChanged();
+        }
+      }, 220);
+    } else if (state === 'permission-full-confirm' || state === 'permission-full-cancel') {
+      setTimeout((): void => {
+        if (this.mounted && this.showPermissionChip()) {
+          this.openPermissionConfirmation('danger-full-access');
+        }
+      }, 220);
+    }
+  }
+  private openPermissionMenu(): void {
+    if (!this.showPermissionChip() || this.permissionBusyValue) return;
+    this.utilityOpen = false;
+    this.modelPickerOpen = false;
+    this.menuId = '';
+    this.permissionError = '';
+    this.permissionMenuOpen = !this.permissionMenuOpen;
+    this.navigationChanged();
+  }
+  private closePermissionMenu(): void {
+    if (!this.permissionMenuOpen) return;
+    this.permissionMenuOpen = false;
+    this.navigationChanged();
+  }
+  private openPermissionConfirmation(value: string): void {
+    if (!this.permissionCatalog || !nativePermissionCanSelect(this.permissionCatalog, value)) return;
+    this.permissionMenuOpen = false;
+    this.permissionConfirmTarget = value;
+    this.permissionConfirmAcknowledged = false;
+    this.permissionConfirmOpen = true;
+    this.navigationChanged();
+  }
+  private closePermissionConfirmation(): void {
+    if (!this.permissionConfirmOpen) return;
+    this.permissionConfirmOpen = false;
+    this.permissionConfirmTarget = '';
+    this.permissionConfirmAcknowledged = false;
+    this.navigationChanged();
+  }
+  private choosePermission(value: string): void {
+    if (this.permissionBusyValue || !this.permissionCatalog ||
+      !nativePermissionCanSelect(this.permissionCatalog, value)) return;
+    if (value === this.permissionSelection?.currentValue) {
+      this.closePermissionMenu();
+      return;
+    }
+    if (nativePermissionRequiresRisk(value)) {
+      this.openPermissionConfirmation(value);
+      return;
+    }
+    this.permissionConfirmOpen = false;
+    this.permissionConfirmTarget = '';
+    this.permissionConfirmAcknowledged = false;
+    this.applyPermissionPreset(value);
+  }
+  private confirmPermissionPreset(): void {
+    const value = this.permissionConfirmTarget;
+    if (!value || !this.permissionConfirmAcknowledged || this.permissionBusyValue) return;
+    this.permissionConfirmOpen = false;
+    this.applyPermissionPreset(value);
+  }
+  private async applyPermissionPreset(value: string): Promise<void> {
+    const id = this.selected;
+    if (!id || !this.permissionCatalog ||
+      !nativePermissionCanSelect(this.permissionCatalog, value) || this.permissionBusyValue) return;
+    this.permissionMenuOpen = false;
+    this.permissionBusyValue = value;
+    this.permissionError = '';
+    this.navigationChanged();
+    this.clearPermissionWait();
+    this.permissionWaitTimer = setTimeout((): void => {
+      this.permissionWaitTimer = -1;
+      if (!this.mounted || this.selected !== id || this.permissionBusyValue !== value) return;
+      this.permissionBusyValue = '';
+      this.permissionError = '权限已提交，但 Host 尚未确认';
+    }, 12000);
+    try {
+      await this.client.setPermissionPreset(id, value);
+    } catch (_) {
+      if (!this.mounted || this.selected !== id || this.permissionBusyValue !== value) return;
+      this.clearPermissionWait();
+      this.permissionBusyValue = '';
+      this.permissionError = '权限切换失败，请重试';
+      this.refreshPermissionCatalog().catch((): void => {});
+    }
+  }
+  private permissionConfirmTitle(): string {
+    if (this.permissionConfirmTarget === 'auto') return '启用自动审查？';
+    return '确认启用完全权限？';
+  }
+  private permissionConfirmAction(): string {
+    if (this.permissionConfirmTarget === 'auto') return '启用实验功能';
+    return '启用完全权限';
+  }
+  private permissionConfirmColor(): string {
+    if (this.permissionConfirmTarget === 'auto') return this.warningText();
+    return this.dangerText();
   }
   private composerCanSend(): boolean {
     return this.connectionPhase === 'live' && !this.sending && !this.uncertain &&
@@ -621,6 +835,7 @@ export struct NativeWorkspace {
         value.subagent = snapshot.values.subagent;
       }
       if (snapshot.values?.subagentTiming) value.subagentTiming = snapshot.values.subagentTiming;
+      value.permissions = nativePermissionSelectionFromValue(snapshot.values?.permissions || null);
       this.refreshSelectedProjection();
       this.lineageLoading = false;
       this.lineageError = '';
@@ -754,6 +969,7 @@ export struct NativeWorkspace {
     clearTimeout(this.processTailTimer);
     clearTimeout(this.drawerSettleTimer);
     clearTimeout(this.destinationTimer);
+    clearTimeout(this.permissionWaitTimer);
     this.persistCache();
     this.stopBackground();
     AppStorage.setOrCreate<boolean>('nativeWorkspaceCanGoBack', false);
@@ -800,6 +1016,7 @@ export struct NativeWorkspace {
       const state = await statePending;
       if (!this.mounted || generation !== this.generation) return;
       if (!state.authenticated) { this.onLogin(); return; }
+      this.refreshPermissionCatalog().catch((): void => {});
       const value = await sessionsPending;
       const nextWorkspaces = await workspacesPending;
       if (!this.mounted || generation !== this.generation) return;
@@ -842,6 +1059,7 @@ export struct NativeWorkspace {
         this.openDrawer(false);
         this.notifyWorkspaceReady(generation);
       }
+      this.maybeOpenPermissionShowcase();
     } catch (error) {
       if (!this.sessions.length) this.handleError(error as Error);
       if (!(error instanceof NativeHttpError && error.status === 401)) {
@@ -1197,6 +1415,8 @@ export struct NativeWorkspace {
   private backToSessions(): void {
     if (this.adminDestination) { this.requestAdminBack(); return; }
     if (this.moreOpen) { this.toggleMore(); return; }
+    if (this.permissionConfirmOpen) { this.closePermissionConfirmation(); return; }
+    if (this.permissionMenuOpen) { this.closePermissionMenu(); return; }
     if (this.imagePreviewOpen) { this.closeImagePreview(); return; }
     if (this.fileViewOpen) return;
     if (this.lineageOpen) {
@@ -1510,6 +1730,119 @@ export struct NativeWorkspace {
     NativeModelPicker({ client: this.client, sessionId: this.selected, currentCaption: this.modelCaption,
       onClose: (): void => { this.modelPickerOpen = false; } })
   }
+  @Builder
+  private permissionPicker() {
+    NativePermissionPicker({
+      catalog: this.permissionCatalog,
+      selection: this.permissionSelection,
+      busyValue: this.permissionBusyValue,
+      error: this.permissionError,
+      pickerWidth: Math.max(280, this.composerWidth || 316),
+      onSelect: (value: string): void => { this.choosePermission(value); },
+      onClose: (): void => { this.closePermissionMenu(); }
+    })
+  }
+  private permissionPopupOpen(): boolean {
+    return this.permissionMenuOpen || this.permissionConfirmOpen;
+  }
+  @Builder
+  private permissionPopup() {
+    if (this.permissionConfirmOpen) {
+      this.permissionConfirmCard()
+    } else {
+      this.permissionPicker()
+    }
+  }
+  @Builder
+  private permissionChip() {
+    Button({ type: ButtonType.Normal }) {
+      if (this.permissionBusyValue) {
+        LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
+          .color(this.accentColor())
+      } else {
+        Stack({ alignContent: Alignment.Center }) {
+          DSHIcon({
+            glyph: nativePermissionIcon(this.permissionSelection?.currentValue || ''),
+            glyphSize: NativeDesign.glyphCompact,
+            color: this.permissionTone()
+          })
+        }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
+          .id('permission-current-' + (this.permissionSelection?.currentValue || 'unknown'))
+      }
+    }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
+      .padding(0)
+      .borderRadius(NativeDesign.compactControl / 2)
+      .backgroundColor(Color.Transparent)
+      .stateEffect(true)
+      .id('permission-chip')
+      .enabled(!this.permissionBusyValue)
+      .accessibilityText('会话权限：' + this.currentPermissionLabel())
+      .onClick((): void => { this.openPermissionMenu(); })
+  }
+  @Builder
+  private permissionConfirmCard() {
+    Column({ space: 12 }) {
+      Row({ space: 9 }) {
+        Stack({ alignContent: Alignment.Center }) {
+          DSHIcon({
+            glyph: nativePermissionIcon(this.permissionConfirmTarget),
+            glyphSize: NativeDesign.glyphControlEmphasis,
+            color: this.permissionConfirmColor()
+          })
+        }.width(32).height(32).borderRadius(NativeDesign.radiusBadge)
+          .backgroundColor(this.permissionConfirmTarget === 'auto' ?
+            NativeDesign.warningSurface(this.dark) : NativeDesign.dangerSurface(this.dark))
+        Text(this.permissionConfirmTitle()).fontSize(NativeDesign.fontCompactTitle)
+          .fontWeight(FontWeight.Medium).fontColor(this.primaryText()).layoutWeight(1)
+        NativeIconButton({
+          glyph: 'close-outline',
+          label: '取消权限确认',
+          glyphSize: NativeDesign.glyphCompact,
+          onPressed: (): void => { this.closePermissionConfirmation(); }
+        })
+      }.width('100%')
+      Text(nativePermissionRiskDescription(this.permissionConfirmTarget))
+        .fontSize(NativeDesign.fontCompact).lineHeight(19)
+        .fontColor(this.secondaryText()).width('100%')
+      Button('我已了解风险，并愿意继续', { type: ButtonType.Normal })
+        .width('100%').height(NativeDesign.compactHitTarget).padding({ left: 4, right: 4 })
+        .fontSize(NativeDesign.fontCompact).fontColor(this.primaryText())
+        .backgroundColor(this.permissionConfirmAcknowledged ?
+          NativeDesign.selectedSurface(this.dark) : this.fieldSurface())
+        .borderRadius(NativeDesign.radiusControl)
+        .border({ width: 0.5, color: this.semanticBorderColor() })
+        .id('permission-risk-ack')
+        .enabled(!this.permissionBusyValue)
+        .onClick((): void => {
+          this.permissionConfirmAcknowledged = true;
+        })
+      Row({ space: 8 }) {
+        Button('取消', { type: ButtonType.Normal })
+          .layoutWeight(1).height(NativeDesign.compactHitTarget)
+          .fontSize(NativeDesign.fontCompact)
+          .borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(this.fieldSurface())
+          .fontColor(this.primaryText())
+          .border({ width: 0.5, color: this.semanticBorderColor() })
+          .onClick((): void => { this.closePermissionConfirmation(); })
+        Button(this.permissionConfirmAction(), { type: ButtonType.Normal })
+          .layoutWeight(1).height(NativeDesign.compactHitTarget)
+          .fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
+          .borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(this.permissionConfirmTarget === 'auto' ?
+            this.warningText() : this.dangerText())
+          .fontColor(NativeDesign.textInverse(this.dark))
+          .enabled(this.permissionConfirmAcknowledged && !this.permissionBusyValue)
+          .opacity(this.permissionConfirmAcknowledged ? 1 : 0.42)
+          .id('permission-confirm')
+          .onClick((): void => { this.confirmPermissionPreset(); })
+      }.width('100%')
+    }.width(Math.max(280, this.composerWidth || 316)).padding(10)
+      .borderRadius(NativeDesign.radiusGroup)
+      .backgroundColor(NativeDesign.overlay(this.dark))
+      .border({ width: 0.5, color: NativeDesign.border(this.dark) })
+      .id('permission-confirm-picker')
+  }
   private utilityItems(): NativeMenuItem[] {
     return nativeUtilityMenu(this.utilityKnown, this.exportCapabilities.copyMarkdown,
       this.exportCapabilities.downloadLog, this.copying, this.downloading,
@@ -1753,6 +2086,7 @@ export struct NativeWorkspace {
       this.subagentPath = trail.length ? trail.slice() : [resolvedAddress];
     }
     this.stopHistoryDrain();
+    this.resetPermissionTransient();
     const selection = ++this.selectionGeneration;
     this.paging = false;
     if (this.selected) {
@@ -1776,6 +2110,7 @@ export struct NativeWorkspace {
     this.connectionNotified = false;
     this.animatePane(() => { this.selected = id; this.setDrawerState(false); });
     this.refreshSelectedProjection();
+    this.maybeOpenPermissionShowcase();
     this.loadSelectedProjections();
     this.followTail = true;
     this.interactionTimes = NativeMetadataCache.rememberInteraction(
@@ -1886,7 +2221,8 @@ export struct NativeWorkspace {
         return;
       }
       if (frame.type === 'plan' || frame.type === 'subagent-catalog' ||
-        frame.type === 'subagent-identity' || frame.type === 'subagent-timing') {
+        frame.type === 'subagent-identity' || frame.type === 'subagent-timing' ||
+        frame.type === 'permission') {
         this.applyModeProjectionFrame(id, frame);
         return;
       }
@@ -1969,6 +2305,7 @@ export struct NativeWorkspace {
   private scheduleReconnect(id: string): void {
     if (!this.liveAllowed(id) || (id && this.selected !== id)) { this.reconnectInFlight = false; return; }
     this.pauseHistoryDrain();
+    this.resetPermissionTransient();
     clearTimeout(this.reconnectTimer);
     clearTimeout(this.followWatchdogTimer); clearTimeout(this.settlementTimer);
     this.interactions = [];
@@ -3035,20 +3372,20 @@ export struct NativeWorkspace {
 
   @Builder
   private subagentEditableComposer() {
-    Column({ space: 4 }) {
+    Column({ space: 3 }) {
       TextArea({ text: this.draft, placeholder: '发送消息…' }).height(NativeDesign.compactHitTarget)
         .enabled(!this.sending && this.currentSubagentInputEnabled())
         .placeholderColor(this.tertiaryText())
         .fontSize(NativeDesign.fontBody).borderRadius(0).padding({ left: 7, right: 7, top: 3, bottom: 3 })
         .backgroundColor(Color.Transparent).fontColor(this.primaryText())
         .onChange((value: string) => { this.draft = value; this.client.drafts.set(this.selected, value); })
-      Row({ space: 4 }) {
+      Row({ space: 2 }) {
         Button({ type: ButtonType.Normal }) {
           Row({ space: 4 }) {
             Text(this.modelCaption).fontSize(NativeDesign.fontCaption).maxLines(1).constraintSize({ maxWidth: 160 })
               .textOverflow({ overflow: TextOverflow.Ellipsis })
           }.constraintSize({ maxWidth: 168 })
-        }.height(NativeDesign.compactControl).padding({ left: 4, right: 4 })
+        }.height(NativeDesign.compactControl).padding({ left: 3, right: 3 })
           .backgroundColor(Color.Transparent)
           .fontColor(this.secondaryText()).accessibilityText('模型与推理')
           .onClick(() => { this.utilityOpen = false; this.modelPickerOpen = true; })
@@ -3056,30 +3393,36 @@ export struct NativeWorkspace {
             enableArrow: false, targetSpace: 8, radius: 16, mask: false,
             popupColor: NativeDesign.overlay(this.dark), backgroundBlurStyle: BlurStyle.NONE,
             onStateChange: (event): void => { if (!event.isVisible) this.modelPickerOpen = false; } })
+        if (this.showPermissionChip()) {
+          this.permissionChip()
+        }
         Blank()
         if (this.activeAddress.kind !== 'subagent') {
           Button({ type: ButtonType.Normal }) {
             if (this.attaching) { LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline).color(this.primaryText()) }
-            else { DSHIcon({ glyph: 'image-outline', color: this.primaryText() }) }
-          }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
-            .borderRadius(NativeDesign.compactHitTarget / 2)
+            else { DSHIcon({ glyph: 'image-outline', glyphSize: NativeDesign.glyphCompact,
+              color: this.primaryText() }) }
+          }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
+            .borderRadius(NativeDesign.compactControl / 2)
             .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
             .accessibilityText(this.attaching ? '读取中' : '添加图片')
             .enabled(!this.attaching && !this.sending).onClick(() => { this.attachImages(); })
           Button({ type: ButtonType.Normal }) {
-            DSHIcon({ glyph: 'file-outline', color: this.secondaryText() })
-          }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
-            .borderRadius(NativeDesign.compactHitTarget / 2)
+            DSHIcon({ glyph: 'file-outline', glyphSize: NativeDesign.glyphCompact,
+              color: this.secondaryText() })
+          }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
+            .borderRadius(NativeDesign.compactControl / 2)
             .backgroundColor(this.fieldSurface()).fontColor(this.primaryText())
             .accessibilityText('添加文件')
             .enabled(!this.attaching && !this.sending).onClick(() => { this.attachFiles(); })
         }
         if (this.running && !this.sending && !this.draft.trim() && !this.attachments.length) {
           Button({ type: ButtonType.Normal }) {
-            DSHIcon({ glyph: 'stop-fill', color: NativeDesign.textInverse(this.dark) })
-          }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+            DSHIcon({ glyph: 'stop-fill', glyphSize: NativeDesign.glyphCompact,
+              color: NativeDesign.textInverse(this.dark) })
+          }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
             .id('composer-stop')
-            .borderRadius(NativeDesign.compactHitTarget / 2)
+            .borderRadius(NativeDesign.compactControl / 2)
             .backgroundColor(NativeDesign.accentStrong(this.dark)).accessibilityText('停止任务')
             .onClick(() => {
               this.client.cancel(this.selected,
@@ -3092,11 +3435,12 @@ export struct NativeWorkspace {
               LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
                 .color(NativeDesign.textInverse(this.dark))
             } else {
-              DSHIcon({ glyph: 'send-arrow', color: NativeDesign.textInverse(this.dark) })
+              DSHIcon({ glyph: 'send-arrow', glyphSize: NativeDesign.glyphCompact,
+                color: NativeDesign.textInverse(this.dark) })
             }
-          }.width(NativeDesign.compactHitTarget).height(NativeDesign.compactHitTarget)
+          }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
             .id('composer-send')
-            .borderRadius(NativeDesign.compactHitTarget / 2)
+            .borderRadius(NativeDesign.compactControl / 2)
             .backgroundColor(NativeDesign.accentStrong(this.dark))
             .enabled(this.composerCanSend())
             .opacity(this.composerCanSend() ? 1 : 0.4)
@@ -3108,9 +3452,31 @@ export struct NativeWorkspace {
       .id('conversation-composer')
       .border({ width: 0.5, color: this.semanticBorderColor() })
       .backgroundColor(this.raisedSurface())
+      .bindPopup(this.permissionPopupOpen(), {
+        builder: this.permissionPopup,
+        placement: Placement.Top,
+        enableArrow: false,
+        targetSpace: 8,
+        radius: NativeDesign.radiusGroup,
+        mask: { color: NativeDesign.mask(this.dark) },
+        popupColor: NativeDesign.overlay(this.dark),
+        backgroundBlurStyle: BlurStyle.NONE,
+        // API 26 adds a 1vp system outline to popup containers by default.
+        // The card owns its semantic border, so the host chrome must stay invisible.
+        outlineWidth: 0,
+        borderWidth: 0,
+        onStateChange: (event): void => {
+          if (!event.isVisible) {
+            if (this.permissionMenuOpen) this.closePermissionMenu();
+            if (this.permissionConfirmOpen) this.closePermissionConfirmation();
+          }
+        }
+      })
       .onAreaChange((_old: Area, area: Area): void => {
         const height = Number(area.height);
+        const width = Number(area.width);
         if (height > 0 && height !== this.composerHeight) this.composerHeight = height;
+        if (width > 0 && width !== this.composerWidth) this.composerWidth = width;
       })
   }
 
@@ -3353,7 +3719,8 @@ export struct NativeWorkspace {
             .animation(NativeMotion.disclosureParam())
         }
         if (this.backToBottomVisible && !this.menuId && !this.utilityOpen &&
-          !this.modelPickerOpen && !this.toolsOpen && !this.workspacePickerOpen &&
+          !this.modelPickerOpen && !this.permissionMenuOpen && !this.permissionConfirmOpen &&
+          !this.toolsOpen && !this.workspacePickerOpen &&
           !this.showSessions) {
           Stack({ alignContent: Alignment.Bottom }) {
             Button({ type: ButtonType.Circle }) {
@@ -3424,6 +3791,24 @@ export struct NativeWorkspace {
       }) {
         Column() {
           Column({ space: 8 }) {
+            if (this.permissionError && !this.permissionMenuOpen) {
+              Row({ space: 8 }) {
+                Text('!').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Bold)
+                  .fontColor(this.dangerText())
+                  .width(18).height(18).borderRadius(9).textAlign(TextAlign.Center)
+                  .backgroundColor(NativeDesign.dangerSurface(this.dark))
+                Text(this.permissionError).fontSize(NativeDesign.fontCaption).lineHeight(16).maxLines(2)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
+                  .fontColor(this.dangerText())
+                NativeIconButton({ glyph: 'close-outline', label: '关闭权限错误',
+                  glyphSize: NativeDesign.glyphInline,
+                  onPressed: (): void => { this.permissionError = ''; } })
+              }.width('100%').padding({ left: 8, right: 2, top: 5, bottom: 5 })
+                .borderRadius(12)
+                .backgroundColor(NativeDesign.dangerSurface(this.dark))
+                .border({ width: 0.5, color: this.semanticBorderColor() })
+                .transition(NativeMotion.disclosureTransition())
+            }
             if (this.error) {
             Row({ space: 8 }) {
               Text('!').fontSize(NativeDesign.fontCaption).fontWeight(FontWeight.Bold)

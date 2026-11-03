@@ -14,6 +14,11 @@ import { NativeMotion } from '../services/NativeMotion';
 import { NativeDesign } from '../services/NativeDesign';
 import { NativeIconButton } from './NativeIconButton';
 import { BuildInfo } from '../services/BuildInfo';
+import {
+  NativePermissionCatalog,
+  NativePermissionOption,
+  nativePermissionLabel
+} from '../services/NativePermissions';
 
 class NotificationPreferences {
   version: number = 1;
@@ -68,6 +73,9 @@ export struct NativeSettings {
   @State private pluginVersion: string = '';
   @State private hostSaving: string[] = [];
   @State private hostError: string = '';
+  @State private permissionCatalog: NativePermissionCatalog | null = null;
+  @State private permissionCatalogLoading: boolean = false;
+  @State private permissionDefaultPreset: string = '';
   @State private retryHostNs: string = '';
   @State private retryHostField: string = '';
   @State private retryHostValue: string = '';
@@ -136,6 +144,7 @@ export struct NativeSettings {
     this.hostChanged();
     this.initialize().catch(() => { this.error = '读取设置失败'; this.initializing = false; });
     this.refreshHost();
+    this.refreshPermissionCatalog();
   }
 
   aboutToDisappear(): void {
@@ -155,6 +164,20 @@ export struct NativeSettings {
     this.chatCollapseTiming = this.chat.collapseTiming;
     this.chatFoldedReplies = this.chat.foldedReplies;
     this.chatBusyEnter = this.chat.busyEnter;
+    this.permissionDefaultPreset = this.client.hostSettings.permission().defaultPreset;
+  }
+
+  private async refreshPermissionCatalog(): Promise<void> {
+    if (this.permissionCatalogLoading) return;
+    this.permissionCatalogLoading = true;
+    try {
+      const value = await this.client.permissionCatalog();
+      if (this.mounted) this.permissionCatalog = value;
+    } catch (_) {
+      if (this.mounted) this.permissionCatalog = null;
+    } finally {
+      if (this.mounted) this.permissionCatalogLoading = false;
+    }
   }
 
   private async refreshHost(): Promise<void> {
@@ -184,12 +207,14 @@ export struct NativeSettings {
       await this.client.hostSettings.set(ns, field, value);
       if (this.mounted) {
         this.updateState((): void => { this.hostChanged(); });
+        if (ns === 'permission') this.refreshPermissionCatalog();
         AppStorage.setOrCreate<number>('nativeHostSettingsRevision',
           (AppStorage.get<number>('nativeHostSettingsRevision') || 0) + 1);
       }
     } catch (_) {
       if (this.mounted) {
         this.hostError = '这一项保存失败';
+        this.refreshPermissionCatalog();
         this.retryHostNs = ns;
         this.retryHostField = field;
         this.retryHostValue = String(value);
@@ -568,6 +593,22 @@ export struct NativeSettings {
     return index >= 0 ? labels[index] : '未设置';
   }
 
+  private permissionDefaultValues(): string[] {
+    return (this.permissionCatalog?.defaultOptions || []).map((option: NativePermissionOption): string =>
+      option.value);
+  }
+
+  private permissionDefaultLabels(): string[] {
+    return (this.permissionCatalog?.defaultOptions || []).map((option: NativePermissionOption): string =>
+      nativePermissionLabel(option, option.value));
+  }
+
+  private permissionDefaultCurrent(): string {
+    const values = this.permissionDefaultValues();
+    if (values.includes(this.permissionDefaultPreset)) return this.permissionDefaultPreset;
+    return this.permissionCatalog?.defaultPreset || '';
+  }
+
   @Builder
   private navigationRow(icon: string, title: string, detail: string, page: string) {
     Button({ type: ButtonType.Normal }) {
@@ -671,6 +712,48 @@ export struct NativeSettings {
   }
 
   @Builder
+  private permissionDefaultChoice() {
+    Row({ space: 10 }) {
+      Column({ space: 3 }) {
+        Text('新会话默认权限').fontSize(NativeDesign.fontBody)
+          .fontColor(this.primaryText())
+        Text('只影响之后创建的会话').fontSize(NativeDesign.fontCaption)
+          .fontColor(this.tertiaryText())
+      }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+      if (this.hostSaving.includes('permission:defaultPreset')) {
+        LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
+      } else {
+        Select(this.choiceOptions(this.permissionDefaultValues(), this.permissionDefaultLabels(),
+          this.permissionDefaultCurrent()))
+          .selected(this.choiceIndex(this.permissionDefaultValues(), this.permissionDefaultCurrent()))
+          .value(this.choiceLabel(this.permissionDefaultValues(), this.permissionDefaultLabels(),
+            this.permissionDefaultCurrent()))
+          .font({ size: NativeDesign.fontCompact }).height(NativeDesign.hitTarget)
+          .borderRadius(NativeDesign.radiusControl)
+          .backgroundColor(NativeDesign.field(this.dark))
+          .fontColor(this.primaryText())
+          .optionFontColor(this.primaryText())
+          .selectedOptionFontColor(NativeDesign.accent(this.dark))
+          .optionBgColor(NativeDesign.overlay(this.dark))
+          .selectedOptionBgColor(NativeDesign.selectedSurface(this.dark))
+          .menuBackgroundColor(NativeDesign.overlay(this.dark))
+          .enabled(this.host.writable && !!this.permissionCatalog?.defaultOptions.length &&
+            !this.hostSaving.includes('permission:defaultPreset'))
+          .opacity(this.host.writable ? 1 : 0.55)
+          .onSelect((index: number) => {
+            const values = this.permissionDefaultValues();
+            const current = this.permissionDefaultCurrent();
+            const valueIndex = values.includes(current) ? index : index - 1;
+            if (valueIndex < 0 || valueIndex >= values.length || values[valueIndex] === current) return;
+            this.saveHost('permission', 'defaultPreset', values[valueIndex]);
+          })
+      }
+    }.width('100%').constraintSize({ minHeight: NativeDesign.doubleLineRow })
+      .padding({ left: NativeDesign.cardPadding, right: NativeDesign.rowInset,
+        top: NativeDesign.spaceS, bottom: NativeDesign.spaceS })
+  }
+
+  @Builder
   private dshSettingsPage() {
     Column() {
       this.pageHeader('DSH 设置')
@@ -685,6 +768,20 @@ export struct NativeSettings {
           }.width('100%').constraintSize({ minHeight: NativeDesign.compactRow })
             .padding({ left: NativeDesign.cardPadding, right: NativeDesign.cardPadding })
             .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.cardSurface())
+          if (this.hasHost('permission') && this.permissionCatalog?.defaultOptions.length) {
+            Column() {
+              this.permissionDefaultChoice()
+            }.width('100%').borderRadius(NativeDesign.radiusGroup).clip(true)
+              .backgroundColor(this.cardSurface())
+          } else if (this.permissionCatalogLoading && this.hasHost('permission')) {
+            Row({ space: 8 }) {
+              LoadingProgress().width(NativeDesign.spinnerInline).height(NativeDesign.spinnerInline)
+              Text('正在读取新会话权限').fontSize(NativeDesign.fontSection)
+                .fontColor(this.tertiaryText())
+            }.width('100%').padding({ left: NativeDesign.cardPadding, right: NativeDesign.cardPadding,
+              top: 10, bottom: 10 })
+              .borderRadius(NativeDesign.radiusGroup).backgroundColor(this.cardSurface())
+          }
           if (this.hasHost('ui-chat')) {
             Column() {
               this.hostChoice('工作步骤展示', 'transcriptView',

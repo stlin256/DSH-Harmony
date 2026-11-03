@@ -5,6 +5,73 @@ export function normalizeProjectionTitle(value) {
   return value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
 }
 
+const permissionPresetPattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+
+/** Normalize one Host-owned permission preset identity. */
+export function normalizePermissionPreset(value) {
+  return typeof value === 'string' && permissionPresetPattern.test(value) ? value : '';
+}
+
+/** Normalize the complete Session permissions projection. */
+export function normalizePermissionSelection(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const currentValue = normalizePermissionPreset(value.currentValue);
+  return currentValue ? { currentValue } : null;
+}
+
+function normalizePermissionText(value, maxLength) {
+  if (typeof value !== 'string') return '';
+  return value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLength);
+}
+
+function normalizePermissionOption(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).some(key => !['value', 'name', 'description'].includes(key))) return null;
+  const preset = normalizePermissionPreset(value.value);
+  const name = normalizePermissionText(value.name, 120);
+  if (!preset || !name) return null;
+  const description = value.description === undefined
+    ? ''
+    : normalizePermissionText(value.description, 320);
+  if (value.description !== undefined && !description) return null;
+  return {
+    value: preset,
+    name,
+    ...(description ? { description } : {})
+  };
+}
+
+/**
+ * Normalize the process permission catalogue without inventing options.
+ * `custom` is display-only and `auto` can never be a future-session default.
+ */
+export function normalizePermissionCatalog(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).some(key => !['options', 'defaultOptions', 'defaultPreset'].includes(key)) ||
+      !Array.isArray(value.options) || !Array.isArray(value.defaultOptions) ||
+      value.options.length > 32 || value.defaultOptions.length > 32) return null;
+  const options = [];
+  const defaultOptions = [];
+  const optionValues = new Set();
+  for (const raw of value.options) {
+    const option = normalizePermissionOption(raw);
+    if (!option || option.value === 'custom' || optionValues.has(option.value)) return null;
+    optionValues.add(option.value);
+    options.push(option);
+  }
+  const defaultValues = new Set();
+  for (const raw of value.defaultOptions) {
+    const option = normalizePermissionOption(raw);
+    if (!option || ['custom', 'auto'].includes(option.value) ||
+        defaultValues.has(option.value) || !optionValues.has(option.value)) return null;
+    defaultValues.add(option.value);
+    defaultOptions.push(option);
+  }
+  const defaultPreset = normalizePermissionPreset(value.defaultPreset);
+  if (!defaultPreset || !defaultValues.has(defaultPreset)) return null;
+  return { options, defaultOptions, defaultPreset };
+}
+
 const subagentModes = new Set(['one-shot', 'continuable', 'external', 'unknown']);
 const traversableSubagentModes = new Set(['one-shot', 'continuable', 'unknown']);
 
