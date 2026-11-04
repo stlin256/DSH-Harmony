@@ -626,6 +626,13 @@ export struct NativeWorkspace {
     const value = this.permissionSelection?.currentValue || '';
     return nativePermissionLabel(this.currentPermissionOption(), value);
   }
+  private connectionRetrying(): boolean {
+    if (this.connectionPhase === 'retrying') return true;
+    // Deterministic Mock capture hook; the showcase flag never exists in
+    // production profiles.
+    return AppStorage.get<boolean>('storeShowcase') === true &&
+      AppStorage.get<string>('storeShowcaseState') === 'connection-retrying';
+  }
   private showPermissionChip(): boolean {
     return this.activeAddress.kind === 'session' && !!this.selected &&
       !!this.permissionCatalog && !!this.permissionSelection?.currentValue;
@@ -3430,10 +3437,11 @@ export struct NativeWorkspace {
             .onClick(() => { this.refreshWorkspaces(); })
         }.width('100%')
       }
-      if (this.connectionPhase === 'retrying' && !this.selected) {
+      if (this.connectionRetrying() && !this.selected) {
         Text('连接中断，正在尝试重连').fontSize(NativeDesign.fontCaption).padding({ left: 10, right: 10, top: 6, bottom: 6 })
           .width('100%').borderRadius(NativeDesign.radiusControl).fontColor(this.secondaryText())
           .backgroundColor(this.selectionSurface())
+          .transition(NativeMotion.statusBannerTransition())
       }
       if (this.loading) { Text('正在连接…').fontSize(NativeDesign.fontCompact).fontColor(this.secondaryText()) }
       if (!this.loading && !this.visibleSessionCount) { Text('新建会话，开始你的任务').fontSize(NativeDesign.fontCompact).fontColor(this.secondaryText()) }
@@ -3677,8 +3685,9 @@ export struct NativeWorkspace {
             .id('stream-retry').onClick((): void => { this.retryStream(); })
         }.width('100%').padding({ left: 10, right: 10 })
           .backgroundColor(this.selectionSurface()).borderRadius(NativeDesign.radiusControl)
+          .transition(NativeMotion.statusBannerTransition())
       }
-      if (this.connectionPhase === 'retrying') {
+      if (this.connectionRetrying()) {
         Row({ space: 8 }) {
           Text('•').fontSize(NativeDesign.fontBody).fontColor(this.warningText())
           Text('连接中断，正在尝试重连').fontSize(NativeDesign.fontSection).fontColor(this.secondaryText())
@@ -3686,6 +3695,7 @@ export struct NativeWorkspace {
         }.padding({ left: 10, right: 10, top: 6, bottom: 6 }).width('100%')
           .borderRadius(NativeDesign.radiusControl)
           .backgroundColor(this.selectionSurface())
+          .transition(NativeMotion.statusBannerTransition())
       }
       Stack({ alignContent: Alignment.TopStart }) {
         List({ space: 12, scroller: this.scroller }) {

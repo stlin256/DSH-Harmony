@@ -363,6 +363,14 @@
       "requiresInteraction": true
     },
     {
+      "id": "composer.connection-banner",
+      "screens": ["conversation"],
+      "states": ["connection-retrying"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-status-banner-e2e.ps1"],
+      "e2eIds": ["BAN-01", "BAN-02", "BAN-03"],
+      "requiresInteraction": true
+    },
+    {
       "id": "security.secret-mask",
       "screens": ["conversation"],
       "states": ["secret-masked"],

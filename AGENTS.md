@@ -115,6 +115,10 @@ claim.
   HAP SHA-256
   `754C854D17A3286E45B6DD8D7F2242A5858E97846DFE5467724C22365D5A0C78`:
   `artifacts/device-e2e/20261104-model-menu/model-picker/manifest.json`.
+- Connection banner motion (dark, light, reduced motion, tap persistence)
+  on Mock HAP SHA-256
+  `39E21758985730358D8C39CDB4A663BC7BAFCAF3A1FE2E83567BBFE703770AB9`:
+  `artifacts/device-e2e/20261104-connection-banner/connection-banner/manifest.json`.
 
 Keep these environment-bound gaps explicit until a matching target proves them:
 
@@ -562,6 +566,12 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-04-model-picker-popup-alignment.md](docs/specs/2026-11-04-model-picker-popup-alignment.md)
 - Model picker popup device E2E:
   [2026-11-04-model-picker-popup-e2e.md](docs/testing/2026-11-04-model-picker-popup-e2e.md)
+- Connection banner motion requirement:
+  [2026-11-04-connection-banner-motion.md](docs/requirements/2026-11-04-connection-banner-motion.md)
+- Connection banner motion implementation spec:
+  [2026-11-04-connection-banner-motion.md](docs/specs/2026-11-04-connection-banner-motion.md)
+- Connection banner motion device E2E:
+  [2026-11-04-connection-banner-motion-e2e.md](docs/testing/2026-11-04-connection-banner-motion-e2e.md)
 
 ## Upstream Tracking
 

@@ -95,6 +95,22 @@ export class NativeMotion {
       .animation(NativeMotion.implicit('micro'));
   }
 
+  /**
+   * Transient link-state banners unfold from their status anchor and retract
+   * toward it. Appearance and disappearance share one spatial direction, the
+   * state stays interruptible, and reduced motion resolves directly.
+   */
+  static statusBannerTransition(): TransitionEffect {
+    if (!NativeMotion.enabled()) return TransitionEffect.IDENTITY;
+    const enter = TransitionEffect.OPACITY
+      .combine(TransitionEffect.translate({ y: -6 }))
+      .animation(NativeMotion.implicit('micro'));
+    const leave = TransitionEffect.OPACITY
+      .combine(TransitionEffect.translate({ y: -4 }))
+      .animation({ duration: NativeMotion.exitDuration('micro'), curve: Curve.FastOutSlowIn });
+    return TransitionEffect.asymmetric(enter, leave);
+  }
+
   static disclosureTransition(): TransitionEffect {
     if (!NativeMotion.enabled()) return TransitionEffect.IDENTITY;
     return TransitionEffect.OPACITY

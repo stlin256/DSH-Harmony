@@ -112,6 +112,10 @@ Implementation spec:
   `754C854D17A3286E45B6DD8D7F2242A5858E97846DFE5467724C22365D5A0C78`):
   `artifacts/device-e2e/20261104-model-menu/model-picker/manifest.json`;
   see `2026-11-04-model-picker-popup-e2e.md`.
+- Connection banner motion Mock evidence (API 26, HAP
+  `39E21758985730358D8C39CDB4A663BC7BAFCAF3A1FE2E83567BBFE703770AB9`):
+  `artifacts/device-e2e/20261104-connection-banner/connection-banner/manifest.json`;
+  see `2026-11-04-connection-banner-motion-e2e.md`.
 
 The user's saved annotation run
 `20261101T152352Z-visual-acceptance-1` contains 32 markers across 20 source
@@ -155,6 +159,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-30 | Final variant restore | After building and checking the store variant, the Community Release installs over the device build, launches and leaves a live process | Passed on API 26; Community HAP `5768B21E…`, version `0.4.8 (29)` |
 | VSA-31 | Store review experience | Store-only activation opens populated native sessions, settings, permissions, plugins, automation and file previews without a review label; mutable settings and the structured insufficient-balance response render correctly | Pending; current request is compile-gated and the device driver has not been run |
 | VSA-32 | Composer menu template | Model and permission sheets share one masked composer-anchored popup; the model sheet stays above the input with the keyboard closed and open, has no search field, dismisses on outside tap and Back, keeps the caption and leaves the permission sheet unchanged | Passed on API 26 Mock HAP `754C854D…`; live Host model switching remains Pending |
+| VSA-33 | Connection banner motion | Reconnect and stream-failure banners unfold from their status anchor and retract toward it with one semantic asymmetric transition; reduced motion resolves directly and a background tap does not drop the banner | Passed on API 26 Mock HAP `39E21758…`; live Host reconnect cadence remains Pending |
 
 ## Remaining device checks
 

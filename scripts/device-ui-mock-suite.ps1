@@ -52,6 +52,8 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'conversation'; State = 'stream-long'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'stream-burst-quiet'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'stream-reconnect'; Theme = 'light' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'connection-retrying'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'connection-retrying'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'subagent'; State = 'subagent-unavailable'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'secret-masked'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'secret-masked'; Theme = 'light' },
@@ -207,6 +209,7 @@ function Get-ExpectedMarker {
     'conversation/stream-long' { return '长流持续输出' }
     'conversation/stream-burst-quiet' { return '分段流式输出' }
     'conversation/stream-reconnect' { return '连接恢复验收' }
+    'conversation/connection-retrying' { return '连接中断，正在尝试重连' }
     'subagent/subagent-unavailable' { return '子智能体记录暂时无法读取' }
     'conversation/secret-masked' { return '凭据已遮蔽' }
     'conversation/stream-repaired' { return '流式 Markdown' }
