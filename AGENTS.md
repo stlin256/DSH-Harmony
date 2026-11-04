@@ -123,6 +123,10 @@ claim.
   HAP SHA-256
   `F145A78BA528CF7CA30ED8297AE4D1454A78269FACEE66BB4AB6A1E324FD49D0`:
   `artifacts/device-e2e/material/material/manifest.json`.
+- Permission switch Host fix and full-access checkbox on real Host (plugin
+  `0.3.9`, default Release HAP `18525C75…`) and Mock HAP `2E6DDD55…`:
+  `artifacts/device-e2e/real-permission-switch/real/manifest.json` and
+  `artifacts/device-e2e/permission-checkbox/permissions/manifest.json`.
 
 Keep these environment-bound gaps explicit until a matching target proves them:
 
