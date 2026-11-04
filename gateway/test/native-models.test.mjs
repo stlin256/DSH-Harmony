@@ -3561,6 +3561,9 @@ test('permission UI keeps one-shot approval and session preset changes distinct'
   assert.match(workspace, /frame\.type === 'permission'/);
   assert.match(workspace, /permissionBusyValue/);
   assert.match(workspace, /permission-risk-ack/);
+  // The acknowledgement is a checkbox row, not an immediate confirmation button.
+  assert.match(workspace, /glyph: 'check-outline'[\s\S]{0,400}permissionConfirmAcknowledged/);
+  assert.match(workspace, /permissionConfirmAcknowledged = !this\.permissionConfirmAcknowledged/);
   assert.match(settings, /新会话默认权限/);
   assert.match(settings, /只影响之后创建的会话/);
 });

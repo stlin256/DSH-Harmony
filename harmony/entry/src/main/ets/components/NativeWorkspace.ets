@@ -1842,17 +1842,33 @@ export struct NativeWorkspace {
       Text(nativePermissionRiskDescription(this.permissionConfirmTarget))
         .fontSize(NativeDesign.fontCompact).lineHeight(19)
         .fontColor(this.secondaryText()).width('100%')
-      Button('我已了解风险，并愿意继续', { type: ButtonType.Normal })
-        .width('100%').height(NativeDesign.compactHitTarget).padding({ left: 4, right: 4 })
-        .fontSize(NativeDesign.fontCompact).fontColor(this.primaryText())
+      Button({ type: ButtonType.Normal }) {
+        Row({ space: 10 }) {
+          Stack({ alignContent: Alignment.Center }) {
+            if (this.permissionConfirmAcknowledged) {
+              DSHIcon({ glyph: 'check-outline', glyphSize: NativeDesign.glyphInline,
+                color: NativeDesign.textInverse(this.dark) })
+            }
+          }.width(18).height(18).borderRadius(5)
+            .backgroundColor(this.permissionConfirmAcknowledged ?
+              this.permissionConfirmColor() : Color.Transparent)
+            .border({ width: 1, color: this.permissionConfirmAcknowledged ?
+              this.permissionConfirmColor() : this.semanticBorderColor() })
+          Text('我已了解风险，并愿意继续')
+            .fontSize(NativeDesign.fontCompact).fontColor(this.primaryText())
+            .layoutWeight(1).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
+        }.width('100%').padding({ left: 10, right: 10 }).alignItems(VerticalAlign.Center)
+      }.width('100%').height(NativeDesign.compactHitTarget).padding(0)
+        .borderRadius(NativeDesign.radiusControl)
         .backgroundColor(this.permissionConfirmAcknowledged ?
           NativeDesign.selectedSurface(this.dark) : this.fieldSurface())
-        .borderRadius(NativeDesign.radiusControl)
         .border({ width: 0.5, color: this.semanticBorderColor() })
         .id('permission-risk-ack')
         .enabled(!this.permissionBusyValue)
+        .accessibilityText((this.permissionConfirmAcknowledged ? '已勾选：' : '未勾选：') +
+          '我已了解风险，并愿意继续')
         .onClick((): void => {
-          this.permissionConfirmAcknowledged = true;
+          this.permissionConfirmAcknowledged = !this.permissionConfirmAcknowledged;
         })
       Row({ space: 8 }) {
         Button('取消', { type: ButtonType.Normal })
