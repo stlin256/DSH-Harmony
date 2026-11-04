@@ -243,6 +243,9 @@ async function setup(t, options = {}) {
       {ns:'private-provider',value:{credential:'must-not-forward'},revision:1}
     ]};
     else if (value.method === 'settings/mutate') result = {ns:value.payload.args.ns,value:{[value.payload.args.ops[0].path[0]]:value.payload.args.ops[0].value},revision:5};
+    else if (value.method === 'commands/execute') result = options.commandRejected ?
+      { commandId: 'cmd-1', result: { kind: 'error', text: 'preset not applied' } } :
+      { commandId: 'cmd-1', result: { kind: 'success', text: 'preset applied' } };
     else if (value.method === 'permissionPresets/catalog') result = {
       options: [
         { value: 'read-only', name: 'Read Only', description: 'Inspect only' },
@@ -589,7 +592,7 @@ test('permission catalog and current-session writes stay behind fixed Host contr
   assert.equal(calls.at(-2).value.method, 'permissionPresets/catalog');
   assert.equal(calls.at(-1).value.method, 'commands/execute');
   assert.deepEqual(calls.at(-1).value.payload.args,
-    ['session', '/permission danger-full-access', []]);
+    { agentId: 'session', line: '/permission danger-full-access', submittedAttachments: [] });
 
   assert.equal((await operation({
     operation: 'setPermissionPreset', sessionId: 'session', preset: 'custom'
@@ -600,6 +603,22 @@ test('permission catalog and current-session writes stay behind fixed Host contr
   assert.equal((await operation({
     operation: 'setPermissionPreset', sessionId: 'session', preset: 'not-in-catalog'
   })).status, 409);
+});
+
+test('rejected Host command results surface as conflicts instead of false success', async t => {
+  const { call, calls } = await setup(t, { commandRejected: true });
+  const permission = await call('/pocket/api/native/operation', {
+    operation: 'setPermissionPreset', sessionId: 'session', preset: 'read-only'
+  });
+  assert.equal(permission.status, 409);
+  assert.equal(JSON.parse(permission.text).code, 'permission/rejected');
+  assert.deepEqual(calls.at(-1).value.payload.args,
+    { agentId: 'session', line: '/permission read-only', submittedAttachments: [] });
+  const plan = await call('/pocket/api/native/operation', {
+    operation: 'planOff', sessionId: 'session'
+  });
+  assert.equal(plan.status, 409);
+  assert.equal(JSON.parse(plan.text).code, 'plan/rejected');
 });
 
 test('native mode and subagent operations use projection, address and command contracts', async t => {
@@ -629,7 +648,8 @@ test('native mode and subagent operations use projection, address and command co
     operation: 'planOff', sessionId: 'session'
   })).status, 200);
   assert.equal(calls.at(-1).value.method, 'commands/execute');
-  assert.deepEqual(calls.at(-1).value.payload.args, ['session', '/plan off', []]);
+  assert.deepEqual(calls.at(-1).value.payload.args,
+    { agentId: 'session', line: '/plan off', submittedAttachments: [] });
 
   const child = {
     sessionId: 'child-a', parentSessionId: 'session', parentMode: 'continuable'

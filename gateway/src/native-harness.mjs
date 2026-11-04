@@ -799,12 +799,25 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
             res.status(409).json({ error: '权限选项已失效', code: 'permission/preset-unavailable' });
             return;
           }
-          await rpcArgs('commands/execute', [sessionId, '/permission ' + preset, []], signal);
+          const command = await rpcArgs('commands/execute',
+            { agentId: sessionId, line: '/permission ' + preset, submittedAttachments: [] }, signal);
+          if (command?.result?.kind !== 'success') {
+            const rejected = new Error('Permission preset was not applied');
+            rejected.code = 'permission/rejected';
+            throw rejected;
+          }
           res.json({ accepted: true }); return;
         }
-        case 'planOff':
-          await rpcArgs('commands/execute', [sessionId, '/plan off', []], signal);
+        case 'planOff': {
+          const command = await rpcArgs('commands/execute',
+            { agentId: sessionId, line: '/plan off', submittedAttachments: [] }, signal);
+          if (command?.result?.kind !== 'success') {
+            const rejected = new Error('Plan mode was not disabled');
+            rejected.code = 'plan/rejected';
+            throw rejected;
+          }
           res.json({ accepted: true }); return;
+        }
         case 'rename':
           if (typeof req.body.title !== 'string' || !req.body.title.trim()) return res.sendStatus(400);
           request = { sessionId, title: req.body.title }; break;
