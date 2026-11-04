@@ -592,6 +592,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-05-immersive-material-docks.md](docs/specs/2026-11-05-immersive-material-docks.md)
 - Immersive material dock device acceptance:
   [2026-11-05-immersive-material-docks-e2e.md](docs/testing/2026-11-05-immersive-material-docks-e2e.md)
+- Permission switch Host contract fix requirement:
+  [2026-11-05-permission-switch-host-fix.md](docs/requirements/2026-11-05-permission-switch-host-fix.md)
+- Permission switch Host contract research:
+  [2026-11-05-permission-switch-host-fix.md](docs/research/2026-11-05-permission-switch-host-fix.md)
+- Permission switch Host contract spec:
+  [2026-11-05-permission-switch-host-fix.md](docs/specs/2026-11-05-permission-switch-host-fix.md)
+- Permission switch and checkbox device acceptance:
+  [2026-11-05-permission-switch-host-fix-e2e.md](docs/testing/2026-11-05-permission-switch-host-fix-e2e.md)
 
 ## Upstream Tracking
 

@@ -14,8 +14,8 @@
 | PERM-02 | Composer permission chip | Workspace-write and full-access current values show the correct business glyph | Passed |
 | PERM-03 | Composer permission chip | Custom current value is visible but absent from selectable rows | Passed |
 | PERM-04 | Permission menu | Menu opens upward, aligns to the composer, uses a visible scrim, and keeps current-row emphasis compact | Passed |
-| PERM-05 | Full-access confirmation | Confirmation requires acknowledgement; confirm is disabled before acknowledgement and cancel performs no write | Passed |
-| PERM-06 | Permission switch | Successful write stays busy until the authoritative projection changes | Passed |
+| PERM-05 | Full-access confirmation | The acknowledgement is a checkbox row; confirm is disabled until the box is checked and cancel performs no write | Passed; unchecked/checked captures on Mock HAP `2E6DDD55…` |
+| PERM-06 | Permission switch | Successful write stays busy until the authoritative projection changes; the Host command uses the named wire args the pinned DSH accepts | Passed on Mock; real-Host switch is verified separately in `2026-11-05-permission-switch-host-fix-e2e.md` (PERM-SW-01) |
 | PERM-07 | Permission failure | Catalog failure keeps the last authoritative chip and closes transient menu state | Passed |
 | PERM-08 | Approval card | Workspace single-use approval shows tool, reason, target scope and the one-shot boundary | Passed |
 | PERM-09 | Approval card | Long reason scrolls without pushing actions off screen | Passed |
