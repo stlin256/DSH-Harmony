@@ -119,6 +119,10 @@ claim.
   on Mock HAP SHA-256
   `39E21758985730358D8C39CDB4A663BC7BAFCAF3A1FE2E83567BBFE703770AB9`:
   `artifacts/device-e2e/20261104-connection-banner/connection-banner/manifest.json`.
+- Immersive material docks (dark, light, task dock, opaque default) on Mock
+  HAP SHA-256
+  `F145A78BA528CF7CA30ED8297AE4D1454A78269FACEE66BB4AB6A1E324FD49D0`:
+  `artifacts/device-e2e/material/material/manifest.json`.
 
 Keep these environment-bound gaps explicit until a matching target proves them:
 
@@ -580,6 +584,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-04-live-process-pacing.md](docs/specs/2026-11-04-live-process-pacing.md)
 - Live process text pacing device acceptance:
   [2026-11-04-live-process-pacing-e2e.md](docs/testing/2026-11-04-live-process-pacing-e2e.md)
+- Immersive material docks requirement:
+  [2026-11-05-immersive-material-docks.md](docs/requirements/2026-11-05-immersive-material-docks.md)
+- Immersive material API research:
+  [2026-11-05-immersive-material-docks.md](docs/research/2026-11-05-immersive-material-docks.md)
+- Immersive material dock implementation spec:
+  [2026-11-05-immersive-material-docks.md](docs/specs/2026-11-05-immersive-material-docks.md)
+- Immersive material dock device acceptance:
+  [2026-11-05-immersive-material-docks-e2e.md](docs/testing/2026-11-05-immersive-material-docks-e2e.md)
 
 ## Upstream Tracking
 

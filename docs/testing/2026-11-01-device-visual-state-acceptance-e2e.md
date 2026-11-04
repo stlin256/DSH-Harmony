@@ -160,6 +160,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-31 | Store review experience | Store-only activation opens populated native sessions, settings, permissions, plugins, automation and file previews without a review label; mutable settings and the structured insufficient-balance response render correctly | Pending; current request is compile-gated and the device driver has not been run |
 | VSA-32 | Composer menu template | Model and permission sheets share one masked composer-anchored popup; the model sheet stays above the input with the keyboard closed and open, has no search field, dismisses on outside tap and Back, keeps the caption and leaves the permission sheet unchanged | Passed on API 26 Mock HAP `754C854D…`; live Host model switching remains Pending |
 | VSA-33 | Connection banner motion | Reconnect and stream-failure banners unfold from their status anchor and retract toward it with one semantic asymmetric transition; reduced motion resolves directly and a background tap does not drop the banner | Passed on API 26 Mock HAP `39E21758…`; live Host reconnect cadence remains Pending |
+| VSA-34 | Immersive material docks | The bottom composer dock and floating task dock carry the API-26 immersive system material (with light-effect feedback) when the reduce-transparency switch is OFF; the switch defaults ON and keeps the pre-immersive opaque shell; the maintained `NATIVE_MATERIAL_SURFACES` list is the single control point | Passed on API 26 Mock HAP `F145A78B…`; API 23 fallback and the interaction-driven light feedback remain Pending |
 
 ## Remaining device checks
 
@@ -179,6 +180,11 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   turn with reasoning/tool calls before promoting it. See
   `2026-11-04-live-process-pacing-e2e.md`.
 
+- Immersive material docks passed in dark/light and the opaque default on Mock
+  HAP `F145A78B…` (`artifacts/device-e2e/material/material/manifest.json`).
+  The material's light-sensing feedback is interaction-driven and cannot be
+  proven by a still frame; API 23 opaque fallback also stays Pending. See
+  `2026-11-05-immersive-material-docks-e2e.md`.
 - API 23 material fallback requires a physical or emulated API 23 target.
 - Valid saved-session restore, expired-session recovery and logout/relaunch need
   a real account exchange and must not be inferred from Mock fixtures.
