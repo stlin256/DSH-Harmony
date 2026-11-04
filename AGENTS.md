@@ -123,6 +123,9 @@ claim.
   HAP SHA-256
   `F145A78BA528CF7CA30ED8297AE4D1454A78269FACEE66BB4AB6A1E324FD49D0`:
   `artifacts/device-e2e/material/material/manifest.json`.
+- Plugin switch refresh and one-line feedback banner on Mock HAP
+  `F97B026F23CFCF0A9216D134A43F6D259CA9099A14C1D1822977913B18E506A3`:
+  `artifacts/device-e2e/plugin-toggle/plugin-toggle/manifest.json`.
 - Running tail (dark, light, reduced motion) on Mock HAP
   `3F187D64E6050776A801D6366E0A091C1BE3F060A24652247CDDB9D76F0E7653`:
   `artifacts/device-e2e/running-tail/running-tail/manifest.json`.
@@ -615,6 +618,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-05-running-tail.md](docs/specs/2026-11-05-running-tail.md)
 - Running tail device acceptance:
   [2026-11-05-running-tail-e2e.md](docs/testing/2026-11-05-running-tail-e2e.md)
+- Plugin switch feedback requirement:
+  [2026-11-05-plugin-switch-feedback.md](docs/requirements/2026-11-05-plugin-switch-feedback.md)
+- Plugin switch feedback research:
+  [2026-11-05-plugin-switch-feedback.md](docs/research/2026-11-05-plugin-switch-feedback.md)
+- Plugin switch feedback implementation spec:
+  [2026-11-05-plugin-switch-feedback.md](docs/specs/2026-11-05-plugin-switch-feedback.md)
+- Plugin switch feedback device acceptance:
+  [2026-11-05-plugin-switch-feedback-e2e.md](docs/testing/2026-11-05-plugin-switch-feedback-e2e.md)
 
 ## Upstream Tracking
 
