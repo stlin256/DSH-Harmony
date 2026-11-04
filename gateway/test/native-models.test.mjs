@@ -1223,13 +1223,13 @@ test('stream health separates link, delivery and assistant progress while ignori
   assert.equal(nativeStreamHealthRepairReason(16000, 15999, 1000, 13000,
     true, false, true, true, false, ''), 'delivery_mismatch');
   assert.equal(nativeStreamHealthRepairReason(17000, 16999, 5000, 0,
-    true, false, true, true, false, 'attempt'), 'assistant_progress_timeout');
+    true, false, true, true, false, 'attempt'), '');
   assert.equal(nativeStreamHealthRepairReason(50000, 49999, 5000, 0,
     true, false, true, true, false, ''), '');
   assert.equal(nativeStreamHealthRepairReason(50000, 49999, 5000, 0,
     true, false, true, true, true, 'attempt'), '');
   assert.equal(nativeStreamHealthRepairReason(43000, 42999, 5000, 0,
-    true, true, true, true, false, 'attempt'), 'assistant_progress_timeout');
+    true, true, true, true, false, 'attempt'), '');
 });
 
 test('heartbeat generations are bound to one follow and repair starts remain single-flight', () => {
@@ -2738,14 +2738,14 @@ test('live process and terminal file-card motion contracts stay bounded', () => 
     '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url),'utf8');
   assert.match(workspace,/terminalCardNearBottom\(message: NativeMessage\)/);
   assert.match(workspace,/scrollEdge\(Edge\.Bottom, \{ velocity: 5200 \}\)/);
-  assert.match(workspace,/frame\.type === 'delta' \? \(this\.scrollMotionActive \? 64 : 32\) : 0/);
-  assert.match(workspace,/nativeWithLiveText\(this\.transcriptBaseRows, this\.model\.streamText\)/);
+  assert.match(workspace,/frame\.type === 'delta' \? \(this\.scrollMotionActive \? NativeStreamCadence\.scrollingFrameMs : NativeStreamCadence\.frameMs\) : 0/);
+  assert.match(workspace,/nativeWithLiveText\(this\.transcriptBaseRows, this\.presentation\.value\(\)\)/);
   assert.match(workspace,/private streamTextPatchDirty: boolean = false/);
   assert.match(workspace,/if \(frame\.type === 'delta'\) \{[\s\S]{0,120}frame\.text\.length > 0/);
   assert.match(workspace,/!forceFull && this\.streamTextPatchDirty \?/);
   assert.match(workspace,/if \(tailOnlyTextUpdate\) \{[\s\S]{0,120}this\.source\.setTail\(visible, 2\)/);
-  assert.match(workspace,
-    /message\.runningTurn && message\.role === 'assistant' \? ':' \+ message\.text\.length/);
+  assert.doesNotMatch(workspace, /message\.id \+[\s\S]{0,120}message\.text\.length/);
+  assert.match(workspace, /liveText: this\.livePresentationText/);
   const titleFrame=workspace.indexOf("if (frame.type === 'title')");
   const modelApply=workspace.indexOf('this.model.apply(frame)',titleFrame);
   assert.ok(titleFrame >= 0 && modelApply > titleFrame);
@@ -2762,7 +2762,7 @@ test('streaming scroll yields to direct manipulation and dock expansion shares o
     '../../harmony/entry/src/main/ets/components/NativeQueueDock.ets',import.meta.url),'utf8');
 
   assert.match(workspace,
-    /frame\.type === 'delta' \? \(this\.scrollMotionActive \? 64 : 32\) : 0/);
+    /frame\.type === 'delta' \? \(this\.scrollMotionActive \? NativeStreamCadence\.scrollingFrameMs : NativeStreamCadence\.frameMs\) : 0/);
   assert.match(workspace,
     /private scheduleTailScroll\(velocity: number = 0\): void \{[\s\S]{0,520}this\.tailScrollGuardUntil = Date\.now\(\) \+ 180;[\s\S]{0,260}this\.scroller\.scrollEdge/);
   assert.match(workspace,
@@ -3474,7 +3474,7 @@ test('frontend hardening source wires masking and stream repair into production'
   const settings = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/components/NativeSettings.ets', import.meta.url), 'utf8');
   assert.match(message, /copyMessage\(\).*?rawMessageText\(\)/s);
-  assert.match(message, /text: this\.message\.text, maskSecrets: this\.maskSecrets\(\)/);
+  assert.match(message, /text: this\.message\.id === 'live-assistant' \? this\.liveText : this\.message\.text,[\s\S]{0,150}maskSecrets: this\.maskSecrets\(\)/);
   assert.match(message, /secretsRevealed \? '隐藏凭据' : '显示凭据'/);
   assert.match(text, /NativeStreamingMarkdownBuffer/);
   assert.match(text, /nativeRepairStreamingMarkdown\(update\.tail\)/);
@@ -3482,7 +3482,7 @@ test('frontend hardening source wires masking and stream repair into production'
   assert.match(text, /maskSecrets: this\.maskSecrets/);
   assert.match(text, /nativeSecretSpans\(this\.renderedText\)/);
   assert.match(textSource, /protectedRanges: NativeSecretSpan\[\]/);
-  assert.match(text, /pasteboard\.createData\(pasteboard\.MIMETYPE_TEXT_PLAIN, this\.text\)/);
+  assert.match(text, /pasteboard\.createData\(pasteboard\.MIMETYPE_TEXT_PLAIN, this\.sourceText \|\| this\.text\)/);
   assert.match(inlineText,
     /index\.toString\(\) \+ ':' \+ _run\.text \+ ':' \+ \(_run\.secret \? 'secret' : 'plain'\)/);
   assert.doesNotMatch(settings, /nativeSearchSettings|settingsQuery|搜索设置/);

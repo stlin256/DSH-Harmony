@@ -94,9 +94,13 @@ test('native workspace invalidates text-only patching on structural or tool fram
     '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets',
     import.meta.url), 'utf8');
   assert.match(workspace,
-    /if \(frame\.type === 'delta'\) \{[\s\S]{0,260}this\.streamTextPatchDirty =/);
+    /const textOnly = frame\.text\.length > 0 && !frame\.reasoning && !\(frame\.toolUpdates \|\| \[\]\)\.length;/);
   assert.match(workspace,
-    /this\.streamTextPatchDirty = frame\.text\.length > 0[\s\S]{0,220}!\(frame\.toolUpdates \|\| \[\]\)\.length/);
+    /this\.streamTextPatchDirty = textOnly && \(this\.paintTimer < 0 \|\| this\.streamTextPatchDirty\);/);
+  assert.match(workspace,
+    /\['snapshot', 'event', 'start', 'end', 'state'\]\.includes\(frame\.type\)\) \{[\s\S]{0,80}this\.streamTextPatchDirty = false;/);
+  assert.match(workspace,
+    /if \(this\.presentation\.advance\(Date\.now\(\), !NativeMotion\.enabled\(\)\)\) \{[\s\S]{0,320}this\.streamTextPatchDirty = true;/);
   assert.match(workspace,
     /if \(tailOnlyTextUpdate\)[\s\S]{0,180}this\.source\.setTail\(visible, 2\)[\s\S]{0,180}this\.source\.set\(visible/);
 });

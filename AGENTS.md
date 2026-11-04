@@ -104,6 +104,12 @@ claim.
   `artifacts/device-e2e/20261104-permissions-approval-density/permissions/manifest.json`.
 - Previous default Release installation/launch smoke:
   `artifacts/device-e2e-final/release-smoke/manifest.json`.
+- Stream reconstruction quiet/burst, reconnect, child unavailable/retry/Back,
+  dark/light and reduced motion on Mock HAP SHA-256
+  `48B135A79F64D0E761D071CEADCEEBB836659FD2C8D5C11CEF70A12C0E5B1E2C`:
+  `artifacts/device-e2e/20261104-stream-reconstruction/recovery/manifest.json`.
+  The pre-existing long-stream and child send/stop drivers were not rerun on
+  this HAP; do not treat this set as a release or live-Host qualification.
 
 Keep these environment-bound gaps explicit until a matching target proves them:
 
@@ -113,6 +119,8 @@ Keep these environment-bound gaps explicit until a matching target proves them:
   real account exchange.
 - Provider reconnect and session-switch restoration with a live Host stream.
 - Real Host long-stream cadence and Gateway backpressure recovery.
+- Live Host stream reconstruction: real provider pacing, child authorization,
+  stale-catalog child history and network handoff.
 - Current-device image-lightbox interaction evidence.
 - Workspace preview formats not present in the current fixtures, including
   JPEG/WebP/GIF/BMP/HEIC/ICO and the full extensionless-file matrix.
@@ -535,6 +543,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-04-store-review-demo.md](docs/specs/2026-11-04-store-review-demo.md)
 - Store review experience device E2E:
   [2026-11-04-store-review-demo-e2e.md](docs/testing/2026-11-04-store-review-demo-e2e.md)
+- Stream and subagent recovery requirement:
+  [2026-11-04-stream-subagent-reconstruction.md](docs/requirements/2026-11-04-stream-subagent-reconstruction.md)
+- Stream reconstruction research:
+  [2026-11-04-stream-subagent-reconstruction.md](docs/research/2026-11-04-stream-subagent-reconstruction.md)
+- Stream reconstruction implementation spec:
+  [2026-11-04-stream-subagent-reconstruction.md](docs/specs/2026-11-04-stream-subagent-reconstruction.md)
+- Stream reconstruction device E2E:
+  [2026-11-04-stream-subagent-reconstruction-e2e.md](docs/testing/2026-11-04-stream-subagent-reconstruction-e2e.md)
 
 ## Upstream Tracking
 

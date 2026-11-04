@@ -4,6 +4,8 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {
   normalizeFollow,
+  nativeProjectionChanges,
+  nativeHistoryFailure,
   normalizePermissionCatalog,
   normalizePermissionPreset,
   normalizePermissionSelection,
@@ -496,9 +498,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         await rpcArgs('subagents/prompt', {
           request: {
             requestId,
-            parentSessionId: address.parentSessionId,
             childSessionId: address.childSessionId,
-            mode: 'continuable',
             delivery: req.body.mode || 'queue',
             content: content.filter(part => part.type === 'text' || part.type === 'image')
           }
@@ -836,8 +836,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           mode: req.body.parentMode
         });
         if (!address) return res.sendStatus(400);
-        await rpcArgs('subagents/interruptByParent',
-          [address.childSessionId, address.parentSessionId, 'continuable'], signal);
+        await rpcArgs('subagents/interruptByUser',
+          [address.childSessionId], signal);
       } else {
         await rpc('cancel', { sessionId: req.body.sessionId }, signal);
       }
@@ -878,13 +878,14 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       let upstreamAlive = true;
       let upstreamSilentMs = 0;
       const active = { cursor: -1, attemptId: '', nextIndex: 0, revision: 0 };
-      client.on('pong', () => { alive = true; });
+      let clientPongAt = Date.now();
+      client.on('pong', () => { alive = true; clientPongAt = Date.now(); });
       upstream.on('pong', () => { upstreamAlive = true; });
       const heartbeat = setInterval(() => {
-        if (!alive) { client.terminate(); return; }
+        if (!alive && Date.now() - clientPongAt >= timing.deadlineMs) { client.terminate(); return; }
         alive = false; client.ping();
         if (upstream.readyState === WebSocket.OPEN) {
-          upstreamSilentMs = upstreamAlive ? 0 : upstreamSilentMs + timing.intervalMs;
+          upstreamSilentMs = upstreamAlive || upstreamPausedForDelivery ? 0 : upstreamSilentMs + timing.intervalMs;
           if (upstreamSilentMs >= timing.deadlineMs) {
             upstream.terminate(); client.close(1011, 'Upstream heartbeat timeout'); return;
           }
@@ -1025,6 +1026,14 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           publishProjection('permissions', values.permissions, seq);
         }
       };
+      const publishProjectionChanges = value => {
+        for (const { key, val } of nativeProjectionChanges(value)) {
+          if (key === 'userQuestions') questions(val, value.seq);
+          else if (key === 'title') sessionTitle(val);
+          else if (key === 'inbox') publishState({ queueKnown: true, queue: queueFromInbox(val) });
+          publishProjection(key, val, value.seq);
+        }
+      };
       const endInteraction = eventId => {
         clearTimeout(connection.pending.get(eventId)?.timer);
         connection.pending.delete(eventId);
@@ -1039,9 +1048,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
               retired.add(frame.streamId);
               send({ type: 'capability-error', capability: frame.streamId, code: 'optional-stream-unavailable' }); return;
             }
-            const unsupported = frame.error?.code === 'gateway/invocation-unavailable';
-            send({ type: 'error', code: unsupported ? 'history-unsupported' : 'history-unavailable', retryable: !unsupported })
-              .finally(() => client.close(unsupported ? 4404 : 1011)); return;
+            const failure = nativeHistoryFailure(frame.error?.code);
+            send(failure).finally(() => client.close(failure.retryable ? 1011 : 4404)); return;
           }
           if (frame.type === 'end' && frame.streamId?.startsWith('wait:')) {
             const eventId = frame.streamId.slice(5);
@@ -1070,12 +1078,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
                 }
               }
             } else if (value?.type === 'projection' && value.sessionId === id) {
-              if (value.key === 'userQuestions') questions(value.value, value.seq);
-              else if (value.key === 'title') sessionTitle(value.value);
-              else if (value.key === 'inbox') {
-                publishState({ queueKnown: true, queue: queueFromInbox(value.value) });
-              }
-              publishProjection(value.key, value.value, value.seq);
+              publishProjectionChanges(value);
             }
           } else if (frame.streamId === 'projections') {
             if (frame.value?.type === 'ready') rpc('projections', { sessionId: id }).then(value => {
@@ -1087,12 +1090,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
               }
             }).catch(() => {});
             else if (frame.value?.type === 'projection') {
-              if (frame.value.key === 'userQuestions') questions(frame.value.value, frame.value.seq);
-              else if (frame.value.key === 'title') sessionTitle(frame.value.value);
-              else if (frame.value.key === 'inbox') {
-                publishState({ queueKnown: true, queue: queueFromInbox(frame.value.value) });
-              }
-              publishProjection(frame.value.key, frame.value.value, frame.value.seq);
+              publishProjectionChanges(frame.value);
             }
           } else if (frame.streamId?.startsWith('wait:')) {
             const eventId = frame.streamId.slice(5), pending = connection.pending.get(eventId);

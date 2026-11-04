@@ -378,6 +378,30 @@
       "e2eIds": ["SR-01", "SR-02", "SR-03", "SR-04", "SR-05",
         "SR-06", "SR-07", "SR-08", "SR-09", "SR-10", "SR-11", "SR-12", "SR-13"],
       "requiresInteraction": true
+    },
+    {
+      "id": "transcript.recovery-and-adaptive-output",
+      "screens": [
+        "conversation",
+        "subagent"
+      ],
+      "states": [
+        "stream-burst-quiet",
+        "stream-reconnect",
+        "subagent-unavailable"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-stream-recovery-e2e.ps1"
+      ],
+      "e2eIds": [
+        "STR-R1",
+        "STR-R2",
+        "STR-R3",
+        "STR-R4",
+        "STR-R5"
+      ],
+      "requiresInteraction": true
     }
   ]
 }

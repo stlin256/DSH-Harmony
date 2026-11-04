@@ -1,6 +1,6 @@
 {
   "name": "@dsh-harmony/plugin",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "type": "module",
   "license": "AGPL-3.0-only",
   "description": "Native DSH Harmony login, sessions, notifications and web session handoff for DeepSeek Harness",
@@ -41,7 +41,7 @@
   ],
   "engines": {
     "node": ">=24.9.0",
-    "dsh": ">=0.2.2-alpha.2 <0.3.0"
+    "dsh": ">=0.2.2-rc.1 <0.3.0"
   },
   "dsh": {
     "bundle": {

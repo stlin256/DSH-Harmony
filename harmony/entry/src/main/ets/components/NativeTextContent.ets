@@ -24,6 +24,7 @@ class NativeStreamingSection {
 @Component
 export struct NativeTextContent {
   @Prop @Watch('changed') text: string = '';
+  @Prop sourceText: string = '';
   @Prop @Watch('changed') streaming: boolean = false;
   @Prop @Watch('changed') maskSecrets: boolean = false;
   @Prop monospace: boolean = false;
@@ -103,7 +104,8 @@ export struct NativeTextContent {
     if (update.changed) this.updateStreaming(update);
   }
   private openReader(): void {
-    const value = this.streaming ? nativeRepairStreamingMarkdown(this.text) : this.text;
+    const authoritative = this.sourceText || this.text;
+    const value = this.streaming ? nativeRepairStreamingMarkdown(authoritative) : authoritative;
     this.source.set(value, this.maskSecrets ? nativeSecretSpans(value) : []);
     this.table = this.tableFor(value);
     this.reading = true;
@@ -132,7 +134,22 @@ export struct NativeTextContent {
         this.body(section.text, section.table, false)
       }, (section: NativeStreamingSection) => section.key)
       if (this.streamTail) {
-        this.body(this.streamTail, this.streamTailTable, this.streamTailPlain)
+        // Render the live tail inline: a value-parameter @Builder does not
+        // refresh when its argument changes, which froze paced text at the
+        // first revealed character.
+        if (!this.monospace && this.streamTailTable) {
+          NativeTable({ table: this.streamTailTable, maskSecrets: this.maskSecrets,
+            client: this.client, sessionId: this.sessionId })
+        } else if (this.monospace || this.streamTailPlain) {
+          Text(this.streamTail).width('100%')
+            .fontSize(this.denseMonospace ? NativeDesign.fontMicro : NativeDesign.fontSection)
+            .lineHeight(this.denseMonospace ? '16fp' : '22fp')
+            .fontFamily('Noto Sans Mono, monospace').copyOption(CopyOptions.InApp)
+            .fontColor(NativeDesign.textPrimary(this.dark))
+        } else {
+          NativeInlineText({ text: this.streamTail, maskSecrets: this.maskSecrets,
+            client: this.client, sessionId: this.sessionId })
+        }
       }
       if (this.streamOverflow) {
         Button('阅读已输出内容 · ' + this.text.length + ' 字符', { type: ButtonType.Normal })
@@ -155,7 +172,7 @@ export struct NativeTextContent {
           label: this.copied ? '已复制全文' : '复制全文',
           glyphSize: NativeDesign.glyphControl,
           onPressed: (): void => {
-          pasteboard.getSystemPasteboard().setData(pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, this.text))
+          pasteboard.getSystemPasteboard().setData(pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, this.sourceText || this.text))
             .then(() => { this.copied = true; }).catch(() => { this.copied = false; });
           }
         })

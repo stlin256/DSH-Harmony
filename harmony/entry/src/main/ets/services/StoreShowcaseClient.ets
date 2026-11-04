@@ -958,7 +958,7 @@ function showcaseMessagesFor(state: string): NativeMessage[] {
   if (state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
       state === 'dock-material-elevated') return showcaseLiveChangeMessages();
   if (state === 'live-change') return showcaseLiveChangeMessages();
-  if (state === 'streaming' || state === 'stream-long' ||
+  if (state === 'streaming' || state === 'stream-long' || state === 'stream-burst-quiet' || state === 'stream-reconnect' ||
     state === 'stream-repaired') return showcaseStreamingMessages();
   if (state === 'empty') return [];
   if (state === 'long-history') return showcaseLongHistoryMessages();
@@ -1104,7 +1104,7 @@ function isSubagentFixtureState(state: string): boolean {
   return state === 'plan-subagent' || state === 'plan-subagent-long-count' ||
     state === 'plan-off-error' ||
     state === 'subagent-continuable' || state === 'subagent-one-shot' ||
-    state === 'subagent-unknown' || state === 'subagent-parent-offline' ||
+    state === 'subagent-unknown' || state === 'subagent-parent-offline' || state === 'subagent-unavailable' ||
     state === 'showcase-lineage' || state === 'showcase-subagent';
 }
 
@@ -1279,6 +1279,8 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
     state === 'showcase-approval' ? '修正窄屏筛选栏' :
     state === 'streaming' ? '流式输出与标题更新' :
     state === 'stream-long' ? '长流持续输出' :
+    state === 'stream-burst-quiet' ? '分段流式输出' :
+    state === 'stream-reconnect' ? '连接恢复验收' :
     state === 'stream-repaired' ? '流式 Markdown' :
     state === 'secret-masked' ? '凭据显示与复制来源' :
     state === 'dock-send-idle' || state === 'dock-material-quiet' ? 'Dock 空闲与发送' :
@@ -1333,7 +1335,7 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
     value.cwd = row[2];
     value.blank = row[3] === 'true';
     value.running = (state === 'live-change' || state === 'attachments' ||
-      state === 'streaming' || state === 'stream-long' || state === 'stream-repaired' ||
+      state === 'streaming' || state === 'stream-long' || state === 'stream-burst-quiet' || state === 'stream-reconnect' || state === 'stream-repaired' ||
       state === 'empty' || state === 'dock-queue-pending' ||
       state === 'dock-queue-authoritative' || state === 'dock-queue-many' ||
       state === 'dock-material-elevated' || state === 'interaction-approval' ||
@@ -1520,7 +1522,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     const seedMessages = showcaseMessagesFor(this.fixtureState);
     const seedRunning = this.fixtureState === 'live-change' ||
       this.fixtureState === 'attachments' || this.fixtureState === 'streaming' ||
-      this.fixtureState === 'stream-long' ||
+      this.fixtureState === 'stream-long' || this.fixtureState === 'stream-burst-quiet' || this.fixtureState === 'stream-reconnect' ||
       this.fixtureState === 'empty' || this.fixtureState === 'dock-queue-pending' ||
       this.fixtureState === 'dock-queue-authoritative' ||
       this.fixtureState === 'dock-queue-many' ||
@@ -1625,7 +1627,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     const value = new GatewayState();
     value.mode = 'host';
     value.authenticated = true;
-    value.pluginVersion = '0.3.7';
+    value.pluginVersion = '0.3.8';
     return value;
   }
 
@@ -1651,6 +1653,10 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       reviewSession ? reviewSession.snapshot() : this.interaction.snapshot();
   }
 
+  private syntheticFollowCount: number = 0;
+  private syntheticChildFailure: boolean = false;
+  private syntheticRunning: boolean = false;
+
   async follow(id: string, receive: (frame: NativeFrame) => void, _ended: (reason: string) => void): Promise<void> {
     const child = this.childInteractions.get(id);
     const reviewSession = this.sessionInteractions.get(id);
@@ -1658,12 +1664,30 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     this.paused = false;
     this.receiver = receive;
     this.receiverReady = true;
+    if (child && this.fixtureState === 'subagent-unavailable' && !this.syntheticChildFailure) {
+      this.syntheticChildFailure = true;
+      const failure = new NativeFrame();
+      failure.type = 'error'; failure.code = 'subagent/catalog-diagnostic'; failure.retryable = false;
+      receive(failure); return;
+    }
     receive(child ? child.snapshot() :
       reviewSession ? reviewSession.snapshot() : this.interaction.snapshot());
     if (id === SHOWCASE_SESSION) {
       const interaction = showcaseInteractionFrame(this.fixtureState);
       if (interaction) this.emit([interaction], 90);
+      if (this.fixtureState === 'stream-burst-quiet' ||
+          this.fixtureState === 'stream-reconnect') this.startSyntheticHeartbeats();
       if (this.fixtureState === 'stream-long') this.startLongStream();
+      if (this.fixtureState === 'stream-burst-quiet') this.startBurstStream();
+      if (this.fixtureState === 'stream-reconnect') {
+        this.syntheticFollowCount++;
+        if (this.syntheticFollowCount === 1) {
+          const timer = setTimeout((): void => { _ended('synthetic_transport_loss'); }, 8000);
+          this.timers.push(timer);
+        } else {
+          this.startBurstStream(true);
+        }
+      }
     }
   }
 
@@ -2749,14 +2773,57 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     if (target) this.emit(target.cancel(), 80);
   }
 
-  private emit(frames: NativeFrame[], delay: number): void {
+  private emit(frames: NativeFrame[], delay: number,
+    onFire: (() => void) | null = null): void {
     if (!frames.length) return;
     const timer = setTimeout((): void => {
       this.timers = this.timers.filter((value: number): boolean => value !== timer);
       if (!this.receiverReady || this.paused) return;
+      if (onFire) onFire();
       frames.forEach((frame: NativeFrame): void => { this.receiver(frame); });
     }, delay);
     this.timers.push(timer);
+  }
+
+  /**
+   * A live Host keeps heartbeating for the whole connection. The fixture must
+   * do the same, otherwise the client watchdog correctly repairs a link that
+   * only the fixture stopped feeding.
+   */
+  private startSyntheticHeartbeats(): void {
+    const timer = setTimeout((): void => {
+      this.timers = this.timers.filter((value: number): boolean => value !== timer);
+      if (!this.receiverReady || this.paused) return;
+      const heartbeat = new NativeFrame();
+      heartbeat.type = 'heartbeat';
+      heartbeat.generation = 'synthetic-generation';
+      heartbeat.stateKnown = true;
+      heartbeat.running = this.syntheticRunning;
+      heartbeat.waiting = false;
+      heartbeat.cursor = this.interaction.snapshot().cursor;
+      this.receiver(heartbeat);
+      this.startSyntheticHeartbeats();
+    }, 2000);
+    this.timers.push(timer);
+  }
+
+  private startBurstStream(recovered: boolean = false): void {
+    const state = new NativeFrame(); state.type = 'state'; state.running = true; state.waiting = false;
+    const start = new NativeFrame(); start.type = 'start';
+    start.attemptId = 'synthetic-burst'; start.revision = 1;
+    this.syntheticRunning = true;
+    this.emit([state, start], 100);
+    const quietMs = recovered ? 1000 : 20000;
+    const first = new NativeFrame(); first.type = 'delta'; first.attemptId = start.attemptId;
+    first.revision = 2; first.index = 0;
+    first.text = '第一段已完整接收。中文与 emoji 😀 保持完整，显示逐步追上收到的内容。'.repeat(8) + '\n\n';
+    const second = new NativeFrame(); second.type = 'delta'; second.attemptId = start.attemptId;
+    second.revision = 3; second.index = 1;
+    second.text = recovered ? 'STREAM-RECOVERED-DONE' : 'STREAM-BURST-DONE';
+    this.emit([first], quietMs);
+    this.emit([second], quietMs + 3000);
+    const idle = new NativeFrame(); idle.type = 'state'; idle.running = false;
+    this.emit([idle], quietMs + 5000, (): void => { this.syntheticRunning = false; });
   }
 
   private startLongStream(): void {

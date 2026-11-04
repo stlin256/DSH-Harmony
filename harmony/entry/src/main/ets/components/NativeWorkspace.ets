@@ -1,3 +1,5 @@
+import { NativeStreamPresentation, NativeStreamCadence } from '../services/NativeStreamPresentation';
+import { NativeStreamRecovery, nativeStreamFailureText } from '../services/NativeStreamRecovery';
 import { picker, fileIo } from '@kit.CoreFileKit';
 import { util } from '@kit.ArkTS';
 import { common } from '@kit.AbilityKit';
@@ -276,6 +278,10 @@ export struct NativeWorkspace {
   private mounted: boolean = false;
   private generation: number = 0;
   private paintTimer: number = -1;
+  @State private livePresentationText: string = '';
+  @State private liveAuthorityText: string = '';
+  private presentationTimer: number = -1;
+  private presentation: NativeStreamPresentation = new NativeStreamPresentation();
   private reconnectTimer: number = -1;
   private historyRetryTimer: number = -1;
   private followWatchdogTimer: number = -1;
@@ -343,6 +349,8 @@ export struct NativeWorkspace {
   private followWaiting: boolean = false;
   private followAttemptId: string = '';
   private reconnectInFlight: boolean = false;
+  private recovery: NativeStreamRecovery = new NativeStreamRecovery();
+  @State private streamFailure: string = '';
   private retries: number = 0;
   private widgetTimer: number = -1;
   private widgetEventTimer: number = -1;
@@ -957,7 +965,8 @@ export struct NativeWorkspace {
     }
   }
   aboutToDisappear(): void {
-    this.mounted = false; this.generation++; this.client.pause();
+    this.mounted = false; this.generation++; this.recovery.reset(); this.client.pause();
+    clearTimeout(this.presentationTimer);
     clearTimeout(this.paintTimer); clearTimeout(this.reconnectTimer); clearTimeout(this.widgetTimer);
     this.stopHistoryDrain();
     clearTimeout(this.widgetEventTimer);
@@ -1121,6 +1130,7 @@ export struct NativeWorkspace {
     this.error = error.message || '连接失败，请刷新后重试';
   }
   private activityChanged(): void {
+    this.recovery.retire();
     this.reconnectInFlight = false;
     clearTimeout(this.reconnectTimer); clearTimeout(this.widgetTimer);
     clearTimeout(this.followWatchdogTimer); clearTimeout(this.settlementTimer);
@@ -1164,7 +1174,8 @@ export struct NativeWorkspace {
       this.followWatchdogTimer = -1;
       if (!this.liveAllowed(id)) return;
       const backgrounded = !this.active;
-      const reason = nativeStreamHealthRepairReason(Date.now(), this.followActivityAt,
+      const reason = this.recovery.openingExpired(Date.now(), backgrounded) ? 'snapshot_timeout' :
+        nativeStreamHealthRepairReason(Date.now(), this.followActivityAt,
         this.assistantProgressAt, this.deliveryMismatchAt, this.followOpened, backgrounded,
         this.followStateKnown, this.followRunning, this.followWaiting, this.followAttemptId);
       if (reason) {
@@ -2082,6 +2093,12 @@ export struct NativeWorkspace {
   private select(id: string, address: NativeSessionAddress | null = null,
     trail: NativeSessionAddress[] = [], displayTitle: string = ''): void {
     if (!id) return;
+    this.recovery.reset();
+    this.streamFailure = '';
+    this.client.pause();
+    this.reconnectInFlight = false;
+    clearTimeout(this.reconnectTimer);
+    this.clearFollowTimers();
     const resolvedAddress = address || nativeSessionAddress(id);
     if (resolvedAddress.kind === 'session') {
       this.activeAddress = resolvedAddress;
@@ -2126,7 +2143,9 @@ export struct NativeWorkspace {
       NativeTranscriptCache.saveRoute(this.context, this.client.cacheKey(), id).catch(() => {});
     }
     this.navigationChanged();
+    clearTimeout(this.presentationTimer); this.presentationTimer = -1;
     this.model = this.client.models.get(id) || new NativeSessionModel();
+    this.presentation.reset(this.model.streamText, Date.now());
     this.client.models.set(id, this.model);
     this.queue = (this.model.queue || []).slice();
     const capabilities = this.utilityCapabilities.get(id);
@@ -2167,6 +2186,7 @@ export struct NativeWorkspace {
       if (!this.mounted || selection !== this.selectionGeneration || this.selected !== id) return;
       if (cached !== null && cached.messages.length) {
         this.model.restore(cached);
+        this.presentation.reset(this.model.streamText, Date.now());
         this.queue = (this.model.queue || []).slice();
         this.rememberTurnChangeReferences(Array.from(this.model.journal.values()));
         this.followTail = true;
@@ -2178,7 +2198,8 @@ export struct NativeWorkspace {
     }
   }
   private follow(background: boolean = false): void {
-    if (!this.liveAllowed() || !this.selected) return;
+    if (!this.liveAllowed() || !this.selected || this.streamFailure) return;
+    const epoch = this.recovery.begin(Date.now());
     this.reconnectInFlight = false;
     clearTimeout(this.reconnectTimer);
     clearTimeout(this.followWatchdogTimer); this.followWatchdogTimer = -1;
@@ -2201,7 +2222,7 @@ export struct NativeWorkspace {
     this.scheduleFollowHealth(id);
     this.connectionPhase = 'syncing';
     this.client.follow(id, (frame: NativeFrame): void => {
-      if (!this.mounted || this.selected !== id) return;
+      if (!this.mounted || this.selected !== id || !this.recovery.current(epoch)) return;
       if (frame.type === 'heartbeat') {
         this.acceptHeartbeat(id, frame);
         return;
@@ -2235,14 +2256,25 @@ export struct NativeWorkspace {
         // Preserve the server's close/reconnect lifecycle instead of throwing
         // through the WebSocket parser and misreporting an invalid JSON frame.
         console.error(BuildInfo.appName + ' live stream returned an error frame');
-        this.notifyConnectionFailure(id);
-        this.reconnect(id);
+        if (frame.retryable === false) this.stopStream(frame.code);
+        else this.reconnect(id);
         return;
       }
       const wasActive = this.running || this.waiting;
       this.model.apply(frame);
+      if (frame.type === 'delta') {
+        this.presentation.offer(this.model.streamText, Date.now(), !NativeMotion.enabled());
+        this.schedulePresentation();
+      } else if (['snapshot', 'start', 'end', 'event'].includes(frame.type)) {
+        // Baselines, durable settlement and attempt changes are authoritative cuts.
+        if (frame.type !== 'event' || !this.model.activityAttemptId()) {
+          this.presentation.reset(this.model.streamText, Date.now());
+          clearTimeout(this.presentationTimer); this.presentationTimer = -1;
+        }
+      }
       if (frame.type === 'snapshot') {
         this.followOpened = true;
+        this.recovery.opened(Date.now());
         this.assistantProgressAt = Date.now();
         this.processEntranceBaselinePending = true;
       }
@@ -2251,8 +2283,8 @@ export struct NativeWorkspace {
       }
       if (frame.type === 'state' && frame.queueKnown === true) this.syncAuthoritativeQueue();
       if (frame.type === 'delta') {
-        this.streamTextPatchDirty = frame.text.length > 0 &&
-          !frame.reasoning && !(frame.toolUpdates || []).length;
+        const textOnly = frame.text.length > 0 && !frame.reasoning && !(frame.toolUpdates || []).length;
+        this.streamTextPatchDirty = textOnly && (this.paintTimer < 0 || this.streamTextPatchDirty);
       } else if (['snapshot', 'event', 'start', 'end', 'state'].includes(frame.type)) {
         this.streamTextPatchDirty = false;
       }
@@ -2274,36 +2306,47 @@ export struct NativeWorkspace {
       if (frame.type === 'state' && wasActive !== (this.model.running || this.model.waiting)) {
         this.scheduleWidgetUpdate();
       }
-      this.scheduleCache();
+      if (frame.type !== 'delta' && frame.type !== 'start') this.scheduleCache();
+      if (frame.type === 'state' && !this.model.running && !this.model.waiting) this.startHistoryDrain();
       if (frame.type === 'snapshot') {
         this.connectionPhase = 'live'; this.error = ''; this.retries = 0;
         this.connectionNotified = false;
         // Let the first snapshot paint, then keep draining history until the
         // Host says it is exhausted. Manual scrolling only prioritizes the
         // same pump; it is no longer required to restart a failed page.
-        setTimeout((): void => { this.startHistoryDrain(true); }, 80);
+        setTimeout((): void => { if (this.recovery.current(epoch)) this.startHistoryDrain(true); }, 80);
       }
       if (this.paintTimer < 0) {
         this.paintTimer = setTimeout(() => {
           this.paintTimer = -1;
           this.paint();
-        }, frame.type === 'delta' ? (this.scrollMotionActive ? 64 : 32) : 0);
+        }, frame.type === 'delta' ? (this.scrollMotionActive ? NativeStreamCadence.scrollingFrameMs : NativeStreamCadence.frameMs) : 0);
       }
     }, (reason: string): void => {
+      if (!this.recovery.current(epoch)) return;
+      if (reason === 'invalid_frame' || reason === 'frame_handler_error') {
+        this.stopStream(reason); return;
+      }
       console.error(BuildInfo.appName + ' live socket ended: ' + reason);
       this.reconnect(id);
-    }, background, address).catch((): void => { this.scheduleReconnect(id); });
+    }, background, address).catch((): void => { if (this.recovery.current(epoch)) this.reconnect(id); });
   }
   private async reconnect(id: string): Promise<void> {
     if (!this.liveAllowed(id) || this.reconnectInFlight) return;
     this.reconnectInFlight = true;
+    const epoch = this.recovery.retire();
+    this.client.pause();
+    this.clearFollowTimers();
+    this.pauseHistoryDrain();
     this.notifyConnectionFailure(id);
-    this.connectionPhase = 'syncing';
+    this.connectionPhase = 'retrying';
     try {
       const state = await this.client.state();
+      if (!this.recovery.current(epoch)) return;
       if (!this.liveAllowed(id)) { this.reconnectInFlight = false; return; }
       if (!state.authenticated) { this.reconnectInFlight = false; this.onLogin(); return; }
     } catch (_) {}
+    if (!this.recovery.current(epoch)) return;
     if (!this.liveAllowed(id)) { this.reconnectInFlight = false; return; }
     this.scheduleReconnect(id);
   }
@@ -2321,8 +2364,27 @@ export struct NativeWorkspace {
     this.error = '';
     const attempt = this.retries;
     this.retries++;
-    const delay = attempt === 0 ? 250 : Math.min(30000, 1000 * Math.pow(2, Math.min(attempt, 5)));
+    const delay = id ? this.recovery.nextDelay(Date.now()) :
+      attempt === 0 ? 250 : Math.min(30000, 1000 * Math.pow(2, Math.min(attempt, 5)));
+    if (delay < 0) { this.stopStream('retry-exhausted'); return; }
     this.reconnectTimer = setTimeout(() => { if (id) this.follow(); else this.reload(); }, delay);
+  }
+  private stopStream(code: string): void {
+    this.recovery.retire();
+    this.client.pause();
+    this.clearFollowTimers();
+    clearTimeout(this.reconnectTimer);
+    this.pauseHistoryDrain();
+    this.reconnectInFlight = false;
+    this.interactions = [];
+    this.streamFailure = nativeStreamFailureText(code);
+    this.connectionPhase = 'failed';
+  }
+  private retryStream(): void {
+    this.recovery.reset();
+    this.streamFailure = '';
+    this.retries = 0;
+    this.follow();
   }
   private notifyConnectionFailure(id: string): void {
     if (!id || this.connectionPhase !== 'live' || this.connectionNotified) return;
@@ -2436,6 +2498,22 @@ export struct NativeWorkspace {
     this.scrollTailTimer = -1;
     this.scheduleScrollMotionSettle();
   }
+  private schedulePresentation(): void {
+    if (this.presentationTimer >= 0 || !this.presentation.pending()) return;
+    this.presentationTimer = setTimeout((): void => {
+      this.presentationTimer = -1;
+      if (!this.mounted) return;
+      if (this.presentation.advance(Date.now(), !NativeMotion.enabled())) {
+        // An already queued structural paint owns the next render. Never demote
+        // reasoning/tool updates to a text-only patch while they are pending.
+        if (this.paintTimer < 0) {
+          this.streamTextPatchDirty = true;
+          this.paint();
+        }
+      }
+      this.schedulePresentation();
+    }, this.scrollMotionActive ? NativeStreamCadence.scrollingFrameMs : NativeStreamCadence.frameMs);
+  }
   private paint(): void {
     if (!this.mounted) return;
     this.running = this.model.running; this.waiting = this.model.waiting; this.hasMore = this.model.hasMore;
@@ -2515,7 +2593,7 @@ export struct NativeWorkspace {
     if (hasLiveProcess) {
       this.textProjectionCacheHit = false;
       return nativeTranscript(this.model.messages, this.model.running,
-        this.model.streamTools, this.model.streamReasoning, this.model.streamText,
+        this.model.streamTools, this.model.streamReasoning, this.presentation.value(),
         workspaceRoot, this.model.streamParts);
     }
     if (this.transcriptBaseSource !== this.model.messages ||
@@ -2528,11 +2606,13 @@ export struct NativeWorkspace {
     } else {
       this.textProjectionCacheHit = true;
     }
-    return nativeWithLiveText(this.transcriptBaseRows, this.model.streamText);
+    return nativeWithLiveText(this.transcriptBaseRows, this.presentation.value());
   }
   private renderTranscript(forceFull: boolean = false): void {
+    this.livePresentationText = this.presentation.value();
+    this.liveAuthorityText = this.model.streamText;
     const patched: NativeMessage[] | null = !forceFull && this.streamTextPatchDirty ?
-      nativeUpdateLiveAssistant(this.visibleRows, this.model.streamText) : null;
+      nativeUpdateLiveAssistant(this.visibleRows, this.presentation.value()) : null;
     this.streamTextPatchDirty = false;
     let rows: NativeMessage[];
     let visible: NativeMessage[];
@@ -2564,8 +2644,8 @@ export struct NativeWorkspace {
     }
     const tailOnlyTextUpdate = patched !== null ||
       (this.textProjectionCacheHit &&
-        this.lastRenderedStreamText !== this.model.streamText);
-    this.lastRenderedStreamText = this.model.streamText;
+        this.lastRenderedStreamText !== this.presentation.value());
+    this.lastRenderedStreamText = this.presentation.value();
     const changeSignature = nativeTurnChangeInputSignature(rows, this.model.streamTools);
     if (changeSignature !== this.turnChangesInputSignature) {
       this.turnChangesInputSignature = changeSignature;
@@ -2909,6 +2989,7 @@ export struct NativeWorkspace {
   private async pumpHistoryDrain(): Promise<void> {
     if (this.historyPumpRunning || !this.historyDraining || !this.mounted || !this.selected ||
       this.connectionPhase !== 'live' || !this.model.hasMore || this.model.historyBefore < 0) return;
+    if (this.model.running || this.model.waiting) { this.scheduleHistoryPump(1000); return; }
     const id = this.selected;
     const generation = this.selectionGeneration;
     this.historyPumpRunning = true;
@@ -3571,6 +3652,16 @@ export struct NativeWorkspace {
           .id('plan-mode-error')
           .transition(NativeMotion.rowTransition())
       }
+      if (this.streamFailure) {
+        Row({ space: 8 }) {
+          Text(this.streamFailure).fontSize(NativeDesign.fontSection)
+            .fontColor(this.secondaryText()).layoutWeight(1)
+          Button('重新连接', { type: ButtonType.Normal })
+            .height(NativeDesign.hitTarget).fontSize(NativeDesign.fontSection)
+            .id('stream-retry').onClick((): void => { this.retryStream(); })
+        }.width('100%').padding({ left: 10, right: 10 })
+          .backgroundColor(this.selectionSurface()).borderRadius(NativeDesign.radiusControl)
+      }
       if (this.connectionPhase === 'retrying') {
         Row({ space: 8 }) {
           Text('•').fontSize(NativeDesign.fontBody).fontColor(this.warningText())
@@ -3660,6 +3751,8 @@ export struct NativeWorkspace {
                   client: this.client,
                   sessionId: this.selected,
                   message: message,
+                  liveText: this.livePresentationText,
+                  liveAuthority: this.liveAuthorityText,
                   runningReasoning: message.runningTurn,
                   onCompatibility: this.onCompatibility,
                   dshUiCanReply: nativeDshUiCanReply(this.visibleRows, message.id,
@@ -3670,10 +3763,9 @@ export struct NativeWorkspace {
                 .padding({ right: NativeDesign.pageInset }) }
             }.id(message.id === this.visibleRows[this.visibleRows.length - 1]?.id ?
               'transcript-tail-row' : 'transcript-row-' + message.id)
-          // LazyForEach caches by this key, so the live row must carry its
-          // text length instead of keeping the same identity for every delta.
-          }, (message: NativeMessage) => message.id +
-            (message.runningTurn && message.role === 'assistant' ? ':' + message.text.length : ''))
+          // Stable row identity retains the incremental Markdown buffer. The
+          // live text binds to component state, independently of LazyForEach's cache.
+          }, (message: NativeMessage) => message.id)
           if (this.bottomDockExtraHeight > 0) {
             ListItem() {
               Row().width('100%').height(this.bottomDockExtraHeight)

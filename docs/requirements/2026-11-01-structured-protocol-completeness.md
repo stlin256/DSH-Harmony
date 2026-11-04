@@ -62,9 +62,9 @@ losing the complete generic fallback.
 
 ## Compatibility and privacy
 
-- Target the DSH `0.2.2-alpha.2` event shapes and wire protocol v2 recorded in
+- Target the DSH `0.2.2-rc.1` event shapes and wire protocol v2 recorded in
   the repository [`protocol.lock.json`](../../protocol.lock.json), canonical
-  revision `ce7073d51254c26cd63b22a60835b8f948deb447`, plus the supported
+  revision `fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159`, plus the supported
   structured compatibility contracts used by current Hosts.
 - Do not copy another client's source, assets, copy or implementation text.
 - Do not add private hosts, credentials, signatures, real transcripts or

@@ -94,7 +94,7 @@ Login stays flexible:
 Send this prompt to DSH. An agent with `plugin_manager` support will install the plugin and verify its version:
 
 ```text
-Follow https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md to install and enable DSH Harmony. Use dsh-harmony-plugin-0.3.7.tgz from the matching plugin-v0.3.7 release, then verify that @dsh-harmony/plugin is running and report its version.
+Follow https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md to install and enable DSH Harmony. Use dsh-harmony-plugin-0.3.8.tgz from the matching plugin-v0.3.8 release, then verify that @dsh-harmony/plugin is running and report its version.
 ```
 
 You can also open **Plugins → Add plugin** in DSH and paste the same versioned tarball URL. Then open DSH Harmony, enter the service origin and choose native login or Passkey.

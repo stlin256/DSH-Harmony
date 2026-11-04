@@ -112,7 +112,7 @@ export function nativeSubagentReadOnlyReason(address: NativeSessionAddress,
   const mode = identityKnown ? identity?.mode || nativeSubagentUnknown : address.mode;
   if (mode === nativeSubagentOneShot) return 'one-shot';
   if (mode === nativeSubagentContinuable) {
-    return parentAvailable === false && !running ? 'parent-unavailable' : '';
+    return '';
   }
   return 'unknown';
 }
@@ -123,7 +123,7 @@ export function nativeSubagentComposerEnabled(address: NativeSessionAddress,
   if (address.kind !== nativeSubagentAddressSubagent) return true;
   if (nativeSubagentReadOnlyReason(address, identity, identityKnown, parentAvailable, running)) return false;
   const mode = identityKnown ? identity?.mode || nativeSubagentUnknown : address.mode;
-  return mode !== nativeSubagentContinuable || parentAvailable !== false;
+  return mode === nativeSubagentContinuable;
 }
 
 /** Prevent duplicate loops and unbounded path growth without retaining transcript copies. */

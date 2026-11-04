@@ -153,6 +153,16 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 
 ## Remaining device checks
 
+- Stream/subagent reconstruction: STR-R1-R5 passed on Mock HAP SHA-256
+  `48B135A79F64D0E761D071CEADCEEBB836659FD2C8D5C11CEF70A12C0E5B1E2C`
+  (`artifacts/device-e2e/20261104-stream-reconstruction/recovery/manifest.json`):
+  quiet-then-burst, reconnect, child unavailable/retry/Back, dark/light,
+  reduced motion and composer input. STR-R6 (long-stream and child send/stop
+  regression) still needs the pre-existing drivers rerun on a current HAP.
+  See `2026-11-04-stream-subagent-reconstruction-e2e.md`.
+  Real Host child authorization, network handoff, provider cadence and gateway
+  backpressure remain Pending independently of synthetic device results.
+
 - API 23 material fallback requires a physical or emulated API 23 target.
 - Valid saved-session restore, expired-session recovery and logout/relaunch need
   a real account exchange and must not be inferred from Mock fixtures.

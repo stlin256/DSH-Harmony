@@ -105,10 +105,10 @@ test('ArkTS mode model resolves Plan target, read-only rules and reliable addres
   assert.equal(model.nativeSubagentReadOnlyReason(continuable, null, true, true), 'unknown');
   assert.equal(model.nativeSubagentReadOnlyReason(continuable, null, false, undefined, false), '');
   assert.equal(model.nativeSubagentReadOnlyReason(continuable, null, false, false, false),
-    'parent-unavailable');
+    '');
   assert.equal(model.nativeSubagentReadOnlyReason(continuable, null, false, false, true), '');
-  assert.equal(model.nativeSubagentComposerEnabled(continuable, null, false, false, false), false);
-  assert.equal(model.nativeSubagentComposerEnabled(continuable, null, false, false, true), false);
+  assert.equal(model.nativeSubagentComposerEnabled(continuable, null, false, false, false), true);
+  assert.equal(model.nativeSubagentComposerEnabled(continuable, null, false, false, true), true);
   assert.equal(model.nativeSubagentComposerEnabled(continuable, null, false, true, false), true);
   assert.equal(model.nativeSubagentComposerEnabled(continuable, null, false, undefined, false), true);
   const oneShot = model.nativeSubagentAddress('parent', 'one', 'one-shot');

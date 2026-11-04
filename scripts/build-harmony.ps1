@@ -63,15 +63,24 @@ try {
   $env:JAVA_HOME = Join-Path $ide 'jbr'
   $env:DEVECO_SDK_HOME = Join-Path $ide 'sdk'
   $env:Path = "$env:NODE_HOME;$env:JAVA_HOME/bin;$savedPath"
-  & (Join-Path $ide 'tools/ohpm/bin/ohpm.bat') install
-  if ($LASTEXITCODE -ne 0) { throw 'ohpm install failed' }
-  if ($AssembleApp) {
-    $env:DEVECO_CLI_STUDIO_PATH = $ide
-    & devecocli build --product $buildProduct --build-mode $BuildMode
-  } else {
-    & (Join-Path $env:NODE_HOME 'node.exe') (Join-Path $ide 'tools/hvigor/bin/hvigorw.js') --mode module -p "product=$buildProduct" -p "module=entry@$buildProduct" -p "buildMode=$BuildMode" assembleHap --no-daemon
+  # Windows PowerShell 5.1 surfaces native stderr (hvigor/ohpm warnings) as
+  # terminating errors while $ErrorActionPreference is Stop. Keep the tool
+  # exit codes authoritative instead of aborting on a warning.
+  $nativeErrorAction = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    & (Join-Path $ide 'tools/ohpm/bin/ohpm.bat') install
+    if ($LASTEXITCODE -ne 0) { throw 'ohpm install failed' }
+    if ($AssembleApp) {
+      $env:DEVECO_CLI_STUDIO_PATH = $ide
+      & devecocli build --product $buildProduct --build-mode $BuildMode
+    } else {
+      & (Join-Path $env:NODE_HOME 'node.exe') (Join-Path $ide 'tools/hvigor/bin/hvigorw.js') --mode module -p "product=$buildProduct" -p "module=entry@$buildProduct" -p "buildMode=$BuildMode" assembleHap --no-daemon
+    }
+    if ($LASTEXITCODE -ne 0) { throw "HarmonyOS build failed: $LASTEXITCODE" }
+  } finally {
+    $ErrorActionPreference = $nativeErrorAction
   }
-  if ($LASTEXITCODE -ne 0) { throw "HarmonyOS build failed: $LASTEXITCODE" }
 } finally {
   Pop-Location
   if ($null -ne $restoreManifest) {

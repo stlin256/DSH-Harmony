@@ -23,6 +23,8 @@ export struct NativeMessageView {
   client: NativeHarnessClient = new NativeHarnessClient('');
   sessionId: string = '';
   disclosures: Map<string, boolean> = new Map<string, boolean>();
+  @Prop liveText: string = '';
+  @Prop liveAuthority: string = '';
   @Prop preview: boolean = true;
   @Prop runningReasoning: boolean = false;
   @Prop dshUiCanReply: boolean = false;
@@ -136,7 +138,8 @@ export struct NativeMessageView {
           .borderRadius(NativeDesign.radiusChip).backgroundColor(NativeDesign.accentSurface(this.dark))
       } else if (this.message.role !== 'tool' || this.toolOpen) {
         if (!this.message.blocks.length && this.message.text) {
-          NativeTextContent({ text: this.message.text, maskSecrets: this.maskSecrets(),
+          NativeTextContent({ text: this.message.id === 'live-assistant' ? this.liveText : this.message.text,
+            sourceText: this.message.id === 'live-assistant' ? this.liveAuthority : '', maskSecrets: this.maskSecrets(),
             streaming: this.message.runningTurn,
             client: this.client, sessionId: this.sessionId })
         }

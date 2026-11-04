@@ -65,8 +65,8 @@ test('the repository protocol lock and all public references agree', () => {
   const result = verifyProtocolLock();
   assert.equal(result.ok, true, result.failures.join('\n'));
   assert.equal(result.lock.canonicalRevision,
-    'ce7073d51254c26cd63b22a60835b8f948deb447');
-  assert.equal(result.lock.packageVersion, '0.2.2-alpha.2');
+    'fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159');
+  assert.equal(result.lock.packageVersion, '0.2.2-rc.1');
   assert.equal(result.lock.wireProtocolVersion, 2);
 });
 

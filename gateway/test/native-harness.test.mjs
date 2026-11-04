@@ -305,7 +305,7 @@ async function setup(t, options = {}) {
           assert.deepEqual(frame.payload, {args:{request:{sessionId:'session'}}});
           ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{type:'ready'}}));
           ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{
-            type:'projection',key:'title',value:'Initial live title',seq:1
+            type:'projection',changes:[{key:'title',val:'Initial live title'}],seq:1
           }}));
           return;
         }
@@ -336,6 +336,11 @@ async function setup(t, options = {}) {
           frame.payload.args.request.address.sessionId ||
           frame.payload.args.request.address.childSessionId, 'session');
         if(frame.endpoint==='session/follow') {
+          if (options.historyError) {
+            ws.send(JSON.stringify({ type: 'error', streamId: frame.streamId,
+              error: { code: options.historyError, message: 'SYNTHETIC-PRIVATE-DETAIL', details: { id: 'synthetic-private' } } }));
+            return;
+          }
           ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{type:'snapshot',cursor:options.malformedSnapshot?-2:0,hasMore:false,
             records:[{type:'event',event:{seq:0,type:'user/message',data:{content:[{type:'text',text:options.text || 'hello'}]}}}],
             assistantStream:{revision:0,activeAttempt:{attemptId:'attempt',startedAfterSeq:0,turn:0,step:0,nextIndex:2,stream:[{type:'text-chunks',time0:0,index:0,dt:[1],texts:['he','l']}]}}}}));
@@ -387,6 +392,38 @@ async function setup(t, options = {}) {
     emit: value => { for (const ws of upstreamWS.clients) ws.send(JSON.stringify({type:'item',streamId:'interactions',value})); },
     emitProjection: (streamId, value) => { for (const ws of upstreamWS.clients) ws.send(JSON.stringify({type:'item',streamId,value})); }};
 }
+
+test('current Host projection batches deliver every same-sequence key', async t => {
+  const { connect, emitProjection } = await setup(t);
+  const ws = connect();
+  const frames = [];
+  ws.on('message', raw => frames.push(JSON.parse(raw.toString())));
+  await once(ws, 'open');
+  for (let i = 0; i < 100 && !frames.some(f => f.type === 'snapshot'); i++) await new Promise(r => setTimeout(r, 5));
+  emitProjection('projections', { type: 'projection', seq: 50, changes: [
+    { key: 'plan', val: { active: true, pending: false } },
+    { key: 'subagentCatalog', val: [{ id: 'child-new', createdAt: 1, mode: 'continuable', label: 'Synthetic child' }] },
+    { key: 'subagent', val: null },
+  ] });
+  for (let i = 0; i < 100 && !frames.some(f => f.type === 'subagent-identity' && f.projectionSeq === 50); i++) await new Promise(r => setTimeout(r, 5));
+  assert.equal(frames.find(f => f.type === 'plan' && f.projectionSeq === 50)?.plan.active, true);
+  assert.equal(frames.find(f => f.type === 'subagent-catalog' && f.projectionSeq === 50)?.catalog[0].id, 'child-new');
+  assert.equal(frames.find(f => f.type === 'subagent-identity' && f.projectionSeq === 50)?.identity, null);
+  ws.close();
+});
+
+test('child opening failure preserves permanent code without leaking Host details', async t => {
+  const { connect } = await setup(t, { historyError: 'subagent/catalog-diagnostic' });
+  const ws = connect({}, '&parentSessionId=parent&parentMode=continuable');
+  const frames = [];
+  ws.on('message', raw => frames.push(JSON.parse(raw.toString())));
+  const [code] = await once(ws, 'close');
+  assert.equal(code, 4404);
+  assert.deepEqual(frames.find(f => f.type === 'error'), {
+    type: 'error', code: 'subagent/catalog-diagnostic', retryable: false,
+  });
+  assert.doesNotMatch(JSON.stringify(frames), /SYNTHETIC-PRIVATE-DETAIL|synthetic-private/);
+});
 
 test('modern Harness control stream replaces removed per-session observers without dropping history', async t => {
   const { connect, openings } = await setup(t, { modern: true });
@@ -616,17 +653,15 @@ test('native mode and subagent operations use projection, address and command co
   assert.equal(calls.at(-1).value.method, 'subagents/prompt');
   assert.deepEqual(calls.at(-1).value.payload.args.request, {
     requestId: 'child-request',
-    parentSessionId: 'session',
     childSessionId: 'child-a',
-    mode: 'continuable',
     delivery: 'queue',
     content: [{ type: 'text', text: 'continue' }]
   });
 
   assert.equal((await call('/pocket/api/native/cancel', child)).status, 200);
-  assert.equal(calls.at(-1).value.method, 'subagents/interruptByParent');
+  assert.equal(calls.at(-1).value.method, 'subagents/interruptByUser');
   assert.deepEqual(calls.at(-1).value.payload.args,
-    ['child-a', 'session', 'continuable']);
+    ['child-a']);
 
   assert.equal((await call('/pocket/api/native/prompt', {
     ...child, parentMode: 'external', requestId: 'invalid-child', text: 'continue'

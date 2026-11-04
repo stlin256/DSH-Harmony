@@ -6,7 +6,7 @@
 
 - 官方仓库：[deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)。
 - 唯一协议基线：[protocol.lock.json](../protocol.lock.json)。
-- 锁定 canonical revision：`ce7073d51254c26cd63b22a60835b8f948deb447`；DSH package `0.2.2-alpha.2`，wire protocol v2。发布 tag `dsh-v0.2.2-alpha.2` 指向 `f3803c96974ad4a94195fb97e5c637e9c2a3afe3`，两者 package version 相同；实现与测试以 canonical revision 为准。
+- 锁定 canonical revision：`fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159`；DSH package `0.2.2-rc.1`，wire protocol v2。发布 tag `dsh-v0.2.2-rc.1` 指向 `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`，两者 package version 相同；实现与测试以 canonical revision 为准。
 - 研究分为聊天、工作区、设置与视觉三条，并补充非ui包贡献的入口及完整内置交互目录。证据见[聊天](research/upstream-chat.md)、[工作区](research/upstream-workspaces.md)、[设置与视觉](research/upstream-settings-visual.md)、[扩展交互目录](research/upstream-extended-ui.md)。源码引用均针对上述revision。
 - 用 ArkTS/ArkUI 重写官方的状态、操作、排序、内容投影与错误恢复；保留原版图标和视觉语义。适配手机的改变限于可用空间、触控、键盘、安全区和系统返回。
 - 不用原始 JSON 列表、临时网页或占位按钮冒充原生等价实现。第三方自定义页面与尚未移植的内置功能分别记录。不得把“打开兼容模式”记为完成该原生功能。
@@ -46,8 +46,8 @@
 - `MODE02` Plan 模式与 `todo_write` 任务 Dock 分属不同生命周期。不得从任务清单、回复文字或本地开关推导 Plan 状态，也不得把任务 Dock 当作 Plan 入口。
 - `MODE03` 会话的直接 `subagentCatalog` 决定子智能体计数和运行点，不从普通 workspace 列表或 id 猜成员。计数与标题共用主行，长标题先省略；`external` 只显示为不可进入的叶子；`one-shot` 与 `unknown` 可读历史但不能发送。
 - `MODE04` 子智能体 Follow 和 page 使用 `{ kind: 'subagent', parentSessionId, childSessionId, mode }`。根会话主动打开使用 `activate:true`；合法子会话使用同一 address 非激活 Follow，避免把子历史读取当成根会话激活。Projection/state subscription 仍点名 child id；普通根列表继续过滤 `origin: 'subagent'`。
-- `MODE05` `continuable` 使用精确父会话地址发送。Host 可用性未知时保持正常输入；仅在明确 `agentAvailable: false` 且子会话空闲时退化只读，运行中仍保留独立 Stop。停止走 `subagents/interruptByParent(child, parent, 'continuable')`。一次性、未知或显式 null identity 使用紧凑只读状态，不显示普通附件入口。
-- `MODE06` `subagents/prompt` 保留 requestId、精确父/子地址、mode、delivery 和有序文本/图片内容；拒绝普通文件 receipt。发送失败不得生成成功消息或自动重试。
+- `MODE05` `continuable` 使用精确父会话地址发送。Host 可用性未知时保持正常输入；父代理是否驻留不限制子会话输入，运行中保留独立 Stop。停止走 `subagents/interruptByUser(child)`。一次性、未知或显式 null identity 使用紧凑只读状态，不显示普通附件入口。
+- `MODE06` `subagents/prompt` 保留 requestId、childSessionId、delivery 和有序文本/图片内容；父子地址仅用于历史浏览；拒绝普通文件 receipt。发送失败不得生成成功消息或自动重试。
 - `MODE07` Projection 按 key 用 seq 单调更新，忽略旧帧。显式 `subagent: null` 是权威 unknown，不继承目录里的旧 continuable。重连以新 baseline 替换会话级模式状态。
 - `MODE08` 子智能体抽屉最高为 60% 视口、使用实色主题表面与底部安全区，当前行、运行状态和模式均有文本反馈。加载、失败与重试占用紧凑状态行，不显示协议原文或教学段落。
 

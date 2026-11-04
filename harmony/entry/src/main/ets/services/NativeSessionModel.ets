@@ -745,10 +745,8 @@ export function nativeStreamHealthRepairReason(now: number, linkActivityAt: numb
   if (linkActivityAt > 0 && now - linkActivityAt >= linkDeadline) return 'link_timeout';
   if (!opened || !stateKnown || !running || waiting) return '';
   if (deliveryMismatchAt > 0 && now - deliveryMismatchAt >= 2500) return 'delivery_mismatch';
-  const progressDeadline = backgrounded ? 38000 : 12000;
-  if (attemptId && assistantProgressAt > 0 && now - assistantProgressAt >= progressDeadline) {
-    return 'assistant_progress_timeout';
-  }
+  // Provider silence is legal. A fresh heartbeat with matching delivery state
+  // proves no missing data, regardless of the last assistant token's age.
   return '';
 }
 

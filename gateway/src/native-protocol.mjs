@@ -516,6 +516,29 @@ function toolUpdate(chunk) {
   if (chunk?.type === 'block-end' && chunk.block?.type === 'tool-call') return { callId: String(chunk.block.id), name: fullText(chunk.block.name), argsDelta: '', arguments: fullText(chunk.block.arguments), replace: true };
   return null;
 }
+/** Validate the complete batch before publishing any key. Legacy input stays at this boundary. */
+export function nativeProjectionChanges(frame) {
+  if (!Number.isSafeInteger(frame?.seq) || frame.seq < 0) throw Error('Invalid projection sequence');
+  const changes = frame.changes === undefined && typeof frame.key === 'string'
+    ? [{ key: frame.key, val: frame.value }] : frame.changes;
+  if (!Array.isArray(changes) || changes.some(item => !item ||
+      typeof item.key !== 'string' || !item.key || !Object.hasOwn(item, 'val')) ||
+      new Set(changes.map(item => item.key)).size !== changes.length) {
+    throw Error('Invalid projection batch');
+  }
+  return changes;
+}
+
+/** Codes only: never relay Host messages, private IDs or error details. */
+export function nativeHistoryFailure(code) {
+  const permanent = new Set(['subagent/not-found', 'subagent/unauthorized',
+    'subagent/catalog-diagnostic', 'session/not-found', 'session/agent-busy',
+    'gateway/bad-request', 'gateway/forbidden', 'gateway/unauthorized',
+    'gateway/invocation-unavailable']);
+  const retryable = !permanent.has(code);
+  return { type: 'error', code: retryable ? 'history-unavailable' : code, retryable };
+}
+
 export function normalizeFollow(frame) {
   if (frame?.type === 'snapshot') {
     const active = frame.assistantStream?.activeAttempt;
