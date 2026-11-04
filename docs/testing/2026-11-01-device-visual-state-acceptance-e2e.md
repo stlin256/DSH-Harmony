@@ -160,6 +160,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-31 | Store review experience | Store-only activation opens populated native sessions, settings, permissions, plugins, automation and file previews without a review label; mutable settings and the structured insufficient-balance response render correctly | Pending; current request is compile-gated and the device driver has not been run |
 | VSA-32 | Composer menu template | Model and permission sheets share one masked composer-anchored popup; the model sheet stays above the input with the keyboard closed and open, has no search field, dismisses on outside tap and Back, keeps the caption and leaves the permission sheet unchanged | Passed on API 26 Mock HAP `754C854D…`; live Host model switching remains Pending |
 | VSA-33 | Connection banner motion | Reconnect and stream-failure banners unfold from their status anchor and retract toward it with one semantic asymmetric transition; reduced motion resolves directly and a background tap does not drop the banner | Passed on API 26 Mock HAP `39E21758…`; live Host reconnect cadence remains Pending |
+| VSA-36 | Running tail | While a turn is running the transcript ends with the DSH whale animation and the `深度求索中，用时 X秒 ···` line; the clock advances every second and the reduced-motion form is static | Passed on Mock HAP `3F187D64…` in dark, light and reduced motion; live-Host observation of a running turn remains Pending |
 | VSA-35 | Permission switch and risk checkbox | A permission preset switch uses the Host's named `commands/execute` wire object and only reports success after the command result succeeds; the full-access acknowledgement is a checkbox row that gates the confirm action | Passed on real Host (plugin `0.3.9`) and Mock HAP `2E6DDD55…`; real-device captures in `artifacts/device-e2e/real-permission-switch/real/manifest.json` |
 | VSA-34 | Immersive material docks | The bottom composer dock and floating task dock carry the API-26 immersive system material (with light-effect feedback) when the reduce-transparency switch is OFF; the switch defaults ON and keeps the pre-immersive opaque shell; the maintained `NATIVE_MATERIAL_SURFACES` list is the single control point | Passed on API 26 Mock HAP `F145A78B…`; API 23 fallback and the interaction-driven light feedback remain Pending |
 
@@ -181,6 +182,9 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   turn with reasoning/tool calls before promoting it. See
   `2026-11-04-live-process-pacing-e2e.md`.
 
+- Running tail passed in dark/light and reduced motion on Mock HAP `3F187D64…`
+  (`artifacts/device-e2e/running-tail/running-tail/manifest.json`); observing
+  it on a live Host streaming turn remains Pending.
 - Permission switching failed on the real Host because the gateway sent a
   positional `commands/execute` arg array; the pinned DSH requires named wire
   args. Fixed, deployed with plugin `0.3.9` and verified through the same

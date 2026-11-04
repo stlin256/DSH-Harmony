@@ -123,6 +123,9 @@ claim.
   HAP SHA-256
   `F145A78BA528CF7CA30ED8297AE4D1454A78269FACEE66BB4AB6A1E324FD49D0`:
   `artifacts/device-e2e/material/material/manifest.json`.
+- Running tail (dark, light, reduced motion) on Mock HAP
+  `3F187D64E6050776A801D6366E0A091C1BE3F060A24652247CDDB9D76F0E7653`:
+  `artifacts/device-e2e/running-tail/running-tail/manifest.json`.
 - Permission switch Host fix and full-access checkbox on real Host (plugin
   `0.3.9`, default Release HAP `18525C75…`) and Mock HAP `2E6DDD55…`:
   `artifacts/device-e2e/real-permission-switch/real/manifest.json` and
@@ -604,6 +607,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-05-permission-switch-host-fix.md](docs/specs/2026-11-05-permission-switch-host-fix.md)
 - Permission switch and checkbox device acceptance:
   [2026-11-05-permission-switch-host-fix-e2e.md](docs/testing/2026-11-05-permission-switch-host-fix-e2e.md)
+- Running tail requirement:
+  [2026-11-05-running-tail.md](docs/requirements/2026-11-05-running-tail.md)
+- Running tail research:
+  [2026-11-05-running-tail.md](docs/research/2026-11-05-running-tail.md)
+- Running tail implementation spec:
+  [2026-11-05-running-tail.md](docs/specs/2026-11-05-running-tail.md)
+- Running tail device acceptance:
+  [2026-11-05-running-tail-e2e.md](docs/testing/2026-11-05-running-tail-e2e.md)
 
 ## Upstream Tracking
 
