@@ -484,7 +484,7 @@ export struct NativeAutomationSurface {
     if (this.actionError || this.error) {
       Row({ space: 8 }) {
         DSHIcon({ glyph: 'warning-outline', glyphSize: NativeDesign.glyphControl, color: this.danger() })
-        Text(this.actionError || this.error).fontSize(NativeDesign.fontCaption).layoutWeight(1).maxLines(4)
+        Text(this.actionError || this.error).fontSize(NativeDesign.fontCaption).layoutWeight(1).maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.danger())
         Button(this.conflict ? '刷新' : '重试', { type: ButtonType.Normal }).height(NativeDesign.compactControl)
           .fontSize(NativeDesign.fontCaption).backgroundColor(Color.Transparent).fontColor(this.accent())
@@ -494,10 +494,10 @@ export struct NativeAutomationSurface {
             else if (this.page === 'history') this.loadHistory(false);
             else this.refresh(true);
           })
-      }.width('100%').constraintSize({ minHeight: NativeDesign.compactHitTarget })
-        .padding({ left: 10, right: 4, top: 3, bottom: 3 })
+      }.width('100%').constraintSize({ minHeight: NativeDesign.compactControl })
+        .padding({ left: 10, right: 4, top: 5, bottom: 5 })
         .borderRadius(NativeDesign.radiusRow).backgroundColor(NativeDesign.dangerSurface(this.dark))
-        .transition(NativeMotion.rowTransition())
+        .transition(NativeMotion.statusBannerTransition())
     }
   }
 

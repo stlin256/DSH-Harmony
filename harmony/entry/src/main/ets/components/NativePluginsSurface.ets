@@ -39,6 +39,8 @@ export struct NativePluginsSurface {
   @State private busy: string[] = [];
   @State private notice: NativePluginChange = new NativePluginChange();
   @State private noticeVisible: boolean = false;
+  /** Explicit one-line result copy for the latest toggle (已启用 / 已关闭). */
+  @State private noticeSummary: string = '';
   @State private actionError: string = '';
   @State private installSpec: string = '';
   @State private inspection: NativePluginInspection | null = null;
@@ -134,6 +136,7 @@ export struct NativePluginsSurface {
         this.notice = new NativePluginChange();
         this.notice.application = 'restart-required';
         this.notice.restartReason = 'plugin';
+        this.noticeSummary = '';
         this.noticeVisible = true;
       }
     }, 320);
@@ -200,8 +203,9 @@ export struct NativePluginsSurface {
     this.setPage('root', -1);
   }
 
-  private applyChange(value: NativePluginChange, key: string): void {
+  private applyChange(value: NativePluginChange, key: string, summary: string = ''): void {
     this.notice = value;
+    this.noticeSummary = summary;
     this.noticeVisible = true;
     if (value.application === 'failed' || value.application === 'cancelled') {
       this.actionError = nativePluginErrorText(value.errorCode || value.application) +
@@ -219,9 +223,10 @@ export struct NativePluginsSurface {
     this.busy = this.busy.concat([key]);
     this.actionError = '';
     try {
-      const value = await this.admin.setBundleEnabled(bundle.name, !bundle.enabled);
+      const target = !bundle.enabled;
+      const value = await this.admin.setBundleEnabled(bundle.name, target);
       if (!this.mounted) return;
-      this.applyChange(value, key);
+      this.applyChange(value, key, target ? '已启用' : '已关闭');
       await this.refresh(true);
     } catch (error) {
       if (this.mounted) {
@@ -239,7 +244,7 @@ export struct NativePluginsSurface {
     try {
       const value = await this.admin.setRowEnabled(entryId, enabled);
       if (!this.mounted) return;
-      this.applyChange(value, key);
+      this.applyChange(value, key, enabled ? '已启用' : '已关闭');
       await this.refresh(true);
     } catch (error) {
       if (this.mounted) {
@@ -277,6 +282,8 @@ export struct NativePluginsSurface {
       const value = await this.admin.install(this.installSpec.trim(), approvedBuilds);
       if (!this.mounted) return;
       this.notice = value;
+      this.noticeSummary = value.application === 'failed' || value.application === 'cancelled' ?
+        '安装失败' : '已安装';
       this.noticeVisible = true;
       if (value.application === 'failed' || value.application === 'cancelled') {
         this.actionError = nativePluginErrorText(value.errorCode || value.application);
@@ -313,7 +320,7 @@ export struct NativePluginsSurface {
     try {
       const value = await this.admin.remove(this.selected.name);
       if (!this.mounted) return;
-      this.applyChange(value, key);
+      this.applyChange(value, key, '已移除');
       if (value.application !== 'failed' && value.application !== 'cancelled') {
         this.setPage('root', -1);
         await this.refresh(true);
@@ -354,7 +361,7 @@ export struct NativePluginsSurface {
     try {
       const value = await this.admin.update(this.selected.name, version);
       if (!this.mounted) return;
-      this.applyChange(value, key);
+      this.applyChange(value, key, '已更新');
       await this.refresh(true);
     } catch (error) {
       if (this.mounted) {
@@ -469,28 +476,32 @@ export struct NativePluginsSurface {
 
   @Builder
   private resultNotice() {
-    if (this.noticeVisible && this.notice.application) {
-      Row({ space: 8 }) {
+    if (this.noticeVisible && (this.noticeSummary || this.notice.application)) {
+      Row({ space: 6 }) {
         DSHIcon({
           glyph: this.notice.application === 'failed' ? 'warning-outline' :
             this.notice.application === 'restart-required' ? 'refresh-outline' : 'check-outline',
-          glyphSize: NativeDesign.glyphControl,
+          glyphSize: NativeDesign.glyphInline,
           color: this.notice.application === 'failed' ? this.danger() :
             this.notice.application === 'restart-required' ? NativeDesign.warning(this.dark) : this.accent()
         })
-        Column({ space: 2 }) {
-          Text(nativePluginApplication(this.notice.application)).fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
-            .fontColor(this.primaryText())
-          if (this.notice.restartReason) {
-            Text('DSH 重启后生效').fontSize(NativeDesign.fontMicro).fontColor(this.secondaryText())
-          }
-        }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        NativeIconButton({ glyph: 'close-outline', label: '关闭状态', glyphSize: NativeDesign.glyphInline,
-          onPressed: (): void => { this.noticeVisible = false; } })
-      }.width('100%').padding({ left: 10, right: 4, top: 8, bottom: 8 })
+        Text((this.noticeSummary || nativePluginApplication(this.notice.application)) +
+          (this.notice.restartReason ? ' · 重启 DSH 后生效' : ''))
+          .fontSize(NativeDesign.fontSection).fontWeight(FontWeight.Medium)
+          .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+          .layoutWeight(1).fontColor(this.primaryText())
+        Button({ type: ButtonType.Circle }) {
+          DSHIcon({ glyph: 'close-outline', glyphSize: NativeDesign.glyphInline,
+            color: this.tertiaryText() })
+        }.width(NativeDesign.compactControl).height(NativeDesign.compactControl)
+          .backgroundColor(Color.Transparent).accessibilityText('关闭状态')
+          .onClick((): void => { this.noticeVisible = false; })
+      }.width('100%').height(NativeDesign.compactControl)
+        .padding({ left: 10, right: 2 })
         .borderRadius(NativeDesign.radiusRow).backgroundColor(this.fieldSurface())
         .border({ width: 0.5, color: this.lineColor() })
-        .transition(NativeMotion.rowTransition())
+        .id('plugin-result-banner')
+        .transition(NativeMotion.statusBannerTransition())
     }
   }
 
@@ -499,7 +510,7 @@ export struct NativePluginsSurface {
     if (this.actionError || this.error) {
       Row({ space: 8 }) {
         DSHIcon({ glyph: 'warning-outline', glyphSize: NativeDesign.glyphControl, color: this.danger() })
-        Text(this.actionError || this.error).fontSize(NativeDesign.fontCaption).layoutWeight(1).maxLines(4)
+        Text(this.actionError || this.error).fontSize(NativeDesign.fontCaption).layoutWeight(1).maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).fontColor(this.danger())
         Button('重试', { type: ButtonType.Normal }).height(NativeDesign.compactControl)
           .fontSize(NativeDesign.fontCaption).backgroundColor(Color.Transparent).fontColor(this.accent())
@@ -508,10 +519,10 @@ export struct NativePluginsSurface {
             else if (this.page === 'install') this.inspectInstall();
             else this.refresh(true);
           })
-      }.width('100%').constraintSize({ minHeight: NativeDesign.compactHitTarget })
-        .padding({ left: 10, right: 4, top: 3, bottom: 3 })
+      }.width('100%').constraintSize({ minHeight: NativeDesign.compactControl })
+        .padding({ left: 10, right: 4, top: 5, bottom: 5 })
         .borderRadius(NativeDesign.radiusRow).backgroundColor(NativeDesign.dangerSurface(this.dark))
-        .transition(NativeMotion.rowTransition())
+        .transition(NativeMotion.statusBannerTransition())
     }
   }
 
@@ -542,13 +553,13 @@ export struct NativePluginsSurface {
             ListItem() { this.sectionLabel('已安装', this.installedBundles().length) }
             ForEach(this.installedBundles(), (bundle: NativePluginBundle) => {
               ListItem() { this.bundleRow(bundle) }
-            }, (bundle: NativePluginBundle) => 'installed:' + bundle.name)
+            }, (bundle: NativePluginBundle) => 'installed:' + bundle.name + ':' + (bundle.enabled ? 'on' : 'off'))
           }
           if (this.availableBundles().length) {
             ListItem() { this.sectionLabel('可添加', this.availableBundles().length) }
             ForEach(this.availableBundles(), (bundle: NativePluginBundle) => {
               ListItem() { this.bundleRow(bundle) }
-            }, (bundle: NativePluginBundle) => 'available:' + bundle.name)
+            }, (bundle: NativePluginBundle) => 'available:' + bundle.name + ':' + (bundle.installed ? 'installed' : 'add'))
           }
           if (this.filteredEntries().length) {
             ListItem() { this.sectionLabel('运行组件', this.filteredEntries().length) }
@@ -706,7 +717,8 @@ export struct NativePluginsSurface {
             Column({ space: 2 }) {
               ForEach(this.selected.rows, (row: NativePluginRow) => {
                 this.pluginRow(this.selected, row)
-              }, (row: NativePluginRow) => row.rowId)
+              }, (row: NativePluginRow) => row.rowId + ':' +
+                (row.entryId ? (this.entryFor(row.entryId)?.enabled === true ? 'on' : 'off') : 'static'))
             }.width('100%')
           } else {
             Text('此插件没有可管理的运行组件').fontSize(NativeDesign.fontCaption).fontColor(this.tertiaryText())

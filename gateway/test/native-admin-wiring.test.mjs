@@ -23,3 +23,20 @@ test('automation draft conversion accepts raw tasks without optional arrays', ()
   assert.match(source, /intervalSeconds && Number\.isFinite\(intervalSeconds\)/);
   assert.match(source, /task\.weekdays && task\.weekdays\.length/);
 });
+
+test('plugin switches refresh in place and the result banner is one compact line', () => {
+  const surface = read('NativePluginsSurface.ets');
+  assert.match(surface, /this\.applyChange\(value, key, target \? '已启用' : '已关闭'\)/);
+  assert.match(surface, /this\.applyChange\(value, key, enabled \? '已启用' : '已关闭'\)/);
+  assert.match(surface, /'installed:' \+ bundle\.name \+ ':' \+ \(bundle\.enabled \? 'on' : 'off'\)/);
+  assert.match(surface, /row\.rowId \+ ':' \+/);
+  assert.match(surface, /height\(NativeDesign\.compactControl\)[\s\S]{0,420}plugin-result-banner/);
+  assert.match(surface, /plugin-result-banner[\s\S]{0,220}statusBannerTransition/);
+  assert.doesNotMatch(surface, /Text\('DSH 重启后生效'\)\.fontSize/);
+  assert.doesNotMatch(surface, /maxLines\(4\)/);
+  const automation = read('NativeAutomationSurface.ets');
+  assert.doesNotMatch(automation, /minHeight: NativeDesign\.compactHitTarget[\s\S]{0,80}top: 3, bottom: 3/);
+  assert.match(automation, /minHeight: NativeDesign\.compactControl[\s\S]{0,420}statusBannerTransition/);
+  const settings = read('NativeSettings.ets');
+  assert.match(settings, /this\.updateState\(\(\): void => \{ this\.setLocalValue\(command, value\); \}\);/);
+});

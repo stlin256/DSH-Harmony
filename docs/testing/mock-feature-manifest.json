@@ -662,10 +662,14 @@
         "plugins-install-failed"
       ],
       "drivers": [
-        "device-ui-mock-suite.ps1"
+        "device-ui-mock-suite.ps1",
+        "device-ui-plugin-toggle-e2e.ps1"
       ],
       "e2eIds": [
-        "MF-24"
+        "MF-24",
+        "PLUG-01",
+        "PLUG-02",
+        "PLUG-03"
       ]
     },
     {
