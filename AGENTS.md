@@ -130,6 +130,8 @@ Keep these environment-bound gaps explicit until a matching target proves them:
 - Real Host long-stream cadence and Gateway backpressure recovery.
 - Live Host stream reconstruction: real provider pacing, child authorization,
   stale-catalog child history and network handoff.
+- Live process strip pacing (reasoning/tool text) device evidence; the
+  synthetic live-group capture path still needs the nested-list fix.
 - Current-device image-lightbox interaction evidence.
 - Workspace preview formats not present in the current fixtures, including
   JPEG/WebP/GIF/BMP/HEIC/ICO and the full extensionless-file matrix.
@@ -572,6 +574,12 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-04-connection-banner-motion.md](docs/specs/2026-11-04-connection-banner-motion.md)
 - Connection banner motion device E2E:
   [2026-11-04-connection-banner-motion-e2e.md](docs/testing/2026-11-04-connection-banner-motion-e2e.md)
+- Live process text pacing requirement:
+  [2026-11-04-live-process-pacing.md](docs/requirements/2026-11-04-live-process-pacing.md)
+- Live process text pacing implementation spec:
+  [2026-11-04-live-process-pacing.md](docs/specs/2026-11-04-live-process-pacing.md)
+- Live process text pacing device acceptance:
+  [2026-11-04-live-process-pacing-e2e.md](docs/testing/2026-11-04-live-process-pacing-e2e.md)
 
 ## Upstream Tracking
 

@@ -33,6 +33,7 @@ export struct NativeProcessView {
   }
 
   private changed(): void {
+
     this.source.set(this.message.children, (child: NativeMessage): string => child.renderKey || child.id);
     const key = this.message.turnKey + '|' + this.message.id;
     if (key !== this.disclosureId) {

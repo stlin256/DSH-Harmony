@@ -1,4 +1,5 @@
-import { NativeStreamPresentation, NativeStreamCadence } from '../services/NativeStreamPresentation';
+import { NativeStreamPresentation, NativeStreamCadence,
+  NativeStreamProcessPacer } from '../services/NativeStreamPresentation';
 import { NativeStreamRecovery, nativeStreamFailureText } from '../services/NativeStreamRecovery';
 import { picker, fileIo } from '@kit.CoreFileKit';
 import { util } from '@kit.ArkTS';
@@ -11,7 +12,7 @@ import { NativeFrame, NativeJournalEntry, NativeMessage, NativeSession, NativeSe
   nativeToolsParent, nativeWorkspaceDragOrder, nativeBackToBottomAvailable,
   nativeBackToBottomHasNewContent, nativeProcessStructureChange,
   nativeAssistantProgressKey, nativeAssistantProgressAdvanced,
-  nativeDeliveryMismatchResolved, nativeStreamHealthRepairReason } from '../services/NativeSessionModel';
+  nativeDeliveryMismatchResolved, nativeStreamHealthRepairReason, NativeStreamPart } from '../services/NativeSessionModel';
 import { NativeListSource } from '../services/NativeListSource';
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeTextContent } from './NativeTextContent';
@@ -282,6 +283,7 @@ export struct NativeWorkspace {
   @State private liveAuthorityText: string = '';
   private presentationTimer: number = -1;
   private presentation: NativeStreamPresentation = new NativeStreamPresentation();
+  private processPacer: NativeStreamProcessPacer = new NativeStreamProcessPacer();
   private reconnectTimer: number = -1;
   private historyRetryTimer: number = -1;
   private followWatchdogTimer: number = -1;
@@ -2166,6 +2168,7 @@ export struct NativeWorkspace {
     clearTimeout(this.presentationTimer); this.presentationTimer = -1;
     this.model = this.client.models.get(id) || new NativeSessionModel();
     this.presentation.reset(this.model.streamText, Date.now());
+    this.resetLiveProcess();
     this.client.models.set(id, this.model);
     this.queue = (this.model.queue || []).slice();
     const capabilities = this.utilityCapabilities.get(id);
@@ -2207,6 +2210,7 @@ export struct NativeWorkspace {
       if (cached !== null && cached.messages.length) {
         this.model.restore(cached);
         this.presentation.reset(this.model.streamText, Date.now());
+        this.resetLiveProcess();
         this.queue = (this.model.queue || []).slice();
         this.rememberTurnChangeReferences(Array.from(this.model.journal.values()));
         this.followTail = true;
@@ -2284,11 +2288,13 @@ export struct NativeWorkspace {
       this.model.apply(frame);
       if (frame.type === 'delta') {
         this.presentation.offer(this.model.streamText, Date.now(), !NativeMotion.enabled());
+        this.offerLiveProcess(!NativeMotion.enabled());
         this.schedulePresentation();
       } else if (['snapshot', 'start', 'end', 'event'].includes(frame.type)) {
         // Baselines, durable settlement and attempt changes are authoritative cuts.
         if (frame.type !== 'event' || !this.model.activityAttemptId()) {
           this.presentation.reset(this.model.streamText, Date.now());
+          this.resetLiveProcess();
           clearTimeout(this.presentationTimer); this.presentationTimer = -1;
         }
       }
@@ -2518,16 +2524,58 @@ export struct NativeWorkspace {
     this.scrollTailTimer = -1;
     this.scheduleScrollMotionSettle();
   }
+  private offerLiveProcess(immediate: boolean): void {
+    const partIndexes: number[] = [];
+    const partTexts: string[] = [];
+    this.model.streamParts.forEach((part: NativeStreamPart, index: number): void => {
+      if (part.kind !== 'reasoning' || !part.text) return;
+      partIndexes.push(index);
+      partTexts.push(part.text);
+    });
+    const toolKeys: string[] = [];
+    const toolTexts: string[] = [];
+    this.model.streamTools.forEach((tool: NativeMessage): void => {
+      if (!tool.callId) return;
+      toolKeys.push(tool.callId);
+      toolTexts.push(tool.text);
+    });
+    this.processPacer.offer(Date.now(), this.model.streamReasoning,
+      partIndexes, partTexts, toolKeys, toolTexts, immediate);
+
+  }
+  private resetLiveProcess(): void {
+    const partIndexes: number[] = [];
+    const partTexts: string[] = [];
+    this.model.streamParts.forEach((part: NativeStreamPart, index: number): void => {
+      if (part.kind !== 'reasoning' || !part.text) return;
+      partIndexes.push(index);
+      partTexts.push(part.text);
+    });
+    const toolKeys: string[] = [];
+    const toolTexts: string[] = [];
+    this.model.streamTools.forEach((tool: NativeMessage): void => {
+      if (!tool.callId) return;
+      toolKeys.push(tool.callId);
+      toolTexts.push(tool.text);
+    });
+    this.processPacer.reset(Date.now(), this.model.streamReasoning,
+      partIndexes, partTexts, toolKeys, toolTexts);
+  }
   private schedulePresentation(): void {
-    if (this.presentationTimer >= 0 || !this.presentation.pending()) return;
+    if (this.presentationTimer >= 0 ||
+      (!this.presentation.pending() && !this.processPacer.pending())) return;
     this.presentationTimer = setTimeout((): void => {
       this.presentationTimer = -1;
       if (!this.mounted) return;
-      if (this.presentation.advance(Date.now(), !NativeMotion.enabled())) {
-        // An already queued structural paint owns the next render. Never demote
-        // reasoning/tool updates to a text-only patch while they are pending.
+      const textAdvanced = this.presentation.advance(Date.now(), !NativeMotion.enabled());
+      const processAdvanced = this.processPacer.advance(Date.now(), !NativeMotion.enabled());
+
+      if (textAdvanced || processAdvanced) {
+        // An already queued structural paint owns the next render. A process
+        // reveal must re-project the live strip; a text-only reveal may reuse
+        // the live-assistant tail patch.
         if (this.paintTimer < 0) {
-          this.streamTextPatchDirty = true;
+          this.streamTextPatchDirty = !processAdvanced;
           this.paint();
         }
       }
@@ -2613,8 +2661,9 @@ export struct NativeWorkspace {
     if (hasLiveProcess) {
       this.textProjectionCacheHit = false;
       return nativeTranscript(this.model.messages, this.model.running,
-        this.model.streamTools, this.model.streamReasoning, this.presentation.value(),
-        workspaceRoot, this.model.streamParts);
+        this.model.streamTools, this.processPacer.reasoningText(), this.presentation.value(),
+        workspaceRoot, this.model.streamParts,
+        this.processPacer.pacedToolTexts(), this.processPacer.pacedPartTexts());
     }
     if (this.transcriptBaseSource !== this.model.messages ||
         this.transcriptBaseRoot !== workspaceRoot) {
@@ -2644,6 +2693,7 @@ export struct NativeWorkspace {
       visible = nativePresentTranscript(rows, this.client.hostSettings.chat(),
         this.model.turnDisclosure, this.model.collapseThrough,
         this.workspaceRootFor(this.selected));
+
     }
     const processStructure = nativeProcessStructureChange(this.visibleRows, visible);
     if (!this.suppressProcessEntrance && processStructure.changed()) {

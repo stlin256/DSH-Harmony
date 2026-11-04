@@ -173,6 +173,12 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   Real Host child authorization, network handoff, provider cadence and gateway
   backpressure remain Pending independently of synthetic device results.
 
+- Live process strip pacing (reasoning and preparing-tool text) is verified
+  by model/source tests only; device capture is pending because the synthetic
+  live process group kept its first nested child snapshot. Use a real Host
+  turn with reasoning/tool calls before promoting it. See
+  `2026-11-04-live-process-pacing-e2e.md`.
+
 - API 23 material fallback requires a physical or emulated API 23 target.
 - Valid saved-session restore, expired-session recovery and logout/relaunch need
   a real account exchange and must not be inferred from Mock fixtures.

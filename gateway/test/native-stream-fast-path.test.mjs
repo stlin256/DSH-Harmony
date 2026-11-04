@@ -100,7 +100,15 @@ test('native workspace invalidates text-only patching on structural or tool fram
   assert.match(workspace,
     /\['snapshot', 'event', 'start', 'end', 'state'\]\.includes\(frame\.type\)\) \{[\s\S]{0,80}this\.streamTextPatchDirty = false;/);
   assert.match(workspace,
-    /if \(this\.presentation\.advance\(Date\.now\(\), !NativeMotion\.enabled\(\)\)\) \{[\s\S]{0,320}this\.streamTextPatchDirty = true;/);
+    /const textAdvanced = this\.presentation\.advance\(Date\.now\(\), !NativeMotion\.enabled\(\)\);/);
+  assert.match(workspace,
+    /const processAdvanced = this\.processPacer\.advance\(Date\.now\(\), !NativeMotion\.enabled\(\)\);/);
+  assert.match(workspace,
+    /if \(textAdvanced \|\| processAdvanced\) \{[\s\S]{0,420}this\.streamTextPatchDirty = !processAdvanced;/);
+  // Live process text paces through the same semantic timer, while durable
+  // process frames still invalidate the text-only patch path.
+  assert.match(workspace,
+    /this\.offerLiveProcess\(!NativeMotion\.enabled\(\)\);[\s\S]{0,120}this\.schedulePresentation\(\);/);
   assert.match(workspace,
     /if \(tailOnlyTextUpdate\)[\s\S]{0,180}this\.source\.setTail\(visible, 2\)[\s\S]{0,180}this\.source\.set\(visible/);
 });

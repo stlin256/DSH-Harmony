@@ -14,7 +14,7 @@ function load(name) {
   return exports;
 }
 const { NativeStreamRecovery } = load('NativeStreamRecovery');
-const { NativeStreamPresentation, NativeStreamCadence } = load('NativeStreamPresentation');
+const { NativeStreamPresentation, NativeStreamCadence, NativeStreamProcessPacer } = load('NativeStreamPresentation');
 
 test('recovery rejects retired epochs including same-session reopen and bounds snapshot loops', () => {
   const policy = new NativeStreamRecovery();
@@ -111,4 +111,53 @@ test('live stream tail renders from state instead of a value-parameter builder',
   assert.doesNotMatch(content, /this\.body\(this\.streamTail/);
   assert.match(content, /NativeInlineText\(\{ text: this\.streamTail/);
   assert.match(content, /Text\(this\.streamTail\)/);
+});
+
+
+test('live process text is paced as one interruptible reasoning and tool strip', () => {
+  const pacer = new NativeStreamProcessPacer();
+  const reasoning = '先检查连接恢复，再确认工具参数与 emoji 😀 分段。'.repeat(6);
+  const toolArgs = '{"path":"harmony/entry/src/main/ets/components/NativeWorkspace.ets"}';
+  pacer.reset(1000);
+  pacer.offer(1010, reasoning.slice(0, 24), [0], [reasoning.slice(0, 24)], ['call-a'], [toolArgs.slice(0, 12)]);
+  pacer.offer(1400, reasoning, [0], [reasoning], ['call-a'], [toolArgs]);
+  assert.equal(pacer.pending(), true);
+  assert.ok(pacer.reasoningText().length <= 24);
+  let previousPart = 0;
+  let previousTool = 0;
+  for (let now = 1432; now < 2200; now += 32) {
+    pacer.advance(now);
+    const partValue = pacer.partText(0, reasoning);
+    const toolValue = pacer.toolText('call-a', toolArgs);
+    assert.ok(partValue.length >= previousPart, 'part reveal never regresses');
+    assert.ok(toolValue.length >= previousTool, 'tool reveal never regresses');
+    assert.equal(partValue.isWellFormed(), true);
+    assert.equal(toolValue.isWellFormed(), true);
+    assert.equal(reasoning.startsWith(partValue), true);
+    assert.equal(toolArgs.startsWith(toolValue), true);
+    previousPart = partValue.length;
+    previousTool = toolValue.length;
+    if (!pacer.pending()) break;
+  }
+  pacer.advance(3200);
+  assert.equal(pacer.partText(0, ''), reasoning);
+  assert.equal(pacer.toolText('call-a', ''), toolArgs);
+  assert.equal(pacer.pending(), false);
+  assert.equal(pacer.pacedPartTexts().get(0), reasoning);
+  assert.equal(pacer.pacedToolTexts().get('call-a'), toolArgs);
+});
+
+test('live process pacing resolves immediately for reduced motion and resets per attempt', () => {
+  const pacer = new NativeStreamProcessPacer();
+  const reasoning = '思考中';
+  pacer.reset(1000);
+  pacer.offer(1010, reasoning, [2], [reasoning], ['call-b'], ['{"q":1}'], true);
+  assert.equal(pacer.pending(), false);
+  assert.equal(pacer.reasoningText(), reasoning);
+  assert.equal(pacer.partText(2, ''), reasoning);
+  assert.equal(pacer.toolText('call-b', ''), '{"q":1}');
+  pacer.reset(2000);
+  assert.equal(pacer.reasoningText(), '');
+  assert.equal(pacer.partText(2, 'raw'), 'raw');
+  assert.equal(pacer.toolText('call-b', 'raw'), 'raw');
 });

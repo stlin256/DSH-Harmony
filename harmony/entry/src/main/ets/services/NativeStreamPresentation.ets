@@ -57,3 +57,96 @@ export class NativeStreamPresentation {
     return before !== this.count;
   }
 }
+
+/** Paces the live process strip: reasoning segments and preparing tool arguments. */
+export class NativeStreamProcessPacer {
+  private reasoning: NativeStreamPresentation = new NativeStreamPresentation();
+  private parts: Map<number, NativeStreamPresentation> = new Map<number, NativeStreamPresentation>();
+  private tools: Map<string, NativeStreamPresentation> = new Map<string, NativeStreamPresentation>();
+
+  reset(now: number, reasoning: string = '', partIndexes: number[] = [],
+    partTexts: string[] = [], toolKeys: string[] = [], toolTexts: string[] = []): void {
+    this.reasoning.reset(reasoning, now);
+    this.parts.clear();
+    this.tools.clear();
+    partIndexes.forEach((index: number, position: number): void => {
+      const cursor = new NativeStreamPresentation();
+      cursor.reset(partTexts[position] || '', now);
+      this.parts.set(index, cursor);
+    });
+    toolKeys.forEach((key: string, position: number): void => {
+      const cursor = new NativeStreamPresentation();
+      cursor.reset(toolTexts[position] || '', now);
+      this.tools.set(key, cursor);
+    });
+  }
+
+  offer(now: number, reasoning: string, partIndexes: number[], partTexts: string[],
+    toolKeys: string[], toolTexts: string[], immediate: boolean = false): void {
+    this.reasoning.offer(reasoning, now, immediate);
+    partIndexes.forEach((index: number, position: number): void => {
+      let cursor = this.parts.get(index);
+      if (!cursor) {
+        cursor = new NativeStreamPresentation();
+        cursor.reset('', now);
+        this.parts.set(index, cursor);
+      }
+      cursor.offer(partTexts[position] || '', now, immediate);
+    });
+    toolKeys.forEach((key: string, position: number): void => {
+      let cursor = this.tools.get(key);
+      if (!cursor) {
+        cursor = new NativeStreamPresentation();
+        cursor.reset('', now);
+        this.tools.set(key, cursor);
+      }
+      cursor.offer(toolTexts[position] || '', now, immediate);
+    });
+  }
+
+  reasoningText(): string { return this.reasoning.value(); }
+  partText(index: number, fallback: string): string {
+    const cursor = this.parts.get(index);
+    return cursor ? cursor.value() : fallback;
+  }
+  toolText(key: string, fallback: string): string {
+    const cursor = this.tools.get(key);
+    return cursor ? cursor.value() : fallback;
+  }
+  pacedPartTexts(): Map<number, string> {
+    const values: Map<number, string> = new Map<number, string>();
+    this.parts.forEach((cursor: NativeStreamPresentation, index: number): void => {
+      values.set(index, cursor.value());
+    });
+    return values;
+  }
+  pacedToolTexts(): Map<string, string> {
+    const values: Map<string, string> = new Map<string, string>();
+    this.tools.forEach((cursor: NativeStreamPresentation, key: string): void => {
+      values.set(key, cursor.value());
+    });
+    return values;
+  }
+  pending(): boolean {
+    if (this.reasoning.pending()) return true;
+    let waiting = false;
+    this.parts.forEach((cursor: NativeStreamPresentation): void => {
+      if (cursor.pending()) waiting = true;
+    });
+    if (waiting) return true;
+    this.tools.forEach((cursor: NativeStreamPresentation): void => {
+      if (cursor.pending()) waiting = true;
+    });
+    return waiting;
+  }
+  advance(now: number, immediate: boolean = false): boolean {
+    let changed = this.reasoning.advance(now, immediate);
+    this.parts.forEach((cursor: NativeStreamPresentation): void => {
+      if (cursor.advance(now, immediate)) changed = true;
+    });
+    this.tools.forEach((cursor: NativeStreamPresentation): void => {
+      if (cursor.advance(now, immediate)) changed = true;
+    });
+    return changed;
+  }
+}

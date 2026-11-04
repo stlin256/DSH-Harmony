@@ -227,13 +227,24 @@ export function nativeProcessTitle(group: NativeMessage, showDetail: boolean = t
 
 export function nativeTranscript(records: NativeMessage[], running: boolean,
   streamTools: NativeMessage[] = [], reasoning: string = '', text: string = '',
-  workspaceRoot: string = '', streamParts: NativeStreamPart[] = []): NativeMessage[] {
+  workspaceRoot: string = '', streamParts: NativeStreamPart[] = [],
+  pacedToolTexts: Map<string, string> | null = null,
+  pacedPartTexts: Map<number, string> | null = null): NativeMessage[] {
   const calls: Map<string, NativeMessage> = new Map<string, NativeMessage>();
   const ordered: NativeMessage[] = [];
   const ends: Map<string, NativeMessage> = new Map<string, NativeMessage>();
   const closedSteps: Set<string> = new Set<string>();
   const authoritativeByCall: Map<string, string> = new Map<string, string>();
   let turnKey = 'legacy:0';
+  // The live process strip reveals paced text; durable records keep their own text.
+  const pacedTool = (tool: NativeMessage): NativeMessage => {
+    const value = copy(tool);
+    if (pacedToolTexts && value.callId) {
+      const paced = pacedToolTexts.get(value.callId);
+      if (paced !== undefined) value.text = paced;
+    }
+    return value;
+  };
   for (const input of records) {
     const row = copy(input);
     if (row.turn >= 0) turnKey = 'turn:' + row.turn;
@@ -301,11 +312,14 @@ export function nativeTranscript(records: NativeMessage[], running: boolean,
   let liveReasoningIndex = 0;
   const representedTools: Set<string> = new Set<string>();
   if (streamParts.length) {
-    for (const part of streamParts) {
+    for (let partIndex = 0; partIndex < streamParts.length; partIndex++) {
+      const part = streamParts[partIndex];
       if (part.kind === 'reasoning' && part.text.trim()) {
+        const paced = pacedPartTexts ? pacedPartTexts.get(partIndex) : undefined;
         const thought = new NativeMessage();
         thought.id = liveReasoningIndex === 0 ? 'live-reasoning' : 'live-reasoning:' + liveReasoningIndex;
-        thought.role = 'reasoning'; thought.reasoning = part.text; thought.turnKey = turnKey;
+        thought.role = 'reasoning'; thought.reasoning = paced !== undefined ? paced : part.text;
+        thought.turnKey = turnKey;
         ordered.push(thought);
         liveReasoningIndex++;
         continue;
@@ -315,12 +329,12 @@ export function nativeTranscript(records: NativeMessage[], running: boolean,
       const preparing = streamTools.find((item: NativeMessage): boolean => item.callId === part.callId);
       representedTools.add(part.callId);
       if (!preparing) continue;
-      const tool = copy(preparing); tool.args = tool.text; tool.status = 'preparing'; tool.turnKey = turnKey;
+      const tool = pacedTool(preparing); tool.args = tool.text; tool.status = 'preparing'; tool.turnKey = turnKey;
       tool.id = 'call:' + tool.callId; calls.set(tool.callId, tool); ordered.push(tool);
     }
     for (const preparing of streamTools) {
       if (calls.has(preparing.callId) || representedTools.has(preparing.callId)) continue;
-      const tool = copy(preparing); tool.args = tool.text; tool.status = 'preparing'; tool.turnKey = turnKey;
+      const tool = pacedTool(preparing); tool.args = tool.text; tool.status = 'preparing'; tool.turnKey = turnKey;
       tool.id = 'call:' + tool.callId; calls.set(tool.callId, tool); ordered.push(tool);
     }
     if (reasoning.trim() && liveReasoningIndex === 0) {
@@ -331,7 +345,7 @@ export function nativeTranscript(records: NativeMessage[], running: boolean,
   } else {
     for (const preparing of streamTools) {
       if (calls.has(preparing.callId)) continue;
-      const tool = copy(preparing); tool.args = tool.text; tool.status = 'preparing'; tool.turnKey = turnKey;
+      const tool = pacedTool(preparing); tool.args = tool.text; tool.status = 'preparing'; tool.turnKey = turnKey;
       tool.id = 'call:' + tool.callId; calls.set(tool.callId, tool); ordered.push(tool);
     }
     if (reasoning.trim()) {
