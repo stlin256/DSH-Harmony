@@ -18,11 +18,11 @@ export struct NativeModelPicker {
   client: NativeHarnessClient = new NativeHarnessClient('');
   sessionId: string = '';
   @Prop currentCaption: string = '模型';
+  pickerWidth: number = 316;
   onClose: () => void = (): void => {};
   @StorageLink('nativeDark') private dark: boolean = false;
   @StorageLink('nativeModelRevision') @Watch('modelChanged') private modelRevision: number = 0;
   @State private directory: NativeModelDirectoryState = new NativeModelDirectoryState();
-  @State private query: string = '';
   @State private loading: boolean = false;
   @State private busy: boolean = false;
   @State private error: string = '';
@@ -116,22 +116,13 @@ export struct NativeModelPicker {
         NativeIconButton({ glyph: 'close-outline', label: '关闭模型选择', glyphSize: NativeDesign.glyphCompact,
           onPressed: this.onClose })
       }.width('100%').padding({ left: 2, right: 2 })
-      if (this.modelCount() > 4) {
-        TextInput({ text: this.query, placeholder: '搜索模型' }).height(NativeDesign.hitTarget)
-          .fontSize(NativeDesign.fontSection).borderRadius(NativeDesign.radiusControl)
-          .backgroundColor(NativeDesign.field(this.dark)).fontColor(NativeDesign.textPrimary(this.dark))
-          .placeholderColor(NativeDesign.textTertiary(this.dark)).onChange((value: string) => { this.query = value; })
-      }
+
       Scroll() {
         Column({ space: 3 }) {
           ForEach(this.directory.catalog.groups, (provider: NativeModelProvider) => {
-            if (provider.models.some((model: NativeCatalogModel) => !this.query ||
-              (model.name + ' ' + model.id).toLowerCase().includes(this.query.toLowerCase()))) {
-              Text(provider.name).fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium)
-                .padding({ left: 9, top: 5, bottom: 2 }).fontColor(NativeDesign.textTertiary(this.dark))
-            }
-            ForEach(provider.models.filter((model: NativeCatalogModel) => !this.query ||
-              (model.name + ' ' + model.id).toLowerCase().includes(this.query.toLowerCase())), (model: NativeCatalogModel) => {
+            Text(provider.name).fontSize(NativeDesign.fontMicro).fontWeight(FontWeight.Medium)
+              .padding({ left: 9, top: 5, bottom: 2 }).fontColor(NativeDesign.textTertiary(this.dark))
+            ForEach(provider.models, (model: NativeCatalogModel) => {
               this.choice(model.name, model.id === model.name ? '' : model.id,
                 this.directory.selected.provider === provider.id && this.directory.selected.model === model.id, true,
                 () => { this.choose(provider.id, model, model.reasoning?.defaultEffort || '', !model.reasoning); })
@@ -164,7 +155,8 @@ export struct NativeModelPicker {
               .fontColor(NativeDesign.textTertiary(this.dark))
           }
         }.width('100%').alignItems(HorizontalAlign.Start)
-      }.width('100%').constraintSize({ maxHeight: 340 }).align(Alignment.Top)
+      }.width('100%').constraintSize({ maxHeight: 278 })
+        .scrollBar(BarState.Auto).edgeEffect(EdgeEffect.None)
       if (this.error) {
         Row() {
           Text(this.error).fontSize(NativeDesign.fontCaption).layoutWeight(1).fontColor(NativeDesign.danger(this.dark))
@@ -172,8 +164,10 @@ export struct NativeModelPicker {
             .enabled(!this.busy).onClick(() => { this.refresh(); })
         }.width('100%')
       }
-    }.width(320).padding(10).borderRadius(NativeDesign.radiusGroup)
+    }.width(this.pickerWidth).padding(10).borderRadius(NativeDesign.radiusGroup)
+      .id('model-picker')
       .backgroundColor(NativeDesign.overlay(this.dark))
+      .border({ width: 0.5, color: NativeDesign.border(this.dark) })
       .transition(NativeMotion.overlayTransition())
   }
 }

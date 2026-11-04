@@ -47,6 +47,7 @@ param(
     'permission-current-custom',
     'permission-menu',
     'permission-menu-error',
+    'model-menu',
     'permission-full-confirm',
     'permission-full-cancel',
     'approval-workspace-once',

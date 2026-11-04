@@ -355,6 +355,14 @@
       "requiresInteraction": true
     },
     {
+      "id": "composer.model-picker-popup",
+      "screens": ["conversation"],
+      "states": ["model-menu"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-model-menu-e2e.ps1"],
+      "e2eIds": ["MP-01", "MP-02", "MP-03", "MP-04", "MP-05"],
+      "requiresInteraction": true
+    },
+    {
       "id": "security.secret-mask",
       "screens": ["conversation"],
       "states": ["secret-masked"],

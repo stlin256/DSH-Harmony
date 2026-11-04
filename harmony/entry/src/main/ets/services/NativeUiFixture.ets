@@ -15,7 +15,7 @@ export class NativeUiFixture {
     'dock-material-elevated', 'interaction-approval', 'interaction-question',
     'permission-current-read-only', 'permission-current-workspace',
     'permission-current-full', 'permission-current-custom',
-    'permission-menu', 'permission-menu-error', 'permission-full-confirm',
+    'permission-menu', 'permission-menu-error', 'model-menu', 'permission-full-confirm',
     'permission-full-cancel', 'approval-workspace-once', 'approval-full-once',
     'approval-long-reason', 'approval-submitting', 'approval-ended',
     'approval-disconnected', 'permission-default-setting',

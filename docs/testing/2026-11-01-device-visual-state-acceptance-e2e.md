@@ -108,6 +108,10 @@ Implementation spec:
   `.artifacts/qa/20261102T064134Z-9ca4aa3c/report.json`
 - Store-showcase and approval-density PR QA run: `20261103T172626Z-fd73a2b7`
   `.artifacts/qa/20261103T172626Z-fd73a2b7/report.json`
+- Composer menu template Mock evidence (API 26, HAP
+  `754C854D17A3286E45B6DD8D7F2242A5858E97846DFE5467724C22365D5A0C78`):
+  `artifacts/device-e2e/20261104-model-menu/model-picker/manifest.json`;
+  see `2026-11-04-model-picker-popup-e2e.md`.
 
 The user's saved annotation run
 `20261101T152352Z-visual-acceptance-1` contains 32 markers across 20 source
@@ -150,6 +154,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-29 | Approval card density | The one-shot approval card keeps mode, target scope, reason and countdown without the removed explanatory footer; long reason, submitting, ended, disconnected and light-theme states remain usable | Passed on API 26 default-font Mock HAP `020CCE74…` |
 | VSA-30 | Final variant restore | After building and checking the store variant, the Community Release installs over the device build, launches and leaves a live process | Passed on API 26; Community HAP `5768B21E…`, version `0.4.8 (29)` |
 | VSA-31 | Store review experience | Store-only activation opens populated native sessions, settings, permissions, plugins, automation and file previews without a review label; mutable settings and the structured insufficient-balance response render correctly | Pending; current request is compile-gated and the device driver has not been run |
+| VSA-32 | Composer menu template | Model and permission sheets share one masked composer-anchored popup; the model sheet stays above the input with the keyboard closed and open, has no search field, dismisses on outside tap and Back, keeps the caption and leaves the permission sheet unchanged | Passed on API 26 Mock HAP `754C854D…`; live Host model switching remains Pending |
 
 ## Remaining device checks
 

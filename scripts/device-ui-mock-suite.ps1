@@ -87,6 +87,8 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'conversation'; State = 'permission-full-confirm'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'permission-full-confirm'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'permission-full-cancel'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'model-menu'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'model-menu'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'approval-workspace-once'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'approval-full-once'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'approval-long-reason'; Theme = 'dark' },
@@ -224,6 +226,7 @@ function Get-ExpectedMarker {
     'conversation/permission-current-custom' { return '当前权限 · 自定义' }
     'conversation/permission-menu' { return '切换当前会话权限' }
     'conversation/permission-menu-error' { return '权限目录不可用' }
+    'conversation/model-menu' { return '模型与推理' }
     'conversation/permission-full-confirm' { return '确认启用完全权限？' }
     'conversation/permission-full-cancel' { return '确认启用完全权限？' }
     'conversation/approval-workspace-once' { return '允许一次仅影响当前工具调用' }

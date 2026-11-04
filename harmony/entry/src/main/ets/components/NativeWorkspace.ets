@@ -670,7 +670,7 @@ export struct NativeWorkspace {
       const catalog = await this.client.permissionCatalog();
       if (!this.mounted || generation !== this.permissionCatalogGeneration) return;
       this.permissionCatalog = catalog;
-      this.maybeOpenPermissionShowcase();
+      this.maybeOpenComposerShowcase();
     } catch (_) {
       if (!this.mounted || generation !== this.permissionCatalogGeneration) return;
       this.permissionCatalog = null;
@@ -685,7 +685,7 @@ export struct NativeWorkspace {
       }
     }
   }
-  private maybeOpenPermissionShowcase(): void {
+  private maybeOpenComposerShowcase(): void {
     if (AppStorage.get<boolean>('storeShowcase') !== true ||
       AppStorage.get<string>('storeShowcaseScreen') !== 'conversation' ||
       !this.showPermissionChip()) return;
@@ -701,6 +701,13 @@ export struct NativeWorkspace {
       setTimeout((): void => {
         if (this.mounted && this.showPermissionChip()) {
           this.openPermissionConfirmation('danger-full-access');
+        }
+      }, 220);
+    } else if (state === 'model-menu') {
+      setTimeout((): void => {
+        if (this.mounted) {
+          this.modelPickerOpen = true;
+          this.navigationChanged();
         }
       }, 220);
     }
@@ -1068,7 +1075,7 @@ export struct NativeWorkspace {
         this.openDrawer(false);
         this.notifyWorkspaceReady(generation);
       }
-      this.maybeOpenPermissionShowcase();
+      this.maybeOpenComposerShowcase();
     } catch (error) {
       if (!this.sessions.length) this.handleError(error as Error);
       if (!(error instanceof NativeHttpError && error.status === 401)) {
@@ -1744,6 +1751,7 @@ export struct NativeWorkspace {
   @Builder
   private modelPicker() {
     NativeModelPicker({ client: this.client, sessionId: this.selected, currentCaption: this.modelCaption,
+      pickerWidth: Math.max(280, this.composerWidth || 316),
       onClose: (): void => { this.modelPickerOpen = false; } })
   }
   @Builder
@@ -1761,9 +1769,14 @@ export struct NativeWorkspace {
   private permissionPopupOpen(): boolean {
     return this.permissionMenuOpen || this.permissionConfirmOpen;
   }
+  private composerPopupOpen(): boolean {
+    return this.modelPickerOpen || this.permissionPopupOpen();
+  }
   @Builder
-  private permissionPopup() {
-    if (this.permissionConfirmOpen) {
+  private composerPopup() {
+    if (this.modelPickerOpen) {
+      this.modelPicker()
+    } else if (this.permissionConfirmOpen) {
       this.permissionConfirmCard()
     } else {
       this.permissionPicker()
@@ -2132,7 +2145,7 @@ export struct NativeWorkspace {
     this.connectionNotified = false;
     this.animatePane(() => { this.selected = id; this.setDrawerState(false); });
     this.refreshSelectedProjection();
-    this.maybeOpenPermissionShowcase();
+    this.maybeOpenComposerShowcase();
     this.loadSelectedProjections();
     this.followTail = true;
     this.interactionTimes = NativeMetadataCache.rememberInteraction(
@@ -3480,11 +3493,13 @@ export struct NativeWorkspace {
         }.height(NativeDesign.compactControl).padding({ left: 3, right: 3 })
           .backgroundColor(Color.Transparent)
           .fontColor(this.secondaryText()).accessibilityText('模型与推理')
-          .onClick(() => { this.utilityOpen = false; this.modelPickerOpen = true; })
-          .bindPopup(this.modelPickerOpen, { builder: this.modelPicker, placement: Placement.Top,
-            enableArrow: false, targetSpace: 8, radius: 16, mask: false,
-            popupColor: NativeDesign.overlay(this.dark), backgroundBlurStyle: BlurStyle.NONE,
-            onStateChange: (event): void => { if (!event.isVisible) this.modelPickerOpen = false; } })
+          .onClick(() => {
+            this.utilityOpen = false;
+            this.menuId = '';
+            this.permissionMenuOpen = false;
+            if (this.permissionConfirmOpen) this.closePermissionConfirmation();
+            this.modelPickerOpen = true;
+          })
         if (this.showPermissionChip()) {
           this.permissionChip()
         }
@@ -3544,8 +3559,8 @@ export struct NativeWorkspace {
       .id('conversation-composer')
       .border({ width: 0.5, color: this.semanticBorderColor() })
       .backgroundColor(this.raisedSurface())
-      .bindPopup(this.permissionPopupOpen(), {
-        builder: this.permissionPopup,
+      .bindPopup(this.composerPopupOpen(), {
+        builder: this.composerPopup,
         placement: Placement.Top,
         enableArrow: false,
         targetSpace: 8,
@@ -3561,6 +3576,7 @@ export struct NativeWorkspace {
           if (!event.isVisible) {
             if (this.permissionMenuOpen) this.closePermissionMenu();
             if (this.permissionConfirmOpen) this.closePermissionConfirmation();
+            if (this.modelPickerOpen) this.modelPickerOpen = false;
           }
         }
       })

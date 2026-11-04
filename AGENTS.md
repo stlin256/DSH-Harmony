@@ -110,6 +110,11 @@ claim.
   `artifacts/device-e2e/20261104-stream-reconstruction/recovery/manifest.json`.
   The pre-existing long-stream and child send/stop drivers were not rerun on
   this HAP; do not treat this set as a release or live-Host qualification.
+- Composer menu template (model sheet above the input with the keyboard
+  closed/open, mask, no search field, permission sheet regression) on Mock
+  HAP SHA-256
+  `754C854D17A3286E45B6DD8D7F2242A5858E97846DFE5467724C22365D5A0C78`:
+  `artifacts/device-e2e/20261104-model-menu/model-picker/manifest.json`.
 
 Keep these environment-bound gaps explicit until a matching target proves them:
 
@@ -551,6 +556,12 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-04-stream-subagent-reconstruction.md](docs/specs/2026-11-04-stream-subagent-reconstruction.md)
 - Stream reconstruction device E2E:
   [2026-11-04-stream-subagent-reconstruction-e2e.md](docs/testing/2026-11-04-stream-subagent-reconstruction-e2e.md)
+- Model picker popup alignment requirement:
+  [2026-11-04-model-picker-popup-alignment.md](docs/requirements/2026-11-04-model-picker-popup-alignment.md)
+- Model picker popup reuse implementation spec:
+  [2026-11-04-model-picker-popup-alignment.md](docs/specs/2026-11-04-model-picker-popup-alignment.md)
+- Model picker popup device E2E:
+  [2026-11-04-model-picker-popup-e2e.md](docs/testing/2026-11-04-model-picker-popup-e2e.md)
 
 ## Upstream Tracking
 
