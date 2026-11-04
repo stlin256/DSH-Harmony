@@ -17,6 +17,15 @@ export class NativeDesign {
     return dark ? '#242527' : '#FFFFFF';
   }
 
+  /** DSH chat deep-diving label and shimmer tokens (theme-derived palette). */
+  static deepDiving(dark: boolean): string {
+    return dark ? '#7D9ADE' : '#345EBA';
+  }
+
+  static deepDivingShimmer(dark: boolean): string {
+    return dark ? '#E4EDFF' : '#16365F';
+  }
+
   static overlay(dark: boolean): string {
     return dark ? '#292A2E' : '#FFFFFF';
   }

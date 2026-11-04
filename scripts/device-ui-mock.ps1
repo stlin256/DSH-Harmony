@@ -22,6 +22,7 @@ param(
     'stream-burst-quiet',
     'stream-reconnect',
     'connection-retrying',
+    'stream-tail',
     'subagent-unavailable',
     'secret-masked',
     'stream-repaired',

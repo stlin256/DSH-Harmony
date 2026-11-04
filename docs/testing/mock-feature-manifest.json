@@ -3,405 +3,971 @@
   "features": [
     {
       "id": "launch.iteration-notice",
-      "screens": ["launch"],
-      "states": ["iteration-notice"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-launch-notice-e2e.ps1"],
-      "e2eIds": ["ITER-01", "ITER-02", "ITER-03", "ITER-04", "ITER-05",
-        "ITER-06", "ITER-07", "ITER-08", "ITER-12", "ITER-13"],
+      "screens": [
+        "launch"
+      ],
+      "states": [
+        "iteration-notice"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-launch-notice-e2e.ps1"
+      ],
+      "e2eIds": [
+        "ITER-01",
+        "ITER-02",
+        "ITER-03",
+        "ITER-04",
+        "ITER-05",
+        "ITER-06",
+        "ITER-07",
+        "ITER-08",
+        "ITER-12",
+        "ITER-13"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "launch.login-error-motion",
-      "screens": ["launch"],
-      "states": ["iteration-notice"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-launch-notice-e2e.ps1"],
-      "e2eIds": ["LOGIN-ERR-01", "LOGIN-ERR-02", "LOGIN-ERR-03"],
+      "screens": [
+        "launch"
+      ],
+      "states": [
+        "iteration-notice"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-launch-notice-e2e.ps1"
+      ],
+      "e2eIds": [
+        "LOGIN-ERR-01",
+        "LOGIN-ERR-02",
+        "LOGIN-ERR-03"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "showcase.product-story",
-      "screens": ["conversation", "process", "lineage", "subagent"],
-      "states": ["showcase-plan", "showcase-process", "showcase-lineage",
-        "showcase-dark", "showcase-dark-process", "showcase-subagent",
-        "showcase-approval"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["SHOT-R1", "SHOT-R2", "SHOT-R3", "SHOT-R4", "SHOT-R5",
-        "SHOT-R6", "SHOT-R7", "SHOT-R8", "SHOT-R9", "SHOT-R10", "SHOT-R11"]
+      "screens": [
+        "conversation",
+        "process",
+        "lineage",
+        "subagent"
+      ],
+      "states": [
+        "showcase-plan",
+        "showcase-process",
+        "showcase-lineage",
+        "showcase-dark",
+        "showcase-dark-process",
+        "showcase-subagent",
+        "showcase-approval"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "SHOT-R1",
+        "SHOT-R2",
+        "SHOT-R3",
+        "SHOT-R4",
+        "SHOT-R5",
+        "SHOT-R6",
+        "SHOT-R7",
+        "SHOT-R8",
+        "SHOT-R9",
+        "SHOT-R10",
+        "SHOT-R11"
+      ]
     },
     {
       "id": "conversation.completed-turn",
-      "screens": ["conversation"],
-      "states": ["completed"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-turn-change-e2e.ps1"],
-      "e2eIds": ["MF-01"]
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "completed"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-turn-change-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-01"
+      ]
     },
     {
       "id": "conversation.live-change",
-      "screens": ["conversation"],
-      "states": ["live-change"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-02"]
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "live-change"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-02"
+      ]
     },
     {
       "id": "composer.attachments",
-      "screens": ["conversation"],
-      "states": ["attachments"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-03"]
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "attachments"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-03"
+      ]
     },
     {
       "id": "composer.ime-layout-stability",
-      "screens": ["conversation"],
-      "states": ["completed"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-ime-e2e.ps1"],
-      "e2eIds": ["IME-T-01", "IME-T-02", "IME-T-03", "IME-T-04"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "completed"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-ime-e2e.ps1"
+      ],
+      "e2eIds": [
+        "IME-T-01",
+        "IME-T-02",
+        "IME-T-03",
+        "IME-T-04"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "transcript.streaming",
-      "screens": ["conversation"],
-      "states": ["streaming"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-04"]
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "streaming"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-04"
+      ]
     },
     {
       "id": "transcript.stream-long-liveness",
-      "screens": ["conversation"],
-      "states": ["stream-long"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-stream-long-e2e.ps1"],
-      "e2eIds": ["LSR-01", "LSR-02", "LSR-03", "LSR-04"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "stream-long"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-stream-long-e2e.ps1"
+      ],
+      "e2eIds": [
+        "LSR-01",
+        "LSR-02",
+        "LSR-03",
+        "LSR-04"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "conversation.empty",
-      "screens": ["conversation"],
-      "states": ["empty"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-05"]
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "empty"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-05"
+      ]
     },
     {
       "id": "transcript.long-history",
-      "screens": ["conversation"],
-      "states": ["long-history"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-conversation-chrome-e2e.ps1"],
-      "e2eIds": ["MF-06", "CHROME-01", "CHROME-02"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "long-history"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-conversation-chrome-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-06",
+        "CHROME-01",
+        "CHROME-02"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "dock.idle-send",
-      "screens": ["conversation"],
-      "states": ["dock-send-idle"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-dock-e2e.ps1"],
-      "e2eIds": ["MF-07"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "dock-send-idle"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-dock-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-07"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "dock.queue-pending",
-      "screens": ["conversation"],
-      "states": ["dock-queue-pending"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-dock-e2e.ps1"],
-      "e2eIds": ["MF-08"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "dock-queue-pending"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-dock-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-08"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "dock.queue-authoritative",
-      "screens": ["conversation"],
-      "states": ["dock-queue-authoritative"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-dock-e2e.ps1"],
-      "e2eIds": ["MF-09"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "dock-queue-authoritative"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-dock-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-09"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "dock.queue-many",
-      "screens": ["conversation"],
-      "states": ["dock-queue-many"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-10"]
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "dock-queue-many"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-10"
+      ]
     },
     {
       "id": "dock.send-error",
-      "screens": ["conversation"],
-      "states": ["dock-send-error"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-dock-e2e.ps1"],
-      "e2eIds": ["MF-11"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "dock-send-error"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-dock-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-11"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "dock.material-quiet",
-      "screens": ["conversation"],
-      "states": ["dock-material-quiet"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-12"]
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "dock-material-quiet"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-12"
+      ]
     },
     {
       "id": "dock.material-elevated",
-      "screens": ["conversation"],
-      "states": ["dock-material-elevated"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-dock-e2e.ps1"],
-      "e2eIds": ["MF-13"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "dock-material-elevated"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-dock-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-13"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "interaction.approval",
-      "screens": ["conversation"],
-      "states": ["interaction-approval"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-interaction-e2e.ps1"],
-      "e2eIds": ["MF-14"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "interaction-approval"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-interaction-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-14"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "interaction.question",
-      "screens": ["conversation"],
-      "states": ["interaction-question"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-interaction-e2e.ps1"],
-      "e2eIds": ["MF-15"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "interaction-question"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-interaction-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-15"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "conversation.floating-task-plan",
-      "screens": ["conversation"],
-      "states": ["plan-dock-overlay"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-task-dock-e2e.ps1"],
-      "e2eIds": ["PLAN-UI-E2E-13", "PLAN-UI-E2E-14", "PLAN-UI-E2E-15"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "plan-dock-overlay"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-task-dock-e2e.ps1"
+      ],
+      "e2eIds": [
+        "PLAN-UI-E2E-13",
+        "PLAN-UI-E2E-14",
+        "PLAN-UI-E2E-15"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "mode.plan-and-lineage",
-      "screens": ["conversation", "lineage"],
-      "states": ["plan-subagent", "plan-subagent-long-count", "plan-off-error"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-mode-subagent-e2e.ps1"],
-      "e2eIds": ["MF-16", "SUB-19", "SUB-20", "SUB-21"],
+      "screens": [
+        "conversation",
+        "lineage"
+      ],
+      "states": [
+        "plan-subagent",
+        "plan-subagent-long-count",
+        "plan-off-error"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-mode-subagent-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-16",
+        "SUB-19",
+        "SUB-20",
+        "SUB-21"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "subagent.continuable",
-      "screens": ["subagent"],
-      "states": ["subagent-continuable"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-mode-subagent-e2e.ps1"],
-      "e2eIds": ["MF-17"],
+      "screens": [
+        "subagent"
+      ],
+      "states": [
+        "subagent-continuable"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-mode-subagent-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-17"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "subagent.read-only-modes",
-      "screens": ["subagent"],
-      "states": ["subagent-one-shot", "subagent-unknown"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-mode-subagent-e2e.ps1"],
-      "e2eIds": ["MF-18"],
+      "screens": [
+        "subagent"
+      ],
+      "states": [
+        "subagent-one-shot",
+        "subagent-unknown"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-mode-subagent-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-18"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "subagent.parent-offline",
-      "screens": ["subagent"],
-      "states": ["subagent-parent-offline"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-mode-subagent-e2e.ps1"],
-      "e2eIds": ["MF-19"],
+      "screens": [
+        "subagent"
+      ],
+      "states": [
+        "subagent-parent-offline"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-mode-subagent-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-19"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "surface.process",
-      "screens": ["process"],
-      "states": ["completed"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-20"]
+      "screens": [
+        "process"
+      ],
+      "states": [
+        "completed"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-20"
+      ]
     },
     {
       "id": "surface.sidebar",
-      "screens": ["sidebar"],
-      "states": ["completed"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-21"]
+      "screens": [
+        "sidebar"
+      ],
+      "states": [
+        "completed"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-21"
+      ]
     },
     {
       "id": "sidebar.all-workspaces",
-      "screens": ["sidebar"],
-      "states": ["completed"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-workspace-scope-e2e.ps1"],
-      "e2eIds": ["WSA-01", "WSA-02", "WSA-03", "WSA-04"],
+      "screens": [
+        "sidebar"
+      ],
+      "states": [
+        "completed"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-workspace-scope-e2e.ps1"
+      ],
+      "e2eIds": [
+        "WSA-01",
+        "WSA-02",
+        "WSA-03",
+        "WSA-04"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "surface.file-browser",
-      "screens": ["browser"],
-      "states": ["completed"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-22"]
+      "screens": [
+        "browser"
+      ],
+      "states": [
+        "completed"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-22"
+      ]
     },
     {
       "id": "surface.file-preview-mode",
-      "screens": ["preview"],
-      "states": ["document-preview"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
-      "e2eIds": ["PREVIEW-04", "PREVIEW-04C"],
+      "screens": [
+        "preview"
+      ],
+      "states": [
+        "document-preview"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-document-mode-e2e.ps1"
+      ],
+      "e2eIds": [
+        "PREVIEW-04",
+        "PREVIEW-04C"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "surface.file-preview-config-text",
-      "screens": ["preview"],
-      "states": ["text-config-preview"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
-      "e2eIds": ["PREVIEW-TEXT-01", "PREVIEW-TEXT-02", "PREVIEW-TEXT-03"],
+      "screens": [
+        "preview"
+      ],
+      "states": [
+        "text-config-preview"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-document-mode-e2e.ps1"
+      ],
+      "e2eIds": [
+        "PREVIEW-TEXT-01",
+        "PREVIEW-TEXT-02",
+        "PREVIEW-TEXT-03"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "surface.file-preview-delimited",
-      "screens": ["preview"],
-      "states": ["delimited-preview"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
-      "e2eIds": ["PREVIEW-DELIM-01", "PREVIEW-DELIM-02", "TABLE-T-01", "TABLE-T-02"],
+      "screens": [
+        "preview"
+      ],
+      "states": [
+        "delimited-preview"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-document-mode-e2e.ps1"
+      ],
+      "e2eIds": [
+        "PREVIEW-DELIM-01",
+        "PREVIEW-DELIM-02",
+        "TABLE-T-01",
+        "TABLE-T-02"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "surface.file-preview-tsv",
-      "screens": ["preview"],
-      "states": ["tsv-preview"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
-      "e2eIds": ["PREVIEW-DELIM-03", "TABLE-T-03"],
+      "screens": [
+        "preview"
+      ],
+      "states": [
+        "tsv-preview"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-document-mode-e2e.ps1"
+      ],
+      "e2eIds": [
+        "PREVIEW-DELIM-03",
+        "TABLE-T-03"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "surface.file-preview-delimited-error",
-      "screens": ["preview"],
-      "states": ["delimited-error-preview"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
-      "e2eIds": ["PREVIEW-DELIM-05"],
+      "screens": [
+        "preview"
+      ],
+      "states": [
+        "delimited-error-preview"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-document-mode-e2e.ps1"
+      ],
+      "e2eIds": [
+        "PREVIEW-DELIM-05"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "surface.file-preview-binary",
-      "screens": ["preview"],
-      "states": ["binary-preview"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-document-mode-e2e.ps1"],
-      "e2eIds": ["PREVIEW-TEXT-06"],
+      "screens": [
+        "preview"
+      ],
+      "states": [
+        "binary-preview"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-document-mode-e2e.ps1"
+      ],
+      "e2eIds": [
+        "PREVIEW-TEXT-06"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "surface.settings",
-      "screens": ["settings"],
-      "states": ["completed"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-settings-e2e.ps1"],
-      "e2eIds": ["MF-23"]
+      "screens": [
+        "settings"
+      ],
+      "states": [
+        "completed"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-settings-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MF-23"
+      ]
     },
     {
       "id": "admin.plugins",
-      "screens": ["plugins"],
-      "states": ["plugins-list", "plugins-empty", "plugins-error", "plugins-detail",
-        "plugins-restart", "plugins-install-failed"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-24"]
+      "screens": [
+        "plugins"
+      ],
+      "states": [
+        "plugins-list",
+        "plugins-empty",
+        "plugins-error",
+        "plugins-detail",
+        "plugins-restart",
+        "plugins-install-failed"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-24"
+      ]
     },
     {
       "id": "admin.automation",
-      "screens": ["automation"],
-      "states": ["automation-list", "automation-empty"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-25"]
+      "screens": [
+        "automation"
+      ],
+      "states": [
+        "automation-list",
+        "automation-empty"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-25"
+      ]
     },
     {
       "id": "admin.automation-detail",
-      "screens": ["automation"],
-      "states": ["automation-detail", "automation-editor", "automation-history",
-        "automation-conflict"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-26"]
+      "screens": [
+        "automation"
+      ],
+      "states": [
+        "automation-detail",
+        "automation-editor",
+        "automation-history",
+        "automation-conflict"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-26"
+      ]
     },
     {
       "id": "admin.more",
-      "screens": ["more"],
-      "states": ["more-actions"],
-      "drivers": ["device-ui-mock-suite.ps1"],
-      "e2eIds": ["MF-27"]
+      "screens": [
+        "more"
+      ],
+      "states": [
+        "more-actions"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "MF-27"
+      ]
     },
     {
       "id": "disclosure.expansion-matrix",
-      "screens": ["disclosure", "sidebar"],
-      "states": ["disclosure-task-plan", "disclosure-process-reasoning",
-        "disclosure-process-read", "disclosure-process-search",
-        "disclosure-process-terminal", "disclosure-process-diff",
-        "disclosure-process-nested", "disclosure-process-malformed",
-        "disclosure-process-empty", "disclosure-process-oversized",
+      "screens": [
+        "disclosure",
+        "sidebar"
+      ],
+      "states": [
+        "disclosure-task-plan",
+        "disclosure-process-reasoning",
+        "disclosure-process-read",
+        "disclosure-process-search",
+        "disclosure-process-terminal",
+        "disclosure-process-diff",
+        "disclosure-process-nested",
+        "disclosure-process-malformed",
+        "disclosure-process-empty",
+        "disclosure-process-oversized",
         "disclosure-process-web",
-        "disclosure-process-goal", "disclosure-process-job",
-        "disclosure-process-web-fetch", "disclosure-process-job-lifecycle",
-        "disclosure-process-read-image", "disclosure-process-command",
-        "disclosure-process-subagent", "disclosure-process-present",
-        "disclosure-process-image", "disclosure-process-question",
-        "disclosure-process-plugin", "disclosure-process-plan",
+        "disclosure-process-goal",
+        "disclosure-process-job",
+        "disclosure-process-web-fetch",
+        "disclosure-process-job-lifecycle",
+        "disclosure-process-read-image",
+        "disclosure-process-command",
+        "disclosure-process-subagent",
+        "disclosure-process-present",
+        "disclosure-process-image",
+        "disclosure-process-question",
+        "disclosure-process-plugin",
+        "disclosure-process-plan",
         "disclosure-process-order",
-        "disclosure-reasoning", "disclosure-legacy-tool", "disclosure-diff",
-        "disclosure-background-notice", "disclosure-queue",
-        "disclosure-sidebar-more", "disclosure-sidebar-group"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-disclosure-e2e.ps1"],
-      "e2eIds": ["DXM-01", "DXM-02", "DXM-03", "DXM-04", "DXM-05",
-        "DXM-06", "DXM-07", "DXM-08", "DXM-09", "DXM-10", "DXM-11",
-        "DXM-12", "DXM-13", "DXM-14", "DXM-15", "DXM-16", "DXM-17",
-        "DXM-18", "DXM-19", "DXM-20", "DXM-21", "DXM-22", "DXM-23",
-        "DXM-24", "DXM-25", "DXM-26", "DXM-27", "DXM-28", "DXM-29",
-        "DXM-30", "DXM-31", "DXM-32"],
+        "disclosure-reasoning",
+        "disclosure-legacy-tool",
+        "disclosure-diff",
+        "disclosure-background-notice",
+        "disclosure-queue",
+        "disclosure-sidebar-more",
+        "disclosure-sidebar-group"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-disclosure-e2e.ps1"
+      ],
+      "e2eIds": [
+        "DXM-01",
+        "DXM-02",
+        "DXM-03",
+        "DXM-04",
+        "DXM-05",
+        "DXM-06",
+        "DXM-07",
+        "DXM-08",
+        "DXM-09",
+        "DXM-10",
+        "DXM-11",
+        "DXM-12",
+        "DXM-13",
+        "DXM-14",
+        "DXM-15",
+        "DXM-16",
+        "DXM-17",
+        "DXM-18",
+        "DXM-19",
+        "DXM-20",
+        "DXM-21",
+        "DXM-22",
+        "DXM-23",
+        "DXM-24",
+        "DXM-25",
+        "DXM-26",
+        "DXM-27",
+        "DXM-28",
+        "DXM-29",
+        "DXM-30",
+        "DXM-31",
+        "DXM-32"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "permission.presets-and-one-shot-approval",
-      "screens": ["conversation", "settings"],
-      "states": ["permission-current-read-only", "permission-current-workspace",
-        "permission-current-full", "permission-current-custom", "permission-menu",
-        "permission-menu-error", "permission-full-confirm", "permission-full-cancel",
-        "approval-workspace-once", "approval-full-once", "approval-long-reason",
-        "approval-submitting", "approval-ended", "approval-disconnected",
-        "permission-default-setting"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-permissions-e2e.ps1"],
-      "e2eIds": ["PERM-01", "PERM-02", "PERM-03", "PERM-04", "PERM-05",
-        "PERM-06", "PERM-07", "PERM-08", "PERM-09", "PERM-10", "PERM-11",
-        "PERM-12", "PERM-13", "PERM-14", "PERM-15", "PERM-16"],
+      "screens": [
+        "conversation",
+        "settings"
+      ],
+      "states": [
+        "permission-current-read-only",
+        "permission-current-workspace",
+        "permission-current-full",
+        "permission-current-custom",
+        "permission-menu",
+        "permission-menu-error",
+        "permission-full-confirm",
+        "permission-full-cancel",
+        "approval-workspace-once",
+        "approval-full-once",
+        "approval-long-reason",
+        "approval-submitting",
+        "approval-ended",
+        "approval-disconnected",
+        "permission-default-setting"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-permissions-e2e.ps1"
+      ],
+      "e2eIds": [
+        "PERM-01",
+        "PERM-02",
+        "PERM-03",
+        "PERM-04",
+        "PERM-05",
+        "PERM-06",
+        "PERM-07",
+        "PERM-08",
+        "PERM-09",
+        "PERM-10",
+        "PERM-11",
+        "PERM-12",
+        "PERM-13",
+        "PERM-14",
+        "PERM-15",
+        "PERM-16"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "composer.model-picker-popup",
-      "screens": ["conversation"],
-      "states": ["model-menu"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-model-menu-e2e.ps1"],
-      "e2eIds": ["MP-01", "MP-02", "MP-03", "MP-04", "MP-05"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "model-menu"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-model-menu-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MP-01",
+        "MP-02",
+        "MP-03",
+        "MP-04",
+        "MP-05"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "composer.connection-banner",
-      "screens": ["conversation"],
-      "states": ["connection-retrying"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-status-banner-e2e.ps1"],
-      "e2eIds": ["BAN-01", "BAN-02", "BAN-03"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "connection-retrying"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-status-banner-e2e.ps1"
+      ],
+      "e2eIds": [
+        "BAN-01",
+        "BAN-02",
+        "BAN-03"
+      ],
       "requiresInteraction": true
     },
-
     {
       "id": "material.immersive-light",
-      "screens": ["conversation"],
-      "states": ["dock-material-elevated", "dock-material-quiet"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-material-e2e.ps1"],
-      "e2eIds": ["MAT-01", "MAT-02", "MAT-03"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "dock-material-elevated",
+        "dock-material-quiet"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-material-e2e.ps1"
+      ],
+      "e2eIds": [
+        "MAT-01",
+        "MAT-02",
+        "MAT-03"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "security.secret-mask",
-      "screens": ["conversation"],
-      "states": ["secret-masked"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-frontend-hardening-e2e.ps1"],
-      "e2eIds": ["FHH-01", "FHH-02", "FHH-03"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "secret-masked"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-frontend-hardening-e2e.ps1"
+      ],
+      "e2eIds": [
+        "FHH-01",
+        "FHH-02",
+        "FHH-03"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "transcript.stream-repair",
-      "screens": ["conversation"],
-      "states": ["stream-repaired"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-frontend-hardening-e2e.ps1"],
-      "e2eIds": ["FHH-04", "FHH-05"],
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "stream-repaired"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-frontend-hardening-e2e.ps1"
+      ],
+      "e2eIds": [
+        "FHH-04",
+        "FHH-05"
+      ],
       "requiresInteraction": true
     },
     {
       "id": "store.review-demo",
-      "screens": ["conversation", "settings"],
-      "states": ["showcase-plan"],
-      "drivers": ["device-ui-mock-suite.ps1", "device-ui-store-review-e2e.ps1"],
-      "e2eIds": ["SR-01", "SR-02", "SR-03", "SR-04", "SR-05",
-        "SR-06", "SR-07", "SR-08", "SR-09", "SR-10", "SR-11", "SR-12", "SR-13"],
+      "screens": [
+        "conversation",
+        "settings"
+      ],
+      "states": [
+        "showcase-plan"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-store-review-e2e.ps1"
+      ],
+      "e2eIds": [
+        "SR-01",
+        "SR-02",
+        "SR-03",
+        "SR-04",
+        "SR-05",
+        "SR-06",
+        "SR-07",
+        "SR-08",
+        "SR-09",
+        "SR-10",
+        "SR-11",
+        "SR-12",
+        "SR-13"
+      ],
       "requiresInteraction": true
     },
     {
@@ -425,6 +991,25 @@
         "STR-R3",
         "STR-R4",
         "STR-R5"
+      ],
+      "requiresInteraction": true
+    },
+    {
+      "id": "transcript.running-tail",
+      "screens": [
+        "conversation"
+      ],
+      "states": [
+        "stream-tail"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1",
+        "device-ui-running-tail-e2e.ps1"
+      ],
+      "e2eIds": [
+        "RUN-01",
+        "RUN-02",
+        "RUN-03"
       ],
       "requiresInteraction": true
     }

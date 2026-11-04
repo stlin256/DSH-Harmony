@@ -4,7 +4,7 @@ export class NativeUiFixture {
     'subagent', 'plugins', 'automation', 'more'
   ];
   static readonly states: string[] = [
-    'iteration-notice', 'completed', 'live-change', 'attachments', 'streaming', 'stream-long', 'stream-burst-quiet', 'stream-reconnect', 'connection-retrying', 'subagent-unavailable', 'empty', 'long-history',
+    'iteration-notice', 'completed', 'live-change', 'attachments', 'streaming', 'stream-long', 'stream-tail', 'stream-burst-quiet', 'stream-reconnect', 'connection-retrying', 'subagent-unavailable', 'empty', 'long-history',
     'showcase-plan', 'showcase-process', 'showcase-lineage', 'showcase-dark',
     'showcase-dark-process', 'showcase-subagent', 'showcase-approval',
     'secret-masked', 'stream-repaired', 'document-preview',

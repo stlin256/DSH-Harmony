@@ -57,6 +57,7 @@ import { NativeHistoryRetryPolicy, nativeHistoryPageAdvanced } from '../services
 import { NativePlanDocument, nativeLatestPlan, nativePlanSignature } from '../services/NativePlan';
 import { nativeDshUiCanReply } from '../services/NativeDshUi';
 import { NativeTaskDock } from './NativeTaskDock';
+import { NativeRunningTail } from './NativeRunningTail';
 import { NativeConversationDock } from './NativeConversationDock';
 import {
   nativeLiveTurnChange,
@@ -3960,6 +3961,12 @@ export struct NativeWorkspace {
             }
           }
         })
+      if (this.running) {
+        NativeRunningTail({
+          turnKey: this.running ? 'running' : '',
+          paused: this.connectionPhase !== 'live'
+        }).transition(NativeMotion.rowTransition())
+      }
       ForEach(this.interactions.concat(this.continued), (frame: NativeFrame) => {
         NativeInteraction({ client: this.client, frame, onDone: (): void => {
           this.interactions = this.interactions.filter((item: NativeFrame) => item.eventId !== frame.eventId);

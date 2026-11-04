@@ -1678,6 +1678,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
       if (this.fixtureState === 'stream-burst-quiet' ||
           this.fixtureState === 'stream-reconnect') this.startSyntheticHeartbeats();
       if (this.fixtureState === 'stream-long') this.startLongStream();
+    if (this.fixtureState === 'stream-tail') this.startTailStream();
       if (this.fixtureState === 'stream-burst-quiet') this.startBurstStream();
       if (this.fixtureState === 'stream-reconnect') {
         this.syntheticFollowCount++;
@@ -2826,6 +2827,30 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     this.emit([idle], quietMs + 5000, (): void => { this.syntheticRunning = false; });
   }
 
+  /** Long-running turn that never settles, so the running tail can be observed. */
+  private startTailStream(): void {
+    let revision = 0;
+    let index = 0;
+    const start = new NativeFrame();
+    start.type = 'start';
+    start.attemptId = 'showcase-tail-attempt';
+    start.revision = ++revision;
+    start.nextIndex = 0;
+    this.emit([start], 60);
+    const running = new NativeFrame();
+    running.type = 'state';
+    running.running = true;
+    running.waiting = false;
+    this.emit([running], 60);
+    const delta = new NativeFrame();
+    delta.type = 'delta';
+    delta.attemptId = 'showcase-tail-attempt';
+    delta.revision = ++revision;
+    delta.index = index++;
+    delta.text = '仍在深度求索，保持会话运行以检查底部状态行。';
+    this.emit([delta], 140);
+  }
+
   private startLongStream(): void {
     const source = showcaseLongStreamText();
     let revision = 0;
@@ -2837,6 +2862,11 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     start.revision = ++revision;
     start.nextIndex = 0;
     this.emit([start], 80);
+    const running = new NativeFrame();
+    running.type = 'state';
+    running.running = true;
+    running.waiting = false;
+    this.emit([running], 40);
     const pump = (): void => {
       const timer = setTimeout((): void => {
         this.timers = this.timers.filter((value: number): boolean => value !== timer);
