@@ -392,7 +392,7 @@ struct Index {
     AppStorage.setOrCreate<boolean>('showcaseReduceMotion',
       this.store?.getSync('storeReviewReduceMotion', false) === true);
     AppStorage.setOrCreate<boolean>('showcaseReduceTransparency',
-      this.store?.getSync('storeReviewReduceTransparency', false) === true);
+      this.store?.getSync('storeReviewReduceTransparency', true) === true);
     AppStorage.setOrCreate<boolean>('showcaseWidgetDetails',
       this.store?.getSync('storeReviewWidgetDetails', true) === true);
     AppStorage.setOrCreate<boolean>('showcaseBackgroundMonitor',
@@ -618,7 +618,7 @@ struct Index {
         return value;
       }
       if (command === 'nativeCompatibilityActive') return '{}';
-      return JSON.stringify({ reduceMotion: false, reduceTransparency: false, themeMode: value });
+      return JSON.stringify({ reduceMotion: false, reduceTransparency: true, themeMode: value });
     }
     if (!this.bridge) throw new Error('Not connected');
     return await this.bridge.performNative(command, value);

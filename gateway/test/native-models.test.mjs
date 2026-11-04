@@ -122,6 +122,9 @@ test('system material guards old runtimes and respects opacity, motion and power
   new ChromeMaterialModifier(0).applyNormalAttribute({ systemMaterial: value => { applied = value; } });
   assert.equal(applied, undefined);
   deviceInfo.sdkApiVersion = 26;
+  // The default now stays pre-immersive; opting out of reduced transparency enables materials.
+  assert.equal(NativeExperience.materialsEnabled(), false);
+  NativeExperience.setPreference(context, 'reduceTransparency', false);
   assert.equal(NativeExperience.materialsEnabled(), true);
   new ChromeMaterialModifier(1).applyNormalAttribute({ systemMaterial: value => { applied = value; } });
   assert.equal(applied.options.interactive, true);
@@ -1908,10 +1911,10 @@ test('turn change card and bottom live control keep compact ownership and motion
   assert.match(dock, /if \(this\.elevated && NativeExperience\.materialsEnabled\(\)\)/);
   assert.match(dock, /\.width\('100%'\)\.height\(this\.measuredHeight\)/);
   assert.doesNotMatch(dock, /\.width\('100%'\)\.height\('100%'\)/);
-  assert.match(dock, /\.backgroundBlurStyle\(BlurStyle\.COMPONENT_ULTRA_THIN/);
+  assert.match(dock, /NativeMaterialColumnModifier\([\s\S]{0,90}NativeMaterialSurface\.BOTTOM_DOCK/);
   assert.doesNotMatch(dock, /\.linearGradientBlur\(/,
     'foreground blur on an empty material layer cannot create a gradient backdrop blur');
-  assert.match(dock, /Component material performs the actual backdrop blur/);
+  assert.match(dock, /The maintained material list supplies the immersive system/);
   assert.match(dock, /\.linearGradient\(\{[\s\S]{0,300}angle: 180/);
   assert.match(dock,
     /NativeDesign\.blurScrimTop\(false\)[\s\S]{0,180}NativeDesign\.blurScrimBottom\(false\)/);

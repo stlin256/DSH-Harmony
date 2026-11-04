@@ -198,8 +198,14 @@ $motionAfter = Dump-Layout 'motion-on'
 $null = Query-Node $motionAfter $reduceMotionText 'clickable' 'true'
 
 # Exercise the switch control itself directly.
-$transparencySwitch = Query-Node $motionAfter $reduceTransparencyText 'checkable' 'false'
+# Default is ON (pre-immersive). Toggling off opts into immersive materials.
+$transparencySwitch = Query-Node $motionAfter $reduceTransparencyText 'checkable' 'true'
 Invoke-Click $transparencySwitch
+$materialAfter = Dump-Layout 'transparency-off'
+$null = Query-Node $materialAfter $reduceMotionText 'clickable' 'true'
+$null = Query-Node $materialAfter $reduceTransparencyText 'checkable' 'false'
+Capture-Screen 'transparency-off'
+Invoke-Click (Query-Node $materialAfter $reduceTransparencyText 'checkable' 'false')
 $bothAfter = Dump-Layout 'both-on'
 $null = Query-Node $bothAfter $reduceMotionText 'clickable' 'true'
 $null = Query-Node $bothAfter $reduceTransparencyText 'checkable' 'true'

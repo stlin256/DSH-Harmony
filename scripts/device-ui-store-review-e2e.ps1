@@ -331,6 +331,9 @@ try {
   Start-Sleep -Milliseconds 400
   Tap-Id 'settings-theme-dark'
   Tap-Id 'settings-toggle-reduceMotion'
+  # Default is ON; toggle off (immersive) and back on so the persisted state
+  # asserted after relaunch stays the pre-immersive default.
+  Tap-Id 'settings-toggle-reduceTransparency'
   Tap-Id 'settings-toggle-reduceTransparency'
   Start-Sleep -Milliseconds 600
   Capture-Screen 'settings-appearance'

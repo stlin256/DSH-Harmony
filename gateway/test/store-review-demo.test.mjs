@@ -224,7 +224,7 @@ test('review settings mutate host values, enforce revisions and reset ordinary r
   assert.match(index,
     /NativeExperience\.refresh\(this\.context\);[\s\S]{0,120}this\.nativeThemeMode = AppStorage\.get<string>\('nativeThemeMode'\)/);
   assert.match(experience, /store\.getSync\('reduceMotion', false\)/);
-  assert.match(experience, /store\.getSync\('reduceTransparency', false\)/);
+  assert.match(experience, /store\.getSync\('reduceTransparency', true\)/);
   assert.match(experience, /if \(!preservePresentation\)/);
   assert.match(entryAbility,
     /NativeExperience\.refresh\(this\.context,[\s\S]{0,180}storeReviewPresentationActive[\s\S]{0,100}storeShowcase/);

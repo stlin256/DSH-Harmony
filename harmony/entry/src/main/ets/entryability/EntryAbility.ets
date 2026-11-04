@@ -90,8 +90,9 @@ export default class EntryAbility extends UIAbility {
       AppStorage.setOrCreate<boolean>('showcaseReduceMotion',
         showcaseReduceMotion === true || showcaseReduceMotion === 'true');
       const showcaseReduceTransparency = want.parameters?.showcaseReduceTransparency;
+      // Default stays pre-effect (opaque); an explicit false opts into materials.
       AppStorage.setOrCreate<boolean>('showcaseReduceTransparency',
-        showcaseReduceTransparency === true || showcaseReduceTransparency === 'true');
+        !(showcaseReduceTransparency === false || showcaseReduceTransparency === 'false'));
     } else {
       // Store review activation must pass through the fixed-origin credential
       // check in Index; exported Want parameters cannot open the showcase.
