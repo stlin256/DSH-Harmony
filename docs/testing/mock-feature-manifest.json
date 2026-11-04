@@ -372,6 +372,14 @@
     },
 
     {
+      "id": "material.immersive-light",
+      "screens": ["conversation"],
+      "states": ["dock-material-elevated", "dock-material-quiet"],
+      "drivers": ["device-ui-mock-suite.ps1", "device-ui-material-e2e.ps1"],
+      "e2eIds": ["MAT-01", "MAT-02", "MAT-03"],
+      "requiresInteraction": true
+    },
+    {
       "id": "security.secret-mask",
       "screens": ["conversation"],
       "states": ["secret-masked"],

@@ -76,6 +76,9 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'light'; ReduceTransparency = $true },
   [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'dark'; ReduceTransparency = $true },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'dark'; ImmersiveMaterial = $true },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-elevated'; Theme = 'light'; ImmersiveMaterial = $true },
+  [pscustomobject]@{ Screen = 'conversation'; State = 'dock-material-quiet'; Theme = 'dark'; ImmersiveMaterial = $true },
   [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-approval'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-approval'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'conversation'; State = 'interaction-question'; Theme = 'light' },
@@ -370,6 +373,10 @@ foreach ($scenario in $scenarios) {
       $scenario.ReduceTransparency) {
     $arguments.ReduceTransparency = $true
   }
+  if ($scenario.PSObject.Properties.Name -contains 'ImmersiveMaterial' -and
+      $scenario.ImmersiveMaterial) {
+    $arguments.ImmersiveMaterial = $true
+  }
 
   # Build and install once. Reinstalling between graphical scenarios only
   # introduces unrelated process-termination noise.
@@ -387,6 +394,10 @@ foreach ($scenario in $scenarios) {
     if ($scenario.PSObject.Properties.Name -contains 'ReduceTransparency' -and
         $scenario.ReduceTransparency) {
       $captureDir += '-reduced-transparency'
+    }
+    if ($scenario.PSObject.Properties.Name -contains 'ImmersiveMaterial' -and
+        $scenario.ImmersiveMaterial) {
+      $captureDir += '-material'
     }
     if ($scenario.PSObject.Properties.Name -contains 'ReduceMotion' -and
         $scenario.ReduceMotion) {

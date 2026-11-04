@@ -3,6 +3,10 @@ import { NativeMotion } from '../services/NativeMotion';
 import { NativePlanDocument, nativePlanProgress } from '../services/NativePlan';
 import { NativePlanView } from './NativePlanView';
 import { NativeDesign } from '../services/NativeDesign';
+import {
+  NativeMaterialColumnModifier,
+  NativeMaterialSurface
+} from '../services/NativeMaterials';
 
 /** Floating current-plan control anchored below the conversation title. */
 @Component
@@ -10,6 +14,7 @@ export struct NativeTaskDock {
   @Prop @Watch('sessionChanged') document: NativePlanDocument = new NativePlanDocument();
   @Prop @Watch('sessionChanged') sessionId: string = '';
   @StorageLink('nativeDark') private dark: boolean = false;
+  @StorageLink('nativeExperienceRevision') private experienceRevision: number = 0;
   @State private expanded: boolean = false;
   onHeight: (height: number) => void = (_height: number): void => {};
   private currentSession: string = '';
@@ -59,7 +64,10 @@ export struct NativeTaskDock {
           .transition(NativeMotion.disclosureTransition())
       }
     }.width('100%').constraintSize({ maxWidth: 620 }).clip(true)
+      .id('task-dock')
       .borderRadius(NativeDesign.radiusGroup)
+      .attributeModifier(new NativeMaterialColumnModifier(
+        NativeMaterialSurface.TASK_DOCK, this.experienceRevision))
       .backgroundColor(NativeDesign.raised(this.dark))
       .border({ width: 0.5, color: NativeDesign.border(this.dark) })
       .shadow({ radius: 18, color: this.dark ? '#88000000' : '#26000000',

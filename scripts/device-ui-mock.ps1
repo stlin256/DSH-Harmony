@@ -121,7 +121,8 @@ param(
   [switch]$SkipInstall,
   [switch]$ResetData,
   [switch]$ReduceMotion,
-  [switch]$ReduceTransparency
+  [switch]$ReduceTransparency,
+  [switch]$ImmersiveMaterial
 )
 
 $ErrorActionPreference = 'Stop'
@@ -304,6 +305,7 @@ if ($ResetData) {
 $variantSuffix = ''
 if ($ReduceMotion) { $variantSuffix += '-reduced-motion' }
 if ($ReduceTransparency) { $variantSuffix += '-reduced-transparency' }
+if ($ImmersiveMaterial) { $variantSuffix += '-material' }
 $captureName = "$State-$Theme-$Screen$variantSuffix"
 $captureDir = Join-Path $OutputDir $captureName
 New-Item -ItemType Directory -Force -Path $captureDir | Out-Null
@@ -314,6 +316,7 @@ $launch = "aa start -a EntryAbility -b $bundle -m entry " +
   "--ps showcaseState $State --ps showcaseTheme $Theme"
 if ($ReduceMotion) { $launch += ' --ps showcaseReduceMotion true' }
 if ($ReduceTransparency) { $launch += ' --ps showcaseReduceTransparency true' }
+if ($ImmersiveMaterial) { $launch += ' --ps showcaseReduceTransparency false' }
 & $hdc -t $Device shell $launch
 if ($LASTEXITCODE -ne 0) {
   throw "Fixture launch failed: $State/$Theme/$Screen"
@@ -391,6 +394,7 @@ $manifest = [ordered]@{
     theme = $Theme
     reduceMotion = [bool]$ReduceMotion
     reduceTransparency = [bool]$ReduceTransparency
+    immersiveMaterial = [bool]$ImmersiveMaterial
     tailScroll = $tailEvidence
   }
   files = [ordered]@{

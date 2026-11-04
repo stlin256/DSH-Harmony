@@ -46,7 +46,8 @@ function Launch-Fixture {
     [string]$State,
     [string]$Theme = 'dark',
     [bool]$First = $false,
-    [bool]$ReduceTransparency = $false
+    [bool]$ReduceTransparency = $false,
+    [bool]$ImmersiveMaterial = $false
   )
 
   $arguments = @{
@@ -65,6 +66,9 @@ function Launch-Fixture {
   }
   if ($ReduceTransparency) {
     $arguments.ReduceTransparency = $true
+  }
+  if ($ImmersiveMaterial) {
+    $arguments.ImmersiveMaterial = $true
   }
   & $mockScript @arguments | Out-Host
 }
@@ -242,7 +246,7 @@ $null = Query-Node $quietLayout '发送消息…' 'text' 1
 $null = Query-Node $quietLayout '2 条排队消息' 'text' 0
 Capture-Screen 'dock-material-quiet'
 
-Launch-Fixture -State 'dock-material-elevated' -Theme 'dark' -First $false
+Launch-Fixture -State 'dock-material-elevated' -Theme 'dark' -First $false -ImmersiveMaterial $true
 $elevatedLayout = Dump-Layout 'dock-material-elevated'
 $null = Query-Node $elevatedLayout '2 条排队消息' 'text' 1
 $null = Query-Node $elevatedLayout '发送消息…' 'text' 1

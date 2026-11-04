@@ -1,6 +1,10 @@
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeMotion } from '../services/NativeMotion';
 import { NativeDesign } from '../services/NativeDesign';
+import {
+  NativeMaterialColumnModifier,
+  NativeMaterialSurface
+} from '../services/NativeMaterials';
 
 /**
  * Shared bottom conversation layout. Extra dock content enables a conditionally
@@ -12,6 +16,7 @@ export struct NativeBottomConversationDock {
   @StorageLink('nativeSafeBottom') private safeBottom: number = 0;
   @StorageLink('nativeImeVisible') private imeVisible: boolean = false;
   @StorageLink('nativeDark') private dark: boolean = false;
+  @StorageLink('nativeExperienceRevision') private experienceRevision: number = 0;
   @Prop horizontalBleed: number = 0;
   @Prop contentInset: number = 12;
   @Prop elevated: boolean = false;
@@ -23,12 +28,11 @@ export struct NativeBottomConversationDock {
       if (this.elevated && NativeExperience.materialsEnabled()) {
         Stack({ alignContent: Alignment.Bottom }) {
           Column()
-            // Component material performs the actual backdrop blur. The
-            // theme gradient below only controls visibility of that material.
+            // The maintained material list supplies the immersive system
+            // material (with light feedback); the gradient controls falloff.
             .width('100%').height(this.measuredHeight)
-            .backgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THIN, {
-              colorMode: this.dark ? ThemeColorMode.DARK : ThemeColorMode.LIGHT
-            })
+            .attributeModifier(new NativeMaterialColumnModifier(
+              NativeMaterialSurface.BOTTOM_DOCK, this.experienceRevision))
           Column()
             .width('100%').height(this.measuredHeight)
             // A translucent theme scrim provides the visible top-to-bottom
