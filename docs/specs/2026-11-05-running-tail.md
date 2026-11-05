@@ -33,19 +33,21 @@ Authoritative start:
   disappear.
 - The gradient band travels from `-0.35` to `1.35`; its alpha is gated so it
   starts and ends fully invisible; the wrap is therefore unobservable.
-- The whale is a 18vp Stack of the base and glow stills; the glow opacity
-  follows the same travel value, so light crosses the icon, glyphs and dots.
+- The whale is an 18vp `ImageAnimator` (15 colorized APNG frames, 3s loop) plus
+  a static glow overlay whose opacity follows the same travel value, so light
+  crosses the icon, glyphs and dots. Reduced motion uses the first frame.
 - Entry animates 190ms (height/opacity/offset); the workspace keeps the row
   mounted for the 170ms leave animation, then removes it.
-- Reduced motion skips both timers' visual effect: flat gradient, static
-  icon, no translations. The clock still updates.
+- Reduced motion skips both timers' visual effect: flat gradient, first whale
+  frame, no translations. The clock still updates.
 
 ## Workspace integration
 
-The row is a conditional `ListItem` after the `LazyForEach` transcript rows
-(inside the scrollable list, before the bottom spacer). `syncRunningTail`
-expands/contracts a `runningTailVisible` + `runningTailLeaving` pair. The
-non-motion return-to-bottom index includes the extra row.
+The row is a sibling between the transcript `Stack` and the interaction area:
+rendered while `runningTailVisible && followTail`, so it stays pinned above the
+composer and disappears when the user scrolls up. `syncRunningTail`
+expands/contracts a `runningTailVisible` + `runningTailLeaving` pair and drives
+`runningTailEnter` for the appearance/exit animation.
 
 ## Verification
 

@@ -126,11 +126,13 @@ claim.
 - Plugin switch refresh and one-line feedback banner on Mock HAP
   `F97B026F23CFCF0A9216D134A43F6D259CA9099A14C1D1822977913B18E506A3`:
   `artifacts/device-e2e/plugin-toggle/plugin-toggle/manifest.json`.
-- Running tail revision (authoritative Host clock, in-flow placement,
-  continuous sweep, animated APNG-derived whale, appearance/disappearance) is
-  implemented and gate-tested; current-device evidence is Pending because the
-  device was screen-locked at delivery. The earlier animated-WebP ticker
-  evidence on Mock HAP `3F187D64…` is superseded and must not be cited.
+- Running tail revision (authoritative Host clock, pinned above the composer
+  while following, continuous sweep, native ImageAnimator whale from DSH APNG
+  frames, appearance/disappearance) on Mock HAP
+  `61BE2BB9852CB5DAB68A6B868F73F3421DEBD67DCFEC8B5412B5C7DB109EF8F0`:
+  `artifacts/device-e2e/running-tail/running-tail/manifest.json`.
+  Live-Host observation of a Host-started turn remains Pending; the earlier
+  animated-WebP ticker evidence is superseded.
 - Conversation stability: 180-second Mock continuous-stream liveness sample
   12/12; device fault logs are not readable over `hdc`, so the reported midday
   crash stack remains uncollected: `artifacts/conversation-stress/manifest.json`.

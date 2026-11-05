@@ -30,18 +30,18 @@ the pass disappears before the timeline wraps, making the loop continuous.
 
 ## Icon and placement
 
-`Shape` + `Path` rendered the DSH fallback at its own coordinate scale, which
-measured ~14px wide on device instead of 18vp. The icon now uses two authored
-stills from the DSH APNG (base and glow colours) so the size and crop are
-exact, with the glow still driven by the same sweep timeline. The row moved
-from below the transcript list into a conditional `ListItem` after the last
-message, with a parent-held exit window so the leave animation can finish.
+`Shape` + `Path` measured ~14px wide on device instead of 18vp, and an animated
+WebP did not advance under the sweep rebuild loop. The whale now uses ArkUI
+`ImageAnimator` with 15 PNG frames decoded once from the DSH APNG (3s loop),
+inside `NativeRunningWhale` so parent state never rebuilds it. The row is a
+static trailing `ListItem` after the last message; the workspace owns the
+appearance/exit progress so list refreshes cannot replay it.
 
-## Animated WebP removal
+## Animated-WebP ticker removal
 
 The first implementation mounted a 48-frame animated WebP inside a 100ms
 rotate/scale ticker. Device feedback reported conversation jank and multiple
-crashes in the same build window. Animated WebP re-decodes while a transform
-state changes every 100ms, and the ticker also updated backgrounded views.
-That combination was removed: stills are decoded once, the sweep runs at 33ms
-only in the foreground, and every timer is cleared on disappear.
+crashes in the same build window. The ticker and WebP were removed; the whale
+is now an `ImageAnimator` frame loop, the sweep runs at 33ms only in the
+foreground, and every timer is cleared on disappear. A 180-second continuous
+Mock stream kept the process alive for 12/12 samples.
