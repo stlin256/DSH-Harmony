@@ -205,6 +205,10 @@ export struct NativeWorkspace {
   @State private sending: boolean = false;
   @State private connectionPhase: string = 'idle';
   @State private running: boolean = false;
+  @State private runningTailVisible: boolean = false;
+  @State private runningTailLeaving: boolean = false;
+  @State private runningTailEnter: number = 1;
+  private runningTailTimer: number = -1;
   @State private waiting: boolean = false;
   @State private queue: NativeQueueItem[] = [];
   @State private pendingQueue: NativeQueueItem[] = [];
@@ -993,6 +997,7 @@ export struct NativeWorkspace {
     clearTimeout(this.scrollMotionSettleTimer); clearTimeout(this.scrollTailTimer);
     clearTimeout(this.processEntranceTimer);
     clearTimeout(this.processTailTimer);
+    clearTimeout(this.runningTailTimer);
     clearTimeout(this.drawerSettleTimer);
     clearTimeout(this.destinationTimer);
     clearTimeout(this.permissionWaitTimer);
@@ -2601,10 +2606,70 @@ export struct NativeWorkspace {
   }
   private paint(): void {
     if (!this.mounted) return;
+    const wasRunning = this.running;
     this.running = this.model.running; this.waiting = this.model.waiting; this.hasMore = this.model.hasMore;
+    this.syncRunningTail(wasRunning);
     this.syncAuthoritativeQueue();
     this.renderTranscript();
     this.scheduleTailScroll();
+  }
+
+  /** Keep the running row mounted through its exit animation, then remove it. */
+  private syncRunningTail(wasRunning: boolean): void {
+    if (this.running) {
+      if (this.runningTailTimer >= 0) { clearTimeout(this.runningTailTimer); this.runningTailTimer = -1; }
+      if (this.runningTailLeaving) this.runningTailLeaving = false;
+      if (!this.runningTailVisible) {
+        this.runningTailVisible = true;
+        if (NativeMotion.enabled()) {
+          this.runningTailEnter = 0;
+          animateTo({ duration: 190, curve: Curve.FastOutSlowIn }, (): void => { this.runningTailEnter = 1; });
+        } else {
+          this.runningTailEnter = 1;
+        }
+      }
+      return;
+    }
+    if (!this.runningTailVisible || this.runningTailLeaving) return;
+    if (!NativeMotion.enabled()) {
+      this.runningTailVisible = false;
+      this.runningTailLeaving = false;
+      this.runningTailEnter = 1;
+      return;
+    }
+    this.runningTailLeaving = true;
+    animateTo({ duration: 170, curve: Curve.FastOutSlowIn }, (): void => { this.runningTailEnter = 0; });
+    this.runningTailTimer = setTimeout((): void => {
+      this.runningTailTimer = -1;
+      if (!this.mounted) return;
+      this.runningTailVisible = false;
+      this.runningTailLeaving = false;
+      this.runningTailEnter = 1;
+    }, 230);
+  }
+
+  /** The turn start comes from the Host event log, never from the app open time. */
+
+  private runningTurnStartedAt(): number {
+    if (!this.running) return 0;
+    if (this.model.runningTurnStartedAt > 0) return this.model.runningTurnStartedAt;
+    const messages = this.model.messages;
+    let turn = -1;
+    let startedAt = 0;
+    for (let index = messages.length - 1; index >= 0; index--) {
+      const row = messages[index];
+      if (row.role === 'turn' && row.eventType === 'turn/start' && row.turn >= 0 && row.time > 0) {
+        turn = row.turn;
+        startedAt = row.time;
+        break;
+      }
+    }
+    if (turn < 0 || startedAt <= 0) return 0;
+    for (let index = messages.length - 1; index >= 0; index--) {
+      const row = messages[index];
+      if (row.role === 'turn' && row.eventType === 'turn/end' && row.turn === turn) return 0;
+    }
+    return startedAt;
   }
   private projectedTurnChange(turnKey: string): NativeTurnChangeSummary | null {
     return nativeTurnChangeFor(this.turnChanges, turnKey);
@@ -3214,7 +3279,8 @@ export struct NativeWorkspace {
         this.visibleRows[this.visibleRows.length - 1]?.id !== message.id) return;
       try {
         if (NativeMotion.enabled()) this.scroller.scrollEdge(Edge.Bottom, { velocity: 5200 });
-        else this.scroller.scrollToIndex(this.transcriptIndex(message), false, ScrollAlign.END);
+        else this.scroller.scrollToIndex(this.transcriptIndex(message) +
+          (this.runningTailVisible ? 1 : 0), false, ScrollAlign.END);
       } catch (_) {}
     }, 0);
     this.returnToBottomTimer = setTimeout((): void => {
@@ -3228,7 +3294,8 @@ export struct NativeWorkspace {
     this.backToBottomNew = false;
     this.followTail = true;
     this.returningToBottom = true;
-    const lastIndex = this.visibleRows.length - 1 + this.transcriptLeadingItems();
+    const lastIndex = this.visibleRows.length - 1 + this.transcriptLeadingItems() +
+      (this.runningTailVisible ? 1 : 0);
     if (!NativeMotion.enabled()) {
       try { this.scroller.scrollToIndex(lastIndex, false, ScrollAlign.END); } catch (_) {}
       try { this.scroller.scrollEdge(Edge.Bottom); } catch (_) {}
@@ -3859,6 +3926,15 @@ export struct NativeWorkspace {
           // Stable row identity retains the incremental Markdown buffer. The
           // live text binds to component state, independently of LazyForEach's cache.
           }, (message: NativeMessage) => message.id)
+          ListItem() {
+            if (this.runningTailVisible) {
+              NativeRunningTail({
+                startedAt: this.runningTurnStartedAt(),
+                paused: this.connectionPhase !== 'live',
+                progress: this.runningTailEnter
+              })
+            }
+          }.id('running-tail-item')
           if (this.bottomDockExtraHeight > 0) {
             ListItem() {
               Row().width('100%').height(this.bottomDockExtraHeight)
@@ -3961,12 +4037,6 @@ export struct NativeWorkspace {
             }
           }
         })
-      if (this.running) {
-        NativeRunningTail({
-          turnKey: this.running ? 'running' : '',
-          paused: this.connectionPhase !== 'live'
-        }).transition(NativeMotion.rowTransition())
-      }
       ForEach(this.interactions.concat(this.continued), (frame: NativeFrame) => {
         NativeInteraction({ client: this.client, frame, onDone: (): void => {
           this.interactions = this.interactions.filter((item: NativeFrame) => item.eventId !== frame.eventId);

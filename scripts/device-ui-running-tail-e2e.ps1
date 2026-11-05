@@ -47,6 +47,11 @@ function Find-Text([string]$Layout, [string]$Text) {
   if ($LASTEXITCODE -ne 0) { throw "Missing text: $Text" }
   return (($raw -join '') | ConvertFrom-Json)
 }
+function Find-Id([string]$Layout, [string]$Id) {
+  $raw = & python $queryScript $Layout --find-id $Id --target clickable 2>&1
+  if ($LASTEXITCODE -ne 0) { throw "Missing id: $Id" }
+  return (($raw -join '') | ConvertFrom-Json)
+}
 function Assert-TailText([string]$Layout) {
   $null = Find-Text $Layout '深度求索中'
 }
@@ -71,6 +76,21 @@ function Region-Diff([string]$A, [string]$B, [int[]]$Region) {
   if ($LASTEXITCODE -ne 0) { throw 'Region diff failed.' }
   return (($raw -join '') | ConvertFrom-Json)
 }
+function Node-Found([string]$Layout, [string]$Id) {
+  $geometryScript = Join-Path $PSScriptRoot 'device-ui-layout-toggle.py'
+  $raw = & python $geometryScript $Layout $Id 2>$null
+  if ($LASTEXITCODE -ne 0 -or -not $raw) { return $false }
+  $node = (($raw -join '') | ConvertFrom-Json)
+  return [bool]$node.found
+}
+function Node-Geometry([string]$Layout, [string]$Id) {
+  $geometryScript = Join-Path $PSScriptRoot 'device-ui-layout-toggle.py'
+  $raw = & python $geometryScript $Layout $Id 2>&1
+  if ($LASTEXITCODE -ne 0) { throw "Node lookup failed: $Id" }
+  $node = (($raw -join '') | ConvertFrom-Json)
+  if (-not $node.found) { throw "Missing node: $Id" }
+  return $node
+}
 function Elapsed-Seconds([string]$Layout) {
   $secondsScript = Join-Path $PSScriptRoot 'device-ui-running-seconds.py'
   $raw = & python $secondsScript $Layout 2>&1
@@ -89,11 +109,32 @@ $first = Capture-Screen 'dark-a'
 Start-Sleep -Milliseconds 260
 $second = Capture-Screen 'dark-b'
 $diff = Region-Diff $first $second $region
+$textNode = Find-Text $layout '深度求索中'
+$textMatch = [regex]::Match([string]$textNode.bounds, '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$')
+$iconRegion = @(0,0,0,0)
+$iconAnimated = $false
+if ($textMatch.Success) {
+  $iconRegion = @([Math]::Max(0, [int]$textMatch.Groups[1].Value - 110),
+    [Math]::Max(0, [int]$textMatch.Groups[2].Value - 6),
+    [Math]::Max(0, [int]$textMatch.Groups[1].Value - 8),
+    [Math]::Min(2844, [int]$textMatch.Groups[2].Value + 58))
+  $iconDiff = Region-Diff $first $second $iconRegion
+  $iconAnimated = [bool]$iconDiff.changed
+}
+if (-not $iconAnimated) { throw 'Whale icon did not animate between frames.' }
 Start-Sleep -Milliseconds 2300
 $later = Dump-Layout 'dark-later'
 $null = Find-Text $later '深度求索中'
 $afterSeconds = Elapsed-Seconds $later
 if (-not ($afterSeconds -gt $beforeSeconds)) { throw "Elapsed clock did not advance: $beforeSeconds -> $afterSeconds" }
+if ($beforeSeconds -lt 9 -or $beforeSeconds -gt 25) {
+  throw "Running clock did not use the Host turn start: $beforeSeconds seconds after launch"
+}
+$tailNode = Node-Geometry $layout 'running-tail'
+$composerNode = Node-Geometry $layout 'composer-input'
+if (-not ($tailNode.y -lt $composerNode.y)) {
+  throw 'Running tail is not placed above the composer inside the transcript.'
+}
 if (-not $diff.changed) { throw 'Running-tail region did not animate.' }
 # Scrolling the transcript must not detach the tail line.
 & $hdc -t $Device shell 'uitest uiInput swipe 630 1500 630 1200 260' | Out-Null
@@ -101,10 +142,9 @@ Start-Sleep -Milliseconds 350
 $scrolled = Dump-Layout 'dark-scrolled'
 $null = Find-Text $scrolled '深度求索中'
 Capture-Screen 'dark-scrolled' | Out-Null
-$results += [pscustomobject]@{ scenario = 'dark-live'; theme = 'dark'; reducedMotion = $false;
+$results += [pscustomobject]@{ scenario = 'dark-live'; theme = 'dark'; reducedMotion = $false; authoritativeStart = $true; placement = 'above-composer'; whaleAnimated = $iconAnimated;
   elapsedBefore = $beforeSeconds; elapsedAfter = $afterSeconds; regionChanged = [bool]$diff.changed;
   regionDelta = $diff.mean_delta }
-
 # Light theme keeps the same copy and legibility.
 & $mockScript -DevEcoHome $DevEcoHome -Device $Device -OutputDir $OutputDir -Screen 'conversation' -State 'stream-tail' -Theme 'light' -SkipBuild -SkipInstall | Out-Host
 Start-Sleep -Milliseconds 1800
@@ -121,19 +161,37 @@ $quietLayout = Dump-Layout 'reduced-live'
 Assert-TailText $quietLayout
 $quietRegion = Tail-Region $quietLayout
 $static = $false
-for ($attempt = 0; $attempt -lt 4 -and -not $static; $attempt++) {
+# The one-second clock may tick between two captures; retry until a pair falls
+# inside the same displayed second. Reduced motion must otherwise be static.
+for ($attempt = 0; $attempt -lt 8 -and -not $static; $attempt++) {
   $quietA = Capture-Screen ("reduced-a-$attempt")
-  $quietLabelA = Elapsed-Seconds $quietLayout
-  Start-Sleep -Milliseconds 200
+  Start-Sleep -Milliseconds 120
   $quietB = Capture-Screen ("reduced-b-$attempt")
-  $quietLabelB = Elapsed-Seconds $quietLayout
-  if ($quietLabelA -ne $quietLabelB) { continue }
   $quietDiff = Region-Diff $quietA $quietB $quietRegion
-  $static = -not $quietDiff.changed
+  if (-not $quietDiff.changed) { $static = $true }
 }
 if (-not $static) { throw 'Reduced-motion running tail still animates.' }
 Capture-Screen 'reduced-live' | Out-Null
 $results += [pscustomobject]@{ scenario = 'reduced-live'; theme = 'dark'; reducedMotion = $true; staticRegion = $static }
+
+# In-flow placement and animated appear/disappear: stopping the running turn
+# removes the tail from the transcript without leaving the conversation.
+
+& $mockScript -DevEcoHome $DevEcoHome -Device $Device -OutputDir $OutputDir -Screen 'conversation' -State 'stream-tail' -Theme 'dark' -SkipBuild -SkipInstall | Out-Host
+Start-Sleep -Milliseconds 2200
+$visibleLayout = Dump-Layout 'end-visible'
+Assert-TailText $visibleLayout
+Capture-Screen 'end-visible' | Out-Null
+$visibleNode = Node-Geometry $visibleLayout 'running-tail'
+$stop = Find-Id $visibleLayout 'composer-stop'
+& $hdc -t $Device shell ("uitest uiInput click " + [int]$stop.x + " " + [int]$stop.y) | Out-Null
+Start-Sleep -Milliseconds 900
+$goneLayout = Dump-Layout 'end-gone'
+$gone = -not (Node-Found $goneLayout 'running-tail')
+if (-not $gone) { throw 'Running tail did not disappear after the turn settled.' }
+Capture-Screen 'end-gone' | Out-Null
+$results += [pscustomobject]@{ scenario = 'appear-disappear'; theme = 'dark';
+  appeared = [bool]$visibleNode.found; disappeared = $gone }
 
 $manifest = @{ generatedAt = [DateTime]::UtcNow.ToString('o'); result = 'Passed'; variant = 'mock'; hapSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $hap).Hash; apiVersion = ((& $hdc -t $Device shell 'param get const.ohos.apiversion') -join '').Trim(); scenarios = $results }
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $captureDir 'manifest.json') -Encoding utf8

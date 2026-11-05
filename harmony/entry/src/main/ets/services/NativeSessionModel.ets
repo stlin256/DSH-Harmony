@@ -322,6 +322,8 @@ export class NativeFrame {
   replaceEnd: number = -1;
   running: boolean = false;
   waiting: boolean = false;
+  /** Authoritative epoch ms of the open turn start, when the opening snapshot knows it. */
+  turnStartedAt: number = 0;
   stateKnown: boolean = false;
   projectionSeq: number = -1;
   plan: NativePlanProjection | null = null;
@@ -363,6 +365,8 @@ export class NativeSessionCacheRecord {
   cursor: number = -1;
   openingSnapshotApplied: boolean = false;
   collapseThrough: number = -1;
+  turnStartedAt: number = 0;
+  runningTurnStartedAt: number = 0;
 }
 
 /** One session projection. The workspace persists its record in encrypted RDB. */
@@ -381,6 +385,8 @@ export class NativeSessionModel {
   hasMore: boolean = false;
   running: boolean = false;
   waiting: boolean = false;
+  /** Authoritative epoch ms of the running turn start; 0 when unknown or idle. */
+  runningTurnStartedAt: number = 0;
   queue: NativeQueueItem[] = [];
   streamText: string = '';
   streamReasoning: string = '';
@@ -512,6 +518,7 @@ export class NativeSessionModel {
     value.cursor = this.cursor;
     value.openingSnapshotApplied = this.openingSnapshotApplied;
     value.collapseThrough = this.collapseThrough;
+    value.runningTurnStartedAt = this.runningTurnStartedAt;
     return value;
   }
 
@@ -560,6 +567,8 @@ export class NativeSessionModel {
     this.cursor = Number.isSafeInteger(value.cursor) ? value.cursor : -1;
     this.openingSnapshotApplied = value.openingSnapshotApplied === true || this.cursor >= 0;
     this.collapseThrough = Number.isSafeInteger(value.collapseThrough) ? value.collapseThrough : -1;
+    this.runningTurnStartedAt = Number.isFinite(value.runningTurnStartedAt) && value.runningTurnStartedAt > 0 ?
+      value.runningTurnStartedAt : 0;
   }
 
   private remember(ranges: NativeReplacement[]): void {
@@ -622,10 +631,17 @@ export class NativeSessionModel {
       this.streamTools = []; this.streamParts = [];
       this.appendStreamParts(frame.streamParts);
       this.updateTools(frame.toolUpdates);
+      this.runningTurnStartedAt = Number.isFinite(frame.turnStartedAt) && frame.turnStartedAt > 0 ?
+        frame.turnStartedAt : 0;
     } else if (frame.type === 'state') {
       this.running = frame.running;
       this.waiting = frame.waiting;
+      if (!this.running) this.runningTurnStartedAt = 0;
       if (frame.queueKnown === true) this.queue = frame.queue || [];
+    } else if (frame.type === 'turn-start') {
+      if (Number.isFinite(frame.turnStartedAt) && frame.turnStartedAt > 0) {
+        this.runningTurnStartedAt = frame.turnStartedAt;
+      }
     } else if (frame.type === 'event') {
       this.cursor = frame.seq;
       if (frame.replaceStart >= 0 && frame.replaceEnd >= frame.replaceStart) {
@@ -635,6 +651,11 @@ export class NativeSessionModel {
       }
       if (frame.message && this.visible(frame.message)) {
         this.messages = this.messages.concat([frame.message]);
+      }
+      if (frame.message?.eventType === 'turn/start' && frame.message.time > 0) {
+        this.runningTurnStartedAt = frame.message.time;
+      } else if (frame.message?.eventType === 'turn/end') {
+        this.runningTurnStartedAt = 0;
       }
       if (this.settlementAttemptId &&
           (frame.seq > this.settlementSeq ||

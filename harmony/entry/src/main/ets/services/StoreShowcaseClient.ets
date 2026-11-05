@@ -1540,6 +1540,8 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     });
     const seedQueue = showcaseQueue(this.fixtureState);
     this.interaction = new NativeShowcaseInteraction(seedMessages, seedRunning, seedCursor, seedQueue);
+    // The stream-tail fixture simulates a turn started elsewhere nine seconds ago.
+    if (this.fixtureState === 'stream-tail') this.interaction.turnStartedAt = Date.now() - 9000;
     if (isSubagentFixtureState(this.fixtureState)) {
       [SHOWCASE_CHILD_CONTINUABLE, SHOWCASE_CHILD_ONE_SHOT, SHOWCASE_CHILD_UNKNOWN]
         .forEach((id: string): void => {
@@ -1656,6 +1658,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   private syntheticFollowCount: number = 0;
   private syntheticChildFailure: boolean = false;
   private syntheticRunning: boolean = false;
+  private tailPumpActive: boolean = false;
 
   async follow(id: string, receive: (frame: NativeFrame) => void, _ended: (reason: string) => void): Promise<void> {
     const child = this.childInteractions.get(id);
@@ -1679,6 +1682,19 @@ export class StoreShowcaseClient extends NativeHarnessClient {
           this.fixtureState === 'stream-reconnect') this.startSyntheticHeartbeats();
       if (this.fixtureState === 'stream-long') this.startLongStream();
     if (this.fixtureState === 'stream-tail') this.startTailStream();
+      if (this.fixtureState === 'stream-tail-end') {
+        this.startTailStream();
+        const timer = setTimeout((): void => {
+          this.timers = this.timers.filter((value: number): boolean => value !== timer);
+          if (!this.receiverReady || this.paused) return;
+          const stopped = new NativeFrame();
+          stopped.type = 'state';
+          stopped.running = false;
+          stopped.waiting = false;
+          this.emit([stopped], 0);
+        }, 6000);
+        this.timers.push(timer);
+      }
       if (this.fixtureState === 'stream-burst-quiet') this.startBurstStream();
       if (this.fixtureState === 'stream-reconnect') {
         this.syntheticFollowCount++;
@@ -2770,6 +2786,15 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   }
 
   async cancel(id: string, address: NativeSessionAddress | null = null): Promise<void> {
+    if (this.fixtureState === 'stream-tail' && address?.kind !== 'subagent') {
+      this.tailPumpActive = false;
+      const stopped = new NativeFrame();
+      stopped.type = 'state';
+      stopped.running = false;
+      stopped.waiting = false;
+      this.emit([stopped], 40);
+      return;
+    }
     const target = address?.kind === 'subagent' ? this.childInteractions.get(id) : this.interaction;
     if (target) this.emit(target.cancel(), 80);
   }
@@ -2831,6 +2856,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
   private startTailStream(): void {
     let revision = 0;
     let index = 0;
+    this.tailPumpActive = true;
     const start = new NativeFrame();
     start.type = 'start';
     start.attemptId = 'showcase-tail-attempt';
@@ -2842,13 +2868,22 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     running.running = true;
     running.waiting = false;
     this.emit([running], 60);
-    const delta = new NativeFrame();
-    delta.type = 'delta';
-    delta.attemptId = 'showcase-tail-attempt';
-    delta.revision = ++revision;
-    delta.index = index++;
-    delta.text = '仍在深度求索，保持会话运行以检查底部状态行。';
-    this.emit([delta], 140);
+    const pump = (): void => {
+      const timer = setTimeout((): void => {
+        this.timers = this.timers.filter((value: number): boolean => value !== timer);
+        if (!this.receiverReady || this.paused || !this.tailPumpActive) return;
+        const delta = new NativeFrame();
+        delta.type = 'delta';
+        delta.attemptId = 'showcase-tail-attempt';
+        delta.revision = revision;
+        delta.index = index++;
+        delta.text = index % 3 === 0 ? '仍在深度求索。' : '持续输出中，';
+        this.emit([delta], 0);
+        pump();
+      }, 340);
+      this.timers.push(timer);
+    };
+    pump();
   }
 
   private startLongStream(): void {

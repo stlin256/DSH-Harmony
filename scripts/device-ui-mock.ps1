@@ -23,6 +23,7 @@ param(
     'stream-reconnect',
     'connection-retrying',
     'stream-tail',
+  'stream-tail-end',
     'subagent-unavailable',
     'secret-masked',
     'stream-repaired',

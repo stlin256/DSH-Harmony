@@ -4,6 +4,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {
   normalizeFollow,
+  latestOpenTurnStartedAtFromRecords,
   nativeProjectionChanges,
   nativeHistoryFailure,
   normalizePermissionCatalog,
@@ -979,7 +980,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         upstream.send(JSON.stringify({ type: 'open', streamId: 'interactions', endpoint: '$events', payload: { args: {} } }));
         for (const [streamId, method, request] of [
           ['history', 'follow', { address, activate: address.kind === 'session',
-            assistantStream: true, maxMessages: 24 }],
+            assistantStream: true, maxMessages: 32,
+            turnWindow: { minMessages: 8, minTurns: 1 } }],
           ['state', 'observeState', { sessionId: id }],
           ['projections', 'observeProjections', { sessionId: id }]
         ]) upstream.send(JSON.stringify({ type: 'open', streamId, endpoint: 'session/' + method, payload: { args: { request } } }));
@@ -1165,6 +1167,17 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
                 active.revision = value.revision || active.revision;
               }
               send(value);
+              if (value.type === 'snapshot' && !value.turnStartedAt) {
+                // Long turns can push turn/start outside the opening window; fetch the
+                // authoritative start so the native running clock survives app opens.
+                rpc('page', { address, throughSeq: value.cursor,
+                  turnWindow: { minMessages: 1, minTurns: 1 }, maxMessages: 400 })
+                  .then(page => {
+                    const startedAt = latestOpenTurnStartedAtFromRecords(page?.records);
+                    if (startedAt > 0 && client.readyState === 1) send({ type: 'turn-start', turnStartedAt: startedAt });
+                  })
+                  .catch(() => {});
+              }
             } else if (frame.value?.type === 'assistant-stream') {
               // A malformed assistant revision cannot be repaired in-place:
               // dropping it would leave the socket healthy while the visible

@@ -1,8 +1,8 @@
-// Exercises the running-tail copy under the native service loader.
+// Exercises the running-tail copy, authoritative clock, text shimmer and
+// in-flow placement under the native service loader.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import ts from 'typescript';
 
@@ -38,27 +38,45 @@ test('running label never guesses a duration before the turn start is known', ()
   assert.equal(nativeRunningElapsed(1000, 5000, true, 0), 4000);
 });
 
-test('running tail keeps the DSH whale, shimmer and reduced-motion fallback', () => {
+test('running tail uses the Host turn start and a gradient text sweep', () => {
   const tail = readFileSync(new URL('NativeRunningTail.ets', components), 'utf8');
-  assert.match(tail, /M8\.844 13\.742/);
-  assert.match(tail, /running_whale_dark/);
-  assert.match(tail, /running_whale_light/);
-  assert.match(tail, /this\.whaleTilt = wave \* 12;/);
-  assert.match(tail, /this\.whaleScale = 0\.86/);
-  assert.match(tail, /setInterval\(\(\): void => \{ this\.stepAnimation\(\); \}, 100\)/);
-  assert.match(tail, /NativeDesign\.deepDivingShimmer\(this\.dark\)/);
-  assert.match(tail, /Shape\(\) \{[\s\S]{0,200}RUNNING_WHALE_PATH/);
-  assert.match(tail, /nativeRunningLabel\(this\.elapsed\(\), this\.paused\)/);
+  assert.match(tail, /@Prop startedAt: number = 0/);
+  assert.doesNotMatch(tail, /this\.startedAt = Date\.now\(\)/);
+  assert.match(tail, /nativeRunningElapsed\(this\.startedAt, this\.now, this\.paused, this\.frozenElapsed\)/);
+  assert.match(tail, /new LinearGradientStyle/);
+  assert.match(tail, /withAlpha\(NativeDesign\.deepDivingShimmer/);
+  assert.match(tail, /private bandGate\(\): number/);
+  assert.match(tail, /running_whale_glow_dark/);
+  const whale = readFileSync(new URL('NativeRunningWhale.ets', components), 'utf8');
+  assert.match(whale, /app\.media\.running_whale_loop_dark/);
+  assert.match(tail, /NativeRunningWhale\(\{ dark: this\.dark \}\)/);
+  assert.match(tail, /shaderStyle\(this\.labelStyle\(\)\)/);
+  assert.match(tail, /SWEEP_CYCLE_MS = 2000/);
+  assert.match(tail, /SWEEP_INTERVAL_MS = 33/);
+  assert.match(tail, /this\.mounted = false/);
+  assert.doesNotMatch(tail, /RUNNING_WHALE_PATH/);
+  assert.doesNotMatch(tail, /whaleTilt|stepAnimation/);
   const workspace = readFileSync(new URL(
     '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
-  assert.match(workspace, /if \(this\.running\) \{[\s\S]{0,120}NativeRunningTail\(/);
-  assert.match(workspace, /turnKey: this\.running \? 'running' : ''/);
+  assert.match(workspace, /private runningTurnStartedAt\(\): number/);
+  assert.match(workspace, /animateTo\(\{ duration: 190, curve: Curve\.FastOutSlowIn \}, \(\): void => \{ this\.runningTailEnter = 1; \}\);/);
+  assert.match(workspace, /this\.model\.runningTurnStartedAt/);
+  assert.match(workspace, /private syncRunningTail\(wasRunning: boolean\)/);
+  assert.match(workspace, /ListItem\(\) \{\s*if \(this\.runningTailVisible\)/);
+  assert.match(workspace, /NativeRunningTail\(\{[\s\S]{0,240}startedAt: this\.runningTurnStartedAt\(\),\s*\r?\n?\s*paused:[\s\S]{0,120}progress: this\.runningTailEnter/);
+  assert.doesNotMatch(workspace, /if \(this\.running\) \{\s*NativeRunningTail/);
   for (const name of ['running_whale_dark.webp', 'running_whale_light.webp']) {
+    assert.equal(existsSync(new URL(name, media)), false, name + ' must stay removed');
+  }
+  for (const name of ['running_whale_loop_dark.webp', 'running_whale_loop_light.webp']) {
     const file = new URL(name, media);
     assert.ok(existsSync(file), name + ' missing');
     const bytes = readFileSync(file);
     assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
     assert.equal(bytes.toString('ascii', 8, 12), 'WEBP');
     assert.ok(bytes.includes(Buffer.from('ANIM')), name + ' must be animated');
+  }
+  for (const name of ['running_whale_glow_dark.png', 'running_whale_glow_light.png']) {
+    assert.ok(existsSync(new URL(name, media)), name + ' missing');
   }
 });

@@ -539,6 +539,42 @@ export function nativeHistoryFailure(code) {
   return { type: 'error', code: retryable ? 'history-unavailable' : code, retryable };
 }
 
+/** Latest turn start that has no matching turn end in the supplied rows. */
+export function latestOpenTurnStartedAt(messages) {
+  let turn = -1;
+  let startedAt = 0;
+  for (const message of Array.isArray(messages) ? messages : []) {
+    if (message?.eventType === 'turn/start' && Number.isSafeInteger(message.turn) && message.turn >= 0 &&
+        Number.isFinite(message.time) && message.time > 0) {
+      turn = message.turn;
+      startedAt = message.time;
+    }
+  }
+  if (turn < 0 || startedAt <= 0) return 0;
+  for (const message of messages) {
+    if (message?.eventType === 'turn/end' && message.turn === turn) return 0;
+  }
+  return startedAt;
+}
+
+/** Latest open turn start from raw SessionHistoryRecord events. */
+export function latestOpenTurnStartedAtFromRecords(records) {
+  let turn = -1;
+  let startedAt = 0;
+  for (const record of Array.isArray(records) ? records : []) {
+    const event = record?.event;
+    if (event?.type !== 'turn/start' || !Number.isSafeInteger(event.data?.turn) ||
+        !Number.isFinite(event.time) || event.time <= 0) continue;
+    turn = event.data.turn;
+    startedAt = event.time;
+  }
+  if (turn < 0 || startedAt <= 0) return 0;
+  for (const record of records) {
+    if (record?.event?.type === 'turn/end' && record.event.data?.turn === turn) return 0;
+  }
+  return startedAt;
+}
+
 export function normalizeFollow(frame) {
   if (frame?.type === 'snapshot') {
     const active = frame.assistantStream?.activeAttempt;
@@ -574,6 +610,7 @@ export function normalizeFollow(frame) {
     }
     const history = normalizedHistory(frame.records);
     return { type: 'snapshot', ...history, cursor: frame.cursor, hasMore: frame.hasMore, beforeSeq: frame.records?.[0]?.event?.seq ?? 0,
+      turnStartedAt: latestOpenTurnStartedAt(history.messages),
       attemptId: active?.attemptId || '', nextIndex: active?.nextIndex ?? 0,
       revision: frame.assistantStream.revision,
       startedAfterSeq: active?.startedAfterSeq ?? -1,

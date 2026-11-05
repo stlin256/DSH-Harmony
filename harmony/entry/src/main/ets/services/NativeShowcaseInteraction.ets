@@ -100,6 +100,8 @@ export class NativeShowcaseInteraction {
   queue: NativeQueueItem[] = [];
   running: boolean = false;
   waiting: boolean = false;
+  /** Authoritative open-turn start (epoch ms) so the running tail shows a real clock. */
+  turnStartedAt: number = 0;
   cursor: number = 0;
   private streamRevision: number = 0;
   private turn: number = 1;
@@ -126,6 +128,7 @@ export class NativeShowcaseInteraction {
     frame.hasMore = false;
     frame.running = this.running;
     frame.waiting = this.waiting;
+    frame.turnStartedAt = this.turnStartedAt;
     frame.revision = this.streamRevision;
     frame.queueKnown = true;
     frame.queue = this.queue.slice();

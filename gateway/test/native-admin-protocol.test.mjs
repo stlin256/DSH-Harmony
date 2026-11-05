@@ -120,3 +120,23 @@ test('automation request validation rejects unknown fields and malformed timing'
   });
 });
 
+
+test('latest open turn start survives a truncated opening window', async () => {
+  const { latestOpenTurnStartedAt, latestOpenTurnStartedAtFromRecords } = await import('../src/native-protocol.mjs');
+  const open = [
+    { eventType: 'turn/start', turn: 1, time: 1000 },
+    { eventType: 'user/message', turn: 1, time: 1200 },
+    { eventType: 'turn/start', turn: 2, time: 9000 }
+  ];
+  assert.equal(latestOpenTurnStartedAt(open), 9000);
+  assert.equal(latestOpenTurnStartedAt(open.concat([{ eventType: 'turn/end', turn: 2, time: 9500 }])), 0);
+  assert.equal(latestOpenTurnStartedAt([{ eventType: 'user/message', turn: 2, time: 9000 }]), 0);
+  const records = [
+    { event: { type: 'turn/start', seq: 1, time: 7000, data: { turn: 1 } } },
+    { event: { type: 'user/message', seq: 2, time: 7100, data: {} } }
+  ];
+  assert.equal(latestOpenTurnStartedAtFromRecords(records), 7000);
+  assert.equal(latestOpenTurnStartedAtFromRecords(records.concat([
+    { event: { type: 'turn/end', seq: 3, time: 7200, data: { turn: 1 } } }
+  ])), 0);
+});
