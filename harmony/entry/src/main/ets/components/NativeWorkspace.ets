@@ -209,6 +209,9 @@ export struct NativeWorkspace {
   @State private runningTailLeaving: boolean = false;
   @State private runningTailEnter: number = 1;
   private runningTailTimer: number = -1;
+  private turnStartCursor: number = -1;
+  private turnStartRunning: boolean = false;
+  @State private runningTurnStart: number = 0;
   @State private waiting: boolean = false;
   @State private queue: NativeQueueItem[] = [];
   @State private pendingQueue: NativeQueueItem[] = [];
@@ -2611,6 +2614,7 @@ export struct NativeWorkspace {
     this.syncRunningTail(wasRunning);
     this.syncAuthoritativeQueue();
     this.renderTranscript();
+    this.syncRunningTurnStart();
     this.scheduleTailScroll();
   }
 
@@ -2650,8 +2654,22 @@ export struct NativeWorkspace {
 
   /** The turn start comes from the Host event log, never from the app open time. */
 
-  private runningTurnStartedAt(): number {
-    if (!this.running) return 0;
+  /** Keep the reactive start value; only rescan when the cursor or running state moves. */
+  private syncRunningTurnStart(): void {
+    const cursor = this.model.lastSeq();
+    if (!this.running) {
+      this.turnStartCursor = cursor;
+      this.turnStartRunning = false;
+      if (this.runningTurnStart !== 0) this.runningTurnStart = 0;
+      return;
+    }
+    const stale = this.turnStartCursor !== cursor || !this.turnStartRunning || this.runningTurnStart === 0;
+    this.turnStartCursor = cursor;
+    this.turnStartRunning = true;
+    if (stale) this.runningTurnStart = this.computeRunningTurnStart();
+  }
+  /** The turn start comes from the Host event log, never from the app open time. */
+  private computeRunningTurnStart(): number {
     if (this.model.runningTurnStartedAt > 0) return this.model.runningTurnStartedAt;
     const messages = this.model.messages;
     let turn = -1;
@@ -2671,6 +2689,11 @@ export struct NativeWorkspace {
     }
     return startedAt;
   }
+
+  private runningTurnStartedAt(): number {
+    return this.running ? this.runningTurnStart : 0;
+  }
+
   private projectedTurnChange(turnKey: string): NativeTurnChangeSummary | null {
     return nativeTurnChangeFor(this.turnChanges, turnKey);
   }

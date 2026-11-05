@@ -12,3 +12,9 @@ Date: 2026-11-05
   updates cannot reorder or remount it.
 - Record the mock 3-minute liveness sample and the device fault-log access
   limitation; a real-Host crash stack is still required if crashes recur.
+
+- Cache the authoritative running-turn start by `model.lastSeq()` and running
+  state instead of scanning `messages` from build on every frame.
+- Keep the 6-minute continuous-render stress sample as the current liveness
+  evidence; a real-Host crash reproduction is still required to prove the
+  crash fix.

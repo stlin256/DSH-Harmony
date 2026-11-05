@@ -129,12 +129,12 @@ claim.
 - Running tail revision (authoritative Host clock, in-flow last row like the DSH
   chat, scrolls down with the content, continuous sweep, timer-driven whale from DSH APNG frames,
   appearance/disappearance) on Mock HAP
-  `026AFFFADE02399E44B8551B7F20AFB291F0DCB911D135863F0684FCA2FC18AE`:
+  `39CFD9C8DAE64F4D3949B10C20B1C4BF8C92E9EDE4D80C616E26434CDC39CA46`:
   `artifacts/device-e2e/running-tail/running-tail/manifest.json`.
   Live-Host observation of a Host-started turn remains Pending; the earlier
   animated-WebP ticker evidence is superseded.
-- Conversation stability: 180-second Mock continuous-stream liveness sample
-  12/12; device fault logs are not readable over `hdc`, so the reported midday
+- Conversation stability: 6-minute continuous-render Mock liveness sample
+  18/18 (and the earlier 3-minute 12/12); device fault logs are not readable over `hdc`, so the reported midday
   crash stack remains uncollected: `artifacts/conversation-stress/manifest.json`.
 - Permission switch Host fix and full-access checkbox on real Host (plugin
   `0.3.9`, default Release HAP `18525C75…`) and Mock HAP `2E6DDD55…`:

@@ -29,3 +29,18 @@ samples; the sample predates the final revision and is recorded in
 `artifacts/conversation-stress/manifest.json`. Device fault logging for
 future crashes requires the user to export a faultlog or unlock the device for
 `hdc` log capture.
+
+## Follow-up (2026-11-06)
+
+- `runningTurnStartedAt()` scanned the whole loaded transcript twice from the
+  build phase on every paint (30-40fps). On long conversations this becomes an
+  O(history) main-thread cost per frame and matches the reported stutter. The
+  value is now cached by event cursor/running state (`syncRunningTurnStart`),
+  so the build path is O(1).
+- A 6-minute continuous-rendering stress run (whale frame swaps, 33ms sweep,
+  streaming projection) kept the app alive 18/18 samples with zero
+  JS/native crash lines in hilog. Process PSS sampling needs a working
+  `hidumper --mem` parser before it can rule out slow leaks.
+- Fault logs are still unreadable by the `shell` user; the midday crash stack
+  remains uncollected. A crash that reproduces now while `hdc hilog` is
+  streaming, or an exported faultlog, is required to close the crash item.
