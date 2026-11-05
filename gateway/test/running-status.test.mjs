@@ -48,7 +48,8 @@ test('running tail uses the Host turn start and a gradient text sweep', () => {
   assert.match(tail, /private bandGate\(\): number/);
   assert.match(tail, /running_whale_glow_dark/);
   const whale = readFileSync(new URL('NativeRunningWhale.ets', components), 'utf8');
-  assert.match(whale, /app\.media\.running_whale_loop_dark/);
+  assert.match(whale, /ImageAnimator\(\)/);
+  assert.match(whale, /app\.media\.running_whale_frame_dark_00/);
   assert.match(tail, /NativeRunningWhale\(\{ dark: this\.dark \}\)/);
   assert.match(tail, /shaderStyle\(this\.labelStyle\(\)\)/);
   assert.match(tail, /SWEEP_CYCLE_MS = 2000/);
@@ -62,21 +63,14 @@ test('running tail uses the Host turn start and a gradient text sweep', () => {
   assert.match(workspace, /animateTo\(\{ duration: 190, curve: Curve\.FastOutSlowIn \}, \(\): void => \{ this\.runningTailEnter = 1; \}\);/);
   assert.match(workspace, /this\.model\.runningTurnStartedAt/);
   assert.match(workspace, /private syncRunningTail\(wasRunning: boolean\)/);
-  assert.match(workspace, /ListItem\(\) \{\s*if \(this\.runningTailVisible\)/);
-  assert.match(workspace, /NativeRunningTail\(\{[\s\S]{0,240}startedAt: this\.runningTurnStartedAt\(\),\s*\r?\n?\s*paused:[\s\S]{0,120}progress: this\.runningTailEnter/);
+  assert.match(workspace, /if \(this\.runningTailVisible && this\.followTail\)/);
+  assert.match(workspace, /NativeRunningTail\(\{[\s\S]{0,200}startedAt: this\.runningTurnStartedAt\(\)[\s\S]{0,200}progress: this\.runningTailEnter/);
   assert.doesNotMatch(workspace, /if \(this\.running\) \{\s*NativeRunningTail/);
   for (const name of ['running_whale_dark.webp', 'running_whale_light.webp']) {
     assert.equal(existsSync(new URL(name, media)), false, name + ' must stay removed');
   }
-  for (const name of ['running_whale_loop_dark.webp', 'running_whale_loop_light.webp']) {
-    const file = new URL(name, media);
-    assert.ok(existsSync(file), name + ' missing');
-    const bytes = readFileSync(file);
-    assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
-    assert.equal(bytes.toString('ascii', 8, 12), 'WEBP');
-    assert.ok(bytes.includes(Buffer.from('ANIM')), name + ' must be animated');
-  }
-  for (const name of ['running_whale_glow_dark.png', 'running_whale_glow_light.png']) {
+  for (const name of ['running_whale_glow_dark.png', 'running_whale_glow_light.png',
+    'running_whale_frame_dark_00.png', 'running_whale_frame_light_14.png']) {
     assert.ok(existsSync(new URL(name, media)), name + ' missing');
   }
 });

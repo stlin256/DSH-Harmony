@@ -108,19 +108,18 @@ $beforeSeconds = Elapsed-Seconds $layout
 $first = Capture-Screen 'dark-a'
 Start-Sleep -Milliseconds 260
 $second = Capture-Screen 'dark-b'
+Start-Sleep -Milliseconds 500
+$third = Capture-Screen 'dark-c'
 $diff = Region-Diff $first $second $region
-$textNode = Find-Text $layout '深度求索中'
-$textMatch = [regex]::Match([string]$textNode.bounds, '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$')
+$tailNode = Node-Geometry $layout 'running-tail'
 $iconRegion = @(0,0,0,0)
 $iconAnimated = $false
-if ($textMatch.Success) {
-  $iconRegion = @([Math]::Max(0, [int]$textMatch.Groups[1].Value - 110),
-    [Math]::Max(0, [int]$textMatch.Groups[2].Value - 6),
-    [Math]::Max(0, [int]$textMatch.Groups[1].Value - 8),
-    [Math]::Min(2844, [int]$textMatch.Groups[2].Value + 58))
-  $iconDiff = Region-Diff $first $second $iconRegion
-  $iconAnimated = [bool]$iconDiff.changed
-}
+$iconRegionScript = Join-Path $PSScriptRoot 'device-ui-icon-region.py'
+$regionRaw = & python $iconRegionScript $layout 'running-tail' 2>$null
+$parsedRegion = [int[]](($regionRaw -join '') | ConvertFrom-Json)
+$iconRegion = @($parsedRegion[0], $parsedRegion[1], $parsedRegion[2], $parsedRegion[3])
+$iconDiff = Region-Diff $first $third $iconRegion
+$iconAnimated = [bool]$iconDiff.changed
 if (-not $iconAnimated) { throw 'Whale icon did not animate between frames.' }
 Start-Sleep -Milliseconds 2300
 $later = Dump-Layout 'dark-later'
@@ -136,12 +135,6 @@ if (-not ($tailNode.y -lt $composerNode.y)) {
   throw 'Running tail is not placed above the composer inside the transcript.'
 }
 if (-not $diff.changed) { throw 'Running-tail region did not animate.' }
-# Scrolling the transcript must not detach the tail line.
-& $hdc -t $Device shell 'uitest uiInput swipe 630 1500 630 1200 260' | Out-Null
-Start-Sleep -Milliseconds 350
-$scrolled = Dump-Layout 'dark-scrolled'
-$null = Find-Text $scrolled '深度求索中'
-Capture-Screen 'dark-scrolled' | Out-Null
 $results += [pscustomobject]@{ scenario = 'dark-live'; theme = 'dark'; reducedMotion = $false; authoritativeStart = $true; placement = 'above-composer'; whaleAnimated = $iconAnimated;
   elapsedBefore = $beforeSeconds; elapsedAfter = $afterSeconds; regionChanged = [bool]$diff.changed;
   regionDelta = $diff.mean_delta }

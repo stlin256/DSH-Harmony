@@ -3926,15 +3926,7 @@ export struct NativeWorkspace {
           // Stable row identity retains the incremental Markdown buffer. The
           // live text binds to component state, independently of LazyForEach's cache.
           }, (message: NativeMessage) => message.id)
-          ListItem() {
-            if (this.runningTailVisible) {
-              NativeRunningTail({
-                startedAt: this.runningTurnStartedAt(),
-                paused: this.connectionPhase !== 'live',
-                progress: this.runningTailEnter
-              })
-            }
-          }.id('running-tail-item')
+
           if (this.bottomDockExtraHeight > 0) {
             ListItem() {
               Row().width('100%').height(this.bottomDockExtraHeight)
@@ -4037,6 +4029,14 @@ export struct NativeWorkspace {
             }
           }
         })
+      if (this.runningTailVisible && this.followTail) {
+        NativeRunningTail({
+          startedAt: this.runningTurnStartedAt(),
+          paused: this.connectionPhase !== 'live',
+          progress: this.runningTailEnter
+        }).id('running-tail-item')
+          .transition(NativeMotion.statusBannerTransition())
+      }
       ForEach(this.interactions.concat(this.continued), (frame: NativeFrame) => {
         NativeInteraction({ client: this.client, frame, onDone: (): void => {
           this.interactions = this.interactions.filter((item: NativeFrame) => item.eventId !== frame.eventId);

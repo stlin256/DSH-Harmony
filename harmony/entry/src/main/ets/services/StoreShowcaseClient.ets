@@ -2875,7 +2875,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
         const delta = new NativeFrame();
         delta.type = 'delta';
         delta.attemptId = 'showcase-tail-attempt';
-        delta.revision = revision;
+        delta.revision = ++revision;
         delta.index = index++;
         delta.text = index % 3 === 0 ? '仍在深度求索。' : '持续输出中，';
         this.emit([delta], 0);
