@@ -1,38 +1,47 @@
-# Running tail research (DSH web chat)
+# Running tail research
 
-Date: 2026-11-05. Inspected the pinned DSH 0.2.2-rc.1 client packages on the
-Host (`@deepseek-ai/dsh-client-ui-chat`, `@deepseek-ai/dsh-client-ui-theme`,
-`@deepseek-ai/dsh-web-frontend`).
+Date: 2026-11-05
 
-## Structure
+## Upstream reference
 
-- `RunningStatus` renders a 0.5px divider, then a 28px content row with 6px
-  gap: `RunningWhaleTail` plus `TextShimmer(label)`.
-- Locale: `chat.deepDiving` = `深度求索中`; `chat.deepDivingFor` =
-  `深度求索中，用时 {duration} ···`; durations use
-  `{seconds}秒` / `{minutes}分{seconds}秒`, hours after 60 minutes.
-- The clock uses the turn's authoritative start time; before it arrives the
-  label stays `深度求索中`. It ticks every second with a 1s floor, freezes
-  while disconnected and resolves immediately under reduced motion.
+The pinned DSH client uses a 60-frame 28x28 APNG for the whale, a 1.5s
+`TextShimmer` overlay for the label and `location.turn.start.time` for the
+clock. The label copy comes from `chat.deepDiving`.
 
-## Whale
+## Timing source
 
-- Animated form: APNG `running-whale@2x-*.png`, 28x28, 60 frames x 50ms,
-  used as an alpha mask filled with the label color.
-- Static fallback: SVG path
-  `M8.844 13.742C8.967 12.328 8.45 10.4 ... 4.926 13.742` in a 16x16
-  viewBox, 1px stroke.
+`turn/start` is a durable Session event with `seq`, `time` and
+`data.turn` (verified in the live Host session log). The native gateway now
+exposes the latest open turn start in the follow snapshot
+(`turnStartedAt`), requests a `turnWindow` so the opening window crosses a
+turn start, and, when a long turn pushed the start outside the window, fetches
+a bounded back-page and delivers a `turn-start` frame. The client stores
+`runningTurnStartedAt`, also updates it from live `turn/start` / `turn/end`
+events, clears it when the state stops running and persists it in the
+transcript cache.
 
-## Text shimmer
+## Light sweep
 
-- A duplicate text layer in `--dsw-alias-label-shimmer` is clipped by a
-  105deg gradient mask and swept by `translate(-100%) -> translate(100%)`.
-- Timing: 1.5s duration, 0.3s delay, `steps(48, end)`, infinite; the sweep
-  completes by 66.6667% and holds. Reduced motion hides the decoration layer.
-- Tokens: light label `#345EBA` (deepseek-500 70% + blue-950), light shimmer
-  highlight black 30%; dark label `#7D9ADE`, dark shimmer highlight white
-  45%. The animated mask is filled with the label color.
+ArkUI API 20+ exposes `Text.shaderStyle(ShaderStyle)`. A `LinearGradientStyle`
+can be rebuilt from state at 30fps, giving a real gradient inside the glyphs
+(Canvas and blend-layer attempts were rejected earlier for halo/repaint
+problems). The gradient band's alpha is gated near both ends of the row so
+the pass disappears before the timeline wraps, making the loop continuous.
 
-Source locations: `dsh-client-ui-chat/lib/client.js` (`RunningStatus`,
-`RunningWhaleTail`), `dsh-web-frontend/dist/assets/*.css` (`_sweep_`,
-`_dsh-row-shimmer-sweep_`), `dsh-client-ui-theme/lib/client.js` (tokens).
+## Icon and placement
+
+`Shape` + `Path` rendered the DSH fallback at its own coordinate scale, which
+measured ~14px wide on device instead of 18vp. The icon now uses two authored
+stills from the DSH APNG (base and glow colours) so the size and crop are
+exact, with the glow still driven by the same sweep timeline. The row moved
+from below the transcript list into a conditional `ListItem` after the last
+message, with a parent-held exit window so the leave animation can finish.
+
+## Animated WebP removal
+
+The first implementation mounted a 48-frame animated WebP inside a 100ms
+rotate/scale ticker. Device feedback reported conversation jank and multiple
+crashes in the same build window. Animated WebP re-decodes while a transform
+state changes every 100ms, and the ticker also updated backgrounded views.
+That combination was removed: stills are decoded once, the sweep runs at 33ms
+only in the foreground, and every timer is cleared on disappear.

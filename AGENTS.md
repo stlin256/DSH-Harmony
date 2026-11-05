@@ -126,9 +126,14 @@ claim.
 - Plugin switch refresh and one-line feedback banner on Mock HAP
   `F97B026F23CFCF0A9216D134A43F6D259CA9099A14C1D1822977913B18E506A3`:
   `artifacts/device-e2e/plugin-toggle/plugin-toggle/manifest.json`.
-- Running tail (dark, light, reduced motion) on Mock HAP
-  `3F187D64E6050776A801D6366E0A091C1BE3F060A24652247CDDB9D76F0E7653`:
-  `artifacts/device-e2e/running-tail/running-tail/manifest.json`.
+- Running tail revision (authoritative Host clock, in-flow placement,
+  continuous sweep, animated APNG-derived whale, appearance/disappearance) is
+  implemented and gate-tested; current-device evidence is Pending because the
+  device was screen-locked at delivery. The earlier animated-WebP ticker
+  evidence on Mock HAP `3F187D64…` is superseded and must not be cited.
+- Conversation stability: 180-second Mock continuous-stream liveness sample
+  12/12; device fault logs are not readable over `hdc`, so the reported midday
+  crash stack remains uncollected: `artifacts/conversation-stress/manifest.json`.
 - Permission switch Host fix and full-access checkbox on real Host (plugin
   `0.3.9`, default Release HAP `18525C75…`) and Mock HAP `2E6DDD55…`:
   `artifacts/device-e2e/real-permission-switch/real/manifest.json` and
@@ -626,6 +631,14 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-05-plugin-switch-feedback.md](docs/specs/2026-11-05-plugin-switch-feedback.md)
 - Plugin switch feedback device acceptance:
   [2026-11-05-plugin-switch-feedback-e2e.md](docs/testing/2026-11-05-plugin-switch-feedback-e2e.md)
+- Conversation stability requirement:
+  [2026-11-05-conversation-stability.md](docs/requirements/2026-11-05-conversation-stability.md)
+- Conversation stability research:
+  [2026-11-05-conversation-stability.md](docs/research/2026-11-05-conversation-stability.md)
+- Conversation stability implementation spec:
+  [2026-11-05-conversation-stability.md](docs/specs/2026-11-05-conversation-stability.md)
+- Conversation stability acceptance:
+  [2026-11-05-conversation-stability-e2e.md](docs/testing/2026-11-05-conversation-stability-e2e.md)
 
 ## Upstream Tracking
 

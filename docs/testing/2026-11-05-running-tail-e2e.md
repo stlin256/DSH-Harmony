@@ -3,15 +3,19 @@
 Date: 2026-11-05. Driver:
 `scripts/device-ui-running-tail-e2e.ps1 -SkipBuild` on the Mock product.
 
+Revision: authoritative Host clock, in-transcript placement, continuous
+gradient sweep across whale/text/dots, animated APNG-derived whale and
+parent-driven appearance/disappearance.
+
 | ID | Surface | Expected result | Status |
 | --- | --- | --- | --- |
-| RUN-01 | Running tail dark | `深度求索中，用时 X秒 ···` appears after the last message, the elapsed number grows and the tail region animates between frames | Passed on Mock HAP `3F187D64…`: elapsed 9s -> 15s, tail region changed (delta 2.19) |
-| RUN-02 | Running tail light | Same copy and whale line remain legible in the light theme | Passed on the same HAP (`light-live.jpeg`) |
-| RUN-03 | Reduced motion | Static whale path and static text; two captures of the tail region are identical | Passed on the same HAP (`staticRegion=true`) |
+| RUN-01 | Authoritative clock (dark) | Launching mid-turn shows the Host elapsed time (not app-open time), the region animates and the icon keeps animating; the row sits above the composer inside the transcript | Pending current-device re-run (device screen locked at delivery; previous 18s→24s evidence is superseded) |
+| RUN-02 | Light theme | Same copy, sweep and animated whale in the light theme | Pending current-device re-run |
+| RUN-03 | Reduced motion | No sweep, no entry translation and a static whale; the clock still updates | Pending current-device re-run |
+| RUN-04 | Appearance/disappearance | The row mounts when a turn starts and leaves with the 170ms height/opacity animation when the turn is stopped, without leaving the conversation | Pending current-device re-run (stop path implemented with `composer-stop`) |
+| RUN-05 | Continuous output | During continuous deltas the trailing row never alternates with the streaming content (static trailing ListItem, parent-driven progress, tail timers excluded from source-tail refreshes) | Pending current-device re-run |
 
-Evidence: `artifacts/device-e2e/running-tail/running-tail/manifest.json`
-(Mock HAP `3F187D64E6050776A801D6366E0A091C1BE3F060A24652247CDDB9D76F0E7653`,
-API 26, 2026-11-05).
-The wholesale WebP animation and the scroll interaction are captured by the
-driver; a still cannot prove motion, so animation is asserted from two
-region crops and reduced motion from two identical crops.
+Evidence directory: `artifacts/device-e2e/running-tail/running-tail/manifest.json`.
+An earlier HAP produced passing dark/light/reduced captures for the previous
+animated-WebP ticker design; those results do not qualify this revision.
+<INVALID>

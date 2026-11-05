@@ -1,19 +1,22 @@
-# Running tail with whale animation and elapsed line
+# Running tail with authoritative timing and a continuous light sweep
 
-Date: 2026-11-05
+Date: 2026-11-05 (revised after device feedback)
 
-While a turn is running, the transcript should end with the same running
-indicator as the DeepSeek Harness web chat: the animated whale tail, the
-`深度求索中，用时 X秒 ···` line and the shimmering text animation. Until the
-current turn's own content arrives, no duration is guessed.
+While a turn is running, the transcript itself must end with the DSH running
+indicator: the whale, `深度求索中，用时 X秒 ···` and a sweeping light effect.
 
-- Copy the DSH whale asset and SVG fallback; animate the whale in ArkUI and
-  reproduce the 1.5s text shimmer.
-- Clock rules from the upstream client: start when the running turn is known,
-  update every second, show at least 1 second, compact seconds/minutes and
-  hours after 60 minutes; freeze while disconnected and never show a duration
-  for a previous turn.
-- Reduced motion resolves to the static whale path and static text.
-- Keep the line above the composer dock, directly after the last transcript
-  row, and cover it with model tests, a deterministic Mock scene, an
-  interaction driver and current-HAP device evidence.
+- Placement: the row is part of the transcript and sits after the last message,
+  scrolling with the conversation; it is not pinned above the composer.
+- Timing: the clock is the Host's `turn/start` event time, including turns
+  started from another client. Opening the app mid-turn shows the real elapsed
+  time, not a count from app launch.
+- Appearance and disappearance animate the row height, opacity and offset.
+- The light effect is a text shader sweep that starts on the whale, crosses
+  every glyph and the trailing dots, fades completely out past the row and
+  only then begins the next pass; it is not a per-frame color blink.
+- The whale and ellipsis are part of the same sweep timeline; the whale uses
+  the authored DSH frames as static stills, sized to the 18vp control box.
+- Reduced motion keeps the row static (no sweep, no entrance translation).
+- Cover the behaviour with gate tests, the `stream-tail` Mock scene, the
+  running-tail driver (dark, light, reduced motion, appearance/disappearance)
+  and current-HAP device evidence.
