@@ -1,67 +1,72 @@
 import { NativeMotion } from '../services/NativeMotion';
 
 const ICON_SIZE = 18;
+const FRAME_MS = 200;
 
 /**
- * The DSH running whale as a native frame animation (ImageAnimator), built
- * from the upstream APNG frames re-colored for both themes. Kept in its own
- * component so parent sweep state never rebuilds the animation.
+ * DSH running whale as a timer-driven still sequence built from the upstream
+ * APNG frames. A static Image swap keeps the animation alive even when the
+ * parent running-tail row re-renders for the sweep.
  */
 @Component
 export struct NativeRunningWhale {
   @Prop dark: boolean = false;
-  private darkFrames: ImageFrameInfo[] = [
-    { src: $r('app.media.running_whale_frame_dark_00') },
-    { src: $r('app.media.running_whale_frame_dark_01') },
-    { src: $r('app.media.running_whale_frame_dark_02') },
-    { src: $r('app.media.running_whale_frame_dark_03') },
-    { src: $r('app.media.running_whale_frame_dark_04') },
-    { src: $r('app.media.running_whale_frame_dark_05') },
-    { src: $r('app.media.running_whale_frame_dark_06') },
-    { src: $r('app.media.running_whale_frame_dark_07') },
-    { src: $r('app.media.running_whale_frame_dark_08') },
-    { src: $r('app.media.running_whale_frame_dark_09') },
-    { src: $r('app.media.running_whale_frame_dark_10') },
-    { src: $r('app.media.running_whale_frame_dark_11') },
-    { src: $r('app.media.running_whale_frame_dark_12') },
-    { src: $r('app.media.running_whale_frame_dark_13') },
-    { src: $r('app.media.running_whale_frame_dark_14') }
+  @State private frameIndex: number = 0;
+  private timer: number = -1;
+  private mounted: boolean = true;
+  private darkFrames: Resource[] = [
+        $r('app.media.running_whale_frame_dark_00'),
+        $r('app.media.running_whale_frame_dark_01'),
+        $r('app.media.running_whale_frame_dark_02'),
+        $r('app.media.running_whale_frame_dark_03'),
+        $r('app.media.running_whale_frame_dark_04'),
+        $r('app.media.running_whale_frame_dark_05'),
+        $r('app.media.running_whale_frame_dark_06'),
+        $r('app.media.running_whale_frame_dark_07'),
+        $r('app.media.running_whale_frame_dark_08'),
+        $r('app.media.running_whale_frame_dark_09'),
+        $r('app.media.running_whale_frame_dark_10'),
+        $r('app.media.running_whale_frame_dark_11'),
+        $r('app.media.running_whale_frame_dark_12'),
+        $r('app.media.running_whale_frame_dark_13'),
+        $r('app.media.running_whale_frame_dark_14')
   ];
-  private lightFrames: ImageFrameInfo[] = [
-    { src: $r('app.media.running_whale_frame_light_00') },
-    { src: $r('app.media.running_whale_frame_light_01') },
-    { src: $r('app.media.running_whale_frame_light_02') },
-    { src: $r('app.media.running_whale_frame_light_03') },
-    { src: $r('app.media.running_whale_frame_light_04') },
-    { src: $r('app.media.running_whale_frame_light_05') },
-    { src: $r('app.media.running_whale_frame_light_06') },
-    { src: $r('app.media.running_whale_frame_light_07') },
-    { src: $r('app.media.running_whale_frame_light_08') },
-    { src: $r('app.media.running_whale_frame_light_09') },
-    { src: $r('app.media.running_whale_frame_light_10') },
-    { src: $r('app.media.running_whale_frame_light_11') },
-    { src: $r('app.media.running_whale_frame_light_12') },
-    { src: $r('app.media.running_whale_frame_light_13') },
-    { src: $r('app.media.running_whale_frame_light_14') }
+  private lightFrames: Resource[] = [
+        $r('app.media.running_whale_frame_light_00'),
+        $r('app.media.running_whale_frame_light_01'),
+        $r('app.media.running_whale_frame_light_02'),
+        $r('app.media.running_whale_frame_light_03'),
+        $r('app.media.running_whale_frame_light_04'),
+        $r('app.media.running_whale_frame_light_05'),
+        $r('app.media.running_whale_frame_light_06'),
+        $r('app.media.running_whale_frame_light_07'),
+        $r('app.media.running_whale_frame_light_08'),
+        $r('app.media.running_whale_frame_light_09'),
+        $r('app.media.running_whale_frame_light_10'),
+        $r('app.media.running_whale_frame_light_11'),
+        $r('app.media.running_whale_frame_light_12'),
+        $r('app.media.running_whale_frame_light_13'),
+        $r('app.media.running_whale_frame_light_14')
   ];
 
-  @Builder
-  private still() {
-    Image(this.dark ? $r('app.media.running_whale_frame_dark_00') :
-      $r('app.media.running_whale_frame_light_00'))
-      .width(ICON_SIZE).height(ICON_SIZE).objectFit(ImageFit.Contain)
+  aboutToAppear(): void {
+    this.mounted = true;
+    if (!NativeMotion.enabled()) return;
+    this.timer = setInterval((): void => {
+      if (!this.mounted || !NativeMotion.enabled()) return;
+      this.frameIndex = (this.frameIndex + 1) % 15;
+    }, FRAME_MS);
+  }
+
+  aboutToDisappear(): void {
+    this.mounted = false;
+    if (this.timer >= 0) clearInterval(this.timer);
+    this.timer = -1;
   }
 
   build() {
-    if (NativeMotion.enabled()) {
-      ImageAnimator()
-        .images(this.dark ? this.darkFrames : this.lightFrames)
-        .duration(3000)
-        .iterations(-1)
-        .width(ICON_SIZE).height(ICON_SIZE)
-        .accessibilityLevel('no')
-    } else {
-      this.still()
-    }
+    Image(this.dark ? this.darkFrames[this.frameIndex] : this.lightFrames[this.frameIndex])
+      .width(ICON_SIZE).height(ICON_SIZE).objectFit(ImageFit.Contain)
+      .accessibilityLevel('no')
   }
 }

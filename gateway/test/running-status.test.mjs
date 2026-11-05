@@ -40,21 +40,24 @@ test('running label never guesses a duration before the turn start is known', ()
 
 test('running tail uses the Host turn start and a gradient text sweep', () => {
   const tail = readFileSync(new URL('NativeRunningTail.ets', components), 'utf8');
+  const label = readFileSync(new URL('NativeRunningLabel.ets', components), 'utf8');
   assert.match(tail, /@Prop startedAt: number = 0/);
   assert.doesNotMatch(tail, /this\.startedAt = Date\.now\(\)/);
-  assert.match(tail, /nativeRunningElapsed\(this\.startedAt, this\.now, this\.paused, this\.frozenElapsed\)/);
-  assert.match(tail, /new LinearGradientStyle/);
-  assert.match(tail, /withAlpha\(NativeDesign\.deepDivingShimmer/);
-  assert.match(tail, /private bandGate\(\): number/);
-  assert.match(tail, /running_whale_glow_dark/);
+  assert.match(label, /nativeRunningElapsed\(this\.startedAt, this\.now, this\.paused, this\.frozenElapsed\)/);
+  assert.match(label, /new LinearGradientStyle/);
+  assert.match(label, /withAlpha\(NativeDesign\.deepDivingShimmer/);
+  assert.match(label, /private bandGate\(\): number/);
+  assert.match(tail, /NativeRunningWhale\(\{ dark: this\.dark \}\)/);
   const whale = readFileSync(new URL('NativeRunningWhale.ets', components), 'utf8');
-  assert.match(whale, /ImageAnimator\(\)/);
+  assert.match(whale, /setInterval\(\(\): void => \{/);
+  assert.match(whale, /this\.frameIndex = \(this\.frameIndex \+ 1\) % 15/);
   assert.match(whale, /app\.media\.running_whale_frame_dark_00/);
   assert.match(tail, /NativeRunningWhale\(\{ dark: this\.dark \}\)/);
-  assert.match(tail, /shaderStyle\(this\.labelStyle\(\)\)/);
-  assert.match(tail, /SWEEP_CYCLE_MS = 2000/);
-  assert.match(tail, /SWEEP_INTERVAL_MS = 33/);
-  assert.match(tail, /this\.mounted = false/);
+  assert.match(tail, /NativeRunningLabel\(\{ startedAt: this\.startedAt, paused: this\.paused \}\)/);
+  assert.match(label, /shaderStyle\(this\.labelStyle\(\)\)/);
+  assert.match(label, /SWEEP_CYCLE_MS = 2000/);
+  assert.match(label, /SWEEP_INTERVAL_MS = 33/);
+  assert.match(label, /this\.mounted = false/);
   assert.doesNotMatch(tail, /RUNNING_WHALE_PATH/);
   assert.doesNotMatch(tail, /whaleTilt|stepAnimation/);
   const workspace = readFileSync(new URL(
@@ -63,7 +66,7 @@ test('running tail uses the Host turn start and a gradient text sweep', () => {
   assert.match(workspace, /animateTo\(\{ duration: 190, curve: Curve\.FastOutSlowIn \}, \(\): void => \{ this\.runningTailEnter = 1; \}\);/);
   assert.match(workspace, /this\.model\.runningTurnStartedAt/);
   assert.match(workspace, /private syncRunningTail\(wasRunning: boolean\)/);
-  assert.match(workspace, /if \(this\.runningTailVisible && this\.followTail\)/);
+  assert.match(workspace, /ListItem\(\) \{\s*if \(this\.runningTailVisible\)/);
   assert.match(workspace, /NativeRunningTail\(\{[\s\S]{0,200}startedAt: this\.runningTurnStartedAt\(\)[\s\S]{0,200}progress: this\.runningTailEnter/);
   assert.doesNotMatch(workspace, /if \(this\.running\) \{\s*NativeRunningTail/);
   for (const name of ['running_whale_dark.webp', 'running_whale_light.webp']) {

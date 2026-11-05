@@ -32,8 +32,8 @@ the pass disappears before the timeline wraps, making the loop continuous.
 
 `Shape` + `Path` measured ~14px wide on device instead of 18vp, and an animated
 WebP did not advance under the sweep rebuild loop. The whale now uses ArkUI
-`ImageAnimator` with 15 PNG frames decoded once from the DSH APNG (3s loop),
-inside `NativeRunningWhale` so parent state never rebuilds it. The row is a
+a timer-driven frame sequence with 15 PNG frames decoded once from the DSH APNG (3s loop),
+inside `NativeRunningWhale`, while the clock/sweep live in `NativeRunningLabel`, so per-frame state never rebuilds the whale. The row is a
 static trailing `ListItem` after the last message; the workspace owns the
 appearance/exit progress so list refreshes cannot replay it.
 
@@ -42,6 +42,6 @@ appearance/exit progress so list refreshes cannot replay it.
 The first implementation mounted a 48-frame animated WebP inside a 100ms
 rotate/scale ticker. Device feedback reported conversation jank and multiple
 crashes in the same build window. The ticker and WebP were removed; the whale
-is now an `ImageAnimator` frame loop, the sweep runs at 33ms only in the
+is now an a timer-driven frame sequence frame loop, the sweep runs at 33ms only in the
 foreground, and every timer is cleared on disappear. A 180-second continuous
 Mock stream kept the process alive for 12/12 samples.

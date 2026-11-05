@@ -33,7 +33,7 @@ Authoritative start:
   disappear.
 - The gradient band travels from `-0.35` to `1.35`; its alpha is gated so it
   starts and ends fully invisible; the wrap is therefore unobservable.
-- The whale is an 18vp `ImageAnimator` (15 colorized APNG frames, 3s loop) plus
+- The whale is an 18vp a timer-driven frame sequence (15 colorized APNG frames, 3s loop) plus
   a static glow overlay whose opacity follows the same travel value, so light
   crosses the icon, glyphs and dots. Reduced motion uses the first frame.
 - Entry animates 190ms (height/opacity/offset); the workspace keeps the row
@@ -43,11 +43,12 @@ Authoritative start:
 
 ## Workspace integration
 
-The row is a sibling between the transcript `Stack` and the interaction area:
-rendered while `runningTailVisible && followTail`, so it stays pinned above the
-composer and disappears when the user scrolls up. `syncRunningTail`
-expands/contracts a `runningTailVisible` + `runningTailLeaving` pair and drives
-`runningTailEnter` for the appearance/exit animation.
+The row is a stable trailing `ListItem` inside the transcript list (rendered
+whenever `runningTailVisible`), matching the DSH chat flow: content grows above
+it and scrolling moves it down naturally. `syncRunningTail` expands/contracts a
+`runningTailVisible` + `runningTailLeaving` pair and drives `runningTailEnter`
+for the appearance/exit animation; the row is never conditionally inserted at
+the list level, so stream updates cannot remount it.
 
 ## Verification
 

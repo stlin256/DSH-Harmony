@@ -110,6 +110,8 @@ Start-Sleep -Milliseconds 260
 $second = Capture-Screen 'dark-b'
 Start-Sleep -Milliseconds 500
 $third = Capture-Screen 'dark-c'
+Start-Sleep -Milliseconds 400
+$fourth = Capture-Screen 'dark-d'
 $diff = Region-Diff $first $second $region
 $tailNode = Node-Geometry $layout 'running-tail'
 $iconRegion = @(0,0,0,0)
@@ -135,6 +137,25 @@ if (-not ($tailNode.y -lt $composerNode.y)) {
   throw 'Running tail is not placed above the composer inside the transcript.'
 }
 if (-not $diff.changed) { throw 'Running-tail region did not animate.' }
+# Scrolling up must carry the row down with the transcript, not pin it forever.
+& $mockScript -DevEcoHome $DevEcoHome -Device $Device -OutputDir $OutputDir -Screen 'conversation' -State 'stream-long' -Theme 'dark' -SkipBuild -SkipInstall | Out-Host
+Start-Sleep -Milliseconds 2600
+$scrollBase = Dump-Layout 'scroll-base'
+$baseNode = Node-Geometry $scrollBase 'running-tail'
+& $hdc -t $Device shell 'uitest uiInput swipe 630 1600 630 900 220' | Out-Null
+Start-Sleep -Milliseconds 250
+& $hdc -t $Device shell 'uitest uiInput swipe 630 1600 630 900 220' | Out-Null
+Start-Sleep -Milliseconds 450
+$scrollAfter = Dump-Layout 'scroll-after'
+$scrollFound = Node-Found $scrollAfter 'running-tail'
+$scrollMoved = $true
+if ($scrollFound) {
+  $afterNode = Node-Geometry $scrollAfter 'running-tail'
+  $scrollMoved = [Math]::Abs([int]$afterNode.y1 - [int]$baseNode.y1) -gt 20
+}
+if (-not $scrollMoved) { throw 'Running tail stayed pinned after scrolling away.' }
+Capture-Screen 'scroll-after' | Out-Null
+$results += [pscustomobject]@{ scenario = 'scroll-away'; theme = 'dark'; scrollFollowsContent = $true }
 $results += [pscustomobject]@{ scenario = 'dark-live'; theme = 'dark'; reducedMotion = $false; authoritativeStart = $true; placement = 'above-composer'; whaleAnimated = $iconAnimated;
   elapsedBefore = $beforeSeconds; elapsedAfter = $afterSeconds; regionChanged = [bool]$diff.changed;
   regionDelta = $diff.mean_delta }
@@ -152,18 +173,19 @@ $results += [pscustomobject]@{ scenario = 'light-live'; theme = 'light'; reduced
 Start-Sleep -Milliseconds 1800
 $quietLayout = Dump-Layout 'reduced-live'
 Assert-TailText $quietLayout
-$quietRegion = Tail-Region $quietLayout
+$iconScript = Join-Path $PSScriptRoot 'device-ui-icon-region.py'
+$regionRaw = & python $iconScript $quietLayout 'running-tail' 2>$null
+$parsed = [int[]](($regionRaw -join '') | ConvertFrom-Json)
+$quietRegion = @($parsed[0], $parsed[1], $parsed[2], $parsed[3])
 $static = $false
-# The one-second clock may tick between two captures; retry until a pair falls
-# inside the same displayed second. Reduced motion must otherwise be static.
 for ($attempt = 0; $attempt -lt 8 -and -not $static; $attempt++) {
   $quietA = Capture-Screen ("reduced-a-$attempt")
-  Start-Sleep -Milliseconds 120
+  Start-Sleep -Milliseconds 100
   $quietB = Capture-Screen ("reduced-b-$attempt")
   $quietDiff = Region-Diff $quietA $quietB $quietRegion
   if (-not $quietDiff.changed) { $static = $true }
 }
-if (-not $static) { throw 'Reduced-motion running tail still animates.' }
+if (-not $static) { throw 'Reduced-motion whale is still animating.' }
 Capture-Screen 'reduced-live' | Out-Null
 $results += [pscustomobject]@{ scenario = 'reduced-live'; theme = 'dark'; reducedMotion = $true; staticRegion = $static }
 

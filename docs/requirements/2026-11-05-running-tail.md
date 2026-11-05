@@ -5,9 +5,10 @@ Date: 2026-11-05 (revised after device feedback)
 While a turn is running, the transcript itself must end with the DSH running
 indicator: the whale, `深度求索中，用时 X秒 ···` and a sweeping light effect.
 
-- Placement: while following the conversation the row is pinned above the
-  composer, so a newly appended line cannot push it out of view; scrolling up
-  hides it with the transcript, and returning to the bottom brings it back.
+- Placement: the row is the very last item of the conversation flow (the same
+  place DSH renders its running status), so new content grows above it and
+  scrolling carries it down into the hidden area below the viewport; it is not
+  a fixed dock.
 - Timing: the clock is the Host's `turn/start` event time, including turns
   started from another client. Opening the app mid-turn shows the real elapsed
   time, not a count from app launch.
