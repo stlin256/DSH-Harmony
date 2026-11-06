@@ -804,3 +804,54 @@ export function nativeProcessStructureChange(previous: NativeMessage[],
   });
   return change;
 }
+
+/**
+ * Field-level equality for projected rows. Projection copies share string
+ * instances with their records, so unchanged fields compare by pointer and a
+ * full-list comparison stays O(fields) instead of serializing content.
+ */
+export function nativeMessageEqual(a: NativeMessage, b: NativeMessage): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.id !== b.id || a.seq !== b.seq || a.role !== b.role || a.turnKey !== b.turnKey ||
+      a.eventType !== b.eventType || a.sourceKind !== b.sourceKind || a.sourceForm !== b.sourceForm ||
+      a.turn !== b.turn || a.step !== b.step || a.time !== b.time ||
+      a.callId !== b.callId || a.parentCallId !== b.parentCallId || a.rootCallId !== b.rootCallId ||
+      a.toolName !== b.toolName || a.phase !== b.phase || a.status !== b.status ||
+      a.failed !== b.failed || a.outcome !== b.outcome || a.error !== b.error ||
+      a.flat !== b.flat || a.preview !== b.preview || a.runningTurn !== b.runningTurn ||
+      a.currentTurn !== b.currentTurn || a.groupedProcess !== b.groupedProcess ||
+      a.foldable !== b.foldable || a.closed !== b.closed || a.renderKey !== b.renderKey ||
+      a.label !== b.label || a.text !== b.text || a.reasoning !== b.reasoning ||
+      a.detail !== b.detail || a.args !== b.args || a.output !== b.output ||
+      a.planDiff !== b.planDiff || a.metaRaw !== b.metaRaw || a.contentRaw !== b.contentRaw ||
+      a.errorRaw !== b.errorRaw || a.authoritativeRaw !== b.authoritativeRaw ||
+      a.footerCopyText !== b.footerCopyText || a.footerOutcome !== b.footerOutcome ||
+      a.footerCopyMessageId !== b.footerCopyMessageId) return false;
+  if (a.children.length !== b.children.length) return false;
+  for (let index = 0; index < a.children.length; index++) {
+    if (!nativeMessageEqual(a.children[index], b.children[index])) return false;
+  }
+  if (a.images.length !== b.images.length) return false;
+  for (let index = 0; index < a.images.length; index++) {
+    const left = a.images[index];
+    const right = b.images[index];
+    if (left.attachmentId !== right.attachmentId || left.mediaType !== right.mediaType ||
+        left.bytes !== right.bytes || left.width !== right.width ||
+        left.height !== right.height || left.name !== right.name) return false;
+  }
+  if (a.blocks.length !== b.blocks.length) return false;
+  for (let index = 0; index < a.blocks.length; index++) {
+    const left = a.blocks[index];
+    const right = b.blocks[index];
+    if (left.kind !== right.kind || left.text !== right.text || left.language !== right.language) return false;
+  }
+  if (a.segments.length !== b.segments.length) return false;
+  for (let index = 0; index < a.segments.length; index++) {
+    const left = a.segments[index];
+    const right = b.segments[index];
+    if (left.kind !== right.kind || left.text !== right.text ||
+        left.blocks.length !== right.blocks.length || left.images.length !== right.images.length) return false;
+  }
+  return true;
+}

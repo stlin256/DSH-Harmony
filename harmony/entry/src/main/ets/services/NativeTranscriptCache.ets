@@ -184,7 +184,8 @@ export class NativeTranscriptCache {
     sessionId: string): Promise<NativeSessionCacheRecord | null> {
     const scopeId = NativeTranscriptCache.scopeId(scope);
     try {
-      await NativeTranscriptCache.writes;
+      // A rejected write must not turn a healthy read into a false miss.
+      await NativeTranscriptCache.writes.catch((): void => {});
       const store = await NativeTranscriptCache.database(context);
       const manifest = await store.querySql(
         'SELECT chunk_count,bytes FROM transcript_manifest WHERE scope_id=? AND session_id=? LIMIT 1',
@@ -381,7 +382,8 @@ export class NativeTranscriptCache {
   }
 
   static async loadRoute(context: common.UIAbilityContext, scope: string): Promise<string> {
-    await NativeTranscriptCache.writes;
+    // A rejected write must not surface as a route read failure.
+    await NativeTranscriptCache.writes.catch((): void => {});
     const store = await NativeTranscriptCache.database(context);
     const result = await store.querySql('SELECT session_id FROM route_state WHERE scope_id=? LIMIT 1',
       [NativeTranscriptCache.scopeId(scope)]);

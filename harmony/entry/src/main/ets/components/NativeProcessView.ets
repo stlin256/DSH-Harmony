@@ -1,5 +1,5 @@
 import { NativeHarnessClient } from '../services/NativeHarnessClient';
-import { NativeMessage } from '../services/NativeSessionModel';
+import { NativeMessage, nativeMessageEqual } from '../services/NativeSessionModel';
 import { DSHIcon } from './DSHIcon';
 import { NativeMotion } from '../services/NativeMotion';
 import { NativeProcessStepView } from './NativeProcessStepView';
@@ -34,7 +34,7 @@ export struct NativeProcessView {
 
   private changed(): void {
 
-    this.source.set(this.message.children, (child: NativeMessage): string => child.renderKey || child.id);
+    this.source.set(this.message.children, (child: NativeMessage): string => child.renderKey || child.id, nativeMessageEqual);
     const key = this.message.turnKey + '|' + this.message.id;
     if (key !== this.disclosureId) {
       this.disclosureId = key;

@@ -1891,7 +1891,7 @@ test('turn change card and bottom live control keep compact ownership and motion
   assert.match(workspace, /NativeTurnChangePill\(\{[\s\S]{0,180}liveTurnChanges/);
   assert.match(workspace,
     /private paint\(\): void \{[\s\S]{0,260}this\.running = this\.model\.running;[\s\S]{0,180}this\.renderTranscript\(\)/);
-  assert.match(workspace, /nativeLiveTurnChange\(rows, this\.model\.running \|\| this\.model\.waiting\)/);
+  assert.match(workspace, /nativeLiveTurnChangeFrom\(this\.turnChanges, this\.model\.running \|\| this\.model\.waiting\)/);
   assert.doesNotMatch(workspace,
     /nativeLiveTurnChange\(rows,[\s\S]{0,120}this\.running \|\| this\.waiting/);
   assert.match(workspace, /Activity can change without a tool\/footer signature change[\s\S]{0,900}liveTurnChangesVisible = false/);
@@ -3566,4 +3566,107 @@ test('permission UI keeps one-shot approval and session preset changes distinct'
   assert.match(workspace, /permissionConfirmAcknowledged = !this\.permissionConfirmAcknowledged/);
   assert.match(settings, /新会话默认权限/);
   assert.match(settings, /只影响之后创建的会话/);
+});
+
+test('fluency remediation keeps per-paint hot paths bounded and mid-list changes visible', () => {
+  const types = load('NativeSessionModel', {});
+  const difference = load('NativeDiff', {});
+  const turnChanges = load('NativeTurnChanges', {
+    './NativeSessionModel': types,
+    './NativeDiff': difference
+  });
+  const { NativeListSource } = load('NativeListSource', {});
+
+  // The signature participates by length: streamed growth invalidates and
+  // the settled durable row invalidates by identity.
+  const tool = Object.assign(new types.NativeMessage(), {
+    id: 'call-1', callId: 'call-1', role: 'tool', turnKey: 'turn:1',
+    toolName: 'edit', phase: 'result', status: 'success',
+    args: '{"path":"a.ts","old_string":"x","new_string":"y"}', metaRaw: '', output: 'ok',
+    error: '', errorRaw: '', failed: false, outcome: ''
+  });
+  const base = turnChanges.nativeTurnChangeInputSignature([tool], []);
+  const grown = Object.assign(new types.NativeMessage(), { ...tool });
+  grown.args = tool.args + ' more';
+  assert.notEqual(turnChanges.nativeTurnChangeInputSignature([grown], []), base,
+    'streamed argument growth must invalidate the aggregate');
+  const swapped = Object.assign(new types.NativeMessage(), { ...tool });
+  swapped.args = '{"path":"b.ts","old_string":"x","new_string":"y"}';
+  assert.equal(turnChanges.nativeTurnChangeInputSignature([swapped], []), base,
+    'same-length replacement is settled by durable row identity, not by rehashing');
+
+  // The live pill reads the signature-gated summaries.
+  const summaries = turnChanges.nativeTurnChanges([tool]);
+  assert.equal(summaries.length, 1);
+  assert.equal(summaries[0].running, true);
+  assert.equal(turnChanges.nativeLiveTurnChangeFrom(summaries, false), null);
+  assert.equal(turnChanges.nativeLiveTurnChangeFrom(summaries, true), summaries[0]);
+  assert.equal(turnChanges.nativeLiveTurnChangeFrom([], true), null);
+
+  // Field-level row equality with recursive children.
+  const left = new types.NativeMessage();
+  left.id = 'row'; left.role = 'assistant'; left.text = 'same';
+  const right = new types.NativeMessage();
+  right.id = 'row'; right.role = 'assistant'; right.text = 'same';
+  assert.equal(types.nativeMessageEqual(left, right), true);
+  right.text = 'changed';
+  assert.equal(types.nativeMessageEqual(left, right), false);
+  const nested = new types.NativeMessage();
+  nested.id = 'child'; nested.text = 'a';
+  const nestedClone = new types.NativeMessage();
+  nestedClone.id = 'child'; nestedClone.text = 'a';
+  left.children = [nested]; right.text = 'same'; right.children = [nestedClone];
+  assert.equal(types.nativeMessageEqual(left, right), true);
+  nestedClone.text = 'b';
+  assert.equal(types.nativeMessageEqual(left, right), false, 'children participate recursively');
+
+  // List source: injected comparator, mid-list visibility, key swap, notifyChanged.
+  const source = new NativeListSource();
+  const events = [];
+  source.registerDataChangeListener({
+    onDataReloaded: () => events.push('reload'),
+    onDataAdded: index => events.push('add:' + index),
+    onDataChange: index => events.push('change:' + index),
+    onDataDeleted: index => events.push('delete:' + index),
+    onDataMoved: (from, to) => events.push('move:' + from + ':' + to)
+  });
+  const row = (id, text) => Object.assign(new types.NativeMessage(), { id, role: 'assistant', text });
+  const initial = Array.from({ length: 40 }, (_, index) => row('row-' + index, 'stable'));
+  source.set(initial, item => item.id, types.nativeMessageEqual);
+  events.length = 0;
+  const midChanged = initial.slice();
+  midChanged[7] = row('row-7', 'mid-list update');
+  source.set(midChanged, item => item.id, types.nativeMessageEqual);
+  assert.deepEqual(events, ['change:7'],
+    'a content change outside the tail window must not be silently dropped');
+  events.length = 0;
+  const swappedAtPosition = midChanged.slice();
+  swappedAtPosition[7] = row('row-replaced', 'mid-list update');
+  source.set(swappedAtPosition, item => item.id, types.nativeMessageEqual);
+  assert.deepEqual(events, ['change:7'], 'a same-position key swap is a visible change');
+  events.length = 0;
+  source.notifyChanged(7);
+  source.notifyChanged(999);
+  assert.deepEqual(events, ['change:7'], 'explicit notification is bounded to live rows');
+  events.length = 0;
+  const identical = swappedAtPosition.slice();
+  source.set(identical, item => item.id, types.nativeMessageEqual);
+  assert.deepEqual(events, [], 'identical content publishes nothing');
+
+  // Production wiring keeps the hot-path contracts.
+  const workspace = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
+  assert.match(workspace, /nativeLiveTurnChangeFrom\(this\.turnChanges/);
+  assert.match(workspace, /row\.id, nativeMessageEqual\)/);
+  assert.match(workspace, /frame\.type !== 'delta' \|\| this\.presentationTimer < 0/);
+  assert.match(workspace, /this\.source\.notifyChanged\(index\)/);
+  assert.match(workspace, /\(page\.journal \|\| \[\]\)\.map\(\(entry: NativeJournalEntry\): string => entry\.raw\)/);
+  assert.match(workspace, /\/\/ Continuous drain[\s\S]{0,200}this\.scheduleCache\(\);/);
+  const processView = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/components/NativeProcessView.ets', import.meta.url), 'utf8');
+  assert.match(processView, /child\.renderKey \|\| child\.id, nativeMessageEqual\)/);
+  const cache = readFileSync(new URL(
+    '../../harmony/entry/src/main/ets/services/NativeTranscriptCache.ets', import.meta.url), 'utf8');
+  assert.ok(cache.split('writes.catch((): void => {});').length >= 3,
+    'both read paths decouple from a rejected write chain');
 });

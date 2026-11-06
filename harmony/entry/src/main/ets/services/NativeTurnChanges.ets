@@ -241,6 +241,20 @@ export function nativeLiveTurnChange(rows: NativeMessage[],
   return null;
 }
 
+/**
+ * Live pill projection over the signature-gated summaries. The caller passes
+ * the summaries computed for the same rows in the same paint; this keeps the
+ * live control O(summaries) instead of reparsing every tool diff per frame.
+ */
+export function nativeLiveTurnChangeFrom(summaries: NativeTurnChangeSummary[],
+  active: boolean): NativeTurnChangeSummary | null {
+  if (!active) return null;
+  for (let index = summaries.length - 1; index >= 0; index--) {
+    if (summaries[index].running) return summaries[index];
+  }
+  return null;
+}
+
 export function nativeTurnChangeFor(rows: NativeTurnChangeSummary[],
   turnKey: string): NativeTurnChangeSummary | null {
   const found = rows.find((summary: NativeTurnChangeSummary): boolean =>
@@ -339,25 +353,21 @@ export function nativeTurnChangeSummaryFromJson(value: string, turnKey: string,
   }
 }
 
-function signatureHash(value: string): string {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index++) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(16);
-}
-
 function appendSignature(row: NativeMessage, parts: string[]): void {
   if (row.role === 'process') {
     (row.children || []).forEach((child: NativeMessage): void => appendSignature(child, parts));
     return;
   }
   if (row.role !== 'tool' && row.role !== 'turn-footer') return;
-  parts.push([row.role, row.turnKey, row.callId, row.id, row.toolName, row.phase,
+  // Content participates by length: streamed arguments grow monotonically and
+  // the settled durable row lands under a fresh id/seq, so a same-length
+  // replacement is still invalidated by identity. Hashing every byte of every
+  // tool argument on each paint is the cost this signature exists to avoid.
+  parts.push([row.role, row.turnKey, row.callId, row.id, row.renderKey, row.toolName, row.phase,
     row.status, row.outcome, row.footerOutcome, row.failed ? '1' : '0',
-    signatureHash(row.args || ''), signatureHash(row.metaRaw || ''),
-    signatureHash(row.output || ''), signatureHash(row.errorRaw || '')].join(':'));
+    (row.args || '').length, (row.metaRaw || '').length,
+    (row.output || '').length, (row.error || '').length,
+    (row.errorRaw || '').length].join(':'));
 }
 
 /**

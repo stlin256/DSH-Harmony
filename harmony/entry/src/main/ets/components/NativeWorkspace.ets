@@ -12,7 +12,8 @@ import { NativeFrame, NativeJournalEntry, NativeMessage, NativeSession, NativeSe
   nativeToolsParent, nativeWorkspaceDragOrder, nativeBackToBottomAvailable,
   nativeBackToBottomHasNewContent, nativeProcessStructureChange,
   nativeAssistantProgressKey, nativeAssistantProgressAdvanced,
-  nativeDeliveryMismatchResolved, nativeStreamHealthRepairReason, NativeStreamPart } from '../services/NativeSessionModel';
+  nativeDeliveryMismatchResolved, nativeStreamHealthRepairReason, NativeStreamPart,
+  nativeMessageEqual } from '../services/NativeSessionModel';
 import { NativeListSource } from '../services/NativeListSource';
 import { NativeExperience } from '../services/NativeExperience';
 import { NativeTextContent } from './NativeTextContent';
@@ -60,7 +61,7 @@ import { NativeTaskDock } from './NativeTaskDock';
 import { NativeRunningTail } from './NativeRunningTail';
 import { NativeConversationDock } from './NativeConversationDock';
 import {
-  nativeLiveTurnChange,
+  nativeLiveTurnChangeFrom,
   nativeTurnChangeFor,
   nativeTurnChangeInputSignature,
   nativeTurnChangeReferences,
@@ -2342,7 +2343,9 @@ export struct NativeWorkspace {
       if (frame.type === 'event') {
         this.rememberTurnChangeReferences((frame.journal || []).map((entry: NativeJournalEntry): string => entry.raw));
       } else if (frame.type === 'snapshot') {
-        this.rememberTurnChangeReferences(Array.from(this.model.journal.values()));
+        // Already-recorded references are skipped by sequence, so only the
+        // snapshot's own journal needs parsing on reconnect.
+        this.rememberTurnChangeReferences((frame.journal || []).map((entry: NativeJournalEntry): string => entry.raw));
       }
       if (frame.type === 'snapshot') {
         clearTimeout(this.settlementTimer); this.settlementTimer = -1;
@@ -2367,7 +2370,9 @@ export struct NativeWorkspace {
         // same pump; it is no longer required to restart a failed page.
         setTimeout((): void => { if (this.recovery.current(epoch)) this.startHistoryDrain(true); }, 80);
       }
-      if (this.paintTimer < 0) {
+      // A delta joins the presentation pump when it is already running; two
+      // independent 32ms painters can drift into an effective ~16ms cadence.
+      if (this.paintTimer < 0 && (frame.type !== 'delta' || this.presentationTimer < 0)) {
         this.paintTimer = setTimeout(() => {
           this.paintTimer = -1;
           this.paint();
@@ -2745,6 +2750,11 @@ export struct NativeWorkspace {
           this.officialTurnChanges = this.officialTurnChanges.filter((item: NativeTurnChangeSummary): boolean =>
             item.turnKey !== reference.turnKey).concat([summary]);
           this.paint();
+          // The official summary lives outside the row objects; identical rows
+          // would otherwise leave the footer card on its previous projection.
+          this.visibleRows.forEach((row: NativeMessage, index: number): void => {
+            if (row.role === 'turn-footer') this.source.notifyChanged(index);
+          });
         })
         .catch((): void => {
           if (this.mounted && this.selected === id &&
@@ -2829,7 +2839,7 @@ export struct NativeWorkspace {
     // Activity can change without a tool/footer signature change. Resolve
     // visibility on every projection so a completed/stopped turn hides the
     // live pill immediately and never leaks into the next state.
-    const live = nativeLiveTurnChange(rows, this.model.running || this.model.waiting);
+    const live = nativeLiveTurnChangeFrom(this.turnChanges, this.model.running || this.model.waiting);
     if (live) {
       if (!this.liveTurnChangesVisible) {
         NativeMotion.disclosure(this.getUIContext(), (): void => {
@@ -2858,7 +2868,7 @@ export struct NativeWorkspace {
     if (tailOnlyTextUpdate) {
       this.source.setTail(visible, 2);
     } else {
-      this.source.set(visible, (row: NativeMessage): string => row.id);
+      this.source.set(visible, (row: NativeMessage): string => row.id, nativeMessageEqual);
     }
   }
   private turnChangeFor(turnKey: string): NativeTurnChangeSummary {
@@ -3191,7 +3201,6 @@ export struct NativeWorkspace {
     if (this.paging || !this.model.hasMore || this.model.historyBefore < 0) return false;
     const id = this.selected;
     const generation = this.selectionGeneration;
-    const scope = this.client.cacheKey();
     const historyBefore = this.model.historyBefore;
     const historyCut = this.model.historyCut;
     const previousRows = this.model.messages.length;
@@ -3211,14 +3220,15 @@ export struct NativeWorkspace {
         // Prepend the page without forcing a scroll correction in that case.
       }
       this.model.prepend(page);
-      this.rememberTurnChangeReferences(Array.from(this.model.journal.values()));
+      this.rememberTurnChangeReferences((page.journal || []).map((entry: NativeJournalEntry): string => entry.raw));
       this.paint();
       if (!nativeHistoryPageAdvanced(historyBefore, page.beforeSeq, previousRows,
         this.model.messages.length, page.hasMore)) {
         throw new Error('History page did not advance');
       }
-      NativeTranscriptCache.saveSession(this.context, scope, id, this.model)
-        .then((): void => { this.enforceCacheLimit(id); }).catch(() => {});
+      // Continuous drain pages share one debounced persist; a full rewrite
+      // per page made long-history loading quadratic on the UI thread.
+      this.scheduleCache();
       const next = this.visibleRows.findIndex((row: NativeMessage) => row.id === anchor);
       if (next >= 0 && top !== 0) setTimeout(() => { if (!this.mounted || this.selected !== id) return;
         try {
