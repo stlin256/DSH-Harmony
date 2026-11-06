@@ -40,6 +40,9 @@ Implementation spec:
 | Final Default Release SHA-256 | `6824EFDE78B4468D4D26D216721D54F53C3687AE2E4FEDB80DF80B768980B378` |
 | Final Store Release SHA-256 | `4066A5CB68C214CE2797474389B96FFE888F6FD5F17EDFADAA63CAFEFBAB5724` |
 | Final Mock Release SHA-256 | `3FE9EE11C150C2C7380B5C360C4994782A87AFB2F94162D2445950C641C0DB48` |
+| Remediation Default Release SHA-256 (2026-11-07) | `F622BAF9ABB00800584A886644181F705D199F28212E080EBAD9CD577F0FCDFE` |
+| Remediation Store Release SHA-256 (2026-11-07) | `04C1E334E583EDF86D3727F14E1BC8B11C3DECFF594EF7A02AE9C5708EBE99FF` |
+| Remediation Mock Release SHA-256 (2026-11-07) | `CE6F39141F3379C8367AC7AB2EDE4D13D1D5BDD221747C0F3E5472E08B29299E` |
 
 ## Device evidence
 
@@ -164,6 +167,7 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
 | VSA-36 | Running tail | While a turn is running the transcript itself ends with the animated DSH whale and `深度求索中，用时 X秒 ···` (in-flow, like the DSH chat; scrolling carries it down with the content); the clock comes from the Host turn/start time, the continuous light sweep crosses icon, text and dots, and reduced motion is static | Passed on Mock HAP `39CFD9C8…` (dark 18s→25s, whale animated, in-flow placement, scroll-away, appearance/disappearance, light and reduced motion); live-Host observation of a Host-started turn remains Pending |
 | VSA-35 | Permission switch and risk checkbox | A permission preset switch uses the Host's named `commands/execute` wire object and only reports success after the command result succeeds; the full-access acknowledgement is a checkbox row that gates the confirm action | Passed on real Host (plugin `0.3.9`) and Mock HAP `2E6DDD55…`; real-device captures in `artifacts/device-e2e/real-permission-switch/real/manifest.json` |
 | VSA-34 | Immersive material docks | The bottom composer dock and floating task dock carry the API-26 immersive system material (with light-effect feedback) when the reduce-transparency switch is OFF; the switch defaults ON and keeps the pre-immersive opaque shell; the maintained `NATIVE_MATERIAL_SURFACES` list is the single control point | Passed on API 26 Mock HAP `F145A78B…`; API 23 fallback and the interaction-driven light feedback remain Pending |
+| VSA-38 | Transmission fluency remediation | During `stream-long` the text reveal keeps one 32ms publication pump (no double-paint beat), `STREAM-LONG-DONE` still lands without relaunch; an official turn-change summary refreshes its footer card without a structural reload; a mid-list content change renders without waiting for a reload; history drain keeps the scroll anchor and persists once per quiet window; gateway wait renewal does not cut a timed question and a stalled delivery closes for snapshot rebuild instead of freezing | Pending; model/source tests and `qa.mjs pr` run `20261106T161121Z-35121de7` passed, but the `stream-long`, `turn-change` and `stream-recovery` drivers have not been rerun on a post-remediation HAP; live-Host S1 (pong deadline) and S2 (>32KiB continuation frames) stay unverified. See `2026-11-06-transmission-fluency-remediation-e2e` items below |
 
 ## Remaining device checks
 
@@ -221,6 +225,19 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   [`2026-11-04-store-review-demo-e2e.md`](2026-11-04-store-review-demo-e2e.md)
   on a store Release HAP, including restore, settings mutation, send failure
   and logout.
+- Transmission fluency remediation (2026-11-06): the hot-path fixes
+  (signature-gated live pill, O(1) turn-change signature, field-level list
+  comparison with mid-list visibility, single publication pump, per-page
+  journal parsing, debounced drain persistence, read/write decoupling) and
+  the gateway fixes (wait-timer renewal, 60s delivery-stall watchdog,
+  idle-snapshot page RPC skip, 64MiB upstream frame bound) are covered by
+  model/source tests and `qa.mjs pr` run `20261106T161121Z-35121de7`.
+  Device promotion requires rerunning `device-ui-stream-long-e2e.ps1`,
+  `device-ui-turn-change-e2e.ps1` and `device-ui-stream-recovery-e2e.ps1`
+  on a post-remediation HAP; the audit's S1 (HarmonyOS automatic pong vs the
+  20s gateway deadline) and S2 (>32KiB continuation-frame decoding) also
+  need a live Host stream and must not be promoted from Mock evidence. See
+  [`2026-11-06-transmission-fluency-remediation.md`](../specs/2026-11-06-transmission-fluency-remediation.md).
 
 These environment-bound checks remain `Pending`; source tests and the current
 API 26 portrait default-font device run are not substitutes for them.
