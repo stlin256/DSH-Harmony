@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createServer, request } from 'node:http';
 import { randomBytes, createHash } from 'node:crypto';
 import { once } from 'node:events';
+import { readFileSync } from 'node:fs';
 import WebSocket, { WebSocketServer } from 'ws';
 import { openStore } from '../src/store.mjs';
 import { createApp } from '../src/app.mjs';
@@ -19,6 +20,7 @@ import {
 import {
   changedFilesSummary,
   nativeDeliveryDrainReady,
+  nativeDeliveryStallReady,
   nativeHeartbeatPayload,
   nativeHeartbeatPolicy,
   normalizedProjectionSnapshot
@@ -57,6 +59,17 @@ test('native delivery drain requires pause, low buffer and an open upstream', ()
   assert.equal(nativeDeliveryDrainReady(true, 32 * 1024 + 1, 32 * 1024, true), false);
   assert.equal(nativeDeliveryDrainReady(true, 0, 32 * 1024, false), false);
   assert.equal(nativeDeliveryDrainReady(true, Number.NaN, 32 * 1024, true), false);
+});
+
+
+test('native delivery stall watchdog bounds backpressure pauses', () => {
+  const now = 1000000;
+  assert.equal(nativeDeliveryStallReady(true, now - 60000, now), true);
+  assert.equal(nativeDeliveryStallReady(true, now - 59999, now), false);
+  assert.equal(nativeDeliveryStallReady(false, now - 60000, now), false);
+  assert.equal(nativeDeliveryStallReady(true, 0, now), false);
+  assert.equal(nativeDeliveryStallReady(true, Number.NaN, now), false);
+  assert.equal(nativeDeliveryStallReady(true, now - 119999, now, 120000), false);
 });
 
 test('native live closes a generation when assistant revision data is incomplete', async t => {
@@ -297,7 +310,9 @@ async function setup(t, options = {}) {
         }
         if (frame.endpoint === 'userQuestions/attachWait') {
           assert.deepEqual(frame.payload.args,{agent:'session',callId:'timed-call'});
-          ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{remainingMs:80}})); return;
+          ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{remainingMs:options.waitRemainingMs ?? 80}}));
+          if (options.renewWaitMs) ws.send(JSON.stringify({type:'item',streamId:frame.streamId,value:{remainingMs:options.renewWaitMs}}));
+          return;
         }
         if (frame.endpoint === '$events') {
           assert.deepEqual(frame.payload, {args:{}});
@@ -1246,6 +1261,17 @@ test('timed question claims start the deadline and user engagement preserves the
   assert.equal(calls.at(-1).value.payload.args.outcome.error.code,'ASK_TIMED_OUT');
 });
 
+
+test('wait renewal replaces the previous deadline instead of stacking timers', async t => {
+  const {calls,frames,emit,until} = await live(t,{waitRemainingMs:60,renewWaitMs:5000});
+  const request={questions:[{id:'q',question:'Choose',options:[{label:'A'}]}],wait:{timed:true,callId:'timed-call'}};
+  emit({type:'waterfall',event:'user-questions/request',eventId:'timed',agentId:'session',request});
+  await until(()=>frames.some(frame=>frame.eventId==='timed'&&frame.remainingMs===5000));
+  await new Promise(resolve=>setTimeout(resolve,260));
+  assert.equal(calls.some(call=>call.value.payload.args?.eventId==='timed'),false,
+    'the renewed deadline must replace the short one instead of stacking timers');
+});
+
 test('native images keep typed references and admit image-only prompts without text caps', async t => {
   const {call,calls} = await setup(t);
   const attachment={attachmentId:'a'.repeat(64),mediaType:'image/png',bytes:42,width:2,height:3,name:'example.png'};
@@ -1300,4 +1326,19 @@ test('live transport delivers a complete Unicode record above former upstream an
   const snapshot=frames.find(frame=>frame.type==='snapshot');
   assert.equal(snapshot.messages[0].text,text);
   assert.equal(snapshot.messages[0].blocks[0].text,text);
+});
+
+
+test('gateway stream hardening keeps bounded pauses, renewed waits and idle snapshots cheap', () => {
+  const source = readFileSync(new URL('../src/native-harness.mjs', import.meta.url), 'utf8');
+  assert.match(source, /if \(pending\.timer\) clearTimeout\(pending\.timer\);/,
+    'wait renewal clears the previous deadline timer');
+  assert.match(source, /connection\.pending\.clear\(\);/,
+    'client close removes pending entries so retired timers cannot act');
+  assert.match(source, /nativeDeliveryStallReady\(upstreamPausedForDelivery, upstreamPausedSince, Date\.now\(\)\)/,
+    'the drain interval enforces the delivery stall watchdog');
+  assert.match(source, /!value\.turnStartedAt &&\s*\(!connection\.runningKnown \|\| connection\.running\)/,
+    'idle snapshots skip the turn-start page RPC');
+  assert.match(source, /maxPayload: 64 \* 1024 \* 1024/,
+    'upstream receive frames stay bounded');
 });

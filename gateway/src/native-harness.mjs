@@ -42,6 +42,17 @@ export function nativeHeartbeatPolicy(profile = 'foreground') {
     { intervalMs: 5000, deadlineMs: 20000, openingMs: 30000 };
 }
 
+/**
+ * Backpressure pauses are bounded. A client that stops draining its socket
+ * while the transport stays alive must not freeze the stream forever; the
+ * connection is cut so the app rebuilds from a fresh snapshot.
+ */
+export function nativeDeliveryStallReady(pausedForDelivery, pausedSinceMs, now,
+  limitMs = 60000) {
+  return pausedForDelivery === true && Number.isFinite(pausedSinceMs) &&
+    pausedSinceMs > 0 && Number.isFinite(now) && now - pausedSinceMs >= limitMs;
+}
+
 export function nativeHeartbeatPayload(generation, active, stateKnown, running, waiting) {
   return {
     type: 'heartbeat',
@@ -880,7 +891,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
     wss.handleUpgrade(req, socket, head, client => {
       const url = new URL('/api/remote.mux', target); url.protocol = target.protocol === 'https:' ? 'wss:' : 'ws:';
       const upstream = new WebSocket(url, { headers: { Cookie: cookie, Origin: target.origin },
-        handshakeTimeout: 10000, maxPayload: 0, followRedirects: false });
+        handshakeTimeout: 10000, maxPayload: 64 * 1024 * 1024, followRedirects: false });
       const connectionId = randomUUID();
       const connection = { owner: ownerOf(req), clientId: '', running: false, waiting: false,
         runningKnown: false, waitingKnown: false, queue: [],
@@ -913,9 +924,11 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       const sendHighWater = 128 * 1024;
       const sendLowWater = 32 * 1024;
       let upstreamPausedForDelivery = false;
+      let upstreamPausedSince = 0;
       const resumeDelivery = () => {
         if (!upstreamPausedForDelivery) return;
         upstreamPausedForDelivery = false;
+        upstreamPausedSince = 0;
         if (upstream.readyState === WebSocket.OPEN) upstream.resume();
       };
       const send = value => {
@@ -924,6 +937,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         if (!upstreamPausedForDelivery && (client.bufferedAmount || 0) >= sendHighWater) {
           upstream.pause();
           upstreamPausedForDelivery = true;
+          upstreamPausedSince = Date.now();
         }
         // ws preserves the ordering of concurrently queued writes. Waiting for a
         // callback per token would instead serialize every small delta and add a
@@ -951,6 +965,10 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           .then(() => undefined);
       };
       const deliveryDrain = setInterval(() => {
+        if (nativeDeliveryStallReady(upstreamPausedForDelivery, upstreamPausedSince, Date.now())) {
+          client.close(1011, 'Delivery stalled');
+          return;
+        }
         if (nativeDeliveryDrainReady(upstreamPausedForDelivery,
           client.bufferedAmount || 0, sendLowWater,
           upstream.readyState === WebSocket.OPEN)) resumeDelivery();
@@ -1111,6 +1129,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
             const eventId = frame.streamId.slice(5), pending = connection.pending.get(eventId);
             const duration = frame.value?.remainingMs;
             if (!pending || !Number.isFinite(duration) || duration < 0) return;
+            if (pending.timer) clearTimeout(pending.timer);
             pending.timer = setTimeout(() => {
               if (connection.pending.get(eventId) !== pending || pending.engaged) return;
               endInteraction(eventId);
@@ -1167,7 +1186,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
                 active.revision = value.revision || active.revision;
               }
               send(value);
-              if (value.type === 'snapshot' && !value.turnStartedAt) {
+              if (value.type === 'snapshot' && !value.turnStartedAt &&
+                  (!connection.runningKnown || connection.running)) {
                 // Long turns can push turn/start outside the opening window; fetch the
                 // authoritative start so the native running clock survives app opens.
                 rpc('page', { address, throughSeq: value.cursor,
@@ -1198,6 +1218,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         clearInterval(deliveryDrain);
         connections.delete(connectionId);
         for (const pending of connection.pending.values()) clearTimeout(pending.timer);
+        connection.pending.clear();
         upstream.terminate();
       });
       client.on('error', () => upstream.terminate());
