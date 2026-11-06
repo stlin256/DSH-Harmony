@@ -239,15 +239,22 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   and on the phase-2 Mock HAP `D7D6007E…`
   (`artifacts/device-e2e/20261107-fluency-remediation-phase2/stream-recovery/recovery/`),
   covering quiet-burst, reconnect, child unavailable/retry/Back in dark/light
-  and reduced motion. `device-ui-stream-long-e2e.ps1` and
-  `device-ui-turn-change-e2e.ps1` currently fail on this device for
-  pre-existing reasons: the long-stream reveal freezes the JS thread
-  mid-stream (captured at paragraph 46 on the remediation HAP and reproduced
-  identically on `092cf40`, which predates the remediation commits), and the
-  completed-card query anchors on a single `已编辑 4 个文件` text node while
-  the current card renders the summary as split text nodes. Both failures
-  predate the fluency remediation and belong to the running-tail iteration's
-  known device-freeze investigation; they must not be regressed against it.
+  and reduced motion. `device-ui-turn-change-e2e.ps1` now PASSES end to end
+  after the driver-encoding fixes (commit `5d45800`: Windows PowerShell 5.1
+  read BOM-less scripts as ANSI and hex-encoded mojibake for the card query;
+  the card itself was always rendered): evidence
+  `artifacts/device-e2e/20261107-fluency-remediation/turn-change-fixed/completed-card/`
+  on Mock HAP `CCEF5B87…` (the phase-2 tree plus the in-flight running-tail
+  working changes). `device-ui-stream-long-e2e.ps1` still fails for a
+  pre-existing reason: the long-stream reveal freezes the JS thread
+  mid-stream between callbacks — captured at paragraph 46 on the remediation
+  HAP, at reveal ~5053 with steady 33ms ticks on the phase-2 HAP, and
+  reproduced identically on `092cf40` and `340d97b`, both of which predate the
+  remediation commits; fine-grained paint logs show every paint stage
+  completing sub-millisecond, so the freeze sits in framework-side work after
+  a finished paint. It belongs to the running-tail/conversation-stability
+  iteration's known device-freeze investigation and must not be regressed
+  against the fluency remediation.
   The audit's S1 (HarmonyOS automatic pong vs the 20s gateway deadline) and
   S2 (>32KiB continuation-frame decoding) still need a live Host stream. See
   [`2026-11-06-transmission-fluency-remediation.md`](../specs/2026-11-06-transmission-fluency-remediation.md).
