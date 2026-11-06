@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$DevEcoHome = '',
   [string]$Device = '',
   [string]$OutputDir = '',
