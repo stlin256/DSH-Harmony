@@ -199,9 +199,30 @@ function failedTool(tool: NativeMessage): boolean {
   return result.includes('AUTO_REVIEW_DENIED');
 }
 
-/** Extract only explicit patch/edit fields; arbitrary output wording is never enough. */
+const diffMemo: Map<string, NativeDiffDocument> = new Map<string, NativeDiffDocument>();
+function diffMemoSignature(tool: NativeMessage): string {
+  return [tool.id, tool.callId, tool.seq, tool.toolName, tool.phase, tool.status,
+    tool.failed ? '1' : '0', tool.outcome,
+    (tool.args || '').length, (tool.metaRaw || '').length,
+    (tool.output || '').length, (tool.error || '').length].join(':');
+}
+/**
+ * Turn-change aggregation reruns over every tool while one streamed call keeps
+ * changing. Settled tools hit the memo, so a paint re-parses only the call that
+ * actually changed. Documents are shared read-only projections.
+ */
 export function nativeDiff(tool: NativeMessage): NativeDiffDocument {
   if (!tool) return new NativeDiffDocument();
+  const key = diffMemoSignature(tool);
+  const cached = diffMemo.get(key);
+  if (cached) return cached;
+  const value = nativeDiffUncached(tool);
+  if (diffMemo.size >= 512) diffMemo.clear();
+  diffMemo.set(key, value);
+  return value;
+}
+/** Extract only explicit patch/edit fields; arbitrary output wording is never enough. */
+function nativeDiffUncached(tool: NativeMessage): NativeDiffDocument {
   if (failedTool(tool)) return new NativeDiffDocument();
   let args: Record<string, Object> = {};
   let meta: Record<string, Object> = {};

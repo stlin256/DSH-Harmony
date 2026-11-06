@@ -692,7 +692,15 @@ export class NativeHarnessClient {
       try { receive(frame); }
       catch (error) {
         const message = (error as Error).message;
-        finish(message === 'Stream gap' ? 'assistant_index_gap' : message === 'Stream attempt changed' ? 'assistant_attempt_changed' : 'frame_handler_error');
+        // Snapshot-repairable inconsistencies reconnect from a fresh baseline;
+        // only a non-JSON frame or an unexpected handler fault stops outright.
+        const repairable = message === 'Stream gap' || message === 'Stream attempt changed' ||
+          message === 'Missing opening snapshot' || message === 'Committed event missing' ||
+          message === 'Invalid snapshot' || message === 'Invalid stream end' ||
+          message === 'Conflicting durable event';
+        finish(message === 'Stream gap' ? 'assistant_index_gap' :
+          message === 'Stream attempt changed' ? 'assistant_attempt_changed' :
+          repairable ? 'protocol_inconsistent' : 'frame_handler_error');
       }
     });
     socket.on('close', (_error: BusinessError, result: webSocket.CloseResult): void => {

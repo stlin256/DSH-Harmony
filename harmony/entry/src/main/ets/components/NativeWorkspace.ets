@@ -2360,7 +2360,10 @@ export struct NativeWorkspace {
       if (frame.type === 'state' && wasActive !== (this.model.running || this.model.waiting)) {
         this.scheduleWidgetUpdate();
       }
-      if (frame.type !== 'delta' && frame.type !== 'start') this.scheduleCache();
+      // Whole-history serialization stays off the streaming frame loop; the
+      // cache persists at turn boundaries, history pages and lifecycle exits.
+      if (frame.type !== 'delta' && frame.type !== 'start' &&
+        !this.model.running && !this.model.waiting) this.scheduleCache();
       if (frame.type === 'state' && !this.model.running && !this.model.waiting) this.startHistoryDrain();
       if (frame.type === 'snapshot') {
         this.connectionPhase = 'live'; this.error = ''; this.retries = 0;

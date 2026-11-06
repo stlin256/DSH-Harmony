@@ -1508,7 +1508,26 @@ function generic(document: NativeToolStructured, tool: NativeMessage,
 }
 
 /** Exact current tool-name category shared by parsing, grouping and process UI. */
+const toolKindMemo: Map<string, Map<string, string>> = new Map<string, Map<string, string>>();
+/**
+ * Category derivation re-parses editor arguments on every paint. Durable tools
+ * share argument string instances across projection copies, so the common path
+ * is a map hit.
+ */
 export function nativeToolKind(name: string, argsText: string = ''): string {
+  let byArgs = toolKindMemo.get(name);
+  if (!byArgs) {
+    byArgs = new Map<string, string>();
+    toolKindMemo.set(name, byArgs);
+  }
+  const cached = byArgs.get(argsText);
+  if (cached !== undefined) return cached;
+  const value = nativeToolKindUncached(name, argsText);
+  if (byArgs.size >= 512) byArgs.clear();
+  byArgs.set(argsText, value);
+  return value;
+}
+function nativeToolKindUncached(name: string, argsText: string = ''): string {
   if (name === 'str_replace_editor') {
     const args = parseObject(argsText);
     const command = args ? stringValue(args['command']).trim() : '';

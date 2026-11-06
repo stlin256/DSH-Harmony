@@ -36,7 +36,30 @@ export function nativeProcessIcon(category: string): string {
   if (category === 'jobLifecycle') return 'queue-outline';
   return category === 'tools' ? 'sparkle' : 'think-outline';
 }
+const toolDetailMemo: Map<string, string> = new Map<string, string>();
+function toolMemoSignature(tool: NativeMessage, workspaceRoot: string): string {
+  return [tool.id, tool.callId, tool.seq, tool.toolName, tool.phase, tool.status,
+    tool.failed ? '1' : '0', tool.outcome, tool.turnKey, workspaceRoot,
+    (tool.args || '').length, (tool.metaRaw || '').length, (tool.output || '').length,
+    (tool.error || '').length, (tool.errorRaw || '').length, (tool.contentRaw || '').length,
+    (tool.authoritativeRaw || '').length, (tool.planDiff || '').length,
+    (tool.text || '').length, (tool.blocks || []).length, (tool.images || []).length].join(':');
+}
+/**
+ * Per-paint process previews re-derive tool details for every child. Projection
+ * copies share field instances across paints, so an unchanged tool is a memo hit
+ * and its repeated args/meta JSON parsing leaves the frame budget.
+ */
 export function nativeToolDetail(tool: NativeMessage, workspaceRoot: string = ''): string {
+  const key = toolMemoSignature(tool, workspaceRoot);
+  const cached = toolDetailMemo.get(key);
+  if (cached !== undefined) return cached;
+  const value = nativeToolDetailUncached(tool, workspaceRoot);
+  if (toolDetailMemo.size >= 512) toolDetailMemo.clear();
+  toolDetailMemo.set(key, value);
+  return value;
+}
+function nativeToolDetailUncached(tool: NativeMessage, workspaceRoot: string): string {
   if (tool.toolName === 'todo_write') {
     const plan = nativePlanDocument(tool);
     if (plan.parsed) return tool.planDiff || nativePlanProgress(plan);
@@ -461,10 +484,12 @@ export function nativePresentTranscript(rows: NativeMessage[], preferences: Nati
   const ended: Set<string> = new Set<string>();
   const lastReply: Map<string, number> = new Map<string, number>();
   const endSeq: Map<string, number> = new Map<string, number>();
+  const turnsWithProcess: Set<string> = new Set<string>();
   let exchange = '';
   for (const row of rows) {
     if (row.role === 'turn-footer') { ended.add(row.turnKey); endSeq.set(row.turnKey, row.seq); }
     if (row.role === 'assistant') lastReply.set(row.turnKey, row.seq);
+    if (row.role === 'process') turnsWithProcess.add(row.turnKey);
     if (row.role === 'user' && row.sourceKind !== 'steer') exchange = row.turnKey;
   }
   const exchangeIndex = rows.findIndex((row: NativeMessage) => row.turnKey === exchange);
@@ -495,7 +520,7 @@ export function nativePresentTranscript(rows: NativeMessage[], preferences: Nati
       return true;
     }
     if (row.role === 'assistant' && preferences.foldedReplies === 'final' &&
-      rows.some((item: NativeMessage) => item.turnKey === row.turnKey && item.role === 'process') &&
+      turnsWithProcess.has(row.turnKey) &&
       row.seq !== lastReply.get(row.turnKey)) return open(row.turnKey);
     return true;
   });

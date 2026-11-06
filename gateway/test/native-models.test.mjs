@@ -3670,3 +3670,71 @@ test('fluency remediation keeps per-paint hot paths bounded and mid-list changes
   assert.ok(cache.split('writes.catch((): void => {});').length >= 3,
     'both read paths decouple from a rejected write chain');
 });
+test('phase-2 memos stay pure and repairable stream faults reconnect', () => {
+  const types = load('NativeSessionModel', {});
+  const difference = load('NativeDiff', {});
+  const structured = load('NativeToolStructured', { './NativeSessionModel': types });
+  const transcript = load('NativeTranscript', {
+    './NativeSessionModel': types,
+    './NativeHostSettings': {},
+    './NativePlan': {
+      nativePlanDiff: () => '',
+      nativePlanDocument: () => ({ parsed: false, items: [] }),
+      nativePlanProgress: () => ''
+    },
+    './NativeToolStructured': structured
+  });
+
+  // The diff memo shares one document for an unchanged tool signature.
+  const tool = Object.assign(new types.NativeMessage(), {
+    id: 'call-1', callId: 'call-1', role: 'tool', turnKey: 'turn:1',
+    toolName: 'edit', phase: 'result', status: 'success',
+    args: JSON.stringify({ file_path: 'a.ts', old_string: 'x', new_string: 'y' }),
+    metaRaw: '', output: 'ok', error: '', errorRaw: '', failed: false, outcome: ''
+  });
+  const first = difference.nativeDiff(tool);
+  const again = difference.nativeDiff(Object.assign(new types.NativeMessage(), { ...tool }));
+  assert.equal(again, first, 'an unchanged signature reuses the shared document');
+  const grown = Object.assign(new types.NativeMessage(), { ...tool });
+  grown.args = JSON.stringify({ file_path: 'a.ts', old_string: 'x', new_string: 'y-with-more' });
+  assert.notEqual(difference.nativeDiff(grown), first, 'argument growth recomputes');
+
+  // The tool-detail memo is stable for an unchanged signature.
+  const detail = transcript.nativeToolDetail(tool, '');
+  assert.equal(transcript.nativeToolDetail(Object.assign(new types.NativeMessage(), { ...tool }), ''), detail);
+  assert.equal(typeof detail, 'string');
+
+  // Editor category derivation memoizes by argument content.
+  assert.equal(structured.nativeToolKind('str_replace_editor', '{"command":"view"}'), 'read');
+  assert.equal(structured.nativeToolKind('str_replace_editor', '{"command":"str_replace"}'), 'edit');
+  assert.equal(structured.nativeToolKind('str_replace_editor', '{"command":"view"}'), 'read');
+
+  // The folded-reply presentation keeps its behavior with a precomputed set.
+  const rows = [
+    Object.assign(new types.NativeMessage(), { id: 'p1', role: 'process', turnKey: 'turn:1', children: [] }),
+    Object.assign(new types.NativeMessage(), { id: 'a1', role: 'assistant', turnKey: 'turn:1', seq: 1, text: 'early' }),
+    Object.assign(new types.NativeMessage(), { id: 'a2', role: 'assistant', turnKey: 'turn:1', seq: 2, text: 'final' }),
+    Object.assign(new types.NativeMessage(), { id: 'f1', role: 'turn-footer', turnKey: 'turn:1', seq: 3 })
+  ];
+  const preferences = { mode: 'detailed', foldedReplies: 'final', collapseTiming: 'turn-end' };
+  const presented = transcript.nativePresentTranscript(rows, preferences, new Map(), -1, '');
+  assert.equal(presented.some(row => row.id === 'a1'), false, 'non-final replies stay folded for a process turn');
+  assert.equal(presented.some(row => row.id === 'a2'), true);
+
+  // Production wiring keeps the phase-2 contracts.
+  const fs = readFileSync;
+  const client = fs(new URL('../../harmony/entry/src/main/ets/services/NativeHarnessClient.ets', import.meta.url), 'utf8');
+  assert.match(client, /'protocol_inconsistent'/, 'snapshot-repairable faults reconnect');
+  assert.match(client, /'Committed event missing'/);
+  const workspace = fs(new URL('../../harmony/entry/src/main/ets/components/NativeWorkspace.ets', import.meta.url), 'utf8');
+  assert.match(workspace, /!this\.model\.running && !this\.model\.waiting\) this\.scheduleCache\(\)/,
+    'whole-history persistence is gated out of the streaming frame loop');
+  const transcriptSource = fs(new URL('../../harmony/entry/src/main/ets/services/NativeTranscript.ets', import.meta.url), 'utf8');
+  assert.match(transcriptSource, /turnsWithProcess\.has\(row\.turnKey\)/,
+    'the folded-reply check is precomputed instead of rescanning rows');
+  assert.doesNotMatch(transcriptSource, /rows\.some\(\(item: NativeMessage\) => item\.turnKey === row\.turnKey && item\.role === 'process'\)/);
+  const diffSource = fs(new URL('../../harmony/entry/src/main/ets/services/NativeDiff.ets', import.meta.url), 'utf8');
+  assert.match(diffSource, /const diffMemo/);
+  const structuredSource = fs(new URL('../../harmony/entry/src/main/ets/services/NativeToolStructured.ets', import.meta.url), 'utf8');
+  assert.match(structuredSource, /const toolKindMemo/);
+});
