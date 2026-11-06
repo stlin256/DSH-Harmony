@@ -38,7 +38,7 @@ $firstLaunch = $true
 
 function Text-Hex {
   param([string]$Text)
-  return [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($Text))
+  return ([BitConverter]::ToString([Text.Encoding]::UTF8.GetBytes($Text))).Replace('-', '')
 }
 
 function Launch-Fixture {

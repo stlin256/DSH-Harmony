@@ -72,7 +72,7 @@ function Query-Node-Text {
     [string]$Text,
     [int]$ExpectCount = 1
   )
-  $hex = [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($Text))
+  $hex = ([BitConverter]::ToString([Text.Encoding]::UTF8.GetBytes($Text))).Replace('-', '')
   $raw = & python $queryScript $Layout --find-text-hex $hex --target text `
     --exact-text --expect-count $ExpectCount 2>&1
   if ($LASTEXITCODE -ne 0) {

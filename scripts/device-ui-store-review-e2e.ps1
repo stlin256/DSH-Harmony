@@ -92,7 +92,7 @@ function Query-Node {
     $arguments += @('--find-id', $Id)
   } else {
     $arguments += @('--find-text-hex',
-      [Convert]::ToHexString([Text.Encoding]::UTF8.GetBytes($Text)))
+      ([BitConverter]::ToString([Text.Encoding]::UTF8.GetBytes($Text))).Replace('-', ''))
   }
   $raw = & python @arguments 2>&1
   if ($LASTEXITCODE -ne 0) {
