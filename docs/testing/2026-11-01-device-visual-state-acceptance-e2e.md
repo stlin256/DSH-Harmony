@@ -43,6 +43,7 @@ Implementation spec:
 | Remediation Default Release SHA-256 (2026-11-07) | `F622BAF9ABB00800584A886644181F705D199F28212E080EBAD9CD577F0FCDFE` |
 | Remediation Store Release SHA-256 (2026-11-07) | `04C1E334E583EDF86D3727F14E1BC8B11C3DECFF594EF7A02AE9C5708EBE99FF` |
 | Remediation Mock Release SHA-256 (2026-11-07) | `CE6F39141F3379C8367AC7AB2EDE4D13D1D5BDD221747C0F3E5472E08B29299E` |
+| Phase-2 Mock Release SHA-256 (2026-11-07) | `D7D6007E3C08DCF26128BB35447EBEF636E1D7A562444CB2962596BF2C2874D3` |
 
 ## Device evidence
 
@@ -232,11 +233,23 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   the gateway fixes (wait-timer renewal, 60s delivery-stall watchdog,
   idle-snapshot page RPC skip, 64MiB upstream frame bound) are covered by
   model/source tests and `qa.mjs pr` run `20261106T161121Z-35121de7`.
-  Device promotion requires rerunning `device-ui-stream-long-e2e.ps1`,
-  `device-ui-turn-change-e2e.ps1` and `device-ui-stream-recovery-e2e.ps1`
-  on a post-remediation HAP; the audit's S1 (HarmonyOS automatic pong vs the
-  20s gateway deadline) and S2 (>32KiB continuation-frame decoding) also
-  need a live Host stream and must not be promoted from Mock evidence. See
+  Device follow-up (2026-11-07): `device-ui-stream-recovery-e2e.ps1` PASSED on
+  the remediation Mock HAP `CE6F3914…`
+  (`artifacts/device-e2e/20261107-fluency-remediation/stream-recovery/recovery/manifest.json`)
+  and on the phase-2 Mock HAP `D7D6007E…`
+  (`artifacts/device-e2e/20261107-fluency-remediation-phase2/stream-recovery/recovery/`),
+  covering quiet-burst, reconnect, child unavailable/retry/Back in dark/light
+  and reduced motion. `device-ui-stream-long-e2e.ps1` and
+  `device-ui-turn-change-e2e.ps1` currently fail on this device for
+  pre-existing reasons: the long-stream reveal freezes the JS thread
+  mid-stream (captured at paragraph 46 on the remediation HAP and reproduced
+  identically on `092cf40`, which predates the remediation commits), and the
+  completed-card query anchors on a single `已编辑 4 个文件` text node while
+  the current card renders the summary as split text nodes. Both failures
+  predate the fluency remediation and belong to the running-tail iteration's
+  known device-freeze investigation; they must not be regressed against it.
+  The audit's S1 (HarmonyOS automatic pong vs the 20s gateway deadline) and
+  S2 (>32KiB continuation-frame decoding) still need a live Host stream. See
   [`2026-11-06-transmission-fluency-remediation.md`](../specs/2026-11-06-transmission-fluency-remediation.md).
 
 These environment-bound checks remain `Pending`; source tests and the current

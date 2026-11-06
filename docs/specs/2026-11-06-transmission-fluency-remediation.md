@@ -53,3 +53,11 @@ delta 帧仅在呈现节奏器未接管（`presentationTimer < 0`）时才调度
 ## 5. 构建与证据门槛
 
 共享 ArkUI 代码变更：default/store/mock 三变体构建；`verify-mock-coverage` 与 `qa.mjs pr` 必须通过。设备台账新增受影响表面（流式发布节奏、turn-change 卡片刷新、历史翻页），证据未取证前保持 Pending。
+
+## 6. Phase 2 (2026-11-07)
+
+The deferred items from the non-goal list are now implemented:
+
+- **R-3 hot-path memoization**: `nativeDiff`, `nativeToolDetail` and `nativeToolKind` memoize by tool identity plus field lengths (the same tradeoff as the phase-1 signature; settled durable rows invalidate by identity). `nativePresentTranscript` precomputes the turns-with-process set, removing the per-assistant `rows.some` rescan. The full durable-prefix projection rewrite remains future work.
+- **C-1 serialization off the streaming loop**: whole-history `scheduleCache` is gated by `!running && !waiting`; the cache persists at turn boundaries, history pages and lifecycle exits. Mid-stream crash loses only warm-start freshness; the Host journal is authoritative. TaskPool/incremental-schema work remains future work.
+- **T-1 stop-stream classification**: reducer faults that a fresh snapshot repairs (`Missing opening snapshot`, `Committed event missing`, `Invalid snapshot`, `Invalid stream end`, `Conflicting durable event`) map to `protocol_inconsistent` and reconnect through the bounded backoff; only a non-JSON frame (`invalid_frame`) or an unexpected handler fault (`frame_handler_error`) still stops outright.
