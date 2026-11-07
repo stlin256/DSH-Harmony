@@ -345,7 +345,10 @@ export async function runQa({
   runCommand = spawnCommand,
   metadataProvider = collectMetadata,
   log = console.log,
-  artifactDirectory = process.env.DSH_QA_ARTIFACT_DIR || DEFAULT_ARTIFACT_DIRECTORY,
+  // Read the environment at call time so an explicit argument always wins and a
+  // caller-provided root is not redirected by an ambient DSH_QA_ARTIFACT_DIR.
+  artifactDirectory = process.env.DSH_QA_ARTIFACT_DIR ||
+    DEFAULT_ARTIFACT_DIRECTORY,
 } = {}) {
   const layout = resolveRunLayout(root, runId, artifactDirectory);
   const evidence = evidencePath ? resolve(evidencePath) : null;

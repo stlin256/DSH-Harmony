@@ -16,6 +16,15 @@ import {
 
 const quiet = () => {};
 
+// CI exports DSH_QA_ARTIFACT_DIR so the workflow can upload the report. The
+// runner reads that variable at call time, so the tests must pin the layout
+// explicitly instead of inheriting the ambient value.
+const LOCAL_ARTIFACTS = '.artifacts/qa';
+
+function localRunPath(root, runId, fileName) {
+  return join(root, ...LOCAL_ARTIFACTS.split('/'), runId, fileName);
+}
+
 test('QA profiles select the required checks in deterministic order', () => {
   const fast = buildSteps('fast');
   assert.deepEqual(fast.map((step) => step.id), [
@@ -100,6 +109,7 @@ test('QA writes per-step logs and an aggregate report', async (t) => {
     profile: 'fast',
     root,
     runId: 'pass-run',
+    artifactDirectory: LOCAL_ARTIFACTS,
     metadataProvider: async () => ({ node: 'test' }),
     runCommand: async (execution) => {
       calls.push(execution.step.id);
@@ -117,16 +127,13 @@ test('QA writes per-step logs and an aggregate report', async (t) => {
   assert.equal(report.steps[0].stdout, 'diff-check.stdout.log');
   assert.equal(report.steps[0].stderr, 'diff-check.stderr.log');
 
-  const reportPath = join(root, '.artifacts', 'qa', 'pass-run', 'report.json');
+  const reportPath = localRunPath(root, 'pass-run', 'report.json');
   assert.equal(existsSync(reportPath), true);
   const persisted = JSON.parse(await readFile(reportPath, 'utf8'));
   assert.equal(persisted.profile, 'fast');
   assert.equal(persisted.status, 'passed');
   assert.equal(
-    await readFile(
-      join(root, '.artifacts', 'qa', 'pass-run', 'diff-check.stdout.log'),
-      'utf8',
-    ),
+    await readFile(localRunPath(root, 'pass-run', 'diff-check.stdout.log'), 'utf8'),
     'diff-check stdout',
   );
 });
@@ -140,6 +147,7 @@ test('QA continues after failure and returns a failing report', async (t) => {
     profile: 'fast',
     root,
     runId: 'fail-run',
+    artifactDirectory: LOCAL_ARTIFACTS,
     metadataProvider: async () => ({ node: 'test' }),
     runCommand: async (execution) => {
       calls.push(execution.step.id);
@@ -160,7 +168,7 @@ test('QA continues after failure and returns a failing report', async (t) => {
   assert.equal(report.steps[5].status, 'passed');
   assert.equal(
     await readFile(
-      join(root, '.artifacts', 'qa', 'fail-run', 'protocol-lock.stderr.log'),
+      localRunPath(root, 'fail-run', 'protocol-lock.stderr.log'),
       'utf8',
     ),
     'protocol mismatch',
@@ -176,6 +184,7 @@ test('QA records command launch errors as failures', async (t) => {
     profile: 'fast',
     root,
     runId: 'error-run',
+    artifactDirectory: LOCAL_ARTIFACTS,
     metadataProvider: async () => ({ node: 'test' }),
     runCommand: async (execution) => {
       calls.push(execution.step.id);
@@ -192,7 +201,7 @@ test('QA records command launch errors as failures', async (t) => {
   assert.equal(calls.length, 7);
   assert.match(
     await readFile(
-      join(root, '.artifacts', 'qa', 'error-run', 'diff-check.stderr.log'),
+      localRunPath(root, 'error-run', 'diff-check.stderr.log'),
       'utf8',
     ),
     /spawn unavailable/,
