@@ -10,7 +10,7 @@ DSH Harmony App 需要 `@dsh-harmony/plugin` 向 DSH 增加原生登录、会话
 
 把下面整句发送给 DSH：
 
-> 请按 https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md 的说明，为当前 DSH web profile 安装并启用 DSH Harmony 插件；使用与 App 匹配的 `plugin-v0.3.9` Release 中的 `dsh-harmony-plugin-0.3.9.tgz`，安装后确认 `@dsh-harmony/plugin` 正常运行并报告版本。
+> 请按 https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md 的说明，为当前 DSH web profile 安装并启用 DSH Harmony 插件；使用与 App 匹配的 `plugin-v0.4.0` Release 中的 `dsh-harmony-plugin-0.4.0.tgz`，安装后确认 `@dsh-harmony/plugin` 正常运行并报告版本。
 
 这句话也显示在 App 首次引导中，可直接复制。
 
@@ -21,7 +21,7 @@ DSH Harmony App 需要 `@dsh-harmony/plugin` 向 DSH 增加原生登录、会话
 3. 粘贴与当前 App 匹配的版本化安装地址：
 
    ```text
-   https://github.com/stlin256/DSH-Harmony/releases/download/plugin-v0.3.9/dsh-harmony-plugin-0.3.9.tgz
+   https://github.com/stlin256/DSH-Harmony/releases/download/plugin-v0.4.0/dsh-harmony-plugin-0.4.0.tgz
    ```
 
 4. 确认来源，安装并启用 **DSH Harmony**。
@@ -48,7 +48,7 @@ App 和插件使用独立版本号。升级时使用与 App 对应的固定插�
 维护者更新插件内容时，从仓库根目录执行：
 
 ```sh
-node scripts/update-plugin-version.mjs 0.3.9
+node scripts/update-plugin-version.mjs 0.4.0
 ```
 
 该命令会同步 App 安装提示、文档和插件清单，然后自动打包并验证完整 bundle。仅检查版本文本时可追加 `--no-package`。
@@ -61,7 +61,7 @@ DSH Harmony needs `@dsh-harmony/plugin` to add native login, sessions, live upda
 
 Send this sentence to DSH:
 
-> Follow https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md to install and enable DSH Harmony for the current DSH web profile. Use `dsh-harmony-plugin-0.3.9.tgz` from the matching `plugin-v0.3.9` release, then verify that `@dsh-harmony/plugin` is running and report its version.
+> Follow https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md to install and enable DSH Harmony for the current DSH web profile. Use `dsh-harmony-plugin-0.4.0.tgz` from the matching `plugin-v0.4.0` release, then verify that `@dsh-harmony/plugin` is running and report its version.
 
 The same prompt is available through the app's first-run guide.
 
@@ -72,7 +72,7 @@ The same prompt is available through the app's first-run guide.
 3. Paste the versioned artifact URL:
 
    ```text
-   https://github.com/stlin256/DSH-Harmony/releases/download/plugin-v0.3.9/dsh-harmony-plugin-0.3.9.tgz
+   https://github.com/stlin256/DSH-Harmony/releases/download/plugin-v0.4.0/dsh-harmony-plugin-0.4.0.tgz
    ```
 
 4. Verify the source, install and enable **DSH Harmony**.
@@ -100,7 +100,7 @@ the App instead of a drifting `latest` tag.
 Maintainers update plugin content from the repository root with:
 
 ```sh
-node scripts/update-plugin-version.mjs 0.3.9
+node scripts/update-plugin-version.mjs 0.4.0
 ```
 
 The command synchronizes the App installation prompt, documentation and plugin

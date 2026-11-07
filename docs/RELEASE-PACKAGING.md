@@ -66,7 +66,7 @@ node scripts/verify-store-bundle.mjs
 期望输出：
 
 ```
-Store bundle checks passed: 2 permission(s), version 0.4.9 (30)
+Store bundle checks passed: 2 permission(s), version 0.4.10 (31)
   permissions: ohos.permission.INTERNET, ohos.permission.KEEP_BACKGROUND_RUNNING
 ```
 
@@ -120,8 +120,8 @@ $ide = "$env:LOCALAPPDATA\Programs\Huawei\DevEcoStudio-26.0.0"
 `harmony/AppScope/app.json5`：
 
 ```json5
-"versionCode": 30,      // 必须大于 AppGallery 上已有版本的 versionCode
-"versionName": "0.4.9",
+"versionCode": 31,      // 必须大于 AppGallery 上已有版本的 versionCode
+"versionName": "0.4.10",
 ```
 
 ### 4. 包元数据
