@@ -37,13 +37,13 @@ The goal goes beyond making Harness fit. From cold start to long-history scrolli
 Hand a task to DSH Harmony and follow it as it reads files, runs commands, reviews changes and returns a result. The process can open in place while the result stays direct; the floating task plan and live state stay attached to the current work.
 
 <p align="center">
-  <img src="artifacts/store-screenshots/final/appgallery-landscape/01-conversation-1920x1080.png" width="100%" alt="DSH Harmony native conversation and floating task plan">
+  <img src="artifacts/readme-screenshots/final/appgallery-landscape/01-conversation-1920x1080.png" width="100%" alt="DSH Harmony native conversation and floating task plan">
 </p>
 
 <p align="center">
-  <img src="artifacts/store-screenshots/final/appgallery-portrait/02-process-1080x1920.png" width="250" alt="Structured work process">
-  <img src="artifacts/store-screenshots/final/appgallery-portrait/03-plan-subagent-1080x1920.png" width="250" alt="Plan and subagent lineage">
-  <img src="artifacts/store-screenshots/final/appgallery-portrait/04-file-preview-1080x1920.png" width="250" alt="Workspace file preview">
+  <img src="artifacts/readme-screenshots/final/appgallery-portrait/02-process-1080x1920.png" width="250" alt="Structured work process">
+  <img src="artifacts/readme-screenshots/final/appgallery-portrait/03-plan-subagent-1080x1920.png" width="250" alt="Plan and subagent lineage">
+  <img src="artifacts/readme-screenshots/final/appgallery-portrait/04-file-preview-1080x1920.png" width="250" alt="Workspace file preview">
 </p>
 
 **Clear process, direct result.** Reads, commands and changes expand in real order, and stay compact when the answer is the focus.
@@ -57,9 +57,9 @@ Hand a task to DSH Harmony and follow it as it reads files, runs commands, revie
 Session permissions, one-shot approvals, questions and attachments stay close to the composer. Risky actions show their scope and impact; a one-shot approval never changes the session permission.
 
 <p align="center">
-  <img src="artifacts/store-screenshots/final/appgallery-portrait/05-approval-1080x1920.png" width="250" alt="One-shot approval and risk confirmation">
-  <img src="artifacts/store-screenshots/final/appgallery-portrait/07-automation-1080x1920.png" width="250" alt="Automation tasks and run status">
-  <img src="artifacts/store-screenshots/final/appgallery-portrait/08-plugins-1080x1920.png" width="250" alt="Plugins and runtime components">
+  <img src="artifacts/readme-screenshots/final/appgallery-portrait/05-approval-1080x1920.png" width="250" alt="One-shot approval and risk confirmation">
+  <img src="artifacts/readme-screenshots/final/appgallery-portrait/07-automation-1080x1920.png" width="250" alt="Automation tasks and run status">
+  <img src="artifacts/readme-screenshots/final/appgallery-portrait/08-plugins-1080x1920.png" width="250" alt="Plugins and runtime components">
 </p>
 
 **Explicit approval boundaries.** Allow once, reject, risk acknowledgement and submitting states each have a clear visual home.
@@ -85,8 +85,8 @@ Login stays flexible:
 | Press feedback, drawers, navigation, safe areas and system Back are implemented natively, with respect for reduced-motion preferences. | Sessions, models, tools, approvals, questions, images, Markdown, code, file browsing and tiered notifications cover real mobile workflows. |
 
 <p align="center">
-  <img src="artifacts/store-screenshots/final/appgallery-landscape/06-appearance-light-dark-1920x1080.png" width="49%" alt="DSH Harmony light and dark appearance">
-  <img src="artifacts/store-screenshots/final/appgallery-landscape/09-desktop-cards-1920x1080.png" width="49%" alt="DSH Harmony desktop cards">
+  <img src="artifacts/readme-screenshots/final/appgallery-landscape/06-appearance-light-dark-1920x1080.png" width="49%" alt="DSH Harmony light and dark appearance">
+  <img src="artifacts/readme-screenshots/final/appgallery-landscape/09-desktop-cards-1920x1080.png" width="49%" alt="DSH Harmony desktop cards">
 </p>
 
 ## Get started

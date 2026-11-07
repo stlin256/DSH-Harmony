@@ -1,5 +1,5 @@
 ﻿{
-    "generatedAt":  "2026-11-07T15:56:09.6583885Z",
+    "generatedAt":  "2026-11-07T17:26:34.7616008Z",
     "device":  "33Z0224801015621",
     "deviceModel":  "HBN-AL80",
     "deviceApi":  "26",
@@ -7,7 +7,7 @@
     "product":  "mock",
     "displayName":  "DSH Mobile",
     "hap":  "harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap",
-    "hapSha256":  "DB7BB530E4FB7E5922A29FED4920B9866A445682BD94DD6C78A00F994AA3BE70",
+    "hapSha256":  "AEF577CDF14F661B35F46630F4C98D370FD568BA838BCAED31E90693CC63C303",
     "rawDirectory":  "artifacts/store-screenshots/raw",
     "finalDirectory":  "artifacts/store-screenshots/final",
     "mockModel":  "DeepSeek-V4-Pro",

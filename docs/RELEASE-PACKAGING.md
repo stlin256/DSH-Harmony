@@ -136,7 +136,14 @@ DSH Harmony。store 变体出于安全考虑关闭了确定性展示夹具
 (`supportsMockFixtures = false`)，因此宣传图用 mock 变体渲染，但构建时把
 显示名临时替换为商店名。
 
-一条命令重新生成：
+仓库里保留两套宣传图，**夹具内容完全相同**，只有海报品牌名与应用内显示名不同：
+
+| 用途 | 目录 | 品牌名 |
+| --- | --- | --- |
+| GitHub README | `artifacts/readme-screenshots/` | DSH Harmony |
+| AppGallery 上架 | `artifacts/store-screenshots/` | DSH Mobile |
+
+一条命令重新生成（默认按商店名渲染，输出到 `artifacts/store-screenshots`）：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass `
@@ -145,12 +152,29 @@ powershell -NoProfile -ExecutionPolicy Bypass `
   -Device <设备序列号>
 ```
 
+社区版宣传图同一条命令，只改品牌与输出目录：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File scripts/capture-store-screenshots.ps1 `
+  -DevEcoHome "$env:LOCALAPPDATA\Programs\Huawei\DevEcoStudio-26.0.0" `
+  -Device <设备序列号> `
+  -OutputDir artifacts/readme-screenshots `
+  -Brand 'DSH Harmony'
+```
+
+README 只引用 `artifacts/readme-screenshots/`；商店包只上传
+`artifacts/store-screenshots/final/appgallery-*/**`。两套必须是同一次夹具内容，
+否则同一功能在两个渠道的展示会不一致。
+
 脚本自动完成：
 
 1. 从 `entry/src/store/ProductCapabilities.ets` 读取 `appDisplayName`；
 2. 临时写入 `entry/src/mock/ProductCapabilities.ets`，构建 mock Release 包；
 3. 构建结束按字节还原 mock 能力文件（构建失败也会还原）；
-4. 安装并逐场景截图（hdc `uitest screenCap`，不依赖 devecocli）；
+4. 安装并逐场景截图（hdc `uitest screenCap`，不依赖 devecocli），每个场景
+   先执行 `bm clean -d/-c` 清空应用数据——持久化的会话/转录缓存会遮蔽确定性
+   夹具，不清空会截到上一次运行的旧内容；
 5. 合成 1080x1920 / 1920x1080 两套图，品牌名由 `--brand` 传入；
 6. 写出 `manifest.json`，含 `displayName` 与 HAP 哈希。
 

@@ -5,7 +5,11 @@
   [string]$OutputDir = '',
   [switch]$SkipBuild,
   [switch]$SkipInstall,
-  [Alias('RestorePersonal')][switch]$RestoreCommunity
+  [Alias('RestorePersonal')][switch]$RestoreCommunity,
+  # Product name drawn on the sheets. Defaults to the store name because the
+  # AppGallery listing is the primary consumer; pass the community name
+  # (DSH Harmony) when rendering the GitHub README sheets.
+  [string]$Brand = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -62,14 +66,17 @@ $storeDisplayName = [regex]::Match(
 if (-not $storeDisplayName) {
   throw "Store display name not found in $storeCapabilityPath"
 }
+$brand = if ($Brand) { $Brand } else { $storeDisplayName }
 $capabilityBackup = $null
 if (-not $SkipBuild) {
   $capabilityBackup = [IO.File]::ReadAllBytes($capabilityPath)
   $capabilityText = [Text.Encoding]::UTF8.GetString($capabilityBackup)
   $replaced = [regex]::Replace($capabilityText,
     "appDisplayName\s*:\s*string\s*=\s*'[^']*'",
-    "appDisplayName: string = '" + $storeDisplayName + "'")
-  if ($replaced -eq $capabilityText) {
+    "appDisplayName: string = '" + $brand + "'")
+  # An unchanged result is fine when the mock file already carries the brand
+  # (the community sheets use the mock default name).
+  if ($replaced -eq $capabilityText -and $capabilityText -notmatch [regex]::Escape("appDisplayName: string = '" + $brand + "'")) {
     throw 'Mock display name could not be replaced'
   }
   [IO.File]::WriteAllText($capabilityPath, $replaced, [Text.UTF8Encoding]::new($false))
@@ -100,6 +107,10 @@ $bundle = 'io.github.stlin256.dshharmony'
 function Capture([string]$fileName, [string]$screen, [string]$state, [string]$theme) {
   $path = Join-Path $rawDir $fileName
   Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+  # Persisted session and transcript caches survive a HAP reinstall and shadow the
+  # deterministic fixtures, so every scene starts from cleared app data.
+  & $hdc -t $Device shell "bm clean -n $bundle -d" | Out-Null
+  & $hdc -t $Device shell "bm clean -n $bundle -c" | Out-Null
   & $hdc -t $Device shell "aa force-stop $bundle" | Out-Null
   & $hdc -t $Device shell "aa start -a EntryAbility -b $bundle -m entry --ps storeShowcase true --ps showcaseScreen $screen --ps showcaseState $state --ps showcaseTheme $theme"
   if ($LASTEXITCODE -ne 0) {
@@ -145,7 +156,7 @@ foreach ($capture in $captures) {
   Capture $capture.file $capture.screen $capture.state $capture.theme
 }
 
-python (Join-Path $PSScriptRoot 'compose-store-screenshots.py') --raw $rawDir --out $finalDir --brand $storeDisplayName
+python (Join-Path $PSScriptRoot 'compose-store-screenshots.py') --raw $rawDir --out $finalDir --brand $brand
 if ($LASTEXITCODE -ne 0) {
   throw "Screenshot composition failed: $LASTEXITCODE"
 }
@@ -160,7 +171,7 @@ $manifest = [ordered]@{
   deviceApi = $deviceApi
   bundleName = $bundle
   product = 'mock'
-  displayName = $storeDisplayName
+  displayName = $brand
   hap = 'harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap'
   hapSha256 = $hapHash
   rawDirectory = 'artifacts/store-screenshots/raw'
