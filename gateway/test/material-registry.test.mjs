@@ -27,10 +27,11 @@ test('docks consume the maintained list instead of ad-hoc blur', () => {
   assert.match(task, /NativeMaterialColumnModifier\([\s\S]{0,90}NativeMaterialSurface\.TASK_DOCK/);
 });
 
-test('reduce transparency defaults to ON to preserve the pre-material shell', () => {
-  assert.match(experience, /store\.getSync\('reduceTransparency', true\)/);
-  assert.match(settings, /reduceTransparency: boolean = true;/);
-  assert.match(settings, /@State private reduceTransparency: boolean = true;/);
-  assert.match(entry, /showcaseReduceTransparency === false/);
-  assert.match(index, /storeReviewReduceTransparency', true\)/);
+test('reduce transparency defaults to OFF so materials are the default look', () => {
+  // Every variant ships with materials enabled; opaque surfaces are opt-in.
+  assert.match(experience, /store\.getSync\('reduceTransparency', false\)/);
+  assert.match(settings, /reduceTransparency: boolean = false;/);
+  assert.match(settings, /@State private reduceTransparency: boolean = false;/);
+  assert.match(entry, /showcaseReduceTransparency === true/);
+  assert.match(index, /storeReviewReduceTransparency', false\)/);
 });

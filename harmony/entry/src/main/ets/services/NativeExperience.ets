@@ -10,8 +10,8 @@ export class NativeExperience {
     const store = preferences.getPreferencesSync(context, { name: 'pocket-native-experience' });
     if (!preservePresentation) {
       AppStorage.setOrCreate<string>('nativeThemeMode', store.getSync('themeMode', 'system') as string);
-      // Pre-immersive default: reduced transparency stays on until the user opts in.
-      AppStorage.setOrCreate<boolean>('nativeReduceTransparency', store.getSync('reduceTransparency', true) === true);
+      // Materials are the default look; reduced transparency is opt-in.
+      AppStorage.setOrCreate<boolean>('nativeReduceTransparency', store.getSync('reduceTransparency', false) === true);
       AppStorage.setOrCreate<boolean>('nativeUserReduceMotion', store.getSync('reduceMotion', false) === true);
     }
     try { AppStorage.setOrCreate<boolean>('nativeSystemReduceMotion', accessibility.isAnimationReduceEnabledSync()); }
@@ -26,7 +26,7 @@ export class NativeExperience {
   static setPreference(context: common.Context, key: string, value: boolean): void {
     if (key !== 'reduceTransparency' && key !== 'reduceMotion') throw new Error('Unknown presentation preference');
     const store = preferences.getPreferencesSync(context, { name: 'pocket-native-experience' });
-    const previous = store.getSync(key, true);
+    const previous = store.getSync(key, false);
     try { store.putSync(key, value); store.flushSync(); }
     catch (error) { store.putSync(key, previous); throw error as Error; }
     NativeExperience.refresh(context);
@@ -70,7 +70,7 @@ export class NativeExperience {
 
   static state(context: common.Context): string {
     const store = preferences.getPreferencesSync(context, { name: 'pocket-native-experience' });
-    return JSON.stringify({ themeMode: store.getSync('themeMode', 'system'), reduceTransparency: store.getSync('reduceTransparency', true) === true,
+    return JSON.stringify({ themeMode: store.getSync('themeMode', 'system'), reduceTransparency: store.getSync('reduceTransparency', false) === true,
       reduceMotion: store.getSync('reduceMotion', false) === true,
       systemReduceMotion: AppStorage.get<boolean>('nativeSystemReduceMotion') === true,
       materialEnabled: NativeExperience.materialsEnabled() });

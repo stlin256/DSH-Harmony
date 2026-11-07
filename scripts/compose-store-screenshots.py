@@ -320,6 +320,12 @@ def rounded_icon(size: int) -> Image.Image:
     return icon
 
 
+# AppGallery product identity. The store variant ships as "DSH Mobile", so the
+# composed sheets must not fall back to the community build name.
+BRAND_NAME = "DSH Mobile"
+BRAND_TAGLINE = "DeepSeek Harness · HarmonyOS"
+
+
 def draw_brand(
     canvas: Image.Image,
     x: int,
@@ -336,13 +342,13 @@ def draw_brand(
     canvas.paste(icon, (x, y), icon)
     draw.text(
         (x + icon_size + round(icon_size * 0.26), y + max(0, round(icon_size * 0.04))),
-        "DSH Harmony",
+        BRAND_NAME,
         font=font(name_size, True),
         fill=foreground,
     )
     draw.text(
         (x + icon_size + round(icon_size * 0.28), y + round(icon_size * 0.65)),
-        "DeepSeek Harness · HarmonyOS",
+        BRAND_TAGLINE,
         font=font(sub_size),
         fill=muted,
     )
@@ -888,10 +894,15 @@ def write_curated_outputs(out_dir: Path) -> None:
 
 
 def main() -> None:
+    global BRAND_NAME, BRAND_TAGLINE
     parser = argparse.ArgumentParser()
     parser.add_argument("--raw", required=True)
     parser.add_argument("--out", required=True)
+    parser.add_argument("--brand", default=BRAND_NAME, help="product name drawn on every sheet")
+    parser.add_argument("--tagline", default=BRAND_TAGLINE, help="tagline drawn under the product name")
     args = parser.parse_args()
+    BRAND_NAME = args.brand
+    BRAND_TAGLINE = args.tagline
     raw_dir = Path(args.raw)
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)

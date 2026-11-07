@@ -122,7 +122,9 @@ test('system material guards old runtimes and respects opacity, motion and power
   new ChromeMaterialModifier(0).applyNormalAttribute({ systemMaterial: value => { applied = value; } });
   assert.equal(applied, undefined);
   deviceInfo.sdkApiVersion = 26;
-  // The default now stays pre-immersive; opting out of reduced transparency enables materials.
+  // Materials are the default look; opting INTO reduced transparency disables them.
+  assert.equal(NativeExperience.materialsEnabled(), true);
+  NativeExperience.setPreference(context, 'reduceTransparency', true);
   assert.equal(NativeExperience.materialsEnabled(), false);
   NativeExperience.setPreference(context, 'reduceTransparency', false);
   assert.equal(NativeExperience.materialsEnabled(), true);

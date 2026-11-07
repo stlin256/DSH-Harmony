@@ -48,10 +48,42 @@ if (-not $Device) {
 }
 
 $env:DEVECO_CLI_STUDIO_PATH = $DevEcoHome
+
+# The store screenshots must show the AppGallery product name, but the store
+# variant intentionally disables the deterministic showcase fixtures. Render the
+# mock variant with the store display name instead: swap the name in the mock
+# capability file for the duration of the build and restore it afterwards.
+$capabilityPath = Join-Path $repo 'harmony\entry\src\mock\ProductCapabilities.ets'
+$storeCapabilityPath = Join-Path $repo 'harmony\entry\src\store\ProductCapabilities.ets'
+$storeDisplayName = [regex]::Match(
+  [IO.File]::ReadAllText($storeCapabilityPath),
+  "appDisplayName\s*:\s*string\s*=\s*'([^']+)'"
+).Groups[1].Value
+if (-not $storeDisplayName) {
+  throw "Store display name not found in $storeCapabilityPath"
+}
+$capabilityBackup = $null
 if (-not $SkipBuild) {
-  & (Join-Path $PSScriptRoot 'build-harmony.ps1') -DevEcoHome $DevEcoHome -Product mock -BuildMode release -AssembleApp
-  if ($LASTEXITCODE -ne 0) {
-    throw "Mock Release build failed: $LASTEXITCODE"
+  $capabilityBackup = [IO.File]::ReadAllBytes($capabilityPath)
+  $capabilityText = [Text.Encoding]::UTF8.GetString($capabilityBackup)
+  $replaced = [regex]::Replace($capabilityText,
+    "appDisplayName\s*:\s*string\s*=\s*'[^']*'",
+    "appDisplayName: string = '" + $storeDisplayName + "'")
+  if ($replaced -eq $capabilityText) {
+    throw 'Mock display name could not be replaced'
+  }
+  [IO.File]::WriteAllText($capabilityPath, $replaced, [Text.UTF8Encoding]::new($false))
+}
+try {
+  if (-not $SkipBuild) {
+    & (Join-Path $PSScriptRoot 'build-harmony.ps1') -DevEcoHome $DevEcoHome -Product mock -BuildMode release -AssembleApp
+    if ($LASTEXITCODE -ne 0) {
+      throw "Mock Release build failed: $LASTEXITCODE"
+    }
+  }
+} finally {
+  if ($null -ne $capabilityBackup) {
+    [IO.File]::WriteAllBytes($capabilityPath, $capabilityBackup)
   }
 }
 $hap = (Resolve-Path -LiteralPath $HapPath).Path
@@ -83,9 +115,15 @@ function Capture([string]$fileName, [string]$screen, [string]$state, [string]$th
       throw "Screenshot fixture did not settle at the tail: $screen/$state/$theme"
     }
   }
-  devecocli ui screenshot --device $Device --path $path
+  # hdc's own screenCap avoids depending on devecocli being on PATH.
+  $remoteShot = "/data/local/tmp/dsh-store-$fileName"
+  & $hdc -t $Device shell "uitest screenCap -p $remoteShot" | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw "Screen capture failed: $fileName"
+  }
+  & $hdc -t $Device file recv $remoteShot $path | Out-Null
   if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $path)) {
-    throw "Screenshot failed: $fileName"
+    throw "Screenshot transfer failed: $fileName"
   }
 }
 
@@ -107,7 +145,7 @@ foreach ($capture in $captures) {
   Capture $capture.file $capture.screen $capture.state $capture.theme
 }
 
-python (Join-Path $PSScriptRoot 'compose-store-screenshots.py') --raw $rawDir --out $finalDir
+python (Join-Path $PSScriptRoot 'compose-store-screenshots.py') --raw $rawDir --out $finalDir --brand $storeDisplayName
 if ($LASTEXITCODE -ne 0) {
   throw "Screenshot composition failed: $LASTEXITCODE"
 }
@@ -122,6 +160,7 @@ $manifest = [ordered]@{
   deviceApi = $deviceApi
   bundleName = $bundle
   product = 'mock'
+  displayName = $storeDisplayName
   hap = 'harmony/entry/build/mock/outputs/mock/entry-mock-signed.hap'
   hapSha256 = $hapHash
   rawDirectory = 'artifacts/store-screenshots/raw'

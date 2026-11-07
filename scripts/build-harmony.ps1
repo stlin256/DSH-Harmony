@@ -71,13 +71,23 @@ try {
   try {
     & (Join-Path $ide 'tools/ohpm/bin/ohpm.bat') install
     if ($LASTEXITCODE -ne 0) { throw 'ohpm install failed' }
+    $hvigor = Join-Path $ide 'tools/hvigor/bin/hvigorw.js'
     if ($AssembleApp) {
-      $env:DEVECO_CLI_STUDIO_PATH = $ide
-      & devecocli build --product $buildProduct --build-mode $BuildMode
+      # AppGallery uploads the signed .app bundle, not a bare HAP. assembleApp
+      # packages every module and signs the bundle with the product's
+      # signingConfig, so the store product must keep signingConfig 'store'.
+      & (Join-Path $env:NODE_HOME 'node.exe') $hvigor --mode project -p "product=$buildProduct" -p "buildMode=$BuildMode" assembleApp --no-daemon
     } else {
-      & (Join-Path $env:NODE_HOME 'node.exe') (Join-Path $ide 'tools/hvigor/bin/hvigorw.js') --mode module -p "product=$buildProduct" -p "module=entry@$buildProduct" -p "buildMode=$BuildMode" assembleHap --no-daemon
+      & (Join-Path $env:NODE_HOME 'node.exe') $hvigor --mode module -p "product=$buildProduct" -p "module=entry@$buildProduct" -p "buildMode=$BuildMode" assembleHap --no-daemon
     }
     if ($LASTEXITCODE -ne 0) { throw "HarmonyOS build failed: $LASTEXITCODE" }
+    if ($AssembleApp -and $buildProduct -eq 'store') {
+      # AppGallery rejects a bundle whose HAP declares a permission the release
+      # Profile did not approve (error 7014), which is what happens when the
+      # store variant manifest was not swapped in. Fail here instead.
+      & (Join-Path $env:NODE_HOME 'node.exe') (Join-Path $repo 'scripts/verify-store-bundle.mjs') (Join-Path $project "build/outputs/store/harmony-store-signed.app")
+      if ($LASTEXITCODE -ne 0) { throw 'Store bundle verification failed' }
+    }
   } finally {
     $ErrorActionPreference = $nativeErrorAction
   }

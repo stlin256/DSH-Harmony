@@ -173,6 +173,8 @@ static tests or a screenshot produced by an older HAP.
   [2026-11-07-security-audit-remediation.md](docs/research/2026-11-07-security-audit-remediation.md)
 - Verification record and device-evidence gaps:
   [2026-11-07-security-audit-remediation-e2e.md](docs/testing/2026-11-07-security-audit-remediation-e2e.md)
+- Store release packaging (AppGallery `.app` bundle, permission/signature checks):
+  [RELEASE-PACKAGING.md](docs/RELEASE-PACKAGING.md)
 - Visual baseline: [DESIGN.md](docs/DESIGN.md)
 - Physical-device visual acceptance requirement:
   [2026-11-01-device-visual-state-acceptance.md](docs/requirements/2026-11-01-device-visual-state-acceptance.md)

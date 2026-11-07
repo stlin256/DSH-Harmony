@@ -1406,78 +1406,242 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
   return sessions;
 }
 
-function showcaseReviewSessionMessages(sessionId: string, state: string): NativeMessage[] {
-  if (sessionId === SHOWCASE_SESSION) return showcaseMessagesFor(state);
-  let question = '检查这个工作区的当前状态，并整理还需要确认的事项。';
-  let answer = '检查完成。当前工作区状态正常，最近一次变更已经完成验证，没有待处理的阻塞项。';
-  let command = 'git status --short';
-  let detail = '工作区文件、会话记录与运行状态保持同步。';
-  if (sessionId === 'showcase-files') {
-    question = '检查最近的发布文件，确认导出、源码和预览是否一致。';
-    answer = '已核对发布目录、配置文件和预览结果。源码与导出内容一致，异常格式会显示明确的回退说明。';
-    command = 'npm run verify:files';
-    detail = '文件校验通过，目录、源码切换和只读预览均可正常使用。';
-  } else if (sessionId === 'showcase-passkey') {
-    question = '复核远程连接和一次高风险写入的审批路径。';
-    answer = '审批路径已核对。高风险操作会显示目标权限、作用范围与原因，确认后只放行当前一次调用。';
-    command = 'npm test -- access-control';
-    detail = '连接、审批、取消和结束状态均按同一套会话投影呈现。';
-  } else if (sessionId === 'showcase-notify') {
-    question = '检查完成、失败、审批和连接变化四类通知。';
-    answer = '四类通知可以独立设置。任务名称与敏感正文遵循卡片隐私选项，回到应用后会定位到对应会话。';
-    command = 'npm test -- notifications';
-    detail = '通知等级、系统权限和静默状态没有互相覆盖。';
-  } else if (sessionId === 'showcase-settings') {
-    question = '整理外观、动效和工作步骤展示的偏好设置。';
-    answer = '设置已整理。主题、减少动态效果、减少透明度和工作步骤展示会即时更新，并在重新打开页面后保持当前值。';
-    command = 'npm test -- host-settings';
-    detail = '本地设置与 Host 设置使用同一套紧凑行和明确的状态反馈。';
-  } else if (sessionId === 'showcase-mobile') {
-    question = '检查手机端的键盘、安全区和系统返回行为。';
-    answer = '键盘出现时输入区与正文同步上移；底部控件保持 20vp 安全避让；系统返回优先关闭当前层级。';
-    command = 'npm test -- mobile-layout';
-    detail = '窄屏、长标题和附件托盘不会挤压主要阅读区域。';
-  } else if (sessionId === 'showcase-streaming') {
-    return showcaseStreamingMessages();
-  } else if (sessionId === 'showcase-preview') {
-    question = '检查文本、配置、表格、图片、PDF 和 HTML 的预览支持。';
-    answer = '预览入口按文件类型显示。源码与预览可以切换，表格根据内容自适应列宽，不支持的类型保留源码和下载。';
-    command = 'npm test -- preview';
-    detail = '所有预览均为只读，不显示复制标识。';
-  } else if (sessionId === 'showcase-permissions') {
-    question = '核对不同权限模式和单次审批的视觉层级。';
-    answer = '只读、工作区写入、完全权限和自动审查均使用同一套卡片。权限控件与输入栏对齐，并通过遮罩表达层级。';
-    command = 'npm test -- permissions';
-    detail = '审批提交中、结束和连接中断都有稳定状态。';
-  } else if (sessionId === 'showcase-cards') {
-    question = '检查桌面卡片与发布状态摘要。';
-    answer = '卡片会显示运行数量、完成结果和待审批任务。隐藏任务名称后仍保留匿名数量和状态。';
-    command = 'npm test -- widgets';
-    detail = '卡片刷新不会打断当前会话或重复投递通知。';
-  }
+/**
+ * Store review demo content.
+ *
+ * The AppGallery reviewer sees this instead of a real Host, so it has to look
+ * like an ordinary DSH conversation rather than a feature list: a request, a
+ * reasoning step, a multi-call tool chain (read -> search -> edit -> test), a
+ * file-change summary and a written answer with code, tables and lists.
+ * Every path, command and number below is plausible for this repository.
+ */
+class ShowcaseReviewTurn {
+  question: string = '';
+  reasoning: string = '';
+  reads: string[] = [];
+  searches: string[] = [];
+  edits: ShowcaseFileDiff[] = [];
+  commands: string[] = [];
+  commandOutput: string = '';
+  answer: string = '';
+}
+
+function showcaseReviewTool(id: string, callId: string, name: string, args: string, output: string,
+  seq: number, turn: number, step: number, result: boolean = false): NativeMessage {
+  return toolMessage(id, callId, name, args, output, seq, turn, step, result);
+}
+
+function showcaseReviewReasoning(id: string, text: string, seq: number, turn: number,
+  step: number): NativeMessage {
+  const value = message(id, 'reasoning', seq, turn, step, '');
+  value.reasoning = text;
+  return value;
+}
+
+/** One review turn: request, reasoning, tool chain, file changes, answer. */
+function showcaseReviewChain(prefix: string, turn: number, spec: ShowcaseReviewTurn): NativeMessage[] {
   const rows: NativeMessage[] = [];
-  rows.push(message('review-' + sessionId + '-user', 'user', 1, 1, 1, question));
-  rows.push(toolMessage('review-' + sessionId + '-command-start', 'review-' + sessionId + '-command',
-    'exec_command', JSON.stringify({ command }), '', 2, 1, 2));
-  rows.push(toolMessage('review-' + sessionId + '-command-result', 'review-' + sessionId + '-command',
-    'exec_command', '', detail, 3, 1, 2, true));
-  rows.push(message('review-' + sessionId + '-assistant', 'assistant', 4, 1, 3, answer));
-  const end = message('review-' + sessionId + '-end', 'turn', 5, 1, 3, '');
+  let seq = 1;
+  let step = 1;
+  rows.push(message(prefix + '-user', 'user', turn, turn, step, spec.question));
+  if (spec.reasoning) {
+    rows.push(showcaseReviewReasoning(prefix + '-reason', spec.reasoning, turn, turn, step));
+  }
+  spec.reads.forEach((path: string, index: number): void => {
+    const callId = prefix + '-read-' + index;
+    step++;
+    rows.push(showcaseReviewTool(prefix + '-read-start-' + index, callId, 'read',
+      JSON.stringify({ path }), '', turn, turn, step));
+    rows.push(showcaseReviewTool(prefix + '-read-result-' + index, callId, 'read',
+      '', '已读取 ' + path, turn, turn, step, true));
+  });
+  spec.searches.forEach((pattern: string, index: number): void => {
+    const callId = prefix + '-grep-' + index;
+    step++;
+    rows.push(showcaseReviewTool(prefix + '-grep-start-' + index, callId, 'grep',
+      JSON.stringify({ pattern }), '', turn, turn, step));
+    rows.push(showcaseReviewTool(prefix + '-grep-result-' + index, callId, 'grep',
+      '', '命中 ' + (index + 2) + ' 处', turn, turn, step, true));
+  });
+  if (spec.edits.length) {
+    const diff = new ShowcaseDiffPayload();
+    spec.edits.forEach((entry: ShowcaseFileDiff): void => { diff.diffs.push(entry); });
+    step++;
+    rows.push(showcaseReviewTool(prefix + '-edit-start', prefix + '-edit', 'edit',
+      JSON.stringify(diff), '', turn, turn, step));
+    rows.push(showcaseReviewTool(prefix + '-edit-result', prefix + '-edit', 'edit',
+      '', '', turn, turn, step, true));
+  }
+  spec.commands.forEach((command: string, index: number): void => {
+    const callId = prefix + '-cmd-' + index;
+    step++;
+    rows.push(showcaseReviewTool(prefix + '-cmd-start-' + index, callId, 'exec_command',
+      JSON.stringify({ command }), '', turn, turn, step));
+    rows.push(showcaseReviewTool(prefix + '-cmd-result-' + index, callId, 'exec_command',
+      '', index === spec.commands.length - 1 ? spec.commandOutput : '', turn, turn, step, true));
+  });
+  if (spec.answer) {
+    // The transcript renders plain text through NativeTextContent, which parses
+    // Markdown itself; leaving blocks empty keeps code fences, tables and lists
+    // flowing through the same path a real Host answer uses.
+    rows.push(message(prefix + '-assistant', 'assistant', turn, turn, step + 1, spec.answer));
+  }
+  const end = message(prefix + '-end', 'turn', turn + 1, turn, step + 1, '');
   end.eventType = 'turn/end';
   end.outcome = 'completed';
   rows.push(end);
-  return showcaseWithHistory('review-' + sessionId, rows, [
-    [
-      '先确认当前版本和最近一次验证结果。',
-      '版本、协议和工作区状态一致，当前没有未确认的发布阻塞。'
-    ],
-    [
-      '再检查边界状态和失败回退。',
-      '空数据、加载失败和权限不足都有明确提示，并提供可执行的下一步。'
-    ]
-  ]);
+  return rows;
 }
 
+function showcaseReviewDiff(path: string, oldText: string, newText: string): ShowcaseFileDiff {
+  const value = new ShowcaseFileDiff();
+  value.path = path;
+  value.oldText = oldText;
+  value.newText = newText;
+  return value;
+}
+
+function showcaseReviewSessionMessages(sessionId: string, state: string): NativeMessage[] {
+  if (sessionId === SHOWCASE_SESSION) return showcaseMessagesFor(state);
+  const rows: NativeMessage[] = [];
+  if (sessionId === 'showcase-files') {
+    const first = new ShowcaseReviewTurn();
+    first.question = 'docs 目录里的 users.csv 导出后列对不齐，帮我看看解析哪里出了问题。';
+    first.reasoning = '先看解析实现和这份导出的实际内容，再决定是改分隔符处理还是改列宽计算。';
+    first.reads = ['harmony/entry/src/main/ets/services/NativeDelimitedModel.ets', 'docs/users.csv'];
+    first.searches = ['splitLine', 'quote'];
+    first.answer = '问题出在引号内的换行没有被当成同一个单元格：解析器按行切分后才处理引号，' +
+      '所以多行备注被拆成了两行，列数就对不上了。\n\n' +
+      '修复方式是在扫描时维护引号状态，只有引号闭合后才结束当前记录：\n\n' +
+      '```ets\nwhile (index < text.length) {\n' +
+      '  const ch = text.charAt(index);\n' +
+      '  if (ch === \'"\') { quoted = !quoted; }\n' +
+      '  if (ch === \'\\n\' && !quoted) { finishRecord(); }\n' +
+      '  index++;\n}\n```\n\n' +
+      '改完后 12 份导出全部对齐，回归用例也补上了多行备注的场景。';
+    rows.push(...showcaseReviewChain('review-files', 3, first));
+
+    const second = new ShowcaseReviewTurn();
+    second.question = '顺便确认表格预览在窄屏下的表现。';
+    second.reasoning = '列宽是按内容估算的，窄屏应该出现横向滚动而不是压缩文字。';
+    second.reads = ['harmony/entry/src/main/ets/services/NativeTableLayout.ets'];
+    second.edits = [showcaseReviewDiff(
+      'harmony/entry/src/main/ets/services/NativeTableLayout.ets',
+      'const width = Math.max(minWidth, contentWidth);',
+      'const width = Math.max(minWidth, Math.min(contentWidth, maxColumnWidth));\n' +
+      '// wide columns scroll horizontally instead of squeezing the text')];
+    second.commands = ['npm test -- table-layout'];
+    second.commandOutput = 'PASS table-layout\n9 tests passed\nnarrow screen keeps 2 columns visible';
+    second.answer = '窄屏现在会保留最小可读列宽，超出部分横向滚动，不再把中文压成两三个字一行。';
+    rows.push(...showcaseReviewChain('review-files-2', 5, second));
+    return rows;
+  }
+  if (sessionId === 'showcase-passkey') {
+    const first = new ShowcaseReviewTurn();
+    first.question = '远程连接之后，一次高风险写入的审批是怎么走的？我想确认它只放行当前这一次。';
+    first.reasoning = '需要看审批请求的构造、作用范围字段，以及确认后回传的 outcome 结构。';
+    first.reads = ['harmony/entry/src/main/ets/components/NativeInteraction.ets',
+      'gateway/src/native-harness.mjs'];
+    first.searches = ['allowed-once', 'approval/request'];
+    first.answer = '审批走的是 Host 的 `approval/request` 事件，客户端只回传三种 outcome：\n\n' +
+      '| 选择 | 回传值 | 生效范围 |\n| --- | --- | --- |\n' +
+      '| 允许一次 | `allowed-once` | 仅当前这次工具调用 |\n' +
+      '| 拒绝 | `rejected` | 当前调用被取消 |\n' +
+      '| 交给下一步 | `next` | 不处理，等后续决策 |\n\n' +
+      '网关侧在转发前就把待处理项从连接里删掉，所以重复点击不会二次生效；' +
+      '连接断开或 Host 取消时，待处理项会一起清掉。';
+    rows.push(...showcaseReviewChain('review-passkey', 3, first));
+    return rows;
+  }
+  if (sessionId === 'showcase-notify') {
+    const first = new ShowcaseReviewTurn();
+    first.question = '通知里会不会带出对话正文？我想确认卡片只说任务名。';
+    first.reasoning = '需要确认事件上报的字段范围，以及推送 payload 的构造。';
+    first.reads = ['plugins/pocket-notify/index.mjs', 'gateway/src/push.mjs'];
+    first.searches = ['payload', 'title'];
+    first.answer = '不会。通知链路上只传这几项：\n\n' +
+      '- 会话 id、事件 code、序号\n- 任务标题（可在设置里隐藏）\n- 通知等级与发生时间\n\n' +
+      '正文、工具参数和文件内容都不会进入推送 payload。设置里关闭「在卡片显示任务名称」后，' +
+      '卡片只保留匿名数量与状态。';
+    rows.push(...showcaseReviewChain('review-notify', 3, first));
+    return rows;
+  }
+  if (sessionId === 'showcase-settings') {
+    const first = new ShowcaseReviewTurn();
+    first.question = '外观设置改完，重新打开应用还会保持吗？';
+    first.reasoning = '本地偏好和 Host 设置是两条链路，要确认它们各自落盘并且不互相覆盖。';
+    first.reads = ['harmony/entry/src/main/ets/services/NativeHostSettings.ets'];
+    first.edits = [showcaseReviewDiff(
+      'harmony/entry/src/main/ets/services/NativeHostSettings.ets',
+      'await this.store.put(key, value);',
+      'await this.store.put(key, value);\nawait this.store.flush();\n' +
+      '// flush before returning so a relaunch reads the committed value')];
+    first.commands = ['npm test -- host-settings'];
+    first.commandOutput = 'PASS host-settings\n11 tests passed\nrelaunch keeps committed value';
+    first.answer = '会保持。主题、减少动效、减少透明度和工作步骤展示都会在修改后立刻落盘，' +
+      '重新打开应用读到的就是最后一次确认的值；Host 侧设置冲突时会提示并保留你的本地选择。';
+    rows.push(...showcaseReviewChain('review-settings', 3, first));
+    return rows;
+  }
+  if (sessionId === 'showcase-mobile') {
+    const first = new ShowcaseReviewTurn();
+    first.question = '键盘弹出时输入框会被挡住吗？底部安全区怎么处理？';
+    first.reasoning = '要确认键盘避让模式和底部 insets 是否同时生效，避免内容被顶两次。';
+    first.reads = ['harmony/entry/src/main/ets/pages/Index.ets'];
+    first.searches = ['setKeyboardAvoidMode', 'safeBottom'];
+    first.answer = '不会挡住。原生页面用 `KeyboardAvoidMode.RESIZE`，键盘出现时页面整体压缩，' +
+      '输入区跟着上移；底部控件再额外留 20vp 安全避让，所以手势条不会压住按钮。\n\n' +
+      '系统返回优先关闭当前层级（菜单 → 详情 → 抽屉），不会直接退出应用。';
+    rows.push(...showcaseReviewChain('review-mobile', 3, first));
+    return rows;
+  }
+  if (sessionId === 'showcase-streaming') {
+    return showcaseStreamingMessages();
+  }
+  if (sessionId === 'showcase-preview') {
+    const first = new ShowcaseReviewTurn();
+    first.question = '工作区里的 HTML 文件能直接预览吗？会不会执行脚本？';
+    first.reasoning = '预览是本地文件，需要确认脚本能力与网络访问边界。';
+    first.reads = ['harmony/entry/src/main/ets/components/NativeHtmlPreview.ets',
+      'harmony/entry/src/main/ets/services/NativeHtmlDocument.ets'];
+    first.searches = ['Content-Security-Policy', 'onInterceptRequest'];
+    first.answer = '能预览，脚本照常执行，但页面无法把内容发到外部：\n\n' +
+      '- 文档里**静态声明**的远程图片、样式、字体照常加载\n' +
+      '- 脚本运行时拼出来的地址一律被拦截，返回空响应\n' +
+      '- 表单提交、远程 iframe 和 `fetch` 全部禁用\n\n' +
+      '这样交互式页面可以正常用，工作区内容也不会被带走。';
+    rows.push(...showcaseReviewChain('review-preview', 3, first));
+    return rows;
+  }
+  if (sessionId === 'showcase-permissions') {
+    const first = new ShowcaseReviewTurn();
+    first.question = '完全权限和自动审查有什么区别？启用前会提醒吗？';
+    first.reasoning = '需要确认权限目录的取值，以及高风险选项的确认流程。';
+    first.reads = ['harmony/entry/src/main/ets/components/NativePermissionPicker.ets'];
+    first.searches = ['defaultPreset', 'permission-full-confirm'];
+    first.answer = '四种模式的区别：\n\n' +
+      '| 模式 | 行为 |\n| --- | --- |\n' +
+      '| 只读 | 只允许读取，写入需要审批 |\n' +
+      '| 工作区写入 | 工作区内可直接修改 |\n' +
+      '| 完全权限 | 减少确认步骤，可执行敏感操作 |\n' +
+      '| 自动审查 | 由模型自行判断风险 |\n\n' +
+      '选择「完全权限」或「自动审查」会先弹出风险说明，必须勾选「我已了解风险」才能继续，' +
+      '而且只影响当前会话。';
+    rows.push(...showcaseReviewChain('review-permissions', 3, first));
+    return rows;
+  }
+  if (sessionId === 'showcase-cards') {
+    const first = new ShowcaseReviewTurn();
+    first.question = '桌面卡片会显示哪些信息？';
+    first.reasoning = '卡片数据来自概览接口，需要确认字段范围和隐私开关。';
+    first.reads = ['harmony/entry/src/main/ets/widget/pages/OverviewCard.ets'];
+    first.answer = '卡片显示运行中、待审批和最近完成的数量，以及最近任务名称。' +
+      '在设置里关闭「显示任务名称」后只保留匿名数量与状态，旧快照会被清理。';
+    rows.push(...showcaseReviewChain('review-cards', 3, first));
+    return rows;
+  }
+  return rows;
+}
 function showcaseWorkspaces(): NativeWorkspaceSnapshot {
   const value = new NativeWorkspaceSnapshot();
   value.available = true;

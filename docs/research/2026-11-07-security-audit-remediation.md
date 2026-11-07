@@ -760,6 +760,27 @@ docs/testing/2026-11-07-security-audit-remediation-e2e.md.
   (`DSH_SCRIPT_RAN`), proving scripts still execute while the authored-URL
   allowlist and the tightened CSP keep script-composed egress off the network.
 
+#### F-DEV12 [Medium][UIBug] Reduce-transparency defaulted to ON in every variant — FIXED
+- Location: harmony/entry/src/main/ets/services/NativeExperience.ets,
+  harmony/entry/src/main/ets/components/NativeSettings.ets,
+  harmony/entry/src/main/ets/entryability/EntryAbility.ets,
+  harmony/entry/src/main/ets/pages/Index.ets
+- Description: the reduced-transparency preference defaulted to true in the
+  native experience store, the settings component state, the showcase launch
+  parameter and the store-review preference, so every variant started with
+  opaque surfaces and the immersive materials were effectively off until the
+  user turned the switch off. The showcase launch parameter was also inverted
+  (`showcaseReduceTransparency === false` meant "materials on").
+- Impact: the product shipped with its materials disabled by default, which
+  contradicted the design system's intent that materials are the default look
+  and opaque surfaces are the accessibility fallback.
+- Fix: every default is now false (materials on) and the showcase parameter is
+  read directly (`=== true` opts into opaque surfaces). The device drivers keep
+  working because they pass the value explicitly. The material registry,
+  store-review and native-model contracts were updated to the new default, and
+  the native-model test now asserts that opting INTO reduced transparency
+  disables materials.
+
 #### F-DEV7 [Medium][Bug] Consecutive suite scenes inherited the previous scene's surface — FIXED
 - Location: scripts/device-ui-mock-suite.ps1 (per-scenario splat)
 - Description: the driver supports -ResetData but the suite never passed it, so
@@ -794,15 +815,3 @@ docs/testing/2026-11-07-security-audit-remediation-e2e.md.
   and verified by tests). Client-side normalization of absolute chat-link paths
   would silently remap them to unrelated workspace files, which is worse than
   the current clean rejection.
-- F-H6 [Info][InfoDisclosure]: session titles, workspace paths and cached
-  workspace/attachment bytes live in plaintext preferences and .bin files next
-  to the encrypted transcript RDB. HarmonyOS file-based device encryption covers
-  app data at rest; moving metadata into the encrypted RDB or a container is a
-  design change deferred with a revisit trigger (backup extraction remains the
-  documented residual).
-- F-E3 [Info][Config]: the upstream Harness web UI shares the gateway origin by
-  design (single-owner compatibility proxy); the /pocket CSP cannot isolate it.
-- F-L2/F-A5 [Low][SupplyChain]: http-proxy 1.18.1 is unmaintained but has no
-  applicable advisory; kept pinned with a re-review trigger.
-- F-A4 [Info][InfoDisclosure]: /pocket/api/state exposes mode/registered/
-  pushConfigured/pluginVersion pre-login by design for the login UI.

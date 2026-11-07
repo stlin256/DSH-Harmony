@@ -37,7 +37,7 @@ class PushDeviceRegistration {
 class SettingsState {
   themeMode: string = 'system';
   reduceMotion: boolean = false;
-  reduceTransparency: boolean = true;
+  reduceTransparency: boolean = false;
   widgetDetails: boolean = true;
   supportsPush: boolean = false;
   pushEnabled: boolean = false;
@@ -85,7 +85,7 @@ export struct NativeSettings {
   @State private chatFoldedReplies: string = 'all';
   @State private chatBusyEnter: string = 'queue';
   @State private reduceMotion: boolean = false;
-  @State private reduceTransparency: boolean = true;
+  @State private reduceTransparency: boolean = false;
   @State private widgetDetails: boolean = true;
   @State private supportsPush: boolean = false;
   @State private pushEnabled: boolean = false;
