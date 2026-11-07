@@ -165,6 +165,14 @@ static tests or a screenshot produced by an older HAP.
 
 ## Design, Spec and Evidence Index
 
+- Full-project security audit and remediation requirement:
+  [2026-11-07-security-audit-remediation.md](docs/requirements/2026-11-07-security-audit-remediation.md)
+- Full-project security audit and remediation implementation spec:
+  [2026-11-07-security-audit-remediation.md](docs/specs/2026-11-07-security-audit-remediation.md)
+- Complete classified findings report (all modules, fixes and accepted risks):
+  [2026-11-07-security-audit-remediation.md](docs/research/2026-11-07-security-audit-remediation.md)
+- Verification record and device-evidence gaps:
+  [2026-11-07-security-audit-remediation-e2e.md](docs/testing/2026-11-07-security-audit-remediation-e2e.md)
 - Visual baseline: [DESIGN.md](docs/DESIGN.md)
 - Physical-device visual acceptance requirement:
   [2026-11-01-device-visual-state-acceptance.md](docs/requirements/2026-11-01-device-visual-state-acceptance.md)

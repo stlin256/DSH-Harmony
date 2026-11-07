@@ -58,8 +58,7 @@ test('drawer, overlay, interaction and file surfaces consume the semantic layer'
     'components/NativeInteraction.ets',
     'components/NativeFileBrowser.ets',
     'components/NativeFilePreview.ets',
-    'components/NativeImageLightbox.ets',
-    'components/NativeCompatibilitySurface.ets'
+    'components/NativeImageLightbox.ets'
   ]) {
     assert.match(read(path), /NativeDesign/, path + ' must import NativeDesign');
   }

@@ -9,7 +9,7 @@ export class NativeUiFixture {
     'showcase-dark-process', 'showcase-subagent', 'showcase-approval',
     'secret-masked', 'stream-repaired', 'document-preview',
     'text-config-preview', 'delimited-preview', 'tsv-preview',
-    'delimited-error-preview', 'binary-preview',
+    'delimited-error-preview', 'binary-preview', 'html-preview',
     'dock-send-idle', 'dock-queue-pending', 'dock-queue-authoritative',
     'dock-queue-many', 'dock-send-error', 'dock-material-quiet',
     'dock-material-elevated', 'interaction-approval', 'interaction-question',

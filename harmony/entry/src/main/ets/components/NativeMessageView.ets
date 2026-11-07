@@ -210,7 +210,10 @@ export struct NativeMessageView {
           .fontColor(NativeDesign.textPrimary(this.dark))
           .onClick(this.onCompatibility)
       }
-      if (!this.message.text && !this.message.reasoning && !this.message.images?.length) {
+      // Tool rows and structured blocks are natively supported even when their
+      // first text is empty; the fallback is for genuinely unsupported content.
+      if (this.message.role !== 'tool' && !this.message.blocks.length &&
+        !this.message.text && !this.message.reasoning && !this.message.images?.length) {
         Text('此消息暂不支持原生显示。').fontSize(NativeDesign.fontCompact)
           .fontColor(NativeDesign.textSecondary(this.dark))
       }

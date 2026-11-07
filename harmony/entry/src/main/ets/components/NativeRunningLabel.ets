@@ -16,6 +16,7 @@ const SWEEP_BAND = 0.16;
 export struct NativeRunningLabel {
   @Prop startedAt: number = 0;
   @Prop @Watch('pausedChanged') paused: boolean = false;
+  @Prop quiet: boolean = false;
   @StorageLink('nativeDark') private dark: boolean = false;
   @State private now: number = Date.now();
   @State private frozenElapsed: number = 0;

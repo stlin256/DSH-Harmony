@@ -290,6 +290,26 @@ test('overview tracks concurrent approvals, ignores late events and requires aut
   assert.equal((await call('/pocket/api/events', { id: 'bad', sessionId: 'session', code: 'run.started', seq: -1 }, { headers: { authorization: 'Bearer ' + secret } })).status, 400);
 });
 
+test('overview keeps one staleness precedence and out-of-order titles cannot regress', async t => {
+  const { db, call } = await fixture(t, { mode: 'none', allowNoAuth: true });
+  const publish = async (seq, code, title, approvalId) => {
+    const response = await call('/pocket/api/events', { id: 'titles:' + seq + ':' + code, sessionId: 'session', seq, code,
+      ...(title ? { title } : {}), ...(approvalId ? { approvalId } : {}) }, { headers: { authorization: 'Bearer ' + secret } });
+    assert.equal(response.status, 200);
+  };
+  const overview = async () => (await call('/pocket/api/overview')).json();
+  await publish(0, 'run.started');
+  await publish(1, 'permission.required', 'Pending', 'approval');
+  db.prepare("UPDATE task_states SET updated = ? WHERE session = 'session'").run(Date.now() - 7 * 3600000);
+  const stale = await overview();
+  assert.equal(stale.unknown, 1);
+  assert.equal(stale.tasks[0].state, 'unknown');
+  await publish(2, 'run.completed', 'Fresh title');
+  await publish(1, 'permission.required', 'Stale title', 'late');
+  const result = await overview();
+  assert.equal(result.tasks[0].title, 'Fresh title');
+});
+
 test('plugin retries preserve per-session event order before projection', async t => {
   const listeners = new Map();
   const originalSecret = process.env.POCKET_EVENT_SECRET;

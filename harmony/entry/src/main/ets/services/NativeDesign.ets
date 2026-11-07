@@ -102,6 +102,16 @@ export class NativeDesign {
     return dark ? '#3B2022' : '#FDEEEE';
   }
 
+  /** Solid danger fill for a primary destructive action; pair with textInverse. */
+  static dangerSolid(dark: boolean): string {
+    return dark ? '#B3261E' : '#B3261E';
+  }
+
+  /** Solid warning fill for a primary caution action; pair with textInverse. */
+  static warningSolid(dark: boolean): string {
+    return dark ? '#8A5A00' : '#8A5A00';
+  }
+
   static mask(dark: boolean): string {
     return dark ? '#66000000' : '#3D000000';
   }

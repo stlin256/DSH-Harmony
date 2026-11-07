@@ -444,7 +444,9 @@ export function nativeTranscript(records: NativeMessage[], running: boolean,
       processGroup.children.push(row);
       continue;
     }
-    flushProcess(ends.has(row.turnKey));
+    // The group's own turn decides its closed state; the row interrupting the
+    // group belongs to a later turn and must not mark it completed.
+    flushProcess(ends.has((processGroup ?? row).turnKey));
     if (row.role !== 'turn' || row.eventType !== 'turn/start') rows.push(row);
   }
   if (processGroup) {

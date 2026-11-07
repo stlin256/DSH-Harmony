@@ -1,4 +1,7 @@
-const fullText = value => typeof value === 'string' ? value : value === undefined || value === null ? '' : JSON.stringify(value);
+const fullText = (value, maxLength) => {
+  const text = typeof value === 'string' ? value : value === undefined || value === null ? '' : JSON.stringify(value);
+  return maxLength && text.length > maxLength ? text.slice(0, maxLength) : text;
+};
 export const sessionIdValid = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(value);
 export function normalizeProjectionTitle(value) {
   if (typeof value !== 'string') return '';
@@ -284,9 +287,9 @@ export function normalizeQueuedState(value) {
       placement: 'queued',
       ...(item.rpcId === undefined ? {} : { rpcId: item.rpcId }),
       ...(typeof item.sourceKind === 'string' && item.sourceKind
-        ? { sourceKind: item.sourceKind } : {}),
+        ? { sourceKind: item.sourceKind.slice(0, 64) } : {}),
       ...(typeof item.sourceForm === 'string' && item.sourceForm
-        ? { sourceForm: item.sourceForm } : {}),
+        ? { sourceForm: item.sourceForm.slice(0, 64) } : {}),
       blocks
     });
   }
@@ -305,9 +308,9 @@ export function queueFromInbox(value) {
     id: message.id,
     placement: 'queued',
     ...(message.source.rpcId === undefined ? {} : { rpcId: message.source.rpcId }),
-    sourceKind: message.source.kind,
+    sourceKind: typeof message.source.kind === 'string' ? message.source.kind.slice(0, 64) : '',
     ...(typeof message.source.form === 'string' && message.source.form
-      ? { sourceForm: message.source.form } : {}),
+      ? { sourceForm: message.source.form.slice(0, 64) } : {}),
     content: message.content
   })));
 }
@@ -351,8 +354,8 @@ export function normalizeRecord(record) {
   let role, label, content, detail = '';
   let structuredMeta = null;
   const source = data.source || data.message?.source;
-  const sourceKind = typeof source?.kind === 'string' ? source.kind : '';
-  const sourceForm = typeof source?.form === 'string' ? source.form : '';
+  const sourceKind = typeof source?.kind === 'string' ? source.kind.slice(0, 64) : '';
+  const sourceForm = typeof source?.form === 'string' ? source.form.slice(0, 64) : '';
   if (event.type === 'user/message') {
     content = textBlocks(data.content);
     if (sourceKind === 'tool-jobs' && source?.form !== 'notice') return null;
@@ -433,13 +436,20 @@ export function normalizedHistory(records) {
   let messages = [];
   for (const record of Array.isArray(records) ? records : []) {
     const op = record?.event?.surfaceOp;
+    // A malformed replace op must never silently drop transcript rows: it is
+    // validated with the same contract the live snapshot path enforces.
+    if (op && typeof op === 'object' && op.op === 'replace' &&
+        (!nonNegativeSafeInteger(op.startSeq) || !nonNegativeSafeInteger(op.endSeq) || op.startSeq > op.endSeq)) {
+      continue;
+    }
     if (op?.op === 'replace') messages = messages.filter(row => row.seq < op.startSeq || row.seq > op.endSeq);
     const row = normalizeRecord(record);
     if (row) messages.push(row);
   }
   return { messages, journal: (records || []).filter(record => record?.type === 'event' && Number.isSafeInteger(record.event?.seq))
     .map(record => ({ seq: record.event.seq, raw: JSON.stringify(record.event) })), trimmed: false, replacements: (records || []).map(record => record.event?.surfaceOp)
-    .filter(op => op?.op === 'replace').map(op => ({ start: op.startSeq, end: op.endSeq })) };
+    .filter(op => op?.op === 'replace' && nonNegativeSafeInteger(op.startSeq) && nonNegativeSafeInteger(op.endSeq) && op.startSeq <= op.endSeq)
+    .map(op => ({ start: op.startSeq, end: op.endSeq })) };
 }
 function appendTextStreamPart(parts, kind, value) {
   const text = fullText(value);
@@ -619,9 +629,14 @@ export function normalizeFollow(frame) {
       ...compactText(active?.stream) };
   }
   if (frame?.type === 'event') {
+    // The live event path shares the snapshot contract: a missing or invalid
+    // sequence is a malformed frame and must close this generation.
+    if (!nonNegativeSafeInteger(frame.event?.seq)) return null;
     const op = frame.event?.surfaceOp;
-    return { type: 'event', seq: frame.event?.seq, message: normalizeRecord(frame),
-      journal: Number.isSafeInteger(frame.event?.seq) ? [{ seq: frame.event.seq, raw: JSON.stringify(frame.event) }] : [],
+    if (op && typeof op === 'object' && op.op === 'replace' &&
+        (!nonNegativeSafeInteger(op.startSeq) || !nonNegativeSafeInteger(op.endSeq) || op.startSeq > op.endSeq)) return null;
+    return { type: 'event', seq: frame.event.seq, message: normalizeRecord(frame),
+      journal: [{ seq: frame.event.seq, raw: JSON.stringify(frame.event) }],
       replaceStart: op?.op === 'replace' ? op.startSeq : -1, replaceEnd: op?.op === 'replace' ? op.endSeq : -1 };
   }
   if (frame?.type === 'assistant-stream') {

@@ -209,7 +209,7 @@ function tableCells(line: string): string[] {
 }
 
 function delimiterCell(value: string): boolean {
-  return /^\s*:?-{3,}:?\s*$/.test(value);
+  return /^\s*:?-+:?\s*$/.test(value);
 }
 
 function unfinishedTableAt(tail: string): number {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import WebSocket, { WebSocketServer } from 'ws';
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {
   normalizeFollow,
@@ -137,8 +137,34 @@ export function normalizedProjectionSnapshot(value) {
   };
 }
 
-export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ownerOf }) {
-  const credential = () => typeof upstreamCookie === 'function' ? upstreamCookie() : upstreamCookie;
+// Request magnitude bounds: the JSON body limit is the outer fence; these caps
+// keep individual fields and arrays inside legitimate client use.
+const UPLOAD_BYTE_LIMIT = 128 * 1024 * 1024;
+const PROMPT_TEXT_LIMIT = 262144;
+const PROMPT_ATTACHMENTS_LIMIT = 32;
+const PROMPT_IMAGES_LIMIT = 16;
+const IMAGE_DATA_LIMIT = 16 * 1024 * 1024;
+const TITLE_LIMIT = 160;
+const ANSWER_CUSTOM_LIMIT = 4096;
+const IDENTIFIER_LIMIT = 160;
+const PATH_LIMIT = 4096;
+
+// Stable decision codes are the only upstream error codes a client ever sees.
+function stableDecisionCode(code) {
+  return ['workspace/session-active', 'workspace/name-conflict', 'workspace/invalid-path', 'settings/conflict', 'settings/rejected',
+    'directory-picker/unavailable', 'directory-picker/unreadable', 'directory-picker/exists', 'directory-picker/create-failed',
+    'workspace-file/not-found', 'workspace-file/not-directory', 'workspace-file/not-regular-file',
+    'workspace-file/not-text', 'workspace-file/outside-workspace', 'workspace-file/too-large',
+    'gateway/bad-request', 'gateway/lookup-not-found',
+    'session/writer-held', 'session/migration-required',
+    'subagent/attachment-invalid', 'subagent/delivery-unavailable',
+    'subagent/invalid-time-zone', 'subagent/not-resumable',
+    'subagent/parent-unavailable', 'subagent/unauthorized'].includes(code) ||
+    (typeof code === 'string' && /^(?:plugin-manager|schedule)\/[A-Za-z0-9-]+$/.test(code));
+}
+
+export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ownerOf, ownerContext }) {
+  const credential = () => typeof upstreamCookie === 'function' ? upstreamCookie(ownerContext?.getStore()) : upstreamCookie;
   const connections = new Map();
   const target = new URL(upstream);
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16384, perMessageDeflate: false });
@@ -155,18 +181,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       // Preserve only stable decision codes; do not relay arbitrary error messages.
       const error = new Error('Harness rejected this operation');
       const stableCode = envelope.result?.error?.code;
-      if (['workspace/session-active', 'workspace/name-conflict', 'workspace/invalid-path', 'settings/conflict', 'settings/rejected',
-        'directory-picker/unavailable', 'directory-picker/unreadable', 'directory-picker/exists', 'directory-picker/create-failed',
-        'workspace-file/not-found', 'workspace-file/not-directory', 'workspace-file/not-regular-file',
-        'workspace-file/not-text', 'workspace-file/outside-workspace', 'workspace-file/too-large',
-        'gateway/bad-request', 'gateway/lookup-not-found',
-        'session/writer-held', 'session/migration-required',
-        'subagent/attachment-invalid', 'subagent/delivery-unavailable',
-        'subagent/invalid-time-zone', 'subagent/not-resumable',
-        'subagent/parent-unavailable', 'subagent/unauthorized'].includes(stableCode) ||
-        (typeof stableCode === 'string' && /^(?:plugin-manager|schedule)\/[A-Za-z0-9-]+$/.test(stableCode))) {
-        error.code = stableCode;
-      }
+      if (stableDecisionCode(stableCode)) error.code = stableCode;
       throw error;
     }
     return envelope.result.value;
@@ -246,8 +261,10 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       envelope = await response.json();
     }
     if (envelope?.type !== 'server-response' || envelope.rpcId !== rpcId || envelope.result?.ok !== true) {
+      // Preserve only stable decision codes; do not relay arbitrary error messages.
       const error = new Error('Harness rejected this operation');
-      if (typeof envelope?.result?.error?.code === 'string') error.code = envelope.result.error.code;
+      const stableCode = envelope?.result?.error?.code;
+      if (stableDecisionCode(stableCode)) error.code = stableCode;
       throw error;
     }
     return envelope.result.value;
@@ -332,8 +349,24 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
         res.sendStatus(502);
         return;
       }
-      const body = await response.text();
-      if (Buffer.byteLength(body) > 2 * 1024 * 1024) { res.sendStatus(502); return; }
+      // Read with a byte cap: a chunked upstream must not be buffered whole
+      // before the post-hoc size check can reject it.
+      const summaryBudget = 2 * 1024 * 1024;
+      let body = '';
+      try {
+        const reader = response.body.getReader();
+        for (;;) {
+          const { done, value: chunk } = await reader.read();
+          if (done) break;
+          body += Buffer.from(chunk).toString('utf8');
+          if (Buffer.byteLength(body) > summaryBudget) {
+            reader.cancel().catch(() => {});
+            res.sendStatus(502);
+            return;
+          }
+        }
+      } catch { res.sendStatus(502); return; }
+      if (Buffer.byteLength(body) > summaryBudget) { res.sendStatus(502); return; }
       let value;
       try { value = changedFilesSummary(JSON.parse(body)); } catch { value = null; }
       if (!value) { res.sendStatus(502); return; }
@@ -346,7 +379,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       const url = new URL(req.query.format === 'markdown' ? '/api/session.markdown' : '/api/session.export', target);
       url.searchParams.set('sessionId', req.query.sessionId);
       if (req.query.format === 'zip') url.searchParams.set('includeDescendants', req.query.includeDescendants || 'true');
-      const response = await fetch(url, { signal, redirect: 'error', headers: { Cookie: await credential(), Origin: target.origin } });
+      const response = await fetch(url, { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(60000)]) : AbortSignal.timeout(60000),
+        redirect: 'error', headers: { Cookie: await credential(), Origin: target.origin } });
       if (!response.ok || !response.body) { await response.body?.cancel(); return res.sendStatus(response.status === 404 ? 404 : 502); }
       const type = response.headers.get('content-type') || '';
       if (!(req.query.format === 'zip' ? /^application\/zip(?:;|$)/i : /^text\/markdown(?:;|$)/i).test(type)) { await response.body.cancel(); return res.sendStatus(502); }
@@ -356,8 +390,9 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
     }));
     app.post('/pocket/api/native/create', guarded(async (req, res, signal) => {
       // A caller-chosen ID makes a timed-out create recoverable through the list.
-      if (!sessionIdValid(req.body?.requestId) || (req.body.cwd !== undefined && typeof req.body.cwd !== 'string')) return res.sendStatus(400);
+      if (!sessionIdValid(req.body?.requestId) || (req.body.cwd !== undefined && (typeof req.body.cwd !== 'string' || req.body.cwd.length > PATH_LIMIT))) return res.sendStatus(400);
       if (req.body.workspaceId !== undefined && (!sessionIdValid(req.body.workspaceId) || req.body.cwd)) return res.sendStatus(400);
+      if (typeof req.body.agentPreset === 'string' && req.body.agentPreset.length > IDENTIFIER_LIMIT) return res.sendStatus(400);
       const value = await rpc('create', { sessionId: req.body.requestId, ...(req.body.workspaceId ? { workspaceId: req.body.workspaceId } : req.body.cwd ? { cwd: req.body.cwd } : {}), ...(typeof req.body.agentPreset === 'string' && req.body.agentPreset ? { agentPreset: req.body.agentPreset } : {}) }, signal);
       if (!sessionIdValid(value?.sessionId)) throw Error('Invalid session');
       res.json({ id: value.sessionId });
@@ -461,10 +496,21 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
       const name = req.query?.name;
       const mediaType = req.query?.mediaType;
       if (!sessionIdValid(id) || typeof name !== 'string' || !name || name.length > 512 ||
-          (mediaType !== undefined && typeof mediaType !== 'string')) return res.sendStatus(400);
+          /[/\\]/.test(name) || ['.', '..'].includes(name) || /[\u0000-\u001f\u007f]/.test(name) ||
+          (mediaType !== undefined && (typeof mediaType !== 'string' || mediaType.length > 255 ||
+            !/^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}\/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$/.test(mediaType)))) return res.sendStatus(400);
       const rawLength = req.headers['content-length'];
       if (typeof rawLength !== 'string' || !/^(?:0|[1-9]\d*)$/.test(rawLength) ||
           !Number.isSafeInteger(Number(rawLength))) return res.sendStatus(411);
+      if (Number(rawLength) > UPLOAD_BYTE_LIMIT) return res.sendStatus(413);
+      // Enforce the declared length on the wire as well: a client that streams
+      // more than it declared is cut off before the Host receives the excess.
+      let streamed = 0;
+      const bounded = req.pipe(new Transform({ transform(chunk, _encoding, done) {
+        streamed += chunk.length;
+        if (streamed > UPLOAD_BYTE_LIMIT) { done(Error('Upload exceeds gateway limit')); return; }
+        done(null, chunk);
+      } }));
       const url = new URL('/api/session/uploadFileBinary', target);
       url.searchParams.set('sessionId', id);
       url.searchParams.set('name', name);
@@ -478,7 +524,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           Origin: target.origin,
           Cookie: await credential()
         },
-        body: Readable.toWeb(req)
+        body: Readable.toWeb(bounded)
       });
       const body = await response.text();
       res.status(response.status).type('application/json').send(body);
@@ -486,16 +532,17 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
     app.post('/pocket/api/native/prompt', guarded(async (req, res, signal) => {
       const { sessionId, requestId, text } = req.body || {};
       const files = req.body.attachments === undefined ? [] : req.body.attachments;
-      if (!sessionIdValid(sessionId) || !sessionIdValid(requestId) || typeof text !== 'string' ||
+      if (!sessionIdValid(sessionId) || !sessionIdValid(requestId) || typeof text !== 'string' || text.length > PROMPT_TEXT_LIMIT ||
           (!text.trim() && !files.length && !req.body.images?.length)) return res.sendStatus(400);
       if (req.body.mode !== undefined && !['queue', 'steer'].includes(req.body.mode)) return res.sendStatus(400);
-      if (!Array.isArray(files) || !files.every(file =>
+      if (!Array.isArray(files) || files.length > PROMPT_ATTACHMENTS_LIMIT || !files.every(file =>
         file?.type === 'file' && typeof file.receiptId === 'string' && file.receiptId.length > 0 && file.receiptId.length <= 4096)) {
         return res.sendStatus(400);
       }
-      if (req.body.images !== undefined && (!Array.isArray(req.body.images) || !req.body.images.every(image =>
+      if (req.body.images !== undefined && (!Array.isArray(req.body.images) || req.body.images.length > PROMPT_IMAGES_LIMIT ||
+          !req.body.images.every(image =>
         ['image/png','image/jpeg','image/webp','image/gif'].includes(image?.mediaType) && typeof image.data === 'string' && image.data.length > 0 &&
-        (image.name === undefined || typeof image.name === 'string')))) return res.sendStatus(400);
+        image.data.length <= IMAGE_DATA_LIMIT && (image.name === undefined || (typeof image.name === 'string' && image.name.length <= 255))))) return res.sendStatus(400);
       const content = [...files.map(file => ({ type: 'file', receiptId: file.receiptId })),
         ...(text.trim() ? [{ type: 'text', text }] : []), ...(req.body.images || []).map(image => ({ type: 'image',
         mediaType: image.mediaType, data: image.data, ...(image.name ? { name: image.name } : {}) }))];
@@ -539,7 +586,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
               const answer = answers.find(item => item.id === question.id);
               return answer && Array.isArray(answer.selected) && answer.selected.every(label => typeof label === 'string' && question.options?.some(option => option.label === label)) &&
                 new Set(answer.selected).size === answer.selected.length && (question.multiSelect || answer.selected.length <= 1) &&
-                (answer.custom === undefined || typeof answer.custom === 'string') &&
+                (answer.custom === undefined || (typeof answer.custom === 'string' && answer.custom.length <= ANSWER_CUSTOM_LIMIT)) &&
                 !(question.intent?.kind === 'approval' && (answer.custom || answer.selected.length !== 1));
             })) return res.sendStatus(400);
         outcome = { kind: 'result', value: { answers } };
@@ -708,7 +755,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           const check = async (path, type) => {
             const url = new URL(path, target); url.searchParams.set('sessionId', sessionId);
             url.searchParams.set('includeDescendants', 'true');
-            const response = await fetch(url, { method: 'HEAD', headers, redirect: 'error', signal });
+            const response = await fetch(url, { method: 'HEAD', headers, redirect: 'error',
+              signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000) });
             await response.body?.cancel();
             return response.ok && (response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase() === type;
           };
@@ -730,7 +778,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           const enums = { 'ui-chat': { transcriptView: ['compact','standard','detailed','verbose'], collapseTiming: ['completion','next-input'], foldedReplies: ['all','final'] },
             'ui-theme': { preference: ['light','dark','system'] }, 'ui-conversation': { busyEnter: ['queue','steer'] } };
           const bounds = { fontSize: [10,22], codeFontSize: [10,16], terminalFontSize: [10,20] };
-          let valid = enums[ns]?.[field]?.includes(value) || (ns === 'ui-theme' && bounds[field] && Number.isInteger(value) && value >= bounds[field][0] && value <= bounds[field][1]);
+          let valid = Object.hasOwn(enums, ns) && Object.hasOwn(enums[ns], field) && enums[ns][field].includes(value) ||
+            (ns === 'ui-theme' && Object.hasOwn(bounds, field) && Number.isInteger(value) && value >= bounds[field][0] && value <= bounds[field][1]);
           if (ns === 'permission') {
             const catalog = normalizePermissionCatalog(await rpcArgs('permissionPresets/catalog', {}, signal));
             valid = field === 'defaultPreset' && catalog !== null &&
@@ -740,7 +789,7 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           res.json(await rpc('settings/mutate', { ns, ops: [{ op: 'set', path: [field], value }], expectedRevision: revision }, signal)); return;
         }
         case 'directoryList':
-          if (req.body.path !== undefined && typeof req.body.path !== 'string') return res.sendStatus(400);
+          if (req.body.path !== undefined && (typeof req.body.path !== 'string' || req.body.path.length > PATH_LIMIT)) return res.sendStatus(400);
           res.json(await rpc('directoryPicker/list', req.body.path ? { path: req.body.path } : {}, signal)); return;
         case 'directoryCreate':
           if (typeof req.body.path !== 'string' || typeof req.body.name !== 'string' || !req.body.name.trim() || /[/\\]/.test(req.body.name) || ['.','..'].includes(req.body.name)) return res.sendStatus(400);
@@ -749,7 +798,8 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           if (typeof req.body.path !== 'string' || !req.body.path.trim() || req.body.path.length > 4096) return res.sendStatus(400);
           res.json(await rpc('workspace/create', { path: req.body.path }, signal)); return;
         case 'workspaceRename':
-          if (!sessionIdValid(req.body.workspaceId) || typeof req.body.title !== 'string' || !req.body.title.trim()) return res.sendStatus(400);
+          if (!sessionIdValid(req.body.workspaceId) || typeof req.body.title !== 'string' || !req.body.title.trim() ||
+              req.body.title.length > TITLE_LIMIT) return res.sendStatus(400);
           res.json(await rpc('workspace/rename', { workspaceId: req.body.workspaceId, title: req.body.title }, signal)); return;
         case 'workspaceDelete':
           if (!sessionIdValid(req.body.workspaceId)) return res.sendStatus(400);
@@ -773,9 +823,10 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
             { sessionId, ...(operation === 'archive' && req.body.stopActivity === true ? { stopActivity: true } : {}) }, signal)); return;
         case 'modelCatalog': request = {}; break;
         case 'answerQuestion':
-          if (typeof req.body.callId !== 'string' || !req.body.callId || !Array.isArray(req.body.answer?.answers) ||
-              !req.body.answer.answers.every(answer => typeof answer.id === 'string' && Array.isArray(answer.selected) &&
-                answer.selected.every(value => typeof value === 'string') && (answer.custom === undefined || typeof answer.custom === 'string'))) return res.sendStatus(400);
+          if (typeof req.body.callId !== 'string' || !req.body.callId || req.body.callId.length > IDENTIFIER_LIMIT || !Array.isArray(req.body.answer?.answers) ||
+              !req.body.answer.answers.every(answer => typeof answer.id === 'string' && answer.id.length <= IDENTIFIER_LIMIT && Array.isArray(answer.selected) &&
+                answer.selected.every(value => typeof value === 'string' && value.length <= IDENTIFIER_LIMIT) &&
+                (answer.custom === undefined || (typeof answer.custom === 'string' && answer.custom.length <= ANSWER_CUSTOM_LIMIT)))) return res.sendStatus(400);
           request = { sessionId, callId: req.body.callId, answer: req.body.answer }; break;
         case 'attachment': {
           const ref = req.body.attachment;
@@ -831,19 +882,20 @@ export function createNativeHarness({ upstream, upstreamCookie, publicOrigin, ow
           res.json({ accepted: true }); return;
         }
         case 'rename':
-          if (typeof req.body.title !== 'string' || !req.body.title.trim()) return res.sendStatus(400);
+          if (typeof req.body.title !== 'string' || !req.body.title.trim() || req.body.title.length > TITLE_LIMIT) return res.sendStatus(400);
           request = { sessionId, title: req.body.title }; break;
         case 'fork':
           if (req.body.atSeq !== undefined && (!Number.isSafeInteger(req.body.atSeq) || req.body.atSeq < 0)) return res.sendStatus(400);
           request = { sessionId, ...(req.body.atSeq === undefined ? {} : { atSeq: req.body.atSeq }), allowMigration: false }; break;
         case 'selectModel':
-          if (![req.body.provider, req.body.model].every(value => typeof value === 'string' && value.trim()) ||
-              (req.body.reasoningEffort !== undefined && typeof req.body.reasoningEffort !== 'string')) return res.sendStatus(400);
+          if (![req.body.provider, req.body.model].every(value => typeof value === 'string' && value.trim() && value.length <= IDENTIFIER_LIMIT) ||
+              (req.body.reasoningEffort !== undefined && (typeof req.body.reasoningEffort !== 'string' || req.body.reasoningEffort.length > 64))) return res.sendStatus(400);
           request = { sessionId, provider: req.body.provider, model: req.body.model,
             ...(req.body.reasoningEffort === undefined ? {} : { reasoningEffort: req.body.reasoningEffort }) }; break;
         case 'updateQueue': {
-          if (typeof req.body.itemId !== 'string' || !req.body.itemId || !['edit', 'remove', 'steer'].includes(req.body.kind)) return res.sendStatus(400);
-          if (req.body.kind === 'edit' && (typeof req.body.text !== 'string' || !req.body.text.trim())) return res.sendStatus(400);
+          if (typeof req.body.itemId !== 'string' || !req.body.itemId || req.body.itemId.length > IDENTIFIER_LIMIT ||
+              !['edit', 'remove', 'steer'].includes(req.body.kind)) return res.sendStatus(400);
+          if (req.body.kind === 'edit' && (typeof req.body.text !== 'string' || !req.body.text.trim() || req.body.text.length > PROMPT_TEXT_LIMIT)) return res.sendStatus(400);
           request = { sessionId, itemId: req.body.itemId, action: { kind: req.body.kind,
             ...(req.body.kind === 'edit' ? { content: [{ type: 'text', text: req.body.text }] } : {}) } }; break;
         }

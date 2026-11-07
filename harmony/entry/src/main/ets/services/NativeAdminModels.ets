@@ -153,6 +153,11 @@ export class NativeAutomationDraft {
   prompt: string = '';
   kind: string = 'every';
   interval: string = '30';
+  // Exact seconds from the source task plus the rounded value this draft was
+  // initialized with: a save without re-timing keeps the original schedule
+  // instead of silently rounding 90s to 120s.
+  intervalSeconds: number = 0;
+  intervalInitial: string = '';
   time: string = '09:00';
   timeZone: string = 'Asia/Shanghai';
   weekdays: number[] = [1, 3, 5];
@@ -293,6 +298,9 @@ export function nativeAutomationDraftFromTask(task: NativeAutomationTask): Nativ
   const intervalSeconds = task.kind === 'after' ? task.afterSeconds : task.everySeconds;
   draft.interval = intervalSeconds && Number.isFinite(intervalSeconds) && intervalSeconds > 0
     ? String(Math.max(1, Math.round(intervalSeconds / 60))) : '30';
+  draft.intervalSeconds = intervalSeconds && Number.isFinite(intervalSeconds) && intervalSeconds > 0
+    ? Math.round(intervalSeconds) : 0;
+  draft.intervalInitial = draft.interval;
   draft.time = task.time ? task.time.slice(0, 5) : '09:00';
   draft.timeZone = task.timeZone || 'Asia/Shanghai';
   draft.weekdays = task.weekdays && task.weekdays.length ? task.weekdays.slice() : [1, 3, 5];

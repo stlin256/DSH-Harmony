@@ -2409,7 +2409,16 @@ test('HTML resolution, references and inlining stay workspace scoped', () => {
   assert.match(output, /srcset="data:image\/png;base64,AA== 1x,data:image\/png;base64,AA== 2x"/);
   assert.match(output, /href="dshharmony:\/\/file\?path=site%2Fguide\.md"/);
   assert.match(output, /Content-Security-Policy/);
-  assert.match(output, /connect-src http: https:/);
+  assert.match(output, /connect-src 'none'/);
+  assert.match(output, /frame-src 'none'/);
+  assert.match(output, /form-action 'none'/);
+  // Absolute remote URLs the author declared are collected for the preview's
+  // request-interceptor allowlist; workspace-relative ones are not.
+  assert.deepEqual(Array.from(html.nativeHtmlRemoteReferences(
+    '<script src="https://cdn.example.test/app.js"></script>' +
+    '<img src="img/logo.png"><link rel="stylesheet" href="//cdn.example.test/a.css">' +
+    '<style>.h{background:url("https://img.example.test/h.png")}</style>')),
+    ['https://cdn.example.test/a.css', 'https://cdn.example.test/app.js', 'https://img.example.test/h.png']);
   const cspSource = '<meta http-equiv="Content-Security-Policy" content="img-src none">' +
     '<html><head></head><body><img src="a.png"></body></html>';
   const cspOutput = html.nativeHtmlInline(cspSource, 'site/index.html', new Map());
@@ -2468,7 +2477,12 @@ test('PDF and HTML preview source contracts use bounded native surfaces', () => 
     '../../harmony/entry/src/main/ets/services/NativeHtmlDocument.ets', import.meta.url), 'utf8');
   assert.match(htmlDocument, /img-src data: blob: http: https:/);
   assert.match(htmlDocument, /style-src[\s\S]{0,100}http: https:/);
-  assert.match(htmlDocument, /connect-src http: https:/);
+  // The preview keeps script execution but denies programmatic network, forms
+  // and remote frames; subresources are gated by the authored-URL allowlist.
+  assert.match(htmlDocument, /connect-src[\s\S]{0,20}none/);
+  assert.match(htmlDocument, /frame-src[\s\S]{0,20}none/);
+  assert.match(htmlDocument, /form-action[\s\S]{0,20}none/);
+  assert.match(htmlDocument, /nativeHtmlRemoteReferences/);
   assert.match(htmlDocument, /viewport-fit=cover/);
 });
 
@@ -3459,7 +3473,12 @@ test('streaming Markdown repair closes inline syntax, hides partial tables and c
   assert.equal(nativeRepairStreamingMarkdown('```typescript\nconst x = 1;'),
     '```typescript\nconst x = 1;');
   assert.equal(nativeRepairStreamingMarkdown(
-    '流式 Markdown\n\n| 状态 | 结果 |\n| --- | --'), '流式 Markdown');
+    '流式 Markdown\n\n| 状态 | 结果 |\n| --- |'), '流式 Markdown');
+  // GFM accepts one- or two-hyphen delimiter cells: such a table is complete
+  // and must not be cut as unfinished streaming output.
+  assert.equal(nativeRepairStreamingMarkdown(
+    '流式 Markdown\n\n| 状态 | 结果 |\n| --- | --'),
+    '流式 Markdown\n\n| 状态 | 结果 |\n| --- | --');
   assert.equal(nativeRepairStreamingMarkdown(
     '流式 Markdown\n\n| 状态 | 结果 |\n| --- | --- |\n| 完成 | 是 |'),
   '流式 Markdown\n\n| 状态 | 结果 |\n| --- | --- |\n| 完成 | 是 |');

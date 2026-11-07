@@ -259,5 +259,42 @@ selection-capsule, Dock ordering, pagination, file-card or modal-row defects.
   S2 (>32KiB continuation-frame decoding) still need a live Host stream. See
   [`2026-11-06-transmission-fluency-remediation.md`](../specs/2026-11-06-transmission-fluency-remediation.md).
 
+- Security audit remediation device round (2026-11-07, HDC restored on HBN-AL80
+  API 26, USB `33Z0224801015621`): the mock suite now runs with the
+  ReduceMotion forwarding fix, so `iteration-notice-dark-launch-reduced-motion`
+  records `reduceMotion: true` for the first time; secret masking, the plugin
+  scrollbar edge, the sidebar lazy-list assertion, the dark Dock material and
+  the composer identification all pass on device. See
+  [2026-11-07-security-audit-remediation-e2e.md](2026-11-07-security-audit-remediation-e2e.md)
+  for the per-finding evidence table.
+
+- Security audit remediation (2026-11-07, no HDC access this round): the
+  full-project audit (docs/research/2026-11-07-security-audit-remediation.md)
+  fixed server, web, plugin and client issues under `qa.mjs pr` run
+  `20261106T183242Z-5ee448b2` and fresh default/store/mock release builds, but
+  the following device-visible behaviors changed and MUST be re-captured before
+  any release claim (details and full list:
+  [2026-11-07-security-audit-remediation-e2e.md](2026-11-07-security-audit-remediation-e2e.md)):
+  - HTML preview egress lockdown (scripts keep running; authored remote assets
+    load; anything a script composes is blocked) — re-capture the "HTML with
+    CSS/image/script references" scene plus a remote-asset page and a >8 MiB
+    binary asset page (F-H1/F-I1/F-I8).
+  - ALL previously captured reduced-motion scenes are INVALID until re-captured:
+    the mock suite never forwarded ReduceMotion, so those captures were
+    normal-motion (F-QA1). This includes the iteration-notice reduced-motion
+    row and every `-reduced-motion` capture directory.
+  - Transcript/display fixes needing visual confirmation: masked credentials in
+    backticks (F-I2), 阅读全文 on a tabular document (F-I3), one/two-hyphen
+    table delimiters (F-I4), 4-backtick fences (F-I5), empty tool rows without
+    the unsupported fallback (F-I7), mid-list streaming updates (F-J1),
+    30-block plugin cards (F-J2), interrupted-turn process groups (F-J3).
+  - Plugin surface: failed toggle revert (F-K1), 运行组件 search filtering
+    (F-K2), install-spec edit after a pending-builds notice (F-K3).
+  - Composer/origin: LAN http rejection message (F-G1), oversize attachment
+    pick error (F-H3).
+  - Model directory malformed-catalog error path (F-J5) and 90-second
+    automation interval preservation (F-J4).
+  - Large-listing/long-read flows under the new response budgets (F-H2/F-H4).
+
 These environment-bound checks remain `Pending`; source tests and the current
 API 26 portrait default-font device run are not substitutes for them.

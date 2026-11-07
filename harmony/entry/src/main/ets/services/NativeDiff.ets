@@ -200,11 +200,21 @@ function failedTool(tool: NativeMessage): boolean {
 }
 
 const diffMemo: Map<string, NativeDiffDocument> = new Map<string, NativeDiffDocument>();
+function diffMemoHash(value: string): string {
+  // FNV-1a content fingerprint: same-length rewrites must not share a memo
+  // entry with the content they replaced.
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index++) {
+    hash ^= value.charCodeAt(index);
+    hash = (hash * 0x01000193) >>> 0;
+  }
+  return hash.toString(16) + '-' + value.length;
+}
 function diffMemoSignature(tool: NativeMessage): string {
   return [tool.id, tool.callId, tool.seq, tool.toolName, tool.phase, tool.status,
     tool.failed ? '1' : '0', tool.outcome,
-    (tool.args || '').length, (tool.metaRaw || '').length,
-    (tool.output || '').length, (tool.error || '').length].join(':');
+    diffMemoHash(tool.args || ''), diffMemoHash(tool.metaRaw || ''),
+    diffMemoHash(tool.output || ''), diffMemoHash(tool.error || '')].join(':');
 }
 /**
  * Turn-change aggregation reruns over every tool while one streamed call keeps

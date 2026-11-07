@@ -30,7 +30,7 @@ function feedHash(text: string, first: number, second: number): number[] {
   return [left >>> 0, right >>> 0];
 }
 
-function textHash(value: string): string {
+export function textHash(value: string): string {
   const valueHash = feedHash(value, 2166136261, 5381);
   return valueHash[0].toString(16) + ':' + valueHash[1].toString(16) +
     ':' + value.length.toString(16);
@@ -235,6 +235,15 @@ export class NativeWorkspaceCache {
       NativeWorkspaceCache.binaryKey(scope, sessionId, path) + '.bin';
   }
 
+  /** The only file names this cache ever unlinks are recomputed from the row's
+   * own coordinates, so a tampered or restored database cannot point a
+   * deletion at an arbitrary path (mirrors the loadBinary check). */
+  private static isExpectedBinaryFileName(scopeId: string, sessionId: string,
+    path: string, fileName: string): boolean {
+    return fileName === scopeId + '-' +
+      textHash(sessionId + '\n' + path).replace(/:/g, '-') + '.bin';
+  }
+
   static async loadDirectory(context: common.UIAbilityContext, scope: string,
     sessionId: string, path: string): Promise<NativeWorkspaceDirectoryCacheEntry | null> {
     await NativeWorkspaceCache.writes.catch((): void => {});
@@ -273,6 +282,9 @@ export class NativeWorkspaceCache {
     cached.fingerprint = nativeDirectoryFingerprint(listing.entries, listing.truncated);
     cached.savedAt = Date.now();
     const payload = JSON.stringify(cached);
+    // One listing row is a single TEXT payload: oversized listings are not
+    // persisted (the live listing still renders; truncated already signals it).
+    if (payload.length > 2 * 1024 * 1024) return Promise.resolve();
     const scopeId = nativeWorkspaceScopeId(scope);
     const operation = NativeWorkspaceCache.writes.catch((): void => {}).then(async (): Promise<void> => {
       const store = await NativeWorkspaceCache.database(context);
@@ -508,10 +520,16 @@ export class NativeWorkspaceCache {
       const store = await NativeWorkspaceCache.database(context);
       const files: string[] = [];
       const result = await store.querySql(
-        'SELECT file_name FROM binary_cache WHERE scope_id=? AND session_id=?',
+        'SELECT path,file_name FROM binary_cache WHERE scope_id=? AND session_id=?',
         [scopeId, sessionId]);
       try {
-        while (result.goToNextRow()) files.push(result.getString(0));
+        while (result.goToNextRow()) {
+          const rowPath = result.getString(0);
+          const rowName = result.getString(1);
+          if (NativeWorkspaceCache.isExpectedBinaryFileName(scopeId, sessionId, rowPath, rowName)) {
+            files.push(rowName);
+          }
+        }
       } finally { result.close(); }
       await store.executeSql('DELETE FROM directory_cache WHERE scope_id=? AND session_id=?',
         [scopeId, sessionId]);
@@ -654,7 +672,9 @@ export class NativeWorkspaceCache {
     });
     NativeWorkspaceCache.writes = operation;
     await operation;
-    if (candidate.owner === NativeStorageOwner.workspaceBinary && !!fileName) {
+    if (candidate.owner === NativeStorageOwner.workspaceBinary && !!fileName &&
+      NativeWorkspaceCache.isExpectedBinaryFileName(candidate.scopeId, candidate.sessionId,
+        candidate.key, fileName)) {
       try {
         const absolute = NativeWorkspaceCache.binaryDirectory(context) + '/' + fileName;
         if (fileIo.accessSync(absolute)) fileIo.unlinkSync(absolute);
@@ -740,6 +760,8 @@ export class NativeWorkspaceCache {
         await store.executeSql(
           'DELETE FROM binary_cache WHERE scope_id=? AND session_id=? AND path=?',
           [scopeId, sessions[index], paths[index]]);
+        if (!NativeWorkspaceCache.isExpectedBinaryFileName(scopeId, sessions[index],
+          paths[index], files[index])) continue;
         try {
           const absolute = NativeWorkspaceCache.binaryDirectory(context) + '/' + files[index];
           if (fileIo.accessSync(absolute)) fileIo.unlinkSync(absolute);

@@ -67,6 +67,34 @@ function nativeHarnessRequestAllowed(path: string): boolean {
   return nativeHarnessRequestRoutes.includes(base);
 }
 
+/** Bounds a streamed response: an upstream that ignores the requested window
+ * or reply shape is cut off before the excess is buffered. */
+class NativeResponseBudget {
+  private readonly parts: Uint8Array[] = [];
+  private total: number = 0;
+  private exceeded: boolean = false;
+  private readonly limit: number;
+  constructor(limit: number) { this.limit = limit; }
+  offer(data: ArrayBuffer): boolean {
+    const part = new Uint8Array(data);
+    if (this.total + part.byteLength > this.limit) { this.exceeded = true; return false; }
+    this.parts.push(part);
+    this.total += part.byteLength;
+    return true;
+  }
+  oversize(): boolean { return this.exceeded; }
+  assemble(): Uint8Array {
+    const buffer = new Uint8Array(this.total);
+    let offset: number = 0;
+    this.parts.forEach((part: Uint8Array): void => { buffer.set(part, offset); offset += part.byteLength; });
+    return buffer;
+  }
+}
+const nativeJsonResponseLimit: number = 64 * 1024 * 1024;
+const nativeUploadReplyLimit: number = 64 * 1024;
+const nativeWindowSlack: number = 64 * 1024;
+const nativeDirectoryEntryLimit: number = 1000;
+
 export class NativeHttpError extends Error {
   status: number;
   code: string;
@@ -250,17 +278,19 @@ export class NativeHarnessClient {
       if (body.length > 0) options.extraData = body;
       if (path.startsWith('/pocket/api/native/')) {
         // Streaming Network Kit API avoids HttpResponse's fixed receive-buffer ceiling.
-        const chunks: Uint8Array[] = [];
-        let bytes: number = 0;
-        const end = new Promise<void>((resolve: () => void) => { task.on('dataEnd', resolve); });
+        const budget = new NativeResponseBudget(nativeJsonResponseLimit);
+        let finish: () => void = (): void => {};
+        const end = new Promise<void>((resolve: () => void): void => { finish = resolve; });
+        task.on('dataEnd', finish);
         task.on('dataReceive', (data: ArrayBuffer): void => {
-          const part = new Uint8Array(data); chunks.push(part); bytes += part.byteLength;
+          if (!budget.offer(data)) { task.destroy(); finish(); }
         });
-        const status = await task.requestInStream(this.origin + path, options);
+        let status = 0;
+        try { status = await task.requestInStream(this.origin + path, options); }
+        catch (error) { if (!budget.oversize()) throw error as Error; }
         await end;
-        const buffer = new Uint8Array(bytes);
-        let offset: number = 0;
-        chunks.forEach((part: Uint8Array) => { buffer.set(part, offset); offset += part.byteLength; });
+        if (budget.oversize()) throw new Error('响应超出大小限制');
+        const buffer = budget.assemble();
         const text = util.TextDecoder.create('utf-8').decodeToString(buffer);
         if (status < 200 || status >= 300) {
           let code = '';
@@ -402,8 +432,31 @@ export class NativeHarnessClient {
     return pending;
   }
   async listFiles(id: string, path: string): Promise<NativeDirectoryListing> {
-    return JSON.parse(await this.request('/pocket/api/native/file/list', http.RequestMethod.POST,
+    const value = JSON.parse(await this.request('/pocket/api/native/file/list', http.RequestMethod.POST,
       JSON.stringify({ sessionId: id, path: path }))) as NativeDirectoryListing;
+    // A listing is rendered and cached whole, so it is bounded here: malformed
+    // entries are dropped and an oversized listing is truncated explicitly.
+    const listing = new NativeDirectoryListing();
+    listing.path = value && typeof value.path === 'string' ? value.path : '';
+    const entries: Object[] = value && Array.isArray(value.entries) ? value.entries : [];
+    for (const entry of entries) {
+      const record = entry as Record<string, Object>;
+      if (!record || typeof record['name'] !== 'string' || !record['name'] ||
+          record['name'].length > 255 ||
+          !['file', 'directory', 'other'].includes(record['type'] as string) ||
+          (record['size'] !== undefined && (typeof record['size'] !== 'number' || record['size'] < 0))) continue;
+      if (listing.entries.length >= nativeDirectoryEntryLimit) {
+        listing.truncated = true;
+        break;
+      }
+      const bounded = new NativeDirectoryEntry();
+      bounded.name = record['name'] as string;
+      bounded.type = record['type'] as string;
+      if (typeof record['size'] === 'number') bounded.size = record['size'] as number;
+      listing.entries.push(bounded);
+    }
+    if (value && value.truncated === true) listing.truncated = true;
+    return listing;
   }
   /**
    * Confirm a chat link before any root preview/browser surface is published.
@@ -487,25 +540,31 @@ export class NativeHarnessClient {
           }
         });
       });
-      const chunks: Uint8Array[] = [];
-      let total: number = 0;
-      const ended = new Promise<void>((resolve: () => void): void => { task.on('dataEnd', resolve); });
+      // The Host must honour the requested window; anything beyond it (plus a
+      // small header slack) is cut off before it is buffered.
+      const budget = new NativeResponseBudget(length + nativeWindowSlack);
+      let finish: () => void = (): void => {};
+      const ended = new Promise<void>((resolve: () => void): void => { finish = resolve; });
+      task.on('dataEnd', finish);
       task.on('dataReceive', (data: ArrayBuffer): void => {
-        const part = new Uint8Array(data); chunks.push(part); total += part.byteLength;
+        if (!budget.offer(data)) { task.destroy(); finish(); }
       });
       const body = new NativeFileBytesRequest(id, path, offset, length);
       if (baseFile) body.baseFile = baseFile;
-      const status = await task.requestInStream(this.origin + '/pocket/api/native/file/bytes', {
-        method: http.RequestMethod.POST,
-        header: { 'Content-Type': 'application/json', Origin: this.origin, Cookie: await this.cookie() },
-        extraData: JSON.stringify(body),
-        usingCache: false, maxRedirects: 0, connectTimeout: 10000, readTimeout: 30000
-      });
+      let status = 0;
+      try {
+        status = await task.requestInStream(this.origin + '/pocket/api/native/file/bytes', {
+          method: http.RequestMethod.POST,
+          header: { 'Content-Type': 'application/json', Origin: this.origin, Cookie: await this.cookie() },
+          extraData: JSON.stringify(body),
+          usingCache: false, maxRedirects: 0, connectTimeout: 10000, readTimeout: 30000
+        });
+      } catch (error) { if (!budget.oversize()) throw error as Error; }
       await ended;
+      if (budget.oversize()) throw new Error('文件窗口超出请求大小');
       if (status < 200 || status >= 300) throw new NativeHttpError(status);
-      const bytes = new Uint8Array(total);
-      let cursor: number = 0;
-      chunks.forEach((part: Uint8Array): void => { bytes.set(part, cursor); cursor += part.byteLength; });
+      const bytes = budget.assemble();
+      const total = bytes.byteLength;
       let metadata: NativeFileBytes;
       if (header) {
         const encoded = header.replace(/-/g, '+').replace(/_/g, '/');
@@ -550,29 +609,31 @@ export class NativeHarnessClient {
       (mediaType ? '&mediaType=' + encodeURIComponent(mediaType) : '');
     const task = http.createHttp();
     try {
-      const chunks: Uint8Array[] = [];
-      let total: number = 0;
-      const ended = new Promise<void>((resolve: () => void): void => { task.on('dataEnd', resolve); });
+      const budget = new NativeResponseBudget(nativeUploadReplyLimit);
+      let finish: () => void = (): void => {};
+      const ended = new Promise<void>((resolve: () => void): void => { finish = resolve; });
+      task.on('dataEnd', finish);
       task.on('dataReceive', (part: ArrayBuffer): void => {
-        const bytes = new Uint8Array(part);
-        chunks.push(bytes); total += bytes.byteLength;
+        if (!budget.offer(part)) { task.destroy(); finish(); }
       });
-      const status = await task.requestInStream(this.origin + '/pocket/api/native/upload' + query, {
-        method: http.RequestMethod.POST,
-        header: {
-          'Content-Type': 'application/octet-stream',
-          'Content-Length': data.byteLength.toString(),
-          Origin: this.origin,
-          Cookie: await this.cookie()
-        },
-        extraData: data.slice().buffer as ArrayBuffer,
-        usingCache: false, maxRedirects: 0, connectTimeout: 10000, readTimeout: 45000
-      });
+      let status = 0;
+      try {
+        status = await task.requestInStream(this.origin + '/pocket/api/native/upload' + query, {
+          method: http.RequestMethod.POST,
+          header: {
+            'Content-Type': 'application/octet-stream',
+            'Content-Length': data.byteLength.toString(),
+            Origin: this.origin,
+            Cookie: await this.cookie()
+          },
+          extraData: data.slice().buffer as ArrayBuffer,
+          usingCache: false, maxRedirects: 0, connectTimeout: 10000, readTimeout: 45000
+        });
+      } catch (error) { if (!budget.oversize()) throw error as Error; }
       await ended;
+      if (budget.oversize()) throw new Error('上传响应超出大小限制');
       if (status < 200 || status >= 300) throw new NativeHttpError(status);
-      const response = new Uint8Array(total);
-      let offset: number = 0;
-      chunks.forEach((part: Uint8Array): void => { response.set(part, offset); offset += part.byteLength; });
+      const response = budget.assemble();
       const envelope = JSON.parse(util.TextDecoder.create('utf-8').decodeToString(response)) as Record<string, Object>;
       if (envelope.ok !== true) throw new Error('附件上传失败');
       const value = envelope.value as Record<string, Object> | undefined;

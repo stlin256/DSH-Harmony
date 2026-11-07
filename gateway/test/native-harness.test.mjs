@@ -14,6 +14,7 @@ import {
   normalizePermissionSelection,
   normalizeProjectionTitle,
   normalizedHistory,
+  queueFromInbox,
   richBlocks,
   normalizeRecord
 } from '../src/native-protocol.mjs';
@@ -146,6 +147,12 @@ async function setup(t, options = {}) {
     }
     const value = JSON.parse(Buffer.concat(chunks).toString());
     calls.push({ headers: req.headers, value });
+    if (options.readBytesErrorCode && value.method === 'workspaceFiles/readBytes') {
+      res.setHeader('Content-Type','application/json');
+      res.end(JSON.stringify({ type:'server-response', rpcId:value.rpcId,
+        result:{ ok:false, error:{ code: options.readBytesErrorCode } } }));
+      return;
+    }
     if (options.workspaceFileError && value.method === 'workspaceFiles/stat') {
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ type: 'server-response', rpcId: value.rpcId,
@@ -1181,7 +1188,8 @@ test('advanced native commands use exact public Session contracts and reject arb
   const operation = body => call('/pocket/api/native/operation',body);
   assert.equal((await operation({operation:'modelCatalog'})).status,200);
   assert.deepEqual(calls.at(-1).value.payload,{args:{}});
-  assert.equal((await operation({operation:'rename',sessionId:'session',title:'标题'.repeat(2000)})).status,200);
+  assert.equal((await operation({operation:'rename',sessionId:'session',title:'标题'.repeat(2000)})).status,400);
+  assert.equal((await operation({operation:'rename',sessionId:'session',title:'标题'.repeat(20)})).status,200);
   assert.equal(calls.at(-1).value.method,'session/rename');
   assert.equal((await operation({operation:'fork',sessionId:'session',atSeq:42})).status,200);
   assert.deepEqual(calls.at(-1).value.payload.args.request,{sessionId:'session',atSeq:42,allowMigration:false});
@@ -1193,6 +1201,69 @@ test('advanced native commands use exact public Session contracts and reject arb
   assert.equal((await operation({operation:'updateQueue',sessionId:'session',itemId:'item',kind:'edit',text:''})).status,400);
   assert.equal((await call('/pocket/api/native/prompt',{sessionId:'session',requestId:'steer',text:'adjust',mode:'steer'})).status,200);
   assert.equal(calls.at(-1).value.payload.args.request.mode,'steer');
+});
+
+test('native request magnitude caps bound prompts, attachments, images, uploads and settings', async t => {
+  const { call, upload } = await setup(t);
+  const prompt = body => call('/pocket/api/native/prompt', body);
+  assert.equal((await prompt({sessionId:'session',requestId:'cap',text:'x'.repeat(262145)})).status,400);
+  assert.equal((await prompt({sessionId:'session',requestId:'cap',text:'x'.repeat(262144)})).status,200);
+  assert.equal((await prompt({sessionId:'session',requestId:'cap',text:'x',
+    attachments:Array.from({length:33},() => ({type:'file',receiptId:'r'}))})).status,400);
+  assert.equal((await prompt({sessionId:'session',requestId:'cap',text:'x',
+    images:Array.from({length:17},() => ({mediaType:'image/png',data:'aGk='}))})).status,400);
+  assert.equal((await prompt({sessionId:'session',requestId:'cap',text:'x',
+    images:[{mediaType:'image/png',data:'a'.repeat(16*1024*1024+1)}]})).status,400);
+  assert.equal((await prompt({sessionId:'session',requestId:'cap',text:'x',
+    images:[{mediaType:'image/png',data:'aGk=',name:'n'.repeat(256)}]})).status,400);
+  // settingsSet must be a real allowlist: inherited object properties never pass.
+  assert.equal((await call('/pocket/api/native/operation',{operation:'settingsSet',ns:'constructor',field:'name',value:'Obj',revision:1})).status,400);
+  assert.equal((await call('/pocket/api/native/operation',{operation:'settingsSet',ns:'__proto__',field:'x',value:'y',revision:1})).status,400);
+  assert.equal((await call('/pocket/api/native/operation',{operation:'settingsSet',ns:'toString',field:'x',value:'y',revision:1})).status,400);
+  // upload: filename charset, media type shape and declared size are all enforced.
+  assert.equal((await upload('/pocket/api/native/upload?sessionId=session&name=..%2Fescape.bin',Buffer.from('x'))).status,400);
+  assert.equal((await upload('/pocket/api/native/upload?sessionId=session&name=sub%5Cdir.bin',Buffer.from('x'))).status,400);
+  assert.equal((await upload('/pocket/api/native/upload?sessionId=session&name=ok.bin&mediaType=text%2Fplain',Buffer.from('x'))).status,200);
+  assert.equal((await upload('/pocket/api/native/upload?sessionId=session&name=ok2.bin&mediaType=not%20a%20media%20type',Buffer.from('x'))).status,400);
+  assert.equal((await upload('/pocket/api/native/upload?sessionId=session&name=big.bin',Buffer.from([1]),
+    {'content-length':String(128*1024*1024+1)})).status,413);
+});
+
+test('binary reads relay only stable decision codes from the Host', async t => {
+  const stable = await setup(t, { readBytesErrorCode: 'workspace-file/not-found' });
+  const accepted = await stable.call('/pocket/api/native/file/bytes',{sessionId:'session',path:'file.txt',offset:0,length:16});
+  assert.equal(accepted.status,409);
+  assert.equal(JSON.parse(accepted.text).code,'workspace-file/not-found');
+  const unstable = await setup(t, { readBytesErrorCode: 'internal/fancy-new-code' });
+  const rejected = await unstable.call('/pocket/api/native/file/bytes',{sessionId:'session',path:'file.txt',offset:0,length:16});
+  assert.equal(rejected.status,502);
+  assert.equal(JSON.parse(rejected.text).code,undefined);
+});
+
+test('history and live events reject malformed replace ops and sequences', () => {
+  const history = normalizedHistory([
+    {type:'event',event:{seq:1,type:'user/message',data:{content:[{type:'text',text:'one'}]}}},
+    {type:'event',event:{seq:2,type:'user/message',surfaceOp:{op:'replace'},data:{content:[{type:'text',text:'two'}]}}},
+    {type:'event',event:{seq:3,type:'user/message',data:{content:[{type:'text',text:'three'}]}}}
+  ]);
+  assert.equal(history.messages.length,2);
+  assert.deepEqual(history.replacements,[]);
+  assert.equal(normalizeFollow({type:'event',event:{type:'user/message',data:{}}}),null);
+  assert.equal(normalizeFollow({type:'event',event:{seq:-1,type:'user/message',data:{}}}),null);
+  const valid = normalizeFollow({type:'event',event:{seq:2,type:'user/message',data:{content:[{type:'text',text:'hi'}]}}});
+  assert.equal(valid.seq,2);
+  assert.equal(normalizeFollow({type:'event',event:{seq:3,type:'user/message',surfaceOp:{op:'replace'},data:{}}}),null);
+});
+
+test('protocol normalization applies the intended label, language and source caps', () => {
+  const blocks = richBlocks('text\n\`\`\`' + 'x'.repeat(40) + '\nconst x=1;\n\`\`\`');
+  assert.equal(blocks[1].kind,'code');
+  assert.equal(blocks[1].language.length,30);
+  const inbox = queueFromInbox({'next-turn':[{id:'m1',source:{kind:'user',form:'f'.repeat(100)},content:[{type:'text',text:'hi'}]}]});
+  assert.equal(inbox[0].sourceForm.length,64);
+  const capped = normalizeRecord({type:'event',event:{seq:1,type:'user/message',
+    data:{source:{kind:'user',form:'f'.repeat(100)},content:[{type:'text',text:'hi'}]}}});
+  assert.equal(capped.sourceForm.length,64);
 });
 
 async function live(t, options = {}) {

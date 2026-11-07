@@ -219,7 +219,7 @@ function pushMarkdown(blocks: NativeMarkdownBlock[], kind: string, text: string,
 function tableDelimiter(line: string): boolean {
   const value = line.trim();
   if (!value.includes('|')) return false;
-  return /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(value);
+  return /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$/.test(value);
 }
 
 /** A bounded Markdown block projection for file preview, independent of ArkUI. */
@@ -233,13 +233,16 @@ export function nativeMarkdownBlocks(source: string): NativeMarkdownBlock[] {
       index++;
       continue;
     }
-    const fence = /^\s*(```+|~~~+)\s*([^ ]*)\s*$/.exec(line);
+    const fence = /^\s*(```+|~~~+)\s*([^`]*)\s*$/.exec(line);
     if (fence) {
       const marker = fence[1][0];
+      // The closing run must be at least as long as the opening run, so a
+      // shorter backtick line inside the block no longer closes it early.
+      const markerLength = fence[1].length;
       const language = fence[2] || '';
       const body: string[] = [];
       index++;
-      while (index < lines.length && !new RegExp('^\\s*' + marker + '{3,}\\s*$').test(lines[index])) {
+      while (index < lines.length && !new RegExp('^\\s*' + marker + '{' + markerLength + ',}\\s*$').test(lines[index])) {
         body.push(lines[index]);
         index++;
       }

@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$DevEcoHome = '',
   [string]$Device = '',
   [string]$HapPath = '',
@@ -33,6 +33,7 @@ param(
     'tsv-preview',
     'delimited-error-preview',
     'binary-preview',
+    'html-preview',
     'empty',
     'long-history',
     'dock-send-idle',
@@ -350,11 +351,39 @@ if ($LASTEXITCODE -ne 0) {
   throw 'Screen capture failed.'
 }
 & $hdc -t $Device file recv $remoteImage $localImage | Out-Null
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $localImage)) {
+  throw "Screenshot was not received from the device: $localImage"
+}
 & $hdc -t $Device shell "uitest dumpLayout -p $remoteLayout -i -b $bundle"
 if ($LASTEXITCODE -ne 0) {
   throw 'UI layout dump failed.'
 }
 & $hdc -t $Device file recv $remoteLayout $localLayout | Out-Null
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $localLayout)) {
+  throw "Layout dump was not received from the device: $localLayout"
+}
+
+# The drawer is a lazy list: a workspace header below the first viewport is not
+# in the layout tree until it scrolls in. The captured frame stays the first
+# frame (its own markers are asserted on it); a second dump after one drawer
+# scroll proves the remaining registered workspace headers render too.
+$scrolledLayout = Join-Path $captureDir 'layout-scrolled.json'
+$scrolledRemote = "/data/local/tmp/dsh-ui-$Screen-$State-$Theme-scrolled.json"
+if ($Screen -eq 'sidebar') {
+  & $hdc -t $Device shell "uitest uiInput swipe 540 2200 540 900 600" | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Sidebar scroll failed.'
+  }
+  Start-Sleep -Milliseconds 400
+  & $hdc -t $Device shell "uitest dumpLayout -p $scrolledRemote -i -b $bundle" | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Scrolled layout dump failed.'
+  }
+  & $hdc -t $Device file recv $scrolledRemote $scrolledLayout | Out-Null
+  if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $scrolledLayout)) {
+    throw "Scrolled layout dump was not received: $scrolledLayout"
+  }
+}
 
 $layoutAssertion = 'not-requested'
 if ($Screen -eq 'conversation') {

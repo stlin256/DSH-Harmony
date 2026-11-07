@@ -6,6 +6,19 @@ agent.example.com {
     }
 }
 auth.example.com {
+    # The gateway only sees this proxy's address and deliberately ignores
+    # forwarding headers, so its login limiter is one shared bucket. Throttle
+    # /_gateway/login per real client source HERE so a remote flood cannot
+    # consume the owner's login budget. Requires a Caddy build with the
+    # rate limit module (github.com/mholt/caddy-ratelimit):
+    # rate_limit {
+    #     zone login_zone {
+    #         key {remote_host}
+    #         events 10
+    #         window 1m
+    #     }
+    #     match /_gateway/login
+    # }
     reverse_proxy 127.0.0.1:1411 {
         header_up -X-Forwarded-For
     }

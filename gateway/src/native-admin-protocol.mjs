@@ -444,7 +444,9 @@ export function automationEditRequest(value) {
   const base = {
     id: source.id,
     action: source.action,
-    ...(expectedUpdatedAt === undefined ? {} : { expectedUpdatedAt })
+    // The phone serializes an absent updatedAt as null; the Host contract is
+    // string-or-absent, so null is dropped exactly like undefined.
+    ...(expectedUpdatedAt == null ? {} : { expectedUpdatedAt })
   };
   if (source.action === 'delete') return base;
   const patch = record(source.patch);

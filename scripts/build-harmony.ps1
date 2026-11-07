@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$DevEcoHome = $env:DEVECO_STUDIO_HOME,
   [ValidateSet('community','default','store','mock')][string]$Product = 'community',
   [ValidateSet('debug','release')][string]$BuildMode = 'debug',

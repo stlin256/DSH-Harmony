@@ -504,12 +504,17 @@ function pluginItem(title: string, subtitle: string = '', trailing: string = '',
   return item;
 }
 
-function addPluginBlock(document: NativePluginDocument, kind: string): NativePluginBlock {
+function addPluginBlock(document: NativePluginDocument, kind: string): NativePluginBlock | null {
   const block = new NativePluginBlock();
   block.kind = kind;
-  if (document.blocks.length < 30) document.blocks.push(block);
-  else document.truncated = true;
-  return block;
+  let pushed = false;
+  if (document.blocks.length < 30) {
+    document.blocks.push(block);
+    pushed = true;
+  } else document.truncated = true;
+  // Null tells the caller nothing was pushed, so an empty-node cleanup must not
+  // pop an unrelated block that was already rendered.
+  return pushed ? block : null;
 }
 
 class NativePluginBudget {
@@ -535,6 +540,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
       return !!record && stringValue(record['type']).trim() === 'metric';
     })) {
     const block = addPluginBlock(document, 'metrics');
+    if (!block) return;
     const metricChildren = (node['children'] as Object[]).slice(0, 16);
     if ((node['children'] as Object[]).length > metricChildren.length) budget.truncated = true;
     for (const child of metricChildren) {
@@ -577,6 +583,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
     const text = scalarText(node['text'], 2000);
     if (!text) return;
     const block = addPluginBlock(document, 'text');
+    if (!block) return;
     block.text = text;
     block.tone = pluginTone(node['tone']);
     return;
@@ -586,6 +593,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
     const value = scalarText(node['value'], 120);
     if (!label || !value) return;
     const block = addPluginBlock(document, 'metric');
+    if (!block) return;
     const metric = new NativePluginMetric();
     metric.label = label;
     metric.value = value;
@@ -600,6 +608,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
     const maximum = typeof node['max'] === 'number' && Number.isFinite(node['max'] as number) &&
       (node['max'] as number) > 0 ? node['max'] as number : 100;
     const block = addPluginBlock(document, 'progress');
+    if (!block) return;
     block.label = scalarText(node['label'], 120);
     block.caption = scalarText(node['caption'], 160);
     block.value = value.toString() + ' / ' + maximum.toString();
@@ -611,6 +620,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
     const text = scalarText(node['text'], 2000);
     if (!text) return;
     const block = addPluginBlock(document, 'callout');
+    if (!block) return;
     block.text = text;
     block.tone = pluginTone(node['tone']);
     return;
@@ -618,6 +628,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
   if (type === 'list') {
     if (!Array.isArray(node['items'])) return;
     const block = addPluginBlock(document, 'list');
+    if (!block) return;
     (node['items'] as Object[]).slice(0, 12).forEach((raw: Object): void => {
       const item = recordValue(raw);
       const title = item ? scalarText(item['title'], 160) : '';
@@ -641,6 +652,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
       });
     }
     const block = addPluginBlock(document, 'keyValue');
+    if (!block) return;
     items.slice(0, 16).forEach((raw: Object): void => {
       if (Array.isArray(raw)) {
         const pair = raw as Object[];
@@ -659,6 +671,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
   if (type === 'table') {
     if (!Array.isArray(node['columns']) || !Array.isArray(node['rows'])) return;
     const block = addPluginBlock(document, 'table');
+    if (!block) return;
     (node['columns'] as Object[]).slice(0, 8).forEach((raw: Object): void => {
       const column = recordValue(raw);
       block.columns.push(column ? scalarText(column['label'], 80) : scalarText(raw, 80));
@@ -681,6 +694,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
     const first = recordValue(series[0]);
     const values = first && Array.isArray(first['values']) ? first['values'] as Object[] : [];
     const block = addPluginBlock(document, 'chart');
+    if (!block) return;
     categories.slice(0, Math.min(12, values.length)).forEach((raw: Object, index: number): void => {
       block.items.push(pluginItem(scalarText(raw, 100), scalarText(values[index], 80)));
     });
@@ -691,6 +705,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
   if (type === 'compare') {
     if (!Array.isArray(node['items'])) return;
     const block = addPluginBlock(document, 'compare');
+    if (!block) return;
     (node['items'] as Object[]).slice(0, 8).forEach((raw: Object): void => {
       const item = recordValue(raw);
       if (!item) return;
@@ -703,6 +718,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
   if (type === 'steps') {
     if (!Array.isArray(node['items'])) return;
     const block = addPluginBlock(document, 'steps');
+    if (!block) return;
     (node['items'] as Object[]).slice(0, 12).forEach((raw: Object): void => {
       const item = recordValue(raw);
       const title = item ? scalarText(item['label'], 160) : scalarText(raw, 160);
@@ -725,6 +741,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
       });
     }
     const block = addPluginBlock(document, 'options');
+    if (!block) return;
     block.id = scalarText(node['id'], 80);
     block.multi = node['multi'] === true || node['multi'] === 'true';
     (node['options'] as Object[]).slice(0, 12).forEach((raw: Object): void => {
@@ -742,6 +759,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
   if (type === 'confirm') {
     if (!interactive) return;
     const block = addPluginBlock(document, 'confirm');
+    if (!block) return;
     block.id = scalarText(node['id'], 80);
     block.text = scalarText(node['label'], 240);
     block.confirmLabel = scalarText(node['confirmLabel'], 40);
@@ -752,6 +770,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
     const src = scalarText(node['src'], 120);
     if (!src) return;
     const block = addPluginBlock(document, 'image');
+    if (!block) return;
     block.label = scalarText(node['alt'], 160);
     block.caption = scalarText(node['caption'], 160);
     block.text = src.startsWith('data:image/') ? '内嵌图像' : '图像未加载';
@@ -762,6 +781,7 @@ function parsePluginNode(value: Object, document: NativePluginDocument,
   // component types keep the surrounding card valid but show a safe placeholder.
   if (type === 'actions') return;
   const unsupported = addPluginBlock(document, 'unsupported');
+  if (!unsupported) return;
   unsupported.text = '此插件组件暂不支持';
 }
 

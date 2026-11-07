@@ -356,7 +356,11 @@ export class NativeAdminClient {
   }
 
   private timing(draft: NativeAutomationDraft): AutomationTimingPayload {
-    const interval = Math.max(1, Number(draft.interval) || 1) * 60;
+    // An untouched interval keeps the task's exact seconds (the minutes field
+    // is a rounded view); only an edited field re-times the task.
+    const unchanged = draft.intervalInitial !== '' && draft.interval === draft.intervalInitial &&
+      draft.intervalSeconds > 0;
+    const interval = unchanged ? draft.intervalSeconds : Math.max(1, Number(draft.interval) || 1) * 60;
     const timing = new AutomationTimingPayload(draft.kind);
     if (draft.kind === 'after') {
       timing.after_seconds = interval;

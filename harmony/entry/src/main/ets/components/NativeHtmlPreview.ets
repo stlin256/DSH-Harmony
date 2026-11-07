@@ -9,7 +9,9 @@ import {
   nativeHtmlInline,
   nativeHtmlMimeType,
   nativeHtmlReferences,
-  nativeHtmlInlineCss
+  nativeHtmlInlineCss,
+  nativeHtmlRemoteReferences,
+  nativeHtmlRemoteCssReferences
 } from '../services/NativeHtmlDocument';
 import { NativeMotion } from '../services/NativeMotion';
 import { NativeDesign } from '../services/NativeDesign';
@@ -34,6 +36,9 @@ export struct NativeHtmlPreview {
   private loadRevision: number = 0;
   private awaitingPage: boolean = false;
   private busy: boolean = false;
+  // Absolute remote URLs the document author declared statically. Only these
+  // may be fetched; any URL a script composes at runtime is blocked.
+  private remoteUrls: Set<string> = new Set<string>();
   private readonly previewOrigin: string = 'https://dsh-harmony.invalid';
 
   aboutToAppear(): void {
@@ -71,6 +76,15 @@ export struct NativeHtmlPreview {
     response.setResponseMimeType('text/html');
     response.setResponseCode(200);
     response.setReasonMessage('OK');
+    return response;
+  }
+  private blockedResponse(): WebResourceResponse {
+    const response = new WebResourceResponse();
+    response.setResponseData('');
+    response.setResponseEncoding('UTF-8');
+    response.setResponseMimeType('text/plain');
+    response.setResponseCode(204);
+    response.setReasonMessage('Blocked');
     return response;
   }
   private presentation(source: string): string {
@@ -112,6 +126,8 @@ export struct NativeHtmlPreview {
     const queue: NativeHtmlAssetReference[] = nativeHtmlReferences(this.source, this.path);
     const imageTagCount = (this.source.match(/<img\b/gi) || []).length;
     const visited: Set<string> = new Set<string>();
+    const remote: Set<string> = new Set<string>();
+    for (const url of nativeHtmlRemoteReferences(this.source)) remote.add(url);
     let bytes: number = 0;
     try {
       while (queue.length && bytes < htmlAssetLimit) {
@@ -120,7 +136,7 @@ export struct NativeHtmlPreview {
         if (!item.path || visited.has(key)) continue;
         visited.add(key);
         try {
-          const limit = Math.max(1, Math.min(item.kind === 'binary' ? htmlTextAssetLimit : htmlTextAssetLimit,
+          const limit = Math.max(1, Math.min(item.kind === 'binary' ? htmlAssetLimit : htmlTextAssetLimit,
             htmlAssetLimit - bytes));
           const content = await NativeFileTransfer.readComplete(
             this.client, this.sessionId, item.path, limit);
@@ -130,6 +146,7 @@ export struct NativeHtmlPreview {
             nativeHtmlMimeType(item.path) === 'text/css') {
             const value = this.text(content.bytes);
             css.set(item.path, value);
+            for (const url of nativeHtmlRemoteCssReferences(value)) remote.add(url);
             queue.push(...nativeHtmlReferences('<style>' + value + '</style>', item.path));
           } else if (item.kind === 'script') {
             assets.set(item.path, this.dataUrl(item.path, content.bytes));
@@ -151,6 +168,7 @@ export struct NativeHtmlPreview {
       console.info('NativeHtmlPreview assets images=' + imageTagCount +
         ' references=' + visited.size + ' loaded=' + assets.size + ' bytes=' + bytes);
       this.prepared = this.presentation(html);
+      this.remoteUrls = remote;
       this.previewRevision = revision;
       this.setBusy(true);
       if (this.controllerReady) {
@@ -199,7 +217,10 @@ export struct NativeHtmlPreview {
   }
   private intercept(url: string): boolean {
     if (this.isPreviewUrl(url)) return false;
-    if (url === 'about:blank' || url.startsWith('data:text/html')) return false;
+    if (url === 'about:blank') return false;
+    // A data: document would run script outside the preview's policy, so it is
+    // blocked instead of loading inside the component.
+    if (url.startsWith('data:')) return true;
     if (url.startsWith('dshharmony://file?path=')) {
       const encoded = url.slice('dshharmony://file?path='.length);
       try { this.openLocal(decodeURIComponent(encoded)); } catch (_) {}
@@ -227,7 +248,12 @@ export struct NativeHtmlPreview {
             this.awaitingPage = true;
           })
           .onInterceptRequest((event): WebResourceResponse | null => {
-            return this.isPreviewUrl(event.request.getRequestUrl()) ? this.previewResponse() : null;
+            const url = event.request.getRequestUrl();
+            if (this.isPreviewUrl(url)) return this.previewResponse();
+            // Only remote URLs the author declared statically reach the network;
+            // everything else (script-built beacons included) gets an empty
+            // response, so previewed documents cannot exfiltrate anything.
+            return this.remoteUrls.has(url) ? null : this.blockedResponse();
           })
           .onLoadIntercept((event): boolean => this.intercept(event.data.getRequestUrl()))
           .onPageEnd((): void => {

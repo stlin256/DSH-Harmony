@@ -308,10 +308,23 @@ struct Index {
     if (!/^https?:\/\/(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|\[[0-9a-f:]+\])(?::[0-9]{1,5})?$/.test(value)) return '';
     const port = value.match(/:([0-9]+)$/);
     if (port && (Number(port[1]) < 1 || Number(port[1]) > 65535)) return '';
+    if (!this.loopbackHttp(value)) return '';
     return value;
   }
 
+  /** Cleartext is only safe on the device itself: the access key, session
+   * cookie and live transcript must never cross the network unencrypted. */
+  private loopbackHttp(value: string): boolean {
+    const match = /^http:\/\/(\[[0-9a-f:]+\]|[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)(?::[0-9]{1,5})?$/.exec(value);
+    if (!match) return true;
+    const host = match[1];
+    return host === 'localhost' || host === '[::1]' || host === '[::ffff:127.0.0.1]' || /^127\./.test(host);
+  }
+
   private async connect(restoring: boolean = false): Promise<void> {
+    if (!this.loopbackHttp(this.address.trim().toLowerCase())) {
+      throw new Error('HTTP 仅限本机地址，远程服务请使用 HTTPS');
+    }
     const next = this.normalize(this.address);
     if (!next) throw new Error('请输入有效的服务地址');
     if (!ProductCapabilities.supportsPasskey && this.mode === 'passkey') this.mode = 'native';

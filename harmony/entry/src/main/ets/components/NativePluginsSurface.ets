@@ -44,6 +44,10 @@ export struct NativePluginsSurface {
   @State private actionError: string = '';
   @State private installSpec: string = '';
   @State private inspection: NativePluginInspection | null = null;
+  // Bumped after every failed toggle request: the uncontrolled ArkUI Toggle
+  // only re-syncs its visual when the node is re-created, so the generation
+  // flip forces the switch back to the authoritative state.
+  @State private toggleGeneration: number = 0;
   @State private inspecting: boolean = false;
   @State private installing: boolean = false;
   @State private versions: NativePluginVersionList | null = null;
@@ -91,7 +95,10 @@ export struct NativePluginsSurface {
   }
 
   private filteredEntries(): NativePluginEntry[] {
-    return this.inventory.plugins;
+    const search = this.query.trim().toLowerCase();
+    if (!search) return this.inventory.plugins;
+    return this.inventory.plugins.filter((entry: NativePluginEntry): boolean =>
+      (entry.title + ' ' + entry.moduleName + ' ' + entry.entryId).toLowerCase().includes(search));
   }
 
   private installedBundles(): NativePluginBundle[] {
@@ -191,6 +198,8 @@ export struct NativePluginsSurface {
   private openInstall(spec: string = ''): void {
     this.installSpec = spec;
     this.inspection = null;
+    this.notice = new NativePluginChange();
+    this.noticeVisible = false;
     this.actionError = '';
     this.setPage('install', 1);
   }
@@ -232,6 +241,7 @@ export struct NativePluginsSurface {
       if (this.mounted) {
         this.busy = this.busy.filter((item: string): boolean => item !== key);
         this.actionError = this.errorText(error as Error);
+        this.toggleGeneration++;
       }
     }
   }
@@ -250,6 +260,7 @@ export struct NativePluginsSurface {
       if (this.mounted) {
         this.busy = this.busy.filter((item: string): boolean => item !== key);
         this.actionError = this.errorText(error as Error);
+        this.toggleGeneration++;
       }
     }
   }
@@ -442,11 +453,22 @@ export struct NativePluginsSurface {
             .fontSize(NativeDesign.fontMicro).maxLines(1).fontColor(bundle.errorCode ? this.danger() : this.tertiaryText())
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
         if (bundle.installed && !bundle.readOnlyReason) {
-          Toggle({ type: ToggleType.Switch, isOn: bundle.enabled })
-            .id('plugin-bundle-toggle-' + bundle.name)
-            .enabled(!this.isBusy('bundle:' + bundle.name))
-            .selectedColor(this.accent())
-            .onChange((isOn: boolean): void => { this.toggleBundle(bundle); })
+          // Both branches are identical: flipping toggleGeneration after a
+          // failed request re-creates the uncontrolled Toggle so its visual
+          // returns to the authoritative enabled state.
+          if (this.toggleGeneration % 2 === 0) {
+            Toggle({ type: ToggleType.Switch, isOn: bundle.enabled })
+              .id('plugin-bundle-toggle-' + bundle.name)
+              .enabled(!this.isBusy('bundle:' + bundle.name))
+              .selectedColor(this.accent())
+              .onChange((isOn: boolean): void => { this.toggleBundle(bundle); })
+          } else {
+            Toggle({ type: ToggleType.Switch, isOn: bundle.enabled })
+              .id('plugin-bundle-toggle-' + bundle.name)
+              .enabled(!this.isBusy('bundle:' + bundle.name))
+              .selectedColor(this.accent())
+              .onChange((isOn: boolean): void => { this.toggleBundle(bundle); })
+          }
         } else if (!bundle.installed && bundle.installSpec) {
           Button('添加', { type: ButtonType.Normal }).height(NativeDesign.compactControl)
             .id('plugin-install-' + bundle.name)
@@ -584,7 +606,9 @@ export struct NativePluginsSurface {
               }
             }, (entry: NativePluginEntry) => entry.entryId)
           }
-        }.layoutWeight(1).width('100%').scrollBar(BarState.Auto).cachedCount(10)
+        }.layoutWeight(1).width('calc(100% + ' + NativeDesign.pageInset + 'vp)')
+          .padding({ right: NativeDesign.pageInset })
+          .scrollBar(BarState.Auto).cachedCount(10)
       }
     }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset,
       top: this.safeTop + 4, bottom: this.safeBottom + 8 })
@@ -620,12 +644,21 @@ export struct NativePluginsSurface {
           .fontColor(this.tertiaryText())
       }.layoutWeight(1).alignItems(HorizontalAlign.Start)
       if (row.entryId) {
-        Toggle({ type: ToggleType.Switch,
-          isOn: this.entryFor(row.entryId)?.enabled === true })
-          .id('plugin-row-toggle-' + row.entryId)
-          .enabled(!this.isBusy('row:' + row.entryId))
-          .selectedColor(this.accent())
-          .onChange((isOn: boolean): void => { this.toggleRow(bundle, row.entryId, isOn); })
+        if (this.toggleGeneration % 2 === 0) {
+          Toggle({ type: ToggleType.Switch,
+            isOn: this.entryFor(row.entryId)?.enabled === true })
+            .id('plugin-row-toggle-' + row.entryId)
+            .enabled(!this.isBusy('row:' + row.entryId))
+            .selectedColor(this.accent())
+            .onChange((isOn: boolean): void => { this.toggleRow(bundle, row.entryId, isOn); })
+        } else {
+          Toggle({ type: ToggleType.Switch,
+            isOn: this.entryFor(row.entryId)?.enabled === true })
+            .id('plugin-row-toggle-' + row.entryId)
+            .enabled(!this.isBusy('row:' + row.entryId))
+            .selectedColor(this.accent())
+            .onChange((isOn: boolean): void => { this.toggleRow(bundle, row.entryId, isOn); })
+        }
       } else {
         Text('不可切换').fontSize(NativeDesign.fontMicro).fontColor(this.tertiaryText())
       }
@@ -656,11 +689,19 @@ export struct NativePluginsSurface {
                 this.statusFor(this.selected)).fontSize(NativeDesign.fontCaption).fontColor(this.secondaryText())
             }.layoutWeight(1).alignItems(HorizontalAlign.Start)
             if (this.selected.installed && !this.selected.readOnlyReason) {
-              Toggle({ type: ToggleType.Switch, isOn: this.selected.enabled })
-                .id('plugin-detail-toggle')
-                .selectedColor(this.accent())
-                .enabled(!this.isBusy('bundle:' + this.selected.name))
-                .onChange((): void => { this.toggleBundle(this.selected); })
+              if (this.toggleGeneration % 2 === 0) {
+                Toggle({ type: ToggleType.Switch, isOn: this.selected.enabled })
+                  .id('plugin-detail-toggle')
+                  .selectedColor(this.accent())
+                  .enabled(!this.isBusy('bundle:' + this.selected.name))
+                  .onChange((): void => { this.toggleBundle(this.selected); })
+              } else {
+                Toggle({ type: ToggleType.Switch, isOn: this.selected.enabled })
+                  .id('plugin-detail-toggle')
+                  .selectedColor(this.accent())
+                  .enabled(!this.isBusy('bundle:' + this.selected.name))
+                  .onChange((): void => { this.toggleBundle(this.selected); })
+              }
             }
           }.width('100%').padding({ top: 4, bottom: 4 })
           if (nativePluginDescription(this.selected)) {
@@ -733,7 +774,9 @@ export struct NativePluginsSurface {
               .onClick((): void => { this.confirmRemove(); })
           }
         }.width('100%').padding({ bottom: 16 }).alignItems(HorizontalAlign.Start)
-      }.layoutWeight(1).width('100%').align(Alignment.Top).scrollBar(BarState.Auto)
+      }.layoutWeight(1).width('calc(100% + ' + NativeDesign.pageInset + 'vp)')
+        .padding({ right: NativeDesign.pageInset })
+        .align(Alignment.Top).scrollBar(BarState.Auto)
     }.padding({ left: NativeDesign.pageInset, right: NativeDesign.pageInset,
       top: this.safeTop + 4, bottom: this.safeBottom + 8 })
       .width('100%').height('100%').backgroundColor(this.baseSurface())
@@ -758,6 +801,10 @@ export struct NativePluginsSurface {
         .onChange((value: string): void => {
           this.installSpec = value;
           this.inspection = null;
+          // A previous package's build approval must never survive an edit:
+          // its 批准并重试 would pre-approve builds the user never saw.
+          this.notice = new NativePluginChange();
+          this.noticeVisible = false;
         })
       Row({ space: 8 }) {
         Button(this.inspecting ? '检查中…' : '检查安装源', { type: ButtonType.Normal })

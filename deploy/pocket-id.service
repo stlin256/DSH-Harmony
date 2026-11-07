@@ -22,6 +22,22 @@ ProtectHome=true
 ProtectProc=invisible
 RestrictSUIDSGID=true
 ReadWritePaths=/var/lib/pocket-id
+# Defense-in-depth sandbox: drop every capability and shrink the syscall surface.
+# MemoryDenyWriteExecute is intentionally omitted: the V8 JIT needs W^X pages.
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
 
 [Install]
 WantedBy=multi-user.target

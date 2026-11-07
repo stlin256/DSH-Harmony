@@ -184,7 +184,10 @@ export struct NativeTextContent {
       List() {
         LazyForEach(this.source, (part: string) => {
           ListItem() {
-            this.body(part, this.table, false)
+            // Each chunk renders its own table (or inline text). Passing the
+            // whole-document table here would duplicate the complete table in
+            // every chunk of a tabular document.
+            this.body(part, this.tableFor(part), false)
           }
         }, (_part: string, index: number) => index.toString())
       }.layoutWeight(1).width('100%').cachedCount(4)

@@ -6,12 +6,12 @@ export const notificationCodes = ['run.completed', 'run.failed', 'permission.req
  * mutate the projection without a monotonic Harness session sequence. */
 export function projectEvent(db, event, now) {
   if (event.seq === undefined) return true;
+  const previous = db.prepare('SELECT seq,state FROM task_states WHERE session = ?').get(event.sessionId);
+  if (previous && event.seq <= previous.seq) return false;
   if (typeof event.title === 'string' && event.title.length) {
     db.prepare(`INSERT INTO task_titles VALUES (?,?) ON CONFLICT(session)
       DO UPDATE SET title=excluded.title`).run(event.sessionId, event.title);
   }
-  const previous = db.prepare('SELECT seq,state FROM task_states WHERE session = ?').get(event.sessionId);
-  if (previous && event.seq <= previous.seq) return false;
   const state = states[event.code] || previous?.state || 'running';
   db.prepare(`INSERT INTO task_states VALUES (?,?,?,?) ON CONFLICT(session)
     DO UPDATE SET seq=excluded.seq,state=excluded.state,updated=excluded.updated`).run(event.sessionId, event.seq, state, now);
@@ -47,7 +47,7 @@ export function readOverview(db, now = Date.now()) {
     ORDER BY t.updated DESC LIMIT 6`).all(now - 86400000).map(row => ({
       sessionId: row.session,
       title: row.title || row.session,
-      state: row.state === 'running' ? row.pending ? 'waiting' : now - row.updated > 6 * 3600000 ? 'unknown' : 'running' : row.state,
+      state: row.state === 'running' ? now - row.updated > 6 * 3600000 ? 'unknown' : row.pending ? 'waiting' : 'running' : row.state,
       updatedAt: row.updated
     }));
   return result;

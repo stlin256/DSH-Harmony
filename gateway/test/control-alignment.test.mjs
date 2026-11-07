@@ -7,7 +7,7 @@ const serviceRoot = new URL('../../harmony/entry/src/main/ets/services/', import
 const readComponent = name => readFileSync(new URL(name, componentRoot), 'utf8');
 const readService = name => readFileSync(new URL(name, serviceRoot), 'utf8');
 const productComponents = readdirSync(componentRoot)
-  .filter(name => name.endsWith('.ets') && name !== 'NativeCompatibilitySurface.ets');
+  .filter(name => name.endsWith('.ets'));
 
 test('semantic control recipes are fixed in one geometry and type scale', () => {
   const design = readService('NativeDesign.ets');
@@ -180,7 +180,9 @@ test('conversation header uses compact custom subagent press feedback', () => {
 test('native layout automation enforces the AppGallery bottom inset', () => {
   const suite = readFileSync(new URL('../../scripts/device-ui-mock-suite.ps1', import.meta.url), 'utf8');
   const query = readFileSync(new URL('../../scripts/device-ui-layout-query.py', import.meta.url), 'utf8');
-  assert.match(suite, /--assert-bottom-safe[\s\S]{0,120}--bottom-safe-px 60/);
+  // The assertion routes through Invoke-LayoutQuery with an argument array so
+  // the query's stderr cannot become a terminating error under 'Stop'.
+  assert.match(suite, /'--assert-bottom-safe', '--bottom-safe-px', '60'/);
   assert.match(suite,
     /conversation\/plan-subagent-long-count[^\n]*计划与子智能体标题很长/);
   assert.match(query, /scrollable_ancestor/);

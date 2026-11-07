@@ -1,4 +1,5 @@
 import express from 'express';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { createNativeHarness } from './native-harness.mjs';
 import { eventCodes, notificationCodes, projectEvent, readOverview } from './overview.mjs';
 import httpProxy from 'http-proxy';
@@ -39,26 +40,35 @@ export function createApp({ db, origin, upstream, upstreamCookie = '', mode = 'p
   const reportedPluginVersion = typeof pluginVersion === 'string' &&
     /^[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$/.test(pluginVersion) ? pluginVersion : '';
   const attest = mode === 'proxy' ? proxyAuthentication(proxySecret, db) : null;
-  let proxyUpstreamCookie = '';
-  const upstreamCredential = () => typeof upstreamCookie === 'function' ? upstreamCookie() : mode === 'proxy' ? proxyUpstreamCookie : upstreamCookie;
+  // Each attested owner keeps the upstream cookie it supplied. A request never
+  // inherits another owner's cookie: a call without owner context resolves to no
+  // cookie instead of the last one any owner sent.
+  const proxyUpstreamCookies = new Map();
+  const requestOwner = new AsyncLocalStorage();
+  const upstreamCredential = owner => typeof upstreamCookie === 'function' ? upstreamCookie() :
+    mode === 'proxy' ? (owner ? proxyUpstreamCookies.get(owner) ?? '' : '') : upstreamCookie;
   const acceptProxy = req => {
     if (!attest) return true;
     if (!attest(req)) return false;
-    if (req.pocketUpstreamCookie) proxyUpstreamCookie = req.pocketUpstreamCookie;
+    if (req.pocketUpstreamCookie) proxyUpstreamCookies.set(req.pocketOwner, req.pocketUpstreamCookie);
     return true;
   };
-  const native = createNativeHarness({ upstream: target.origin, upstreamCookie: upstreamCredential, publicOrigin: origin, ownerOf: req => session(req) || 'anonymous' });
+  const native = createNativeHarness({ upstream: target.origin, upstreamCookie: upstreamCredential, publicOrigin: origin, ownerOf: req => session(req) || 'anonymous', ownerContext: requestOwner });
   const app = express();
   app.disable('x-powered-by');
   const challenges = new Map();
   const sockets = new Map();
+  const liveSockets = new Map();
   const limits = new Map();
   const proxy = httpProxy.createProxyServer({ target: target.origin, changeOrigin: true, ws: true });
   proxy.on('error', (_error, _req, res) => {
     if (res.writeHead) { if (!res.headersSent) res.writeHead(502); res.end('Harness unavailable'); }
     else res.destroy();
   });
-  proxy.on('proxyRes', response => {
+  proxy.on('proxyRes', (response, _req, res) => {
+    // An upstream that dies mid-stream never emits 'error' on this proxy
+    // version; without this hook the client response stays half-open forever.
+    response.once('aborted', () => res.destroy());
     // Backend launch credentials and cookies stay on the server. Never forward an
     // upstream redirect containing its one-time login token to a remote client.
     delete response.headers['set-cookie'];
@@ -113,20 +123,26 @@ export function createApp({ db, origin, upstream, upstreamCookie = '', mode = 'p
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Frame-Options', 'DENY');
     if (req.path !== '/pocket/api/events' && !['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.headers.origin !== origin) return res.status(403).end('Untrusted Origin');
-    next();
+    requestOwner.run(session(req) || '', () => next());
   });
   // Parse only our endpoints: leave the upstream POST/stream bodies untouched.
   app.use('/pocket/api/native', requireAuth, (req, res, next) =>
-    req.path === '/upload' ? next() : express.json({ limit: Infinity })(req, res, next));
+    req.path === '/upload' ? next() : express.json({ limit: '64mb' })(req, res, next));
   app.use('/pocket/api', (req, res, next) => req.path.startsWith('/native/') ? next() : express.json({ limit: '16kb' })(req, res, next));
   app.use('/pocket/api/auth', (req, res, next) => {
     const now = Date.now();
     // A global bound avoids trusting forwarded IP headers and bounds memory.
+    // A live ceremony (its challenge is bound to this browser's binder cookie) or
+    // an existing session is never crowded out by blind request floods.
+    const ceremony = challenges.get(req.body?.id);
+    const binder = /(?:^|;\s*)pocket_ceremony=([A-Za-z0-9_-]{43})(?:;|$)/.exec(req.headers.cookie || '')?.[1];
+    const known = session(req) || (ceremony && ceremony.expires > now && binder && equal(ceremony.binder, hash(binder)));
+    for (const [id, value] of challenges) if (value.expires < now) challenges.delete(id);
+    if (known) return next();
     const bucket = Math.floor(now / 60000);
     if (limits.get(bucket) >= 120) return res.status(429).json({ error: '请稍后重试' });
     const count = limits.get(bucket) || 0;
     limits.clear(); limits.set(bucket, count + 1);
-    for (const [id, value] of challenges) if (value.expires < now) challenges.delete(id);
     next();
   });
   app.get('/pocket/api/state', (req, res) => {
@@ -216,6 +232,7 @@ export function createApp({ db, origin, upstream, upstreamCookie = '', mode = 'p
     const owner = session(req);
     if (owner) {
       if (mode === 'host') db.prepare('INSERT OR REPLACE INTO host_revocations VALUES (?, ?)').run(owner, req.pocketOwnerExpires);
+      if (mode === 'proxy') proxyUpstreamCookies.delete(owner);
       for (const socket of sockets.get(owner) || []) socket.destroy();
       db.prepare('DELETE FROM devices WHERE owner = ?').run(owner);
       db.prepare('DELETE FROM sessions WHERE id = ?').run(owner);
@@ -297,16 +314,30 @@ export function createApp({ db, origin, upstream, upstreamCookie = '', mode = 'p
     if (req.headers.host !== publicURL.host || !acceptProxy(req) || req.headers.origin !== origin || !authenticated(req) || new URL(req.url, origin).searchParams.has('token')) { socket.destroy(); return; }
     const owner = session(req);
     const key = owner || 'anonymous';
+    const live = new URL(req.url, origin).pathname === '/pocket/native/live';
     if (!sockets.has(key)) sockets.set(key, new Set());
     sockets.get(key).add(socket);
+    // Only native live streams are capped; a browser's proxied host sockets
+    // must never consume the phone's live-stream allowance.
+    if (live) {
+      if (!liveSockets.has(key)) liveSockets.set(key, new Set());
+      if (liveSockets.get(key).size >= 4) { socket.destroy(); return; }
+      liveSockets.get(key).add(socket);
+    }
     const expires = owner ? db.prepare('SELECT expires FROM sessions WHERE id = ?').get(owner).expires : Date.now() + SESSION_TTL;
     const expiry = setTimeout(() => socket.destroy(), Math.min(2147483647, expires - Date.now()));
     expiry.unref();
-    socket.once('close', () => { clearTimeout(expiry); sockets.get(key)?.delete(socket); if (!sockets.get(key)?.size) sockets.delete(key); });
-    if (new URL(req.url, origin).pathname === '/pocket/native/live') {
-      if (sockets.get(key).size > 4) { socket.destroy(); return; }
-      await native.upgrade(req, socket, head);
-    } else { await prepareProxy(req); proxy.ws(req, socket, head); }
+    socket.once('close', () => {
+      clearTimeout(expiry);
+      sockets.get(key)?.delete(socket);
+      if (!sockets.get(key)?.size) sockets.delete(key);
+      liveSockets.get(key)?.delete(socket);
+      if (!liveSockets.get(key)?.size) liveSockets.delete(key);
+    });
+    await requestOwner.run(owner || '', async () => {
+      if (live) await native.upgrade(req, socket, head);
+      else { await prepareProxy(req); proxy.ws(req, socket, head); }
+    });
   }
   function cleanup() {
     const now = Date.now();

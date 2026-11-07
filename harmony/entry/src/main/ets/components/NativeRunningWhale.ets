@@ -11,6 +11,8 @@ const FRAME_MS = 200;
 @Component
 export struct NativeRunningWhale {
   @Prop dark: boolean = false;
+  @Prop glyphSize: number = ICON_SIZE;
+  @Prop quiet: boolean = false;
   @State private frameIndex: number = 0;
   private timer: number = -1;
   private mounted: boolean = true;
@@ -53,7 +55,7 @@ export struct NativeRunningWhale {
     this.mounted = true;
     if (!NativeMotion.enabled()) return;
     this.timer = setInterval((): void => {
-      if (!this.mounted || !NativeMotion.enabled()) return;
+      if (!this.mounted || this.quiet || !NativeMotion.enabled()) return;
       this.frameIndex = (this.frameIndex + 1) % 15;
     }, FRAME_MS);
   }
@@ -66,7 +68,7 @@ export struct NativeRunningWhale {
 
   build() {
     Image(this.dark ? this.darkFrames[this.frameIndex] : this.lightFrames[this.frameIndex])
-      .width(ICON_SIZE).height(ICON_SIZE).objectFit(ImageFit.Contain)
+      .width(this.glyphSize).height(this.glyphSize).objectFit(ImageFit.Contain)
       .accessibilityLevel('no')
   }
 }

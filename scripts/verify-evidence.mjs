@@ -450,6 +450,18 @@ export function loadProtocolLock(root = defaultRoot) {
   return JSON.parse(readFileSync(join(root, 'protocol.lock.json'), 'utf8'));
 }
 
+export function loadRegisteredFeatureIds(root = defaultRoot) {
+  const manifest = JSON.parse(
+    readFileSync(join(root, 'docs/testing/mock-feature-manifest.json'), 'utf8'),
+  );
+  const features = Array.isArray(manifest.features) ? manifest.features : [];
+  const ids = new Set(features
+    .filter((feature) => feature && typeof feature.id === 'string' && feature.id)
+    .map((feature) => feature.id));
+  if (!ids.size) throw new Error('mock feature manifest registers no feature ids');
+  return ids;
+}
+
 export function validateEvidence(
   evidence,
   {
@@ -459,6 +471,7 @@ export function validateEvidence(
     actualGit = null,
     now = Date.now(),
     maximumAgeMs = defaultMaximumEvidenceAgeMs,
+    registeredFeatureIds = null,
   } = {},
 ) {
   const errors = [];
@@ -545,6 +558,11 @@ export function validateEvidence(
     } else if (new Set(evidence.scope.featureIds).size !==
         evidence.scope.featureIds.length) {
       errors.push('scope.featureIds must contain unique values');
+    } else if (registeredFeatureIds) {
+      const unknown = evidence.scope.featureIds.filter((id) => !registeredFeatureIds.has(id));
+      if (unknown.length) {
+        errors.push('scope.featureIds must reference registered features: ' + unknown.join(', '));
+      }
     }
     if (!isNonEmptyString(evidence.scope.scenarioId)) {
       errors.push('scope.scenarioId is required');
@@ -686,6 +704,7 @@ export function validateEvidenceFile(
     protocolLock: lock,
     release,
     root,
+    registeredFeatureIds: loadRegisteredFeatureIds(root),
   });
 }
 
@@ -698,7 +717,9 @@ function parseArguments(argv) {
     if (argument === '--release') {
       release = true;
     } else if (argument === '--root') {
-      root = resolve(argv[++index] ?? '');
+      const value = argv[++index];
+      if (value === undefined) throw new Error('--root requires a directory path');
+      root = resolve(value);
     } else if (argument.startsWith('--root=')) {
       root = resolve(argument.slice('--root='.length));
     } else if (argument.startsWith('--')) {

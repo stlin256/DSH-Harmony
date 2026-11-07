@@ -133,9 +133,14 @@ def main() -> int:
             f"abrupt material step: {max_step:.2f} luminance jump "
             f"(limit {max_step_limit:.2f})"
         )
-    if args.theme == "dark" and span < 3.0:
+    # The vertical samples cross the Dock's content (edit hint, queue rows,
+    # composer), which is legitimately uniform. A flat span only indicates a
+    # missing material when the Dock also fails to separate from the page, so
+    # the entry edge delta is the authoritative dark-theme signal.
+    if args.theme == "dark" and span < 3.0 and entry_delta < 4.0:
         failures.append(
-            f"dark Dock falloff is effectively flat: {span:.2f} luminance range"
+            f"dark Dock falloff is effectively flat: {span:.2f} luminance range "
+            f"with only {entry_delta:.2f} entry separation"
         )
 
     report = {

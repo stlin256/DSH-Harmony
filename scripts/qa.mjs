@@ -60,6 +60,13 @@ const FAST_STEPS = Object.freeze([
     args: ['scripts/check-publication.mjs', '--working-tree'],
     cwd: '.',
   },
+  {
+    id: 'powershell-encoding',
+    label: 'PowerShell script encoding',
+    command: process.execPath,
+    args: ['scripts/verify-powershell-encoding.mjs'],
+    cwd: '.',
+  },
 ]);
 
 const GATEWAY_TESTS_STEP = Object.freeze({
@@ -164,6 +171,9 @@ export function buildSteps(profile, { evidencePath = null } = {}) {
   }
   if (evidencePath && profile !== 'release') {
     throw new QaUsageError('evidence can only be added to the release profile');
+  }
+  if (profile === 'release' && !evidencePath) {
+    throw new QaUsageError('the release profile requires an evidence manifest');
   }
 
   const steps = FAST_STEPS.map((step) => cloneStep(step, evidencePath));

@@ -100,8 +100,13 @@ function scan(source: string, style: NativeInlineRun, depth: number,
       const end = source.indexOf(marker, index + count);
       if (end > index + count) {
         if (plain) { rows.push(run(plain, style)); plain = ''; }
-        const code = run(source.slice(index + count, end), style); code.code = true;
-        rows.push(code); index = end + count; continue;
+        const codeStyle = run('', style);
+        codeStyle.code = true;
+        // A credential quoted inside a code span is masked exactly like one in
+        // plain prose; the code styling survives on the unmasked parts.
+        rows.push(...plainSecretRuns(source.slice(index + count, end), codeStyle,
+          spans, baseOffset + index + count));
+        index = end + count; continue;
       }
     }
     if (ch === '[' || (ch === '!' && source.charAt(index + 1) === '[')) {

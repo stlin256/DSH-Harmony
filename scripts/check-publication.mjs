@@ -185,7 +185,7 @@ function scanPublicationTextDetailed(text, label, options = {}) {
       if (!isPlaceholderAccount(match[1])) add('personal filesystem path');
     }
     for (const match of variant.matchAll(
-      /(?:^|[\s"'`=(])\/(?:home|Users)\/([^/\r\n"'<>]+?)(?=\/|$|[\s,;)\]])/gi,
+      /(?:^|[\s"'`=(:\/])\/(?:home|Users)\/([^/\r\n"'<>]+?)(?=\/|$|[\s,;)\]])/gi,
     )) {
       if (!isPlaceholderAccount(match[1])) add('personal filesystem path');
     }

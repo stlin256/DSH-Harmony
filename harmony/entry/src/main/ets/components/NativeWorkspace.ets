@@ -94,6 +94,10 @@ import {
   nativePermissionSelectionFromValue
 } from '../services/NativePermissions';
 
+/** Picked attachments are read fully into memory before upload; this is the
+ * documented per-file budget (matching NativeAttachmentCache.maxBytes). */
+const nativeAttachmentByteLimit: number = 32 * 1024 * 1024;
+
 class NativeExportCapabilities { copyMarkdown: boolean = false; downloadLog: boolean = false; }
 class NativeWorkspaceOrderRequest {
   operation: string = 'workspaceOrder';
@@ -917,34 +921,42 @@ export struct NativeWorkspace {
       if (this.mounted) this.planLeaving = false;
     }
   }
+  /**
+   * Showcase scenes must act only after the first reload settles: a fixed delay
+   * can fire before the fixture sessions exist (especially on a cold start with
+   * cleared app data), which captured the previous surface instead of the
+   * requested one.
+   */
+  private whenFixtureReady(action: () => void, deadlineMs: number = 6000): void {
+    const startedAt = Date.now();
+    const poll = (): void => {
+      if (!this.mounted) return;
+      if (!this.loading || Date.now() - startedAt >= deadlineMs) { action(); return; }
+      setTimeout(poll, 50);
+    };
+    setTimeout(poll, 0);
+  }
+
   aboutToAppear(): void {
     this.mounted = true;
     this.reload();
     const showcaseScreen = AppStorage.get<string>('storeShowcaseScreen') || '';
     this.showcaseDisclosureOpen = showcaseScreen === 'disclosure';
     if (showcaseScreen === 'sidebar') {
-      setTimeout((): void => {
-        if (this.mounted) this.openDrawer(false);
-      }, 700);
+      this.whenFixtureReady((): void => { this.openDrawer(false); });
     } else if (showcaseScreen === 'plugins') {
-      setTimeout((): void => {
-        if (this.mounted) this.openDrawerDestination('plugins');
-      }, 700);
+      this.whenFixtureReady((): void => { this.openDrawerDestination('plugins'); });
     } else if (showcaseScreen === 'automation') {
-      setTimeout((): void => {
-        if (this.mounted) this.openDrawerDestination('automation');
-      }, 700);
+      this.whenFixtureReady((): void => { this.openDrawerDestination('automation'); });
     } else if (showcaseScreen === 'more') {
-      setTimeout((): void => {
-        if (!this.mounted) return;
+      this.whenFixtureReady((): void => {
         this.openDrawer(false);
         setTimeout((): void => {
           if (this.mounted) this.moreOpen = true;
         }, NativeMotion.enabled() ? NativeMotion.duration('drawer') : 0);
-      }, 700);
+      });
     } else if (showcaseScreen === 'browser') {
-      setTimeout((): void => {
-        if (!this.mounted) return;
+      this.whenFixtureReady((): void => {
         const request = new NativeFileViewRequest();
         request.kind = 'browser';
         request.sessionId = 'showcase-release';
@@ -952,10 +964,9 @@ export struct NativeWorkspace {
         this.fileView = request;
         this.fileViewOpen = true;
         this.navigationChanged();
-      }, 700);
+      });
     } else if (showcaseScreen === 'preview') {
-      setTimeout((): void => {
-        if (!this.mounted) return;
+      this.whenFixtureReady((): void => {
         const state = AppStorage.get<string>('storeShowcaseState') || '';
         const request = new NativeFileViewRequest();
         request.kind = 'file';
@@ -964,12 +975,13 @@ export struct NativeWorkspace {
           state === 'delimited-preview' ? 'docs/users.csv' :
             state === 'tsv-preview' ? 'docs/report.tsv' :
               state === 'delimited-error-preview' ? 'docs/malformed.csv' :
-                state === 'binary-preview' ? 'docs/archive.zip' : 'docs/diagram.svg';
+                state === 'binary-preview' ? 'docs/archive.zip' :
+                  state === 'html-preview' ? 'docs/preview.html' : 'docs/diagram.svg';
         request.previewOnly = true;
         this.fileView = request;
         this.fileViewOpen = true;
         this.navigationChanged();
-      }, 700);
+      });
     } else if (showcaseScreen === 'lineage') {
       setTimeout((): void => {
         if (this.mounted) this.openLineage();
@@ -1893,11 +1905,18 @@ export struct NativeWorkspace {
           .layoutWeight(1).height(NativeDesign.compactHitTarget)
           .fontSize(NativeDesign.fontCompact).fontWeight(FontWeight.Medium)
           .borderRadius(NativeDesign.radiusControl)
-          .backgroundColor(this.permissionConfirmTarget === 'auto' ?
-            this.warningText() : this.dangerText())
-          .fontColor(NativeDesign.textInverse(this.dark))
+          // A primary destructive action needs a solid fill with white type.
+          // Using the danger TEXT token as a background produced a pale pink
+          // button with dark type, which read as a light surface in dark mode.
+          // While the acknowledgement is unchecked the action stays neutral
+          // instead of dimming a saturated fill, which looked muddy.
+          .backgroundColor(this.permissionConfirmAcknowledged ?
+            (this.permissionConfirmTarget === 'auto' ?
+              NativeDesign.warningSolid(this.dark) : NativeDesign.dangerSolid(this.dark)) :
+            NativeDesign.field(this.dark))
+          .fontColor(this.permissionConfirmAcknowledged ? '#FFFFFF' :
+            NativeDesign.textTertiary(this.dark))
           .enabled(this.permissionConfirmAcknowledged && !this.permissionBusyValue)
-          .opacity(this.permissionConfirmAcknowledged ? 1 : 0.42)
           .id('permission-confirm')
           .onClick((): void => { this.confirmPermissionPreset(); })
       }.width('100%')
@@ -3051,6 +3070,8 @@ export struct NativeWorkspace {
         const count = fileIo.readSync(file.fd, buffer);
         if (count === 0) break;
         chunks.push(new Uint8Array(buffer, 0, count)); size += count;
+        // Stop at the budget instead of buffering a multi-gigabyte pick.
+        if (size > nativeAttachmentByteLimit) throw new Error('附件超过 32 MB 大小上限');
         await new Promise<void>((resolve: () => void): void => { setTimeout(resolve, 0); });
       }
     } finally { fileIo.closeSync(file); }

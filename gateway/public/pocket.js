@@ -132,7 +132,7 @@
     try { section = section || sessionStorage.getItem('pocket-settings-section'); } catch {}
     let nativeReady = false;
     let nativeUiMode = '';
-    if (titles[section]) document.querySelector('[data-section="' + section + '"]').click();
+    if (Object.hasOwn(titles, section)) document.querySelector('[data-section="' + section + '"]').click();
     if (window.dshPocket) {
       try {
         const host = JSON.parse(await native('nativeState'));
@@ -154,6 +154,7 @@
       } catch { $('widget-status').textContent = '读取本机设置失败，可刷新后重试。'; }
     }
     const state = await api('state', undefined, 'GET');
+    loginMode = state.mode;
     $('widget-details').disabled = !nativeReady || !state.authenticated;
     $('sync-widget').disabled = !nativeReady || !state.authenticated;
     if (window.dshPocket) $('widget-status').textContent = state.authenticated ? '可以同步当前工作空间的匿名状态。' : '请先登录，再同步卡片。';

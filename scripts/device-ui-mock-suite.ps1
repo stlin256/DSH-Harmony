@@ -130,6 +130,8 @@ $scenarios = @(
   [pscustomobject]@{ Screen = 'preview'; State = 'tsv-preview'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'preview'; State = 'delimited-error-preview'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'preview'; State = 'binary-preview'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'preview'; State = 'html-preview'; Theme = 'dark' },
+  [pscustomobject]@{ Screen = 'preview'; State = 'html-preview'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'dark' },
   [pscustomobject]@{ Screen = 'settings'; State = 'completed'; Theme = 'light' },
   [pscustomobject]@{ Screen = 'settings'; State = 'permission-default-setting'; Theme = 'dark' },
@@ -263,6 +265,7 @@ function Get-ExpectedMarker {
     'preview/tsv-preview' { return 'report.tsv' }
     'preview/delimited-error-preview' { return 'malformed.csv' }
     'preview/binary-preview' { return 'archive.zip' }
+    'preview/html-preview' { return 'DSH_SCRIPT_RAN' }
     'settings/completed' { return '外观与动效' }
     'settings/permission-default-setting' { return '新会话默认权限' }
     'plugins/plugins-list' { return 'Workspace Tools' }
@@ -309,7 +312,7 @@ function Get-ExpectedMarker {
     'disclosure/disclosure-queue' { return 'disclosure-queue' }
     'sidebar/disclosure-sidebar-more' { return '更多' }
     'sidebar/disclosure-sidebar-group' { return 'DSH Harmony 移动端' }
-    default { return '' }
+    default { throw "No expected marker registered for state '$State' screen '$Screen'; add one so the capture content stays asserted." }
   }
 }
 
@@ -320,13 +323,35 @@ function Assert-LayoutMarker {
     [bool]$MustExist = $true
   )
   if (-not $Marker -or -not (Test-Path -LiteralPath $LayoutPath)) { return }
-  $output = & python $queryScript $LayoutPath `
-    --find-text-hex (Text-Hex $Marker) `
-    --target text 2>&1
-  $found = $LASTEXITCODE -eq 0
+  # The query writes its "not found" diagnostic to stderr; with
+  # $ErrorActionPreference = 'Stop' a merged 2>&1 stream would turn that
+  # expected diagnostic into a terminating error, so the exit code is the
+  # only signal this assertion may read.
+  $result = Invoke-LayoutQuery -QueryArguments @(
+    $LayoutPath, '--find-text-hex', (Text-Hex $Marker), '--target', 'text'
+  )
+  $found = $result.ExitCode -eq 0
   if ($found -ne $MustExist) {
     $mode = if ($MustExist) { 'missing' } else { 'unexpected' }
-    throw "Fixture marker $mode '$Marker': $($output -join [Environment]::NewLine)"
+    throw "Fixture marker $mode '$Marker': $($result.Output -join [Environment]::NewLine)"
+  }
+}
+
+# The layout query writes diagnostics to stderr. Collecting them under
+# $ErrorActionPreference = 'Stop' would raise a terminating error instead of
+# letting the caller read the exit code, so every assertion goes through this
+# helper.
+function Invoke-LayoutQuery {
+  param(
+    [string[]]$QueryArguments
+  )
+  $previousErrorAction = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    $output = & python $queryScript @QueryArguments 2>&1
+    return @{ Output = $output; ExitCode = $LASTEXITCODE }
+  } finally {
+    $ErrorActionPreference = $previousErrorAction
   }
 }
 
@@ -334,11 +359,11 @@ function Assert-LayoutBottomSafe {
   param(
     [string]$LayoutPath
   )
-  $output = & python $queryScript $LayoutPath `
-    --assert-bottom-safe `
-    --bottom-safe-px 60 2>&1
-  if ($LASTEXITCODE -ne 0) {
-    throw "Bottom safe-area assertion failed: $($output -join [Environment]::NewLine)"
+  $result = Invoke-LayoutQuery -QueryArguments @(
+    $LayoutPath, '--assert-bottom-safe', '--bottom-safe-px', '60'
+  )
+  if ($result.ExitCode -ne 0) {
+    throw "Bottom safe-area assertion failed: $($result.Output -join [Environment]::NewLine)"
   }
 }
 
@@ -347,12 +372,11 @@ function Assert-LayoutNodeId {
     [string]$LayoutPath,
     [string]$Id
   )
-  $output = & python $queryScript $LayoutPath `
-    --find-id $Id `
-    --target text `
-    --expect-count 1 2>&1
-  if ($LASTEXITCODE -ne 0) {
-    throw "Required layout id '$Id' is missing: $($output -join [Environment]::NewLine)"
+  $result = Invoke-LayoutQuery -QueryArguments @(
+    $LayoutPath, '--find-id', $Id, '--target', 'text', '--expect-count', '1'
+  )
+  if ($result.ExitCode -ne 0) {
+    throw "Required layout id '$Id' is missing: $($result.Output -join [Environment]::NewLine)"
   }
 }
 
@@ -365,6 +389,10 @@ foreach ($scenario in $scenarios) {
     Theme = $scenario.Theme
     OutputDir = $OutputDir
     StartupTimeoutSeconds = $StartupTimeoutSeconds
+    # Each fixture scene must start from clean app data: the metadata cache
+    # otherwise restores the previous scene's drawer/page state and the next
+    # scene captures the wrong surface.
+    ResetData = $true
   }
   if ($Device) {
     $arguments.Device = $Device
@@ -372,6 +400,10 @@ foreach ($scenario in $scenarios) {
   if ($scenario.PSObject.Properties.Name -contains 'ReduceTransparency' -and
       $scenario.ReduceTransparency) {
     $arguments.ReduceTransparency = $true
+  }
+  if ($scenario.PSObject.Properties.Name -contains 'ReduceMotion' -and
+      $scenario.ReduceMotion) {
+    $arguments.ReduceMotion = $true
   }
   if ($scenario.PSObject.Properties.Name -contains 'ImmersiveMaterial' -and
       $scenario.ImmersiveMaterial) {
@@ -412,7 +444,9 @@ foreach ($scenario in $scenarios) {
         -Id 'sidebar-all-workspaces'
       Assert-LayoutNodeId -LayoutPath (Join-Path $captureDir 'layout.json') `
         -Id 'sidebar-workspace-workspace-mobile'
-      Assert-LayoutNodeId -LayoutPath (Join-Path $captureDir 'layout.json') `
+      # The drawer is lazy: the second workspace header only exists after the
+      # driver's drawer scroll, so it is asserted on the scrolled dump.
+      Assert-LayoutNodeId -LayoutPath (Join-Path $captureDir 'layout-scrolled.json') `
         -Id 'sidebar-workspace-workspace-gateway'
     }
     if ($scenario.Screen -in @('plugins', 'automation')) {

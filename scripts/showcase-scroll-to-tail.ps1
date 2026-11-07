@@ -1,4 +1,4 @@
-function Find-ShowcaseNode {
+﻿function Find-ShowcaseNode {
   param(
     [object]$Node,
     [string]$Id = '',
@@ -66,7 +66,9 @@ function Move-ShowcaseToTail {
   $root = Read-ShowcaseLayout -BundleName $BundleName -RemotePath $RemotePath -LocalPath $LocalPath
   $scroll = Find-ShowcaseNode -Node $root -Id 'transcript-scroll'
   if ($null -eq $scroll) {
-    return [ordered]@{ attempted = $false; atTail = $true; swipes = 0 }
+    # Without the scroll container the tail position cannot be verified, so the
+    # capture must fail instead of silently claiming the transcript is at its tail.
+    return [ordered]@{ attempted = $false; atTail = $false; swipes = 0 }
   }
 
   $bounds = Get-ShowcaseBounds -Node $scroll

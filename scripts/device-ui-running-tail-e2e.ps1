@@ -139,7 +139,7 @@ if (-not ($tailNode.y -lt $composerNode.y)) {
 if (-not $diff.changed) { throw 'Running-tail region did not animate.' }
 # Scrolling up must carry the row down with the transcript, not pin it forever.
 & $mockScript -DevEcoHome $DevEcoHome -Device $Device -OutputDir $OutputDir -Screen 'conversation' -State 'stream-long' -Theme 'dark' -SkipBuild -SkipInstall | Out-Host
-Start-Sleep -Milliseconds 2600
+Start-Sleep -Milliseconds 4200
 $scrollBase = Dump-Layout 'scroll-base'
 $baseNode = Node-Geometry $scrollBase 'running-tail'
 & $hdc -t $Device shell 'uitest uiInput swipe 630 1600 630 900 220' | Out-Null
@@ -208,6 +208,23 @@ Capture-Screen 'end-gone' | Out-Null
 $results += [pscustomobject]@{ scenario = 'appear-disappear'; theme = 'dark';
   appeared = [bool]$visibleNode.found; disappeared = $gone }
 
+# The session drawer marks running conversations with the animated whale.
+& $mockScript -DevEcoHome $DevEcoHome -Device $Device -OutputDir $OutputDir -Screen 'sidebar' -State 'stream-long' -Theme 'dark' -SkipBuild -SkipInstall | Out-Host
+Start-Sleep -Milliseconds 3500
+$drawerLayout = Dump-Layout 'drawer-running'
+$runningText = Find-Text $drawerLayout '运行中'
+$matchBounds = [regex]::Match([string]$runningText.bounds, '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$')
+if (-not $matchBounds.Success) { throw 'Running session marker bounds unavailable.' }
+$drawerRegion = @([Math]::Max(0, [int]$matchBounds.Groups[1].Value - 70),
+  [Math]::Max(0, [int]$matchBounds.Groups[2].Value - 12),
+  [Math]::Min(1260, [int]$matchBounds.Groups[3].Value + 12),
+  [Math]::Min(2844, [int]$matchBounds.Groups[4].Value + 12))
+$drawerA = Capture-Screen 'drawer-a'
+Start-Sleep -Milliseconds 450
+$drawerB = Capture-Screen 'drawer-b'
+$drawerDiff = Region-Diff $drawerA $drawerB $drawerRegion
+if (-not $drawerDiff.changed) { throw 'Session drawer running animation did not move.' }
+$results += [pscustomobject]@{ scenario = 'drawer-running'; theme = 'dark'; animated = [bool]$drawerDiff.changed }
 $manifest = @{ generatedAt = [DateTime]::UtcNow.ToString('o'); result = 'Passed'; variant = 'mock'; hapSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $hap).Hash; apiVersion = ((& $hdc -t $Device shell 'param get const.ohos.apiversion') -join '').Trim(); scenarios = $results }
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $captureDir 'manifest.json') -Encoding utf8
 Write-Output "Running tail E2E passed: $captureDir"

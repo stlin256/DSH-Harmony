@@ -242,7 +242,10 @@ export struct NativePluginCard {
         Button(block.confirmLabel || '确认', { type: ButtonType.Normal })
           .layoutWeight(1).height(NativeDesign.compactHitTarget)
           .fontSize(NativeDesign.fontCaption).borderRadius(NativeDesign.radiusControl)
-          .backgroundColor(NativeDesign.accent(this.dark))
+          // accent() is the accent TEXT token (light blue in dark mode); a
+          // filled primary button needs the stronger fill so white type keeps
+          // its contrast.
+          .backgroundColor(NativeDesign.accentStrong(this.dark))
           .fontColor(Color.White)
           .enabled(this.canInteract())
           .onClick((): void => { this.confirm(block, true); })

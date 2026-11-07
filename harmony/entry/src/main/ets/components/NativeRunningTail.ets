@@ -16,6 +16,7 @@ export struct NativeRunningTail {
   @Prop startedAt: number = 0;
   @Prop paused: boolean = false;
   @Prop progress: number = 1;
+  @Prop quiet: boolean = false;
   @StorageLink('nativeDark') private dark: boolean = false;
 
   private iconGlow(): number {

@@ -1,4 +1,4 @@
-function Test-DevEcoHome {
+﻿function Test-DevEcoHome {
   param([AllowEmptyString()][string]$Path)
 
   if ([string]::IsNullOrWhiteSpace($Path)) {

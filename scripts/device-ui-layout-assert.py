@@ -92,6 +92,7 @@ def main() -> int:
     _, _, _, screen_bottom = parse_bounds(root["attributes"]["bounds"])
     failures: list[str] = []
     found_composer = False
+    composer_identified = False
 
     nodes = list(walk(root))
     for node, ancestors in nodes:
@@ -108,17 +109,42 @@ def main() -> int:
         if (
             args.require_composer_visible
             and attributes.get("type") == "TextArea"
-            and not found_composer
         ):
             left, top, right, bottom = parse_bounds(attributes["bounds"])
-            found_composer = True
-            print("\ncomposer TextArea")
-            for depth, ancestor in enumerate(ancestors):
-                print(describe(ancestor, depth))
-            if top >= screen_bottom or bottom > screen_bottom:
-                failures.append(
-                    f"composer is outside the visible screen: {left},{top},{right},{bottom}"
-                )
+            visible = (
+                attributes.get("visible") in (None, "true")
+                and float(str(attributes.get("opacity", "1"))) > 0
+                and right > left
+                and bottom > top
+            )
+            # The composer is the app-owned input with the stable composer-input
+            # id. Other TextAreas (an inline question answer field, a search box
+            # inside an admin surface) may legitimately be present and visible,
+            # so only the identified composer is asserted.
+            identified = attributes.get("id") == "composer-input"
+            if not found_composer:
+                if not visible:
+                    failures.append(
+                        "composer TextArea is present but not visible: "
+                        f"visible={attributes.get('visible')} opacity={attributes.get('opacity')}"
+                    )
+                found_composer = True
+                composer_identified = identified
+                print("\ncomposer TextArea")
+                for depth, ancestor in enumerate(ancestors):
+                    print(describe(ancestor, depth))
+                if top >= screen_bottom or bottom > screen_bottom:
+                    failures.append(
+                        f"composer is outside the visible screen: {left},{top},{right},{bottom}"
+                    )
+            elif identified and visible and not composer_identified:
+                # A later identified composer wins over an earlier unidentified
+                # TextArea (tree order is not a contract).
+                composer_identified = True
+                if top >= screen_bottom or bottom > screen_bottom:
+                    failures.append(
+                        f"composer is outside the visible screen: {left},{top},{right},{bottom}"
+                    )
         if not text:
             continue
         if not args.match and args.node_type:

@@ -113,6 +113,27 @@ const SHOWCASE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height
 <path d="M204 88h264M204 132h196M204 176h228" stroke="#F6F7F9" stroke-width="16" stroke-linecap="round"/>
 </svg>
 `;
+/**
+ * HTML preview fixture. It deliberately contains an inline script so the device
+ * capture proves scripts still run in the preview (the user requirement) while
+ * the authored-URL allowlist keeps everything a script composes off the network.
+ */
+const SHOWCASE_HTML = `<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>DSH_HTML_MARKER</title>
+<style>body{font-family:system-ui,sans-serif;margin:24px;line-height:1.6}
+.card{border:1px solid #3964FE;border-radius:12px;padding:16px;margin-bottom:16px}
+h1{font-size:22px;margin:0 0 8px}</style></head>
+<body>
+<div class="card"><h1>HTML 预览</h1>
+<p>这段文字由本地 HTML 渲染，脚本照常执行。</p>
+<p id="script-target">脚本尚未运行</p></div>
+<div class="card"><p>作者声明的远程图片会加载；脚本拼出的地址一律被拦截。</p>
+<img src="https://images.example.invalid/banner.png" alt="远程图片" width="240"></div>
+<script>
+document.getElementById('script-target').textContent = 'DSH_SCRIPT_RAN';
+</script>
+</body></html>
+`;
 const SHOWCASE_CONF = `; DSH_CONFIG_MARKER
 [server]
 host = 127.0.0.1
@@ -237,6 +258,7 @@ const SHOWCASE_BINARY = new Uint8Array([
 
 function showcaseFileSource(path: string): string {
   if (path.endsWith('README.md')) return SHOWCASE_README;
+  if (path.endsWith('preview.html')) return SHOWCASE_HTML;
   if (path.endsWith('diagram.svg')) return SHOWCASE_SVG;
   if (path.endsWith('app.conf')) return SHOWCASE_CONF;
   if (path.endsWith('users.csv')) return SHOWCASE_CSV;
@@ -1343,7 +1365,7 @@ function showcaseSessions(state: string = 'completed', planRemoved: boolean = fa
       state === 'approval-workspace-once' ||
       state === 'approval-full-once' || state === 'approval-long-reason' ||
       state === 'approval-submitting') &&
-      row[0] === SHOWCASE_SESSION;
+      row[0] === SHOWCASE_SESSION || (state === 'stream-long' && row[0] === 'showcase-mobile');
     value.agentAvailable = row[0] === SHOWCASE_SESSION ?
       state !== 'subagent-parent-offline' : undefined;
     value.updatedAt = 1761900000000 - definitions.findIndex((item: string[]) => item[0] === row[0]) * 60000;
@@ -2626,7 +2648,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
     } else if (path === 'docs') {
       ['assets', 'BUILDING.md', 'DEPLOYMENT.md', 'DESIGN.md', 'PROTOCOL.md',
         'PRIVACY.md', 'malformed.csv', 'report.tsv', 'users.csv', 'diagram.svg',
-        'archive.zip'].forEach((name: string): void => {
+        'preview.html', 'archive.zip'].forEach((name: string): void => {
         const entry = new NativeDirectoryEntry();
         entry.name = name;
         entry.type = name === 'assets' ? 'directory' : 'file';
@@ -2634,6 +2656,7 @@ export class StoreShowcaseClient extends NativeHarnessClient {
           name === 'report.tsv' ? SHOWCASE_TSV.length :
             name === 'malformed.csv' ? SHOWCASE_MALFORMED_CSV.length :
               name === 'diagram.svg' ? SHOWCASE_SVG.length :
+              name === 'preview.html' ? SHOWCASE_HTML.length :
               name === 'archive.zip' ? SHOWCASE_BINARY.length : 420;
         entries.push(entry);
       });

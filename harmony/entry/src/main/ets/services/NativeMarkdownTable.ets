@@ -29,7 +29,7 @@ function cells(line: string): string[] | null {
 
 function alignment(value: string): string {
   const normalized = value.trim();
-  if (!/^:?-{3,}:?$/.test(normalized)) return '';
+  if (!/^:?-+:?$/.test(normalized)) return '';
   if (normalized.startsWith(':') && normalized.endsWith(':')) return 'center';
   if (normalized.endsWith(':')) return 'right';
   return 'left';

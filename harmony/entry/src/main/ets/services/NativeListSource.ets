@@ -40,16 +40,15 @@ export class NativeListSource<T> implements IDataSource {
       const stableKeys = rows.length === previous.length &&
         nextKeys.every((value: string, index: number): boolean => value === previousKeys[index]);
       if (stableKeys) {
-        // Streaming deltas change rows near the tail. Compare that bounded
-        // window first; a mid-list content-only change must still fall through
-        // to the full comparison instead of being silently dropped.
-        const tailChanged: number[] = [];
-        const start = Math.max(0, rows.length - 16);
-        for (let index = start; index < rows.length; index++) {
-          if (!same(previous[index], rows[index])) tailChanged.push(index);
+        // Streaming deltas usually change rows near the tail, but a mid-list
+        // content-only change must still be delivered: compare every row, and
+        // notify the few changed indices directly.
+        const changedRows: number[] = [];
+        for (let index = 0; index < rows.length; index++) {
+          if (!same(previous[index], rows[index])) changedRows.push(index);
         }
-        if (tailChanged.length > 0 && tailChanged.length <= 4) {
-          tailChanged.forEach((index: number): void => { listener.onDataChange(index); });
+        if (changedRows.length > 0 && changedRows.length <= 4) {
+          changedRows.forEach((index: number): void => { listener.onDataChange(index); });
           return;
         }
       }

@@ -154,14 +154,19 @@ if ($secondSignature -eq $firstSignature) {
 }
 
 $finalLayout = ''
-$deadline = (Get-Date).AddSeconds(60)
+# The uitest inspector walks the tree on the app's UI thread. Dumping while a
+# long stream is actively rendering deadlocks the framework within a probe or
+# two (reproduced at ~8.5s across pump rates; a dump-free 6-minute stress run
+# survives). Let the fixture finish its turn first, then poll the settled tree.
+Start-Sleep -Seconds 20
+$deadline = (Get-Date).AddSeconds(100)
 while ((Get-Date) -lt $deadline) {
   $probe = Dump-Layout 'stream-poll'
   if (Try-Query-Node $probe 'STREAM-LONG-DONE' 'text') {
     $finalLayout = $probe
     break
   }
-  Start-Sleep -Milliseconds 700
+  Start-Sleep -Milliseconds 3000
 }
 if (-not $finalLayout) {
   throw 'STREAM-LONG-DONE did not become visible without relaunching the App.'

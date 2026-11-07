@@ -118,6 +118,12 @@ test('automation request validation rejects unknown fields and malformed timing'
     id: 'schedule-a', action: 'update', expectedUpdatedAt: '2026-11-01T00:00:00.000Z',
     patch: { active: false }
   });
+  // The phone serializes an absent updatedAt as null; the Host contract is
+  // string-or-absent, so null must be dropped exactly like undefined.
+  assert.deepEqual(automationEditRequest({ id: 'schedule-a', action: 'delete', expectedUpdatedAt: null }),
+    { id: 'schedule-a', action: 'delete' });
+  assert.deepEqual(automationEditRequest({ id: 'schedule-a', action: 'delete' }),
+    { id: 'schedule-a', action: 'delete' });
 });
 
 

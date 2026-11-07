@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import http from 'node:http';
 import https from 'node:https';
 import { resolve } from 'node:path';
@@ -62,16 +62,37 @@ export function apply(ctx, options = {}) {
     }).finally(() => { exchange = null; });
     return exchange;
   };
+  // Apps are pinned per trust: only requests that already passed the trust fence
+  // may create one, and the event-recording owner app is never evicted.
+  const pinned = new Set();
   const appFor = (origin, mode) => {
     const key = mode + ':' + origin;
-    if (!apps.has(key)) {
-      if (apps.size >= 32) throw Error('Too many deployment origins');
-      apps.set(key, createApp({ db, origin, upstream, upstreamCookie: cookieFor, mode, eventSecret,
-        pushConfigured: !!send, pluginVersion, proxySecret: process.env.DSH_HARMONY_PROXY_SECRET,
-        authOrigin: process.env.DSH_HARMONY_AUTH_ORIGIN || '', hostAuthenticate: req => hostIdentity(ctx.connection, req) }));
+    if (apps.has(key)) {
+      const cached = apps.get(key);
+      apps.delete(key); apps.set(key, cached);
+      return cached;
     }
-    return apps.get(key);
+    if (apps.size >= 32) {
+      for (const [oldestKey, oldest] of apps) {
+        if (pinned.has(oldestKey)) continue;
+        apps.delete(oldestKey); oldest.close(); break;
+      }
+    }
+    const app = createApp({ db, origin, upstream, upstreamCookie: cookieFor, mode, eventSecret,
+      pushConfigured: !!send, pluginVersion, proxySecret: process.env.DSH_HARMONY_PROXY_SECRET,
+      authOrigin: process.env.DSH_HARMONY_AUTH_ORIGIN || '', hostAuthenticate: req => hostIdentity(ctx.connection, req) });
+    apps.set(key, app);
+    return app;
   };
+  const loopbackPeer = address => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(address);
+  const proxySecretValid = req => loopbackPeer(req.socket.remoteAddress) &&
+    typeof process.env.DSH_HARMONY_PROXY_SECRET === 'string' &&
+    Buffer.from(String(req.headers['x-dsh-proxy-secret'] || '')).length === Buffer.from(process.env.DSH_HARMONY_PROXY_SECRET).length &&
+    timingSafeEqual(Buffer.from(String(req.headers['x-dsh-proxy-secret'] || '')), Buffer.from(process.env.DSH_HARMONY_PROXY_SECRET));
+  // Spoofed Host/Origin values must never reach appFor: they would fill the app
+  // cache before the in-app trust fence runs.
+  const trusted = req => req.headers['x-dsh-proxy-secret'] ? proxySecretValid(req) :
+    hostIdentity(ctx.connection, req).rejection !== 403;
   const originFor = req => {
     if (req.headers['x-dsh-proxy-secret']) return process.env.DSH_HARMONY_PUBLIC_ORIGIN;
     const origin = req.headers.origin || `${ctx.webServer.protocol}//${req.headers.host}`;
@@ -105,15 +126,21 @@ export function apply(ctx, options = {}) {
         if (!req.headers.origin) { res.writeHead(403); res.end(); return; }
         await login(req, res); return;
       }
+      if (!trusted(req)) { res.writeHead(403); res.end('Untrusted origin'); return; }
       appFor(origin, proxy ? 'proxy' : 'host').app(req, res);
     } catch { if (!res.headersSent) { res.writeHead(400); res.end('Connection unavailable'); } else res.destroy(); }
   } });
   const disposeUpgrade = ctx.webServer.registerUpgrade({ path: '/pocket/native/live', handler: async (req, socket, head) => {
-    try { await appFor(originFor(req), req.headers['x-dsh-proxy-secret'] ? 'proxy' : 'host').upgrade(req, socket, head); }
+    try {
+      const origin = originFor(req);
+      if (!trusted(req)) { socket.destroy(); return; }
+      await appFor(origin, req.headers['x-dsh-proxy-secret'] ? 'proxy' : 'host').upgrade(req, socket, head);
+    }
     catch { socket.destroy(); }
   } });
   // State and notifications stay in this plugin process; no relay is required.
   const owner = appFor(upstream, 'host');
+  pinned.add('host:' + upstream);
   ctx.on('session/event', (session, event) => {
     const value = routingEvent(session, event);
     if (value && !(typeof session.inheritedEventCount === 'number' && event.seq < session.inheritedEventCount)) {

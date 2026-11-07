@@ -115,6 +115,63 @@ export function nativeHtmlReferences(source: string, documentPath: string): Nati
   return references;
 }
 
+function remoteUrl(reference: string): string {
+  let url = reference.trim().replace(/&amp;/g, '&');
+  if (url.startsWith('//')) url = 'https:' + url;
+  return /^https?:\/\//i.test(url) ? url : '';
+}
+
+/** Absolute HTTP(S) references an author wrote into a CSS text. */
+export function nativeHtmlRemoteCssReferences(css: string): string[] {
+  const result: string[] = [];
+  const pattern = /url\(\s*(['"]?)(.*?)\1\s*\)/gi;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(css)) !== null) {
+    const url = remoteUrl(match[2]);
+    if (url && !result.includes(url)) result.push(url);
+  }
+  return result;
+}
+
+/**
+ * Absolute HTTP(S) subresource URLs the document author declared statically.
+ * Only these remote URLs may load in the preview; everything else a script
+ * constructs at runtime is blocked by NativeHtmlPreview's request interceptor.
+ */
+export function nativeHtmlRemoteReferences(source: string): string[] {
+  const result: string[] = [];
+  const add = (reference: string): void => {
+    const url = remoteUrl(reference);
+    if (url && !result.includes(url)) result.push(url);
+  };
+  const link = /<link\b[^>]*>/gi;
+  let tag: RegExpExecArray | null;
+  while ((tag = link.exec(source)) !== null) {
+    if (/\brel\s*=\s*(['"])[^'"]*stylesheet[^'"]*\1/i.test(tag[0])) add(attribute(tag[0], 'href'));
+  }
+  const resource = /<(?:img|source|video|audio|script|embed|object|input)\b[^>]*>/gi;
+  while ((tag = resource.exec(source)) !== null) {
+    const raw = tag[0];
+    ['src', 'poster', 'data'].forEach((name: string): void => { add(attribute(raw, name)); });
+    attribute(raw, 'srcset').split(',').forEach((entry: string): void => {
+      add(entry.trim().split(/\s+/)[0] || '');
+    });
+  }
+  const style = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
+  while ((tag = style.exec(source)) !== null) {
+    for (const url of nativeHtmlRemoteCssReferences(tag[1])) {
+      if (!result.includes(url)) result.push(url);
+    }
+  }
+  const styleAttribute = /\bstyle\s*=\s*(['"])(.*?)\1/gi;
+  while ((tag = styleAttribute.exec(source)) !== null) {
+    for (const url of nativeHtmlRemoteCssReferences(tag[2])) {
+      if (!result.includes(url)) result.push(url);
+    }
+  }
+  return result;
+}
+
 export function nativeHtmlInlineCss(css: string, cssPath: string,
   assets: Map<string, string>): string {
   return css.replace(/url\(\s*(['"]?)(.*?)\1\s*\)/gi,
@@ -130,12 +187,17 @@ function localFileUrl(path: string): string {
 }
 
 function policy(): string {
+  // Scripts keep running (the preview is interactive), but nothing the page
+  // computes may leave the component: programmatic network, form posts and
+  // remote frames/objects are denied, and subresource loads are additionally
+  // gated by the authored-URL allowlist in NativeHtmlPreview.
   return '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; ' +
     'img-src data: blob: http: https:; ' +
     'style-src \'unsafe-inline\' data: http: https:; ' +
     'script-src \'unsafe-inline\' data: http: https:; ' +
     'media-src data: blob: http: https:; font-src data: http: https:; ' +
-    'connect-src http: https:; frame-src http: https:; object-src data: http: https:;">' +
+    'connect-src \'none\'; frame-src \'none\'; object-src data:; ' +
+    'form-action \'none\'; base-uri \'none\';">' +
     '<meta name="referrer" content="no-referrer"><meta name="viewport" ' +
     'content="width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover">';
 }

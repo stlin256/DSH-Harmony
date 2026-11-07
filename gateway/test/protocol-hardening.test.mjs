@@ -376,18 +376,18 @@ function metadataStore() {
   };
 }
 
-function binaryStore() {
+function binaryStore(nameFor) {
   const rows = [
     {
-      session: 'session-a', path: 'same.bin', file: 'session-a.bin',
+      session: 'session-a', path: 'same.bin', file: nameFor('session-a', 'same.bin'),
       bytes: 3 * 1024 * 1024 * 1024, updated: 1
     },
     ...Array.from({ length: 31 }, (_, index) => ({
       session: 'session-fill-' + index, path: 'fill-' + index + '.bin',
-      file: 'session-fill-' + index + '.bin', bytes: 1, updated: index + 2
+      file: nameFor('session-fill-' + index, 'fill-' + index + '.bin'), bytes: 1, updated: index + 2
     })),
     {
-      session: 'session-b', path: 'same.bin', file: 'session-b.bin',
+      session: 'session-b', path: 'same.bin', file: nameFor('session-b', 'same.bin'),
       bytes: 1, updated: 100
     }
   ];
@@ -435,7 +435,11 @@ test('workspace LRU eviction isolates equal paths by session for metadata and bi
     mkdirSync() {},
     unlinkSync: path => unlinked.push(path)
   };
-  const { NativeWorkspaceCache } = workspaceCacheModule(fileIo);
+  const { NativeWorkspaceCache, textHash } = workspaceCacheModule(fileIo);
+  // The cache only unlinks names it can recompute from the row's own
+  // coordinates, so the fixture uses the real derived names.
+  const nameFor = (session, path) => 'scope-a-' +
+    textHash(session + '\n' + path).replace(/:/g, '-') + '.bin';
   const metadata = metadataStore();
   await NativeWorkspaceCache.trimMetadata(metadata, 'scope-a');
   assert.deepEqual(metadata.rows.map(row => row.session), ['session-b']);
@@ -444,7 +448,7 @@ test('workspace LRU eviction isolates equal paths by session for metadata and bi
   assert.ok(metadata.deletes.some(entry =>
     entry.args[1] === 'session-a' && entry.args[2] === 'same.txt'));
 
-  const binary = binaryStore();
+  const binary = binaryStore(nameFor);
   await NativeWorkspaceCache.trimBinary(
     binary, { filesDir: '/app/files' }, 'scope-a'
   );
@@ -453,6 +457,6 @@ test('workspace LRU eviction isolates equal paths by session for metadata and bi
   assert.ok(binary.deletes.every(entry => entry.args.length === 3));
   assert.ok(binary.deletes.some(entry =>
     entry.args[1] === 'session-a' && entry.args[2] === 'same.bin'));
-  assert.ok(unlinked.includes('/app/files/native-workspace-cache/session-a.bin'));
-  assert.equal(unlinked.includes('/app/files/native-workspace-cache/session-b.bin'), false);
+  assert.ok(unlinked.includes('/app/files/native-workspace-cache/' + nameFor('session-a', 'same.bin')));
+  assert.equal(unlinked.includes('/app/files/native-workspace-cache/' + nameFor('session-b', 'same.bin')), false);
 });

@@ -524,6 +524,22 @@
       ]
     },
     {
+      "id": "surface.file-preview-html",
+      "screens": [
+        "preview"
+      ],
+      "states": [
+        "html-preview"
+      ],
+      "drivers": [
+        "device-ui-mock-suite.ps1"
+      ],
+      "e2eIds": [
+        "PREVIEW-09"
+      ],
+      "requiresInteraction": false
+    },
+    {
       "id": "surface.file-preview-mode",
       "screens": [
         "preview"

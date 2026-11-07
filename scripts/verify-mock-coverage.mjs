@@ -315,7 +315,7 @@ export function validateMockFeatureManifest(
   return {
     ok: failures.length === 0,
     features: {
-      covered: Math.max(0, featureIds.length - invalidFeatures.size),
+      covered: featureIds.filter((id) => !invalidFeatures.has(id)).length,
       total: features.length,
       missing: [...invalidFeatures],
     },
