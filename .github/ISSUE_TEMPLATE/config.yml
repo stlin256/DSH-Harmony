@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and general discussion
+    url: https://github.com/stlin256/DSH-Harmony/discussions
+    about: Ask questions, share setups or show what you built in GitHub Discussions.
+  - name: Plugin installation guide
+    url: https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md
+    about: How to install and verify the DSH Harmony plugin.
+  - name: Deployment and Passkey
+    url: https://github.com/stlin256/DSH-Harmony/blob/main/docs/DEPLOYMENT.md
+    about: Build the app and connect it to your own DeepSeek Harness deployment.

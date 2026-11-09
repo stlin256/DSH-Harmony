@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a defect in DSH Harmony
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please include enough detail to reproduce the issue.
+        Do not paste tokens, cookies, private host names or transcript content.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown in Settings, or the release you installed (for example 0.4.10)
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and system
+      description: Device model, HarmonyOS version and API level
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Sessions and conversation
+        - Tool calls and approvals
+        - File preview
+        - Notifications and service widgets
+        - Login and connection
+        - Plugins and automation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove credentials, private addresses and transcript content before pasting.
+      render: text

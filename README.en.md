@@ -138,9 +138,9 @@ DSH Harmony is completing its AppGallery release preparation for HarmonyOS users
 
 ## Build it with us
 
-DSH Harmony is open source. Issues, ideas and pull requests are welcome; start with the [validation guide](docs/VALIDATION.md) and the implementation specs in the repository.
+DSH Harmony is open source. Issues, ideas and pull requests are welcome; start with the [contributing guide](CONTRIBUTING.md), the [validation guide](docs/VALIDATION.md) and the implementation specs in the repository.
 
-[Report an issue](https://github.com/stlin256/DSH-Harmony/issues) · [View source](https://github.com/stlin256/DSH-Harmony) · [Author](https://github.com/stlin256)
+[Report an issue](https://github.com/stlin256/DSH-Harmony/issues) · [Discussions](https://github.com/stlin256/DSH-Harmony/discussions) · [View source](https://github.com/stlin256/DSH-Harmony) · [Author](https://github.com/stlin256)
 
 <p align="center">
   <sub>Built for HarmonyOS with care. AGPL-3.0.</sub>
