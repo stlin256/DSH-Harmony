@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="zh-CN" data-lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSH Harmony — DeepSeek Harness 的 HarmonyOS 原生客户端</title>
+<meta name="description" content="DSH Harmony 是 DeepSeek Harness 的 HarmonyOS 原生客户端（ArkUI/ArkTS）：会话、工具调用、审批、文件预览、Passkey、鸿蒙通知与桌面服务卡片。开源 AGPL-3.0。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DSH Harmony — DeepSeek Harness 的 HarmonyOS 原生客户端">
+<meta property="og:description" content="为手机重新设计的原生工作空间：会话、工具调用、审批、文件预览、插件与自动化。开源 AGPL-3.0，需要自建 DeepSeek Harness 服务。">
+<meta property="og:image" content="https://stlin256.github.io/DSH-Harmony/assets/hero.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<style>
+  :root{
+    --accent:#4d6bfe; --accent-soft:#eef1ff;
+    --bg:#ffffff; --bg-soft:#f6f7fb; --card:#ffffff;
+    --text:#111418; --muted:#5b6472; --line:#e6e8ef;
+    --radius:18px;
+    --shadow:0 1px 2px rgba(16,24,40,.04),0 12px 32px rgba(16,24,40,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --accent:#7d93ff; --accent-soft:#1a2036;
+      --bg:#0e1016; --bg-soft:#141822; --card:#151a24;
+      --text:#eef1f7; --muted:#9aa4b5; --line:#242b39;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font-family:"HarmonyOS Sans","PingFang SC","Noto Sans SC",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    line-height:1.65;-webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  [data-lang="zh"] .en,[data-lang="en"] .zh{display:none!important}
+
+  header.hero{
+    background:
+      radial-gradient(900px 420px at 15% -10%, var(--accent-soft), transparent 70%),
+      linear-gradient(180deg,var(--bg-soft),var(--bg));
+    border-bottom:1px solid var(--line);
+    padding:64px 0 56px;
+  }
+  .hero-top{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand img{width:56px;height:56px;border-radius:14px;box-shadow:var(--shadow)}
+  .brand strong{font-size:20px;letter-spacing:.2px}
+  .lang{display:flex;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--card)}
+  .lang button{
+    border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;
+    padding:5px 12px;border-radius:999px;cursor:pointer;
+  }
+  .lang button.active{background:var(--accent);color:#fff}
+  h1{font-size:clamp(30px,5vw,46px);line-height:1.15;margin:36px 0 12px;letter-spacing:-.5px}
+  .lede{font-size:clamp(16px,2.2vw,19px);color:var(--muted);max-width:720px;margin:0 0 22px}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px}
+  .badge{
+    font-size:12.5px;color:var(--muted);border:1px solid var(--line);
+    background:var(--card);border-radius:999px;padding:4px 11px;
+  }
+  .cta{display:flex;flex-wrap:wrap;gap:12px}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;border-radius:12px;
+    padding:11px 20px;font-weight:600;font-size:15px;border:1px solid transparent;
+  }
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.primary:hover{text-decoration:none;filter:brightness(1.06)}
+  .btn.ghost{border-color:var(--line);color:var(--text);background:var(--card)}
+  .btn.ghost:hover{text-decoration:none;border-color:var(--accent);color:var(--accent)}
+
+  section{padding:56px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:clamp(22px,3vw,30px);margin:0 0 8px;letter-spacing:-.3px}
+  .sub{color:var(--muted);margin:0 0 28px;max-width:760px}
+
+  .shots{display:flex;gap:16px;overflow-x:auto;padding:4px 4px 16px;scroll-snap-type:x mandatory}
+  .shots figure{margin:0;flex:0 0 auto;scroll-snap-align:start;text-align:center}
+  .shots img{
+    width:196px;height:auto;border-radius:14px;border:1px solid var(--line);
+    box-shadow:var(--shadow);display:block;background:var(--card);
+  }
+  .shots figcaption{font-size:12.5px;color:var(--muted);margin-top:8px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 8px;font-size:16.5px}
+  .card p{margin:0;color:var(--muted);font-size:14.5px}
+  .card .ico{font-size:20px;margin-bottom:10px;display:block}
+
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;counter-reset:step}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);position:relative}
+  .step::before{
+    counter-increment:step;content:counter(step);
+    display:inline-flex;align-items:center;justify-content:center;
+    width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;
+    font-size:13px;font-weight:700;margin-bottom:12px;
+  }
+  .step h3{margin:0 0 8px;font-size:16px}
+  .step p{margin:0;color:var(--muted);font-size:14.5px}
+  pre{
+    background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.55;margin:12px 0 0;
+  }
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+  .notice{
+    background:var(--accent-soft);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px 22px;color:var(--text);font-size:14.5px;
+  }
+  .notice strong{color:var(--text)}
+  .notice p{margin:0 0 8px}
+  .notice p:last-child{margin:0}
+
+  .links{display:flex;flex-wrap:wrap;gap:10px}
+  footer{padding:36px 0 56px;color:var(--muted);font-size:13.5px}
+  footer p{margin:4px 0}
+  @media (max-width:560px){
+    .hero-top{flex-direction:column;align-items:flex-start}
+    section{padding:44px 0}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-top">
+      <div class="brand">
+        <img src="assets/icon.svg" alt="DSH Harmony">
+        <strong>DSH Harmony</strong>
+      </div>
+      <div class="lang" role="group" aria-label="Language">
+        <button data-lang-btn="zh" class="active" type="button">中文</button>
+        <button data-lang-btn="en" type="button">English</button>
+      </div>
+    </div>
+
+    <h1>
+      <span class="zh">把 DeepSeek Harness 装进 HarmonyOS</span>
+      <span class="en">DeepSeek Harness, made for HarmonyOS</span>
+    </h1>
+    <p class="lede">
+      <span class="zh">为手机重新设计的原生工作空间：会话、工具调用、审批、文件预览、插件与自动化留在同一条工作线上。ArkUI 构建，不是套壳网页。</span>
+      <span class="en">A native workspace redesigned for phones — sessions, tool calls, approvals, file preview, plugins and automation on one working line. Built with ArkUI, not a WebView wrapper.</span>
+    </p>
+    <div class="badges">
+      <span class="badge">HarmonyOS 7</span>
+      <span class="badge">API 23+</span>
+      <span class="badge">ARM64</span>
+      <span class="badge">AGPL-3.0</span>
+      <span class="badge zh">早期社区版</span>
+      <span class="badge en">Early community build</span>
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/stlin256/DSH-Harmony/releases">
+        <span class="zh">下载社区版</span><span class="en">Download</span>
+      </a>
+      <a class="btn ghost" href="https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md">
+        <span class="zh">安装说明</span><span class="en">Install guide</span>
+      </a>
+      <a class="btn ghost" href="https://github.com/stlin256/DSH-Harmony">GitHub</a>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2><span class="zh">原生界面，完整工作流</span><span class="en">Native UI, complete workflow</span></h2>
+    <p class="sub">
+      <span class="zh">会话、工作过程、模型选择、权限、文件预览、插件和自动化都在 ArkUI 中实现；触控反馈、安全区、系统返回和减少动态效果都按 HarmonyOS 重新设计。</span>
+      <span class="en">Sessions, process, model selection, permissions, file preview, plugins and automation are implemented in ArkUI, with touch feedback, safe areas, system Back and reduced motion redesigned for HarmonyOS.</span>
+    </p>
+    <div class="shots">
+      <figure><img src="assets/01-conversation.png" alt="Conversation"><figcaption><span class="zh">会话与任务计划</span><span class="en">Conversation and plan</span></figcaption></figure>
+      <figure><img src="assets/02-process.png" alt="Process"><figcaption><span class="zh">结构化工作过程</span><span class="en">Structured process</span></figcaption></figure>
+      <figure><img src="assets/05-approval.png" alt="Approval"><figcaption><span class="zh">单次审批</span><span class="en">One-shot approval</span></figcaption></figure>
+      <figure><img src="assets/04-file-preview.png" alt="File preview"><figcaption><span class="zh">文件预览</span><span class="en">File preview</span></figcaption></figure>
+      <figure><img src="assets/09-desktop-cards.png" alt="Service cards"><figcaption><span class="zh">桌面服务卡片</span><span class="en">Service cards</span></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="zh">为什么是原生</span><span class="en">Why native</span></h2>
+    <p class="sub">
+      <span class="zh">桌面端的 Agent 搬到手机上，最常见的做法是套一个网页。DSH Harmony 把主界面重写成 ArkUI：只有 Passkey 认证页和 HTML 预览使用 ArkWeb。</span>
+      <span class="en">Most mobile agent clients wrap the desktop web UI. DSH Harmony rebuilds the workspace in ArkUI; ArkWeb is used only for the Passkey page and HTML preview.</span>
+    </p>
+    <div class="grid">
+      <div class="card">
+        <span class="ico">◈</span>
+        <h3><span class="zh">原生 ArkUI 工作台</span><span class="en">Native ArkUI workspace</span></h3>
+        <p><span class="zh">触控反馈、抽屉、页面动线、安全区和系统 Back 都为 HarmonyOS 重新实现，并尊重系统的减少动态效果设置。</span><span class="en">Press feedback, drawers, navigation, safe areas and system Back are rebuilt for HarmonyOS, respecting reduced-motion preferences.</span></p>
+      </div>
+      <div class="card">
+        <span class="ico">❖</span>
+        <h3><span class="zh">完整 Agent 工作流</span><span class="en">Complete agent workflow</span></h3>
+        <p><span class="zh">会话、工具调用、计划与子代理谱系、审批、提问、文件预览、插件与自动化，都能在手机上完成。</span><span class="en">Sessions, tool calls, plan and subagent lineage, approvals, questions, file preview, plugins and automation — all on the phone.</span></p>
+      </div>
+      <div class="card">
+        <span class="ico">◎</span>
+        <h3><span class="zh">鸿蒙系统能力</span><span class="en">HarmonyOS capabilities</span></h3>
+        <p><span class="zh">Passkey 登录、分级通知、桌面服务卡片与 Push Kit，通知点开直接回到对应会话。</span><span class="en">Passkey sign-in, tiered notifications, home-screen service cards and Push Kit; tapping a notification returns to its session.</span></p>
+      </div>
+      <div class="card">
+        <span class="ico">⌂</span>
+        <h3><span class="zh">自托管，开源</span><span class="en">Self-hosted and open source</span></h3>
+        <p><span class="zh">连接你自己的 DeepSeek Harness，不经过第三方中转；配套插件用一句提示词安装。AGPL-3.0。</span><span class="en">Connects to your own DeepSeek Harness with no third-party relay; the companion plugin installs from one prompt. AGPL-3.0.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="zh">三步开始</span><span class="en">Get started in three steps</span></h2>
+    <p class="sub">
+      <span class="zh">需要一台运行 DeepSeek Harness 的机器，以及一台 HarmonyOS 7 / API 23+ 的 ARM64 设备。</span>
+      <span class="en">You need a machine running DeepSeek Harness and a HarmonyOS 7 / API 23+ ARM64 device.</span>
+    </p>
+    <div class="steps">
+      <div class="step">
+        <h3><span class="zh">下载社区版 HAP</span><span class="en">Download the community HAP</span></h3>
+        <p><span class="zh">从 GitHub Releases 下载最新的 <code>DSH-Harmony-&lt;版本&gt;-community-arm64.hap</code>。</span><span class="en">Get the latest <code>DSH-Harmony-&lt;version&gt;-community-arm64.hap</code> from GitHub Releases.</span></p>
+      </div>
+      <div class="step">
+        <h3><span class="zh">安装插件</span><span class="en">Install the plugin</span></h3>
+        <p><span class="zh">把安装提示词发给 DSH，或在「插件 → Add plugin」粘贴 tarball 地址。</span><span class="en">Send the install prompt to DSH, or paste the tarball URL in Plugins → Add plugin.</span></p>
+        <pre><code>dsh plugin --profile web add \
+  https://github.com/stlin256/DSH-Harmony/releases/download/plugin-v0.4.0/dsh-harmony-plugin-0.4.0.tgz</code></pre>
+      </div>
+      <div class="step">
+        <h3><span class="zh">连接</span><span class="en">Connect</span></h3>
+        <p><span class="zh">打开 App，填写 DSH 服务地址，选择原生登录或 Passkey。</span><span class="en">Open the app, enter your DSH origin, and choose native login or Passkey.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="zh">项目状态</span><span class="en">Project status</span></h2>
+    <div class="notice">
+      <p><strong><span class="zh">早期社区版。</span><span class="en">Early community build.</span></strong>
+        <span class="zh">项目仍在快速迭代，bug 较多；AppGallery 版本准备中，当前只能侧载社区版 HAP。社区版使用维护者证书签名，在自己的设备上安装需要用自己的 DevEco Studio 证书与 Profile 重新签名，或从源码构建。</span>
+        <span class="en">The project is moving fast and still has bugs. The AppGallery build is in preparation; today you side-load the community HAP. It is signed with the maintainer's certificate — to install it on your own device, re-sign it with your own DevEco Studio certificate and profile, or build from source.</span>
+      </p>
+      <p><span class="zh">使用前需要自行部署或已获授权使用 DeepSeek Harness 服务；App 本身不提供模型、算力或账号。本项目与 DeepSeek 官方没有关联、合作或背书关系。</span>
+        <span class="en">You need your own DeepSeek Harness deployment (or authorized access). The app provides no models, compute or accounts, and is not affiliated with or endorsed by DeepSeek.</span>
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="zh">链接</span><span class="en">Links</span></h2>
+    <div class="links">
+      <a class="btn ghost" href="https://github.com/stlin256/DSH-Harmony">GitHub</a>
+      <a class="btn ghost" href="https://github.com/stlin256/DSH-Harmony/releases"><span class="zh">下载</span><span class="en">Releases</span></a>
+      <a class="btn ghost" href="https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md"><span class="zh">插件安装</span><span class="en">Plugin install</span></a>
+      <a class="btn ghost" href="https://github.com/stlin256/DSH-Harmony/blob/main/docs/DEPLOYMENT.md"><span class="zh">部署</span><span class="en">Deployment</span></a>
+      <a class="btn ghost" href="https://github.com/stlin256/DSH-Harmony/discussions"><span class="zh">讨论区</span><span class="en">Discussions</span></a>
+      <a class="btn ghost" href="https://developer.huawei.com/consumer/cn/appgallery/"><span class="zh">AppGallery · 准备中</span><span class="en">AppGallery · in preparation</span></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>DSH Harmony · AGPL-3.0 · Built for HarmonyOS</p>
+    <p><span class="zh">DeepSeek Harness 是 DeepSeek 的开源项目；本页与 DeepSeek 官方无关联。</span><span class="en">DeepSeek Harness is an open-source project by DeepSeek; this page is not affiliated with DeepSeek.</span></p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  function setLang(l){
+    root.dataset.lang=l;
+    root.lang=l==='zh'?'zh-CN':'en';
+    document.querySelectorAll('[data-lang-btn]').forEach(function(b){
+      b.classList.toggle('active',b.getAttribute('data-lang-btn')===l);
+    });
+    try{localStorage.setItem('dsh-harmony-lang',l);}catch(e){}
+  }
+  document.querySelectorAll('[data-lang-btn]').forEach(function(b){
+    b.addEventListener('click',function(){setLang(b.getAttribute('data-lang-btn'));});
+  });
+  try{
+    var saved=localStorage.getItem('dsh-harmony-lang');
+    if(saved==='en'||saved==='zh') setLang(saved);
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
