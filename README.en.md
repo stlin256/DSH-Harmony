@@ -91,13 +91,31 @@ Login stays flexible:
 
 ## Get started
 
-Send this prompt to DSH. An agent with `plugin_manager` support will install the plugin and verify its version:
+### 1. Install the app
+
+Download the latest community HAP from [Releases](https://github.com/stlin256/DSH-Harmony/releases) (`DSH-Harmony-<version>-community-arm64.hap`). It targets HarmonyOS 7 / API 23+ on ARM64 phones and tablets.
+
+Install it on a device with Developer mode and USB debugging enabled, using `hdc` from DevEco Studio or the HarmonyOS SDK:
+
+```powershell
+hdc install -r .\DSH-Harmony-<version>-community-arm64.hap
+```
+
+The community HAP is signed with the maintainer's local certificate. To install it on your own device, re-sign it with your own DevEco Studio certificate and profile, or build from source as described in the [deployment guide](docs/DEPLOYMENT.md); otherwise the device may report an untrusted signature (error 9568322). The AppGallery build is still in preparation.
+
+### 2. Install the plugin
+
+The app needs `@dsh-harmony/plugin` to reach DSH. Send this prompt to DSH. An agent with `plugin_manager` support will install the plugin and verify its version:
 
 ```text
 Follow https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md to install and enable DSH Harmony. Use dsh-harmony-plugin-0.4.0.tgz from the matching plugin-v0.4.0 release, then verify that @dsh-harmony/plugin is running and report its version.
 ```
 
-You can also open **Plugins → Add plugin** in DSH and paste the same versioned tarball URL. Then open DSH Harmony, enter the service origin and choose native login or Passkey.
+You can also open **Plugins → Add plugin** in DSH and paste the same versioned tarball URL.
+
+### 3. Connect
+
+Open DSH Harmony, enter your DSH origin and choose native login or Passkey.
 
 [Plugin installation](docs/PLUGIN-INSTALL.md) · [Deployment](docs/DEPLOYMENT.md) · [Passkey](docs/OIDC-DEPLOYMENT.md)
 

@@ -91,13 +91,31 @@ DSH Harmony 以 ArkUI 构建单一原生工作空间：会话、工作过程、�
 
 ## 开始使用
 
-把下面这一句发给 DSH，支持 `plugin_manager` 的 Agent 会完成插件安装并核对版本：
+### 1. 安装 App
+
+从 [Releases](https://github.com/stlin256/DSH-Harmony/releases) 下载最新的社区版 HAP（`DSH-Harmony-<版本>-community-arm64.hap`），适用于 HarmonyOS 7 / API 23+ 的 ARM64 手机与平板。
+
+在已开启开发者模式与 USB 调试的设备上，用 DevEco Studio 或 HarmonyOS SDK 自带的 `hdc` 安装：
+
+```powershell
+hdc install -r .\DSH-Harmony-<版本>-community-arm64.hap
+```
+
+社区版 HAP 使用维护者本机的签名证书。在你自己设备上安装时，需要用你自己的 DevEco Studio 证书与 Profile 重新签名，或按 [部署说明](docs/DEPLOYMENT.md) 从源码构建；否则设备可能提示签名不受信任（错误码 9568322）。AppGallery 版本仍在准备中。
+
+### 2. 安装插件
+
+App 需要 `@dsh-harmony/plugin` 才能连接 DSH。把下面这一句发给 DSH，支持 `plugin_manager` 的 Agent 会完成插件安装并核对版本：
 
 ```text
 请按 https://github.com/stlin256/DSH-Harmony/blob/main/docs/PLUGIN-INSTALL.md 安装并启用 DSH Harmony 插件，使用与 App 匹配的 plugin-v0.4.0 Release 中的 dsh-harmony-plugin-0.4.0.tgz，安装后确认 @dsh-harmony/plugin 正常运行并报告版本。
 ```
 
-也可以打开 DSH 的 **插件 → Add plugin**，粘贴同一版本化 tarball 地址。随后打开 DSH Harmony，填写服务地址并选择原生登录或 Passkey。
+也可以打开 DSH 的 **插件 → Add plugin**，粘贴同一版本化 tarball 地址。
+
+### 3. 连接
+
+打开 DSH Harmony，填写 DSH 服务地址并选择原生登录或 Passkey。
 
 [插件安装](docs/PLUGIN-INSTALL.md) · [部署](docs/DEPLOYMENT.md) · [Passkey](docs/OIDC-DEPLOYMENT.md)
 
